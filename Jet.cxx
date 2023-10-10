@@ -10,12 +10,12 @@
 ClassImp(Jet)
 
 //________________
-Jet::Jet() : TObject(), fRecoPt{-999.}, 
-    fRecoEta{-999.}, fRecoPhi{-999.}, fRefPt{-999.},
-    fRefEta{-999.}, fRefPhi{-999.}, 
-    fRefFlavor{-999}, fRefFlavorForB{-99}, 
-    fGenPt{-999.}, fGenEta{-999}, fGenPhi{-999.}, 
-    fDebug{kFALSE} {
+Jet::Jet() : TObject(), fRecoPt{-999.f}, 
+    fRecoEta{-999.f}, fRecoPhi{-999.f}, 
+    fRecoPtJESCorr{-999.f}, fRecoWTAeta{-999.f}, fRecoWTAphi{-999.f},
+    fRecoJetPtWeight{-999.f}, fRecoJetPtSmearingWeight{-999.f},
+    fRefPt{-999.f}, fRefEta{-999.f}, fRefPhi{-999.f}, 
+    fRefFlavor{-999}, fRefFlavorForB{-99}, fRefPtWeight{-999.f} {
     // Empty
 }
 
@@ -28,13 +28,10 @@ Jet::~Jet() {
 void Jet::print() {
     std::cout << Form("---------------------------------\n")
               << Form("Reconstructed jet params:\n")
-              << Form("pT: %5.2f  eta: %3.2f  phi: %3.2f\n",
-                      fRecoPt, fRecoEta, fRecoPhi)
+              << Form("pT: %5.2f  eta: %3.2f  phi: %3.2f  pTcorr: %5.2f  WTAeta: %3.2f  WTAphi: %3.2f\n",
+                      fRecoPt, fRecoEta, fRecoPhi, fRecoPtJESCorr, fRecoWTAeta, fRecoWTAphi)
               << Form("Matched jet params:\n")
               << Form("pT: %5.2f  eta: %3.2f  phi: %3.2f  flavor: %d  flavorForB: %d\n",
                       fRefPt, fRefEta, fRefPhi, refFlavor(), refFlavorForB() )
-              << Form("Generated jet params:\n")
-              << Form("pT: %5.2f  eta: %3.2f  phi: %3.2f\n",
-                      fGenPt, fGenEta, fGenPhi)
               << Form("---------------------------------\n");
 }

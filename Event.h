@@ -3,16 +3,18 @@
 
 // ROOT headers
 #include "TObject.h"
+#include "Collections.h"
 
 //________________
 class Event : public TObject {
   public:
     /// @brief Default constructor
     Event();
+    /// @brief Parametrized constructor
     Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
           const Float_t& vz, const Int_t& hiBin, const Float_t& ptHat, 
-          const Float_t& w, const Float_t& bit);
-    /// @brief destructor
+          const Float_t& w, const Int_t& bit);
+    /// @brief Destructor
     virtual ~Event();
 
     //
@@ -34,7 +36,7 @@ class Event : public TObject {
     /// @brief Set event weight
     void setWeight(const Float_t& w)     { fWeight = w; }
     /// @brief Set jet trigger bit
-    void seetJetTriggerBit(const Int_t& bit) { fJetTriggerBit = bit; }
+    void setJetTriggerBit(const Int_t& bit) { fJetTriggerBit = bit; }
     /// @brief  Print event information
     void print();
 
@@ -50,14 +52,25 @@ class Event : public TObject {
     UInt_t lumi() const       { return fLumi; }
     /// @brief Return vertex z 
     Float_t vz() const        { return fVz; }
-    /// @brief Return centrality bin 
+    /// @brief Return hiBin bin 
     Int_t hiBin() const       { return (Int_t)fHiBin; }
+    /// @brief Return centrality bin
+    Double_t centrality() const  { return 100. - Double_t(200 - fHiBin) * 0.5; }
     /// @brief Return ptHat 
     Float_t ptHat() const     { return fPtHat; }
     /// @brief Return event weight 
     Float_t weight() const    { return fWeight; }
     /// @brief Return jet trigger bit 
     Int_t jetTriggerBit() const { return fJetTriggerBit; }
+
+    /// @brief Return pointer to a collection of tracks
+    TrackCollection *trackCollection() const { return fTrackCollection; }
+    /// @brief Return pointer to a collection of MC tracks 
+    GenTrackCollection *genTrackCollection() const { return fGenTrackCollection; }
+    /// @brief Return pointer to a collection of particle flow jets 
+    PartFlowJetCollection *pfJetCollection() const { return fPFJetCollection; }
+    /// @brief Return pointer to a collection of calorimeter jets 
+    CaloJetCollection *caloJetCollection() const { return fCaloJetCollection; }
 
   private:
     /// @brief Run index
@@ -69,13 +82,23 @@ class Event : public TObject {
     /// @brief Vertex z position
     Float_t   fVz;
     /// @brief Centrality bin
-    Short_t     fHiBin;
+    Short_t   fHiBin;
     /// @brief pthat sclaing
     Float_t   fPtHat;
     /// @brief Event weight scaling
     Float_t   fWeight;
+
     /// @brief Trigger scheme
     Int_t     fJetTriggerBit;
+
+    /// @brief Particle flow jet collection
+    PartFlowJetCollection *fPFJetCollection;
+    /// @brief Calorimeter jet collection
+    CaloJetCollection *fCaloJetCollection;
+    /// @brief Track collection
+    TrackCollection *fTrackCollection;
+    /// @brief MC track collection
+    GenTrackCollection *fGenTrackCollection;
 
     ClassDef(Event, 1)
 };

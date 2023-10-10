@@ -5,6 +5,9 @@ project(JetAnalysis
 
 set(libname JetAnalysis)
 
+#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+
 #set(CMAKE_CXX_STANDARD 17)
 #set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -37,13 +40,38 @@ add_definitions(${ROOT_CXX_FLAGS})
 # List all headers to be used to generate dictionary and added to the library
 set(HEADERS
         JetAnalysis.h
+        Event.h
+        Track.h
+        GenTrack.h
         Jet.h
+        BaseAnalysis.h
+        BaseReader.h
+        BaseHistoManager.h
+        BasicHistoManager.h
+        Collections.h
+        ForestAODReader.h
+        JetCorrector.h
+        JetUncertainty.h
+        EventCut.h
+        JetCut.h
+        AnalysisManager.h
 )
 
 # List source files
 set(SRC 
         JetAnalysis.cxx
+        Event.cxx
+        Track.cxx
+        GenTrack.cxx
         Jet.cxx
+        BaseReader.cxx
+        BasicHistoManager.cxx
+        ForestAODReader.cxx
+        JetCorrector.cxx
+        JetUncertainty.cxx
+        EventCut.cxx
+        JetCut.cxx
+        AnalysisManager.cxx
 )
 
 # Generate ROOT dictionaries
