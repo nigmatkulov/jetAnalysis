@@ -23,12 +23,12 @@ class Jet : public TObject {
     void setRecoJetEta(const Float_t& eta)   { fRecoEta = eta; }
     /// @brief Set reconstructed jet phi
     void setRecoJetPhi(const Float_t& phi)   { fRecoPhi = phi; }
-    /// @brief Set reconstructed jet JES-corrected pt
-    void setRecoJetPtJESCorr(const Float_t& pt) { fRecoPtJESCorr = pt; }
+    /// @brief Set reconstructed jet JEC-corrected pt
+    void setRecoJetPtJECCorr(const Float_t& pt) { fRecoPtJECCorr = pt; }
     /// @brief Set WTA eta axis
     void setRecoJetWTAeta(const Float_t& eta) { fRecoWTAeta = eta; }
     /// @brief Set WTA phi axis
-    void setRecoJetWTAphi(const Float_t& phi) {fRecoWTAphi = phi; }
+    void setRecoJetWTAphi(const Float_t& phi) { fRecoWTAphi = phi; }
     /// @brief Set jet weight (for MC). Jet pT-smearing is not applied
     void setRecoJetPtWeight(const Float_t& w) { fRecoJetPtWeight = w; }
     /// @brief Set jet pT smearing weight (for MC)
@@ -61,8 +61,8 @@ class Jet : public TObject {
     Float_t recoJetEta() const { return fRecoEta; }
     /// @brief Reconstructed jet phi 
     Float_t recoJetPhi() const { return fRecoPhi; }
-    /// @brief Reconstructed jet JES-corrected pt 
-    Float_t recoJetPtJESCorr() const { return fRecoPtJESCorr; }
+    /// @brief Reconstructed jet JEC-corrected pt 
+    Float_t recoJetPtJECCorr() const { return fRecoPtJECCorr; }
     /// @brief Reconstructed jet WTA eta axis 
     Float_t recoJetWTAeta() const { return fRecoWTAeta; }
     /// @brief Reconstructed jet WTA phi axis
@@ -71,8 +71,8 @@ class Jet : public TObject {
     TVector3 recoJetVec() const 
     { TVector3 v; v.SetPtEtaPhi(fRecoPt, fRecoEta, fRecoPhi); return v; }
     /// @brief Return reconstructed jet parameters
-    TVector3 recoJetVecJESCorr() const 
-    { TVector3 v; v.SetPtEtaPhi(fRecoPtJESCorr, fRecoEta, fRecoPhi); return v; }
+    TVector3 recoJetVecJECCorr() const 
+    { TVector3 v; v.SetPtEtaPhi(fRecoPtJECCorr, fRecoEta, fRecoPhi); return v; }
     /// @brief Return jet pT weight
     Float_t recoJetPtWeight() const { return fRecoJetPtWeight; }
     /// @brief Return jet pT smearing weight 
@@ -108,7 +108,7 @@ class Jet : public TObject {
     /// @brief Jet azimuthal angle (-999. for non-existing reco jet)
     Float_t fRecoPhi;
     /// @brief Jet transverse momentum after energy correction
-    Float_t fRecoPtJESCorr;
+    Float_t fRecoPtJECCorr;
     /// @brief Jet WTA eta axis
     Float_t fRecoWTAeta;
     /// @brief Jet WTA phi axis

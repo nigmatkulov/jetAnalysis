@@ -1,5 +1,6 @@
 #ifndef JETCORRECTOR_H
 #define JETCORRECTOR_H
+
 // SingleJetCorrector
 // v3.0
 // Author: Yi Chen
@@ -8,20 +9,23 @@
 // Supposedly runs faster than v1.0
 // v3.0: one can add list of text files to apply them one by one
 
-// С++ headers
+// C++ headers
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
 // ROOT headers
-#include "TObject.h"
 #include "TF1.h"
 #include "TF2.h"
 #include "TF3.h"
 
-//________________
+// ROOT headers
+#include "TObject.h"
+
+//_________________
 class SingleJetCorrector {
+
   public:
     SingleJetCorrector();
     SingleJetCorrector(std::string File);
@@ -40,11 +44,15 @@ class SingleJetCorrector {
     double GetCorrection();
     double GetCorrectedPT();
     double GetValue(Type T);
+
   private:
-    std::string Hack4(std::string Formula, char V, int N);
     bool Initialized;
     bool IsFunction;
-    double JetPT, JetEta, JetPhi, JetArea, Rho;
+    double JetPT; 
+    double JetEta; 
+    double JetPhi;
+    double JetArea; 
+    double Rho;
     std::vector<std::string> Formulas;
     std::vector<std::vector<double>> Parameters;
     std::vector<std::vector<Type>> BinTypes;
@@ -52,17 +60,20 @@ class SingleJetCorrector {
     std::vector<std::vector<Type>> Dependencies;
     std::vector<std::vector<double>> DependencyRanges;
     std::vector<TF1 *> Functions;
+    std::string Hack4(std::string Formula, char V, int N);
 
     ClassDef(SingleJetCorrector, 0)
 };
 
-//________________
+//_________________
 class JetCorrector {
+    
   public:
-    JetCorrector()                               {}
-    JetCorrector(std::string File)               { Initialize(File); }
-    JetCorrector(std::vector<std::string> Files) { Initialize(Files); }
-    void Initialize(std::string File)            { std::vector<std::string> X; X.push_back(File); Initialize(X); }
+    JetCorrector();
+    JetCorrector(std::string File);
+    JetCorrector(std::vector<std::string> Files);
+    virtual ~JetCorrector() { /* empty */ }
+    void Initialize(std::string File);
     void Initialize(std::vector<std::string> Files);
     void SetJetPT(double value)     { JetPT = value; }
     void SetJetEta(double value)    { JetEta = value; }
@@ -71,9 +82,14 @@ class JetCorrector {
     void SetRho(double value)       { Rho = value; }
     double GetCorrection();
     double GetCorrectedPT();
+
   private:
     std::vector<SingleJetCorrector> JEC;
-    double JetPT, JetEta, JetPhi, JetArea, Rho;
+    double JetPT;
+    double JetEta; 
+    double JetPhi; 
+    double JetArea; 
+    double Rho;
 
     ClassDef(JetCorrector, 0)
 };

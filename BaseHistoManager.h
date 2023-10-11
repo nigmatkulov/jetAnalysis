@@ -12,8 +12,8 @@ class BaseHistoManager {
     /// @brief Destructor
     virtual ~BaseHistoManager() { /* empty */}
     
-    /// @brief Return list of objects (histograms, profiles, graphs, etc...)
-    virtual TList *getOutputList() = 0;
+    // // @brief Return list of objects (histograms, profiles, graphs, etc...)
+    // virtual TList *getOutputList() = 0;
 
   ClassDef(BaseHistoManager, 0)
 };

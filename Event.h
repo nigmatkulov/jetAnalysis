@@ -34,7 +34,7 @@ class Event : public TObject {
     /// @brief Set ptHat
     void setPtHat(const Float_t& ptHat)  { fPtHat = ptHat; }
     /// @brief Set event weight
-    void setWeight(const Float_t& w)     { fWeight = w; }
+    void setPtHatWeight(const Float_t& w) { fPtHatWeight = w; }
     /// @brief Set jet trigger bit
     void setJetTriggerBit(const Int_t& bit) { fJetTriggerBit = bit; }
     /// @brief  Print event information
@@ -59,7 +59,7 @@ class Event : public TObject {
     /// @brief Return ptHat 
     Float_t ptHat() const     { return fPtHat; }
     /// @brief Return event weight 
-    Float_t weight() const    { return fWeight; }
+    Float_t ptHatWeight() const    { return fPtHatWeight; }
     /// @brief Return jet trigger bit 
     Int_t jetTriggerBit() const { return fJetTriggerBit; }
 
@@ -86,7 +86,7 @@ class Event : public TObject {
     /// @brief pthat sclaing
     Float_t   fPtHat;
     /// @brief Event weight scaling
-    Float_t   fWeight;
+    Float_t   fPtHatWeight;
 
     /// @brief Trigger scheme
     Int_t     fJetTriggerBit;

@@ -14,7 +14,7 @@ ClassImp(EventCut)
 EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fShiftVx{0}, fShiftVy{0}, fVR{1e9}, 
     fHiBin{-1000, 1000}, fCentVal{-1000., 1000.},
-    fPtHat{-1e9, 1e9}, fWeight{-1e9, 1e9}, fVerbose{kFALSE},
+    fPtHat{-1e9, 1e9}, fPtHatWeight{-1e9, 1e9}, fVerbose{kFALSE},
     fEventsPassed{0}, fEventsFailed{0} {
     fLumi[0] = 0;
     fLumi[1] = std::numeric_limits<unsigned int>::max();
@@ -34,7 +34,7 @@ void EventCut::report() {
     report += TString::Format( "HiBin           :\t %d - %d\n", fHiBin[0], fHiBin[1] );
     report += TString::Format( "Centrality      :\t %f - %f\n", fCentVal[0], fCentVal[1] );
     report += TString::Format( "pThat           :\t %f - %f\n", fPtHat[0], fPtHat[1] );
-    report += TString::Format( "eventWeight     :\t %f - %f\n", fWeight[0], fWeight[1] );
+    report += TString::Format( "ptHatWeight     :\t %f - %f\n", fPtHatWeight[0], fPtHatWeight[1] );
     report += TString::Format( "Events passed   :\t %lld\n", fEventsPassed );
     report += TString::Format( "Events failed   :\t %lld\n", fEventsFailed );
     std::cout << report.Data() << std::endl;
@@ -79,16 +79,16 @@ Bool_t EventCut::pass(const Event* ev) {
                           fPtHat[0], ev->ptHat(), fPtHat[1], ( goodPtHat ) ? "true" : "false" );
     }
 
-    const Bool_t goodEventWeight = ( fWeight[0] <= ev->weight() ) &&
-                                   ( ev->weight() < fWeight[1] );
+    const Bool_t goodPtHatWeight = ( fPtHatWeight[0] <= ev->ptHatWeight() ) &&
+                                   ( ev->ptHatWeight() < fPtHatWeight[1] );
                 
     if (fVerbose) {
         std::cout << Form("eventWeight  : %7.2f <= %7.2f < %7.2f \t %s \n",
-                          fWeight[0], ev->weight(), fWeight[1], ( goodEventWeight ) ? "true" : "false" );
+                          fPtHatWeight[0], ev->ptHatWeight(), fPtHatWeight[1], ( goodPtHatWeight ) ? "true" : "false" );
     }    
 
     Bool_t passEvent = goodVx && goodVy && goodVz && goodHiBin &&
-                       goodCent && goodPtHat && goodEventWeight;
+                       goodCent && goodPtHat && goodPtHatWeight;
     ( passEvent ) ? fEventsPassed++ : fEventsFailed++;
     
     return passEvent;

@@ -216,7 +216,7 @@ class ForestAODReader : public BaseReader {
     /// @brief Collision centrality (0-200)
     Int_t   fHiBin;
     /// @brief Event weight (prescale from generator level)
-    Float_t fEventWeight; 
+    Float_t fPtHatWeight; 
     /// @brief ptHat (initial parton pT) - from generator level
     Float_t fPtHat;  
 

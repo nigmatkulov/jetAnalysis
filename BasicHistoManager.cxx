@@ -8,12 +8,13 @@
 #include "TClass.h"
 #include "TKey.h"
 #include "TROOT.h"
+#include "TSystem.h"
 
 ClassImp(BasicHistoManager)
 
 //________________
 BasicHistoManager::BasicHistoManager() :
-  fListOfObjects{nullptr}, fIsMc{kFALSE}, 
+  fIsMc{kFALSE}, 
   fCentBins{6}, fCentRange{0., 60.},
   fJetPtBins{200}, fJetPtRange{0., 1000.}, 
   fJetEtaBins{50}, fJetEtaRange{-2.5, 2.5},
@@ -21,8 +22,9 @@ BasicHistoManager::BasicHistoManager() :
   fJESBins{500}, fJESRange{0., 5.},
   fJERBins{400}, fJERRange{-2., 2.},
   hVz{nullptr}, hVzWeighted{nullptr}, hMult{nullptr},
-  hHiBin{nullptr}, hWeight{nullptr}, hPtHat{nullptr},
-  hPtHatWeighted{nullptr}, hCentrality{nullptr}, 
+  hHiBin{nullptr}, hHiBinWieghted{nullptr},
+  hPtHat{nullptr}, hPtHatWeighted{nullptr}, hPtHatWeight{nullptr},
+  hCentrality{nullptr}, 
   hNRecoJets{nullptr}, hRecoJetPtRaw{nullptr}, hRecoJetPtCorrVsPtRaw{nullptr},
   hRecoJetPt{nullptr}, hRecoJetPtWeighted{nullptr}, hRecoJetEta{nullptr},
   hRecoJetPhi{nullptr}, hRecoJetPtVsEta{nullptr}, 
@@ -33,7 +35,7 @@ BasicHistoManager::BasicHistoManager() :
   hRefJet{nullptr}, hRefJetWeighted{nullptr},
   hJESRaw{nullptr}, hJESRawWeighted{nullptr}, hJESReco{nullptr}, hJESRecoWeighted{nullptr},
   hJERRaw{nullptr}, hJERRawWeighted{nullptr}, hJERReco{nullptr}, hJERRecoWeighted{nullptr} { 
-    fListOfObjects = new TList();
+    /* Empty */
 }
 
 //________________
@@ -42,9 +44,10 @@ BasicHistoManager::~BasicHistoManager() {
     if (hVzWeighted) delete hVzWeighted;
     if (hMult) delete hMult;
     if (hHiBin) delete hHiBin;
-    if (hWeight) delete hWeight;
+    if (hHiBinWieghted) delete hHiBinWieghted;
     if (hPtHat) delete hPtHat;
     if (hPtHatWeighted) delete hPtHatWeighted;
+    if (hPtHatWeight) delete hPtHatWeight;
     if (hCentrality) delete hCentrality;
 
     if (hNRecoJets) delete hNRecoJets;
@@ -112,138 +115,141 @@ void BasicHistoManager::init(const Bool_t& isMc) {
     Double_t ptHatRange[2] = {0., 1000.};
 
     hVz = new TH1D("hVz","Vertex z position;vz (cm);Entries", 320, -40., 40.);
-    fListOfObjects->Add(hVz);
+    hVz->Sumw2();
     hVzWeighted = new TH1D("hVzWeighted","Vertex z position;vz (cm);Entries", 320, -40., 40.);
-    fListOfObjects->Add(hVzWeighted);
+    hVzWeighted->Sumw2();
     hMult = new TH1D("hMult","Charged particle multiplicity;Multiplicity;Entries", 
                      multBins, multRange[0], multRange[1]);
-    fListOfObjects->Add(hMult);
+    hMult->Sumw2();
     hHiBin = new TH1D("hHiBin","HiBin a.k.a. centrality;HiBin;Entries", 
                       hiBinBins, hiBinRange[0], hiBinRange[1]);
-    fListOfObjects->Add(hHiBin);
-    hWeight = new TH1D("hWeight","Event weight;weight;Entries", 
-                       weightBins, weightRange[0], weightRange[1]);
-    fListOfObjects->Add(hWeight);
+    hHiBin->Sumw2();
+    hHiBinWieghted = new TH1D("hHiBinWeighted","HiBin a.k.a. centrality with #hat{p_{T}} weight;HiBin;Entries", 
+                      hiBinBins, hiBinRange[0], hiBinRange[1]);
+    hHiBinWieghted->Sumw2();
     hPtHat = new TH1D("hPtHat","#hat{p_{T}};#hat{p_{T}} (GeV/c);Entries", 
                       ptHatBins, ptHatRange[0], ptHatRange[1]);
-    fListOfObjects->Add(hPtHat);
-    hPtHatWeighted = new TH1D("hPtHatWeighted","#hat{p_{T}};#hat{p_{T}} (GeV/c);Entries", 
+    hPtHat->Sumw2();
+    hPtHatWeighted = new TH1D("hPtHatWeighted","#hat{p_{T}} with #hat{p_{T}} weight;#hat{p_{T}} (GeV/c);Entries", 
                               ptHatBins, ptHatRange[0], ptHatRange[1]);
-    fListOfObjects->Add(hPtHatWeighted);
+    hPtHatWeighted->Sumw2();
+    hPtHatWeight = new TH1D("hPtHatWeight","#hat{p_{T}} weight;#hat{p_{T}} weight;Entries", 
+                            weightBins, weightRange[0], weightRange[1]);
+    hPtHatWeight->Sumw2();
     hCentrality = new TH1D("hCentrality","Collision centrality;Centrality (%);Entries",
                            centralityBins, centralityRange[0], centralityRange[1]);
-    fListOfObjects->Add(hCentrality);
+    hCentrality->Sumw2();
 
     hNRecoJets = new TH1D("hNRecoJets","Number of reconstructed jets", 16, -0.5, 15.5);
-    fListOfObjects->Add(hNRecoJets);
+    hNRecoJets->Sumw2();
     hRecoJetPtRaw = new TH1D("hRecoJetPtRaw","Reco jet raw p_{T};p_{T}^{raw} (GeV/c)", 
                              fJetPtBins, fJetPtRange[0], fJetPtRange[1]);
-    fListOfObjects->Add(hRecoJetPtRaw);
+    hRecoJetPtRaw->Sumw2();
     hRecoJetPtCorrVsPtRaw = new TH2F("hRecoJetPtCorrVsPtRaw","Reco jet corrected p_{T} vs. raw p_{T};p_{T}^{raw} (GeV/c);p_{T}^{corr} (GeV/c)", 
                                      fJetPtBins, fJetPtRange[0], fJetPtRange[1],
                                      fJetPtBins, fJetPtRange[0], fJetPtRange[1]);
-    fListOfObjects->Add(hRecoJetPtCorrVsPtRaw);
+    hRecoJetPtCorrVsPtRaw->Sumw2();
     hRecoJetPt = new TH1D("hRecoJetPt","Reco jet corrected p_{T};p_{T}^{corr} (GeV/c)", 
                              fJetPtBins, fJetPtRange[0], fJetPtRange[1]);
-    fListOfObjects->Add(hRecoJetPt);
+    hRecoJetPt->Sumw2();
     hRecoJetPtWeighted = new TH1D("hRecoJetPtWeighted","Reco jet corrected p_{T} weighted;p_{T}^{corr} (GeV/c)", 
                                   fJetPtBins, fJetPtRange[0], fJetPtRange[1]);
-    fListOfObjects->Add(hRecoJetPtWeighted);
+    hRecoJetPtWeighted->Sumw2();
     hRecoJetEta = new TH1D("hRecoJetEta","Reco jet #eta;#eta;Entries", 
                            fJetEtaBins, fJetEtaRange[0], fJetEtaRange[1]);
-    fListOfObjects->Add(hRecoJetEta);
+    hRecoJetEta->Sumw2();
     hRecoJetPhi = new TH1D("hRecoJetPhi","Reco jet #phi;#phi (rad);Entries", 
                            fJetPhiBins, fJetPhiRange[0], fJetPhiRange[1]);
-    fListOfObjects->Add(hRecoJetPhi);
+    hRecoJetPhi->Sumw2();
 
     hRecoJet = new THnSparseD("hRecoJet","Reconstructed jet with raw p_{T};p_{T}^{raw} (GeV/c);#eta;#phi;centrality", 4, bins4D_jet, xmin4D_jet, xmax4D_jet);
-    fListOfObjects->Add(hRecoJet);
+    hRecoJet->Sumw2();
     hRecoJetCorr = new THnSparseD("hRecoJetCorr","Reconstructed jet p_{T}^{corr};p_{T}^{corr} (GeV/c);#eta;#phi;centrality", 4, bins4D_jet, xmin4D_jet, xmax4D_jet);
-    fListOfObjects->Add(hRecoJetCorr);
-    hRecoJetCorrWeighted = new THnSparseD("hRecoJetCorrWeighted","Reconstructed jet p_{T}^{corr} weighted;p_{T}^{corr} (GeV/c);#eta;#phi;centrality", 4, bins4D_jet, xmin4D_jet, xmax4D_jet);
-    fListOfObjects->Add(hRecoJetCorrWeighted);
+    hRecoJetCorr->Sumw2();
+    hRecoJetCorrWeighted = new THnSparseD("hRecoJetCorrWeighted","Reconstructed jet p_{T}^{corr} weighted with #hat{p_{T}};p_{T}^{corr} (GeV/c);#eta;#phi;centrality", 4, bins4D_jet, xmin4D_jet, xmax4D_jet);
+    hRecoJetCorrWeighted->Sumw2();
 
 
     if (fIsMc) {
 
         hNRefJets = new TH1D("hNRefJets","Number of reconstructed jets", 16, -0.5, 15.5);
-        fListOfObjects->Add(hNRefJets);
+        hNRefJets->Sumw2();
         hRefJetPt = new TH1D("hRefJetPt","Ref jet corrected p_{T};p_{T} (GeV/c)", 
                               fJetPtBins, fJetPtRange[0], fJetPtRange[1]);
-        fListOfObjects->Add(hRefJetPt);
+        hRefJetPt->Sumw2();
         hRefJetPtWeighted = new TH1D("hRefJetPtWeighted","Ref jet  p_{T} weighted;p_{T}^{corr} (GeV/c)", 
                                       fJetPtBins, fJetPtRange[0], fJetPtRange[1]);
-        fListOfObjects->Add(hRefJetPtWeighted);
+        hRefJetPtWeighted->Sumw2();
         hRefJetEta = new TH1D("hRefJetEta","Ref jet #eta;#eta;Entries", 
                                fJetEtaBins, fJetEtaRange[0], fJetEtaRange[1]);
-        fListOfObjects->Add(hRefJetEta);
+        hRefJetEta->Sumw2();
         hRefJetPhi = new TH1D("hRefJetPhi","Ref jet #phi;#phi (rad);Entries", 
                                 fJetPhiBins, fJetPhiRange[0], fJetPhiRange[1]);
-        fListOfObjects->Add(hRefJetPhi);
+        hRefJetPhi->Sumw2();
 
 
         hRefJet = new THnSparseD("hRefJet","Generated jet p_{T};p_{T} (GeV/c);#eta;#phi;centrality", 4, bins4D_jet, xmin4D_jet, xmax4D_jet);
-        fListOfObjects->Add(hRefJet);
+        hRefJet->Sumw2();
         hRefJetWeighted = new THnSparseD("hRefJetWeighted","Generated jet p_{T} weighted;p_{T} (GeV/c);#eta;#phi;centrality", 4, bins4D_jet, xmin4D_jet, xmax4D_jet);
-        fListOfObjects->Add(hRefJetWeighted);
+        hRefJetWeighted->Sumw2();
 
 
         hJESRaw = new THnSparseD("hJESRaw", "hJESRaw;JES^{raw};p_{T}^{gen} (GeV/c);FlavorFromB;centrality", 4, bins4D_jes, xmin4D_jes, xmax4D_jes);
-        fListOfObjects->Add(hJESRaw);
+        hJESRaw->Sumw2();
         hJESRawWeighted = new THnSparseD("hJESRawWeighted", "hJESRawWeighted;JES^{raw};p_{T}^{gen} (GeV/c);FlavorFromB;centrality", 4, bins4D_jes, xmin4D_jes, xmax4D_jes);
-        fListOfObjects->Add(hJESRawWeighted);
+        hJESRawWeighted->Sumw2();
         hJESReco = new THnSparseD("hJESReco", "hJESReco;JES;p_{T}^{gen} (GeV/c);FlavorFromB;centrality", 4, bins4D_jes, xmin4D_jes, xmax4D_jes);
-        fListOfObjects->Add(hJESReco);
+        hJESReco->Sumw2();
         hJESRecoWeighted = new THnSparseD("hJESRecoWeighted", "hJESRecoWeighted;JES;p_{T}^{gen} (GeV/c);FlavorFromB;centrality", 4, bins4D_jes, xmin4D_jes, xmax4D_jes);
-        fListOfObjects->Add(hJESRecoWeighted);
+        hJESRecoWeighted->Sumw2();
 
         hJERRaw = new THnSparseD("hJERRaw", "hJERRaw;JER^{raw};p_{T}^{gen} (GeV/c);FlavorFromB;centrality", 4, bins4D_jes, xmin4D_jes, xmax4D_jes);
-        fListOfObjects->Add(hJERRaw);
+        hJERRaw->Sumw2();
         hJERRawWeighted = new THnSparseD("hJERRawWeighted", "hJERRawWeighted;JER^{raw};p_{T}^{gen} (GeV/c);FlavorFromB;centrality", 4, bins4D_jes, xmin4D_jes, xmax4D_jes);
-        fListOfObjects->Add(hJERRawWeighted);
+        hJERRawWeighted->Sumw2();
         hJERReco = new THnSparseD("hJERReco", "hJERReco;JER;p_{T}^{gen} (GeV/c);FlavorFromB;centrality", 4, bins4D_jes, xmin4D_jes, xmax4D_jes);
-        fListOfObjects->Add(hJERReco);
+        hJERReco->Sumw2();
         hJERRecoWeighted = new THnSparseD("hJERRecoWeighted", "hJERRecoWeighted;JER;p_{T}^{gen} (GeV/c);FlavorFromB;centrality", 4, bins4D_jes, xmin4D_jes, xmax4D_jes);
-        fListOfObjects->Add(hJERRecoWeighted);
+        hJERRecoWeighted->Sumw2();
     }
-
-    // Iterate over a list and reweight histograms
-    TIter next(fListOfObjects);
-    TObject *obj{nullptr};
-    TKey *key{nullptr};
-    while((obj = next())) {
-      TClass *cl = gROOT->GetClass(key->GetClassName());
-      if (cl->InheritsFrom("TH1") ) {
-        TH1 *h = (TH1*)key->ReadObj();
-        h->Sumw2();
-      }
-      else if (cl->InheritsFrom("TH2") ) {
-        TH2 *h = (TH2*)key->ReadObj();
-        h->Sumw2();
-      }
-      else if (cl->InheritsFrom("TH3") ) {
-        TH3 *h = (TH3*)key->ReadObj();
-        h->Sumw2();
-      }
-      else if (cl->InheritsFrom("THnSparse") ) {
-        THnSparse *h = (THnSparse*)key->ReadObj();
-        h->Sumw2();
-      }
-    }
-    delete obj;
-
-    // TH1::Sumw2();
-    // TH2::Sumw2();
-    // THnSparse::Sumw2();
 }
 
 //________________
 void BasicHistoManager::writeOutput() {
-    // Iterate over a list
-    TIter next(fListOfObjects);
-    TObject *obj{nullptr};
-    while((obj = next())) {
-        obj->Write();
+    hVz->Write();
+    hVzWeighted->Write();
+    hMult->Write();
+    hHiBin->Write();
+    hHiBinWieghted->Write();
+    hPtHat->Write();
+    hPtHatWeighted->Write();
+    hPtHatWeight->Write();
+    hCentrality->Write();
+    hNRecoJets->Write();
+    hRecoJetPtRaw->Write();
+    hRecoJetPtCorrVsPtRaw->Write();
+    hRecoJetPt->Write();
+    hRecoJetPtWeighted->Write();
+    hRecoJetEta->Write();
+    hRecoJetPhi->Write();
+    hRecoJet->Write();
+    hRecoJetCorr->Write();
+    hRecoJetCorrWeighted->Write();
+    if (fIsMc) {
+        hNRefJets->Write();
+        hRefJetPt->Write();
+        hRefJetPtWeighted->Write();
+        hRefJetEta->Write();
+        hRefJetPhi->Write();
+        hRefJet->Write();
+        hRefJetWeighted->Write();
+        hJESRaw->Write();
+        hJESRawWeighted->Write();
+        hJESReco->Write();
+        hJESRecoWeighted->Write();
+        hJERRaw->Write();
+        hJERRawWeighted->Write();
+        hJERReco->Write();
+        hJERRecoWeighted->Write();
     }
-    delete obj;
 }

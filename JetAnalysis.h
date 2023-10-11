@@ -9,6 +9,7 @@
 
 // Jet analysis headers
 #include "BaseAnalysis.h"
+#include "BasicHistoManager.h"
 #include "Event.h"
 
 //________________
@@ -33,11 +34,15 @@ class JetAnalysis : public BaseAnalysis {
 
     /// @brief Set debug information
     void setDebug(const Bool_t debug) { fDebug = debug; }
+    /// @brief Add histogram manager to the analysis
+    void addHistoManager(BasicHistoManager *hm) { fHM = hm; }
 
   private:
 
     /// @brief Pring debug information
     Bool_t fDebug;
+    /// @brief Histogram manager
+    BasicHistoManager *fHM;
 
   ClassDef(JetAnalysis, 0)
 };

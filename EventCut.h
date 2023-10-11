@@ -43,7 +43,7 @@ class EventCut {
     /// @brief Set limits on pT hat
     void setPtHat(const Double_t& lo=-1e9, const Double_t& hi=1e9) { fPtHat[0]=lo; fPtHat[1]=hi; }
     /// @brief Set limits on event weight
-    void setEventWeight(const Double_t& lo=-1e9, const Double_t& hi=1e9) { fWeight[0]=lo; fWeight[1]=hi; }
+    void setPtHatWeight(const Double_t& lo=-1e9, const Double_t& hi=1e9) { fPtHatWeight[0]=lo; fPtHatWeight[1]=hi; }
     /// @brief Print information each event
     void setVerbose(const Bool_t& v) { fVerbose = v; }
     /// @brief Report information about
@@ -74,7 +74,7 @@ class EventCut {
     /// @brief PtHat cut
     Double_t fPtHat[2];
     /// @brief Event weight cut
-    Double_t fWeight[2];
+    Double_t fPtHatWeight[2];
     /// @brief  Print information each time
     Bool_t fVerbose;
 

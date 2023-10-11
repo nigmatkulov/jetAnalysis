@@ -63,7 +63,7 @@ void ForestAODReader::clearVariables() {
     fLumi = 0;
     fVertexZ = -999.f;
     fHiBin = -1;
-    fEventWeight = -1.f;
+    fPtHatWeight = -1.f;
     fPtHat = -1.f;
     fJetTriggerBit = 0;
 
@@ -151,7 +151,7 @@ void ForestAODReader::setupJEC() {
         if (fJECInputFileName.Length()<=0) {
             setJECFileName();
         }
-        fJECFiles.push_back(Form("aux_files/%s_%i/JEC/%s",fCollidingSystem.Data(),fCollidingEnergyGeV,fJECInputFileName.Data()));
+        fJECFiles.push_back(Form("/Users/gnigmat/work/cms/soft/jetAnalysis/aux_files/%s_%i/JEC/%s",fCollidingSystem.Data(),fCollidingEnergyGeV,fJECInputFileName.Data()));
         std::cout << Form("Add JEC file: %s\n", fJECFiles.back().c_str());
     }
 	
@@ -436,7 +436,7 @@ void ForestAODReader::setupBranches() {
     if( fIsMc ) {
         fEventTree->SetBranchStatus("weight", 1);
         fEventTree->SetBranchStatus("pthat", 1); 
-        fEventTree->SetBranchAddress("weight", &fEventWeight);
+        fEventTree->SetBranchAddress("weight", &fPtHatWeight);
         fEventTree->SetBranchAddress("pthat", &fPtHat);
     }
 
@@ -684,7 +684,7 @@ Event* ForestAODReader::returnEvent() {
     fEvent->setHiBin( fHiBin );
     if ( fIsMc ) {
         fEvent->setPtHat( fPtHat );
-        fEvent->setWeight( fEventWeight );
+        fEvent->setPtHatWeight( fPtHatWeight );
     }
 
     // Fill HLT branche
@@ -714,18 +714,21 @@ Event* ForestAODReader::returnEvent() {
                 fJEC->SetJetPT( fPFRecoJetPt[iJet] );
                 fJEC->SetJetEta( fPFRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fPFRecoJetPhi[iJet] );
-                std::cout << "pTCorr: " << fJEC->GetCorrectedPT() << std::endl; 
-                jet->setRecoJetPtJESCorr( fJEC->GetCorrectedPT() );
+                double pTcorr = fJEC->GetCorrectedPT();
+                //std::cout << "pTCorr: " << pTcorr << std::endl; 
+                jet->setRecoJetPtJECCorr( fJEC->GetCorrectedPT() );
+                //std::cout << "pTCorr: " << jet->recoJetPtJECCorr() << std::endl; 
+                
                 jet->setRecoJetPtWeight( jetPtWeight( fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                      fCollidingEnergyGeV, jet->recoJetPtJESCorr() ) );
+                                                      fCollidingEnergyGeV, jet->recoJetPtJECCorr() ) );
                 
                 //resolutionfactor: Worsening resolution by 20%: 0.663, by 10%: 0.458 , by 30%: 0.831
                 jet->setRecoJetPtSmearingWeight( jetPtSmeringWeight( fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                                     fCollidingEnergyGeV, jet->recoJetPtJESCorr(), 
+                                                                     fCollidingEnergyGeV, jet->recoJetPtJECCorr(), 
                                                                      fDoJetPtSmearing, 0.663) );
             }
             else {
-                jet->setRecoJetPtJESCorr( -999.f );
+                jet->setRecoJetPtJECCorr( -999.f );
                 jet->setRecoJetPtWeight( -999.f );
                 jet->setRecoJetPtSmearingWeight( -999.f );
             }
@@ -769,7 +772,7 @@ Event* ForestAODReader::returnEvent() {
             jet->setRecoJetPt( fCaloRecoJetPt[iJet] );
             jet->setRecoJetEta( fCaloRecoJetEta[iJet] );
             jet->setRecoJetPhi( fCaloRecoJetPhi[iJet] );
-            jet->setRecoJetPtJESCorr( -999.f );
+            jet->setRecoJetPtJECCorr( -999.f );
             jet->setRecoJetWTAeta( -999.f );
             jet->setRecoJetWTAphi( -999.f );
 
@@ -777,17 +780,17 @@ Event* ForestAODReader::returnEvent() {
                 fJEC->SetJetPT( fCaloRecoJetPt[iJet] );
                 fJEC->SetJetEta( fCaloRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fCaloRecoJetPhi[iJet] );
-                jet->setRecoJetPtJESCorr( fJEC->GetCorrectedPT() );
+                jet->setRecoJetPtJECCorr( fJEC->GetCorrectedPT() );
                 jet->setRecoJetPtWeight( jetPtWeight( fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                      fCollidingEnergyGeV, jet->recoJetPtJESCorr() ) );
+                                                      fCollidingEnergyGeV, jet->recoJetPtJECCorr() ) );
                 
                 //resolutionfactor: Worsening resolution by 20%: 0.663, by 10%: 0.458 , by 30%: 0.831
                 jet->setRecoJetPtSmearingWeight( jetPtSmeringWeight( fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                                     fCollidingEnergyGeV, jet->recoJetPtJESCorr(), 
+                                                                     fCollidingEnergyGeV, jet->recoJetPtJECCorr(), 
                                                                      fDoJetPtSmearing, 0.663) );
             }
             else {
-                jet->setRecoJetPtJESCorr( -999.f );
+                jet->setRecoJetPtJECCorr( -999.f );
                 jet->setRecoJetPtWeight( -999.f );
                 jet->setRecoJetPtSmearingWeight( -999.f );
             }

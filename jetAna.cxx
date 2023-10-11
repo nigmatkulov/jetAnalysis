@@ -8,6 +8,7 @@
 #include "BasicHistoManager.h"
 #include "EventCut.h"
 #include "JetCut.h"
+#include "TFile.h"
 
 //________________
 /// @brief The prorgram that launches the physics analysis
@@ -46,18 +47,19 @@ int main(int argc, char const *argv[]) {
     manager->setEventReader(reader);
 
     JetAnalysis *analysis = new JetAnalysis();
-    // BasicHistoManager *hm = new BasicHistoManager();
-    // analysis->addHistoManager(hm);
+    BasicHistoManager *hm = new BasicHistoManager();
+    hm->setIsMc(kTRUE);
+    hm->init(kTRUE); // kTRUE stands up for use MC; need to FIX
+    analysis->addHistoManager(hm);
     manager->addAnalysis(analysis);
-
 
     manager->init();
     manager->performAnalysis();
     manager->finish();
 
-    // TFile* oFile = new TFile(oFileName, "recreate");
-    // hm->writeOutput();
-    // oFile->Close();
+    TFile* oFile = new TFile(oFileName, "recreate");
+    hm->writeOutput();
+    oFile->Close();
     
     return 0;
 }

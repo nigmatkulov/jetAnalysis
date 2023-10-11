@@ -63,9 +63,10 @@ class BasicHistoManager : public BaseHistoManager {
     TH1D *hVzWeighted;
     TH1D *hMult;
     TH1D *hHiBin;
-    TH1D *hWeight;
+    TH1D *hHiBinWieghted;
     TH1D *hPtHat;
     TH1D *hPtHatWeighted;
+    TH1D *hPtHatWeight;
     TH1D *hCentrality;
 
     //
@@ -112,8 +113,7 @@ class BasicHistoManager : public BaseHistoManager {
     THnSparseD *hJERRecoWeighted;
 
   private:
-    /// @brief List that keeps all objects
-    TList *fListOfObjects;
+
     /// @brief Is Monte Carlo
     Bool_t fIsMc;
 
