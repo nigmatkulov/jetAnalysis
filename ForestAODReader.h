@@ -1,5 +1,5 @@
-#ifndef FORESTAODREADER_H
-#define FORESTAODREADER_H
+#ifndef ForestAODReader_h
+#define ForestAODReader_h
 
 // ROOT headers
 #include "Rtypes.h"
@@ -386,4 +386,4 @@ class ForestAODReader : public BaseReader {
     ClassDef(ForestAODReader, 1)
 };
 
-#endif // #define FORESTAODREADER_H
+#endif // #define ForestAODReader_h

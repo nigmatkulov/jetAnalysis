@@ -1,5 +1,5 @@
-#ifndef BASEHISTOMANAGER_H
-#define BASEHISTOMANAGER_H
+#ifndef BaseHistoManager_h
+#define BaseHistoManager_h
 
 // ROOT headers
 #include "TList.h"
@@ -18,4 +18,4 @@ class BaseHistoManager {
   ClassDef(BaseHistoManager, 0)
 };
 
-#endif // #define BASEHISTOMANAGER_H
+#endif // #define BaseHistoManager_h

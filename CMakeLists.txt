@@ -54,24 +54,24 @@ set(HEADERS
         JetUncertainty.h
         EventCut.h
         JetCut.h
-        AnalysisManager.h
+        Manager.h
 )
 
 # List source files
 set(SRC 
-        JetAnalysis.cxx
-        Event.cxx
-        Track.cxx
-        GenTrack.cxx
-        Jet.cxx
-        BaseReader.cxx
-        BasicHistoManager.cxx
-        ForestAODReader.cxx
-        JetCorrector.cxx
-        JetUncertainty.cxx
-        EventCut.cxx
-        JetCut.cxx
-        AnalysisManager.cxx
+        JetAnalysis.cc
+        Event.cc
+        Track.cc
+        GenTrack.cc
+        Jet.cc
+        BaseReader.cc
+        BasicHistoManager.cc
+        ForestAODReader.cc
+        JetCorrector.cc
+        JetUncertainty.cc
+        EventCut.cc
+        JetCut.cc
+        Manager.cc
 )
 
 # Generate ROOT dictionaries

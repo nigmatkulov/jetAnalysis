@@ -1,5 +1,5 @@
-#ifndef JETUNCERTAINTY_H
-#define JETUNCERTAINTY_H
+#ifndef JetUncertainty_h
+#define JetUncertainty_h
 
 // JetUncertainty
 // v1.0
@@ -50,4 +50,4 @@ class JetUncertainty {
     ClassDef(JetUncertainty, 0)
 };
 
-#endif // #define JETUNCERTAINTY_H
+#endif // #define JetUncertainty_h

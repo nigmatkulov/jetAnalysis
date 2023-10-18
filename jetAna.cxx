@@ -2,7 +2,7 @@
 #include <iostream>
 
 // Jet analysis headers
-#include "AnalysisManager.h"
+#include "Manager.h"
 #include "ForestAODReader.h"
 #include "JetAnalysis.h"
 #include "BasicHistoManager.h"
@@ -27,7 +27,7 @@ int main(int argc, char const *argv[]) {
     if (argc > 1) inFileName = argv[1];
     if (argc > 2) oFileName = argv[2];
 
-    AnalysisManager *manager = new AnalysisManager();
+    Manager *manager = new Manager();
     EventCut *eventCut = new EventCut();
     eventCut->setVz(-20., 20.);
     JetCut *jetCut = new JetCut();

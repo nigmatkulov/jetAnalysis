@@ -1,5 +1,5 @@
-#ifndef ANALYSISMANAGER_H
-#define ANALYSISMANAGER_H
+#ifndef Manager_h
+#define Manager_h
 
 // Jet analysis headers
 #include "BaseAnalysis.h"
@@ -11,12 +11,12 @@
 #include "Rtypes.h"
 
 //________________
-class AnalysisManager {
+class Manager {
   public:
     /// @brief Constructor
-    AnalysisManager();
+    Manager();
     /// @brief Destructor
-    virtual ~AnalysisManager();
+    virtual ~Manager();
 
     /// @brief Initialize all objects used
     void init();
@@ -41,7 +41,7 @@ class AnalysisManager {
     /// Number of events in input
     Long64_t fEventsInChain;
 
-  ClassDef(AnalysisManager, 0)
+  ClassDef(Manager, 0)
 };
 
 #endif // #define ANALYSISMANAGER_H

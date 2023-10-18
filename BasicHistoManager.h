@@ -1,5 +1,5 @@
-#ifndef BASICHISTOMANAGER_H
-#define BASICHISTOMANAGER_H
+#ifndef BasicHistoManager_h
+#define BasicHistoManager_h
 
 // Jet analysis headers
 #include "BaseHistoManager.h"
@@ -32,7 +32,7 @@ class BasicHistoManager : public BaseHistoManager {
     /// @brief Set number of centrality bins
     void setCentBins(const Int_t& n = 6) { fCentBins = n; }
     /// @brief Set centrality range (in percentage)
-    void setCentRange(const Double_t& lo = 0 , const Double_t& hi = 60) { fCentRange[0]=lo; fCentRange[1]=hi; }
+    void setCentRange(const Double_t& lo = 0, const Double_t& hi = 60) { fCentRange[0]=lo; fCentRange[1]=hi; }
 
     /// @brief Set number of jet pT bins
     void setJetPtBins(const Int_t& n = 200) { fJetPtBins = n; }
@@ -63,7 +63,7 @@ class BasicHistoManager : public BaseHistoManager {
     TH1D *hVzWeighted;
     TH1D *hMult;
     TH1D *hHiBin;
-    TH1D *hHiBinWieghted;
+    TH1D *hHiBinWeighted;
     TH1D *hPtHat;
     TH1D *hPtHatWeighted;
     TH1D *hPtHatWeight;
@@ -86,6 +86,8 @@ class BasicHistoManager : public BaseHistoManager {
     THnSparseD *hRecoJet;
     THnSparseD *hRecoJetCorr;
     THnSparseD *hRecoJetCorrWeighted;
+    THnSparseD *hRecoJetCorrEtaPhiPtHat;
+    THnSparseD *hRecoJetCorrEtaPhiPtHatWeighted;
     
     //
     // Ref jet histograms
@@ -97,20 +99,31 @@ class BasicHistoManager : public BaseHistoManager {
     TH1D* hRefJetPhi;
     TH2F* hRefJetPtVsEta;
 
+    TH2F* hPtHatVsGenPtWOPtJetGtPtHatCut;
+    TH2F* hPtHatVsGenPtWeightedWoPtJetGtPtHatCut;
+    TH2F* hPtHatVsGenPtWithPtJetGtPtHatCut;
+    TH2F* hPtHatVsGenPtWeightedWithPtJetGtPtHatCut;
+
     THnSparseD *hRefJet;
     THnSparseD *hRefJetWeighted;
+    THnSparseD *hRefJetEtaPhiPtHat;
+    THnSparseD *hRefJetEtaPhiPtHatWeighted;
 
     // Jet Energy Scale
     THnSparseD *hJESRaw;
     THnSparseD *hJESRawWeighted;
     THnSparseD *hJESReco;
     THnSparseD *hJESRecoWeighted;
+    THnSparseD *hJESRecoEtaPhiPtHat;
+    THnSparseD *hJESRecoEtaPhiPtHatWeighted;
 
     // Jet Energy Resolution
     THnSparseD *hJERRaw;
     THnSparseD *hJERRawWeighted;
     THnSparseD *hJERReco;
     THnSparseD *hJERRecoWeighted;
+
+    TH2D *hRecoJetPtCorrVsGenPt;
 
   private:
 
@@ -129,8 +142,10 @@ class BasicHistoManager : public BaseHistoManager {
     Double_t fJESRange[2];
     Int_t    fJERBins;
     Double_t fJERRange[2];
+    Int_t    fPtHatBins;
+    Double_t fPtHatRange[2];
 
     ClassDef(BasicHistoManager, 0)
 };
 
-#endif // #define BASICHISTOMANAGER_H
+#endif // #define BasicHistoManager_h

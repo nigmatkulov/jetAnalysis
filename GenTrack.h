@@ -1,5 +1,5 @@
-#ifndef GENTRACK_H
-#define GENTRACK_H
+#ifndef GenTrack_h
+#define GenTrack_h
 
 // ROOT headers
 #include "TObject.h"
@@ -15,4 +15,4 @@ class GenTrack : public TObject {
     ClassDef(GenTrack, 1)
 };
 
-#endif // #define GENTRACK_H
+#endif // #define GenTrack_h

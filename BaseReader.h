@@ -1,5 +1,5 @@
-#ifndef BASEREADER_H
-#define BASEREADER_H
+#ifndef BaseReader_h
+#define BaseReader_h
 
 // ROOT headers
 #include "TObject.h"
@@ -46,4 +46,4 @@ class BaseReader {
     ClassDef(BaseReader, 0)
 };
 
-#endif // #define BASEREADER_H
+#endif // #define BaseReader_h

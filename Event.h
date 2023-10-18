@@ -1,5 +1,5 @@
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef Event_h
+#define Event_h
 
 // ROOT headers
 #include "TObject.h"
@@ -103,4 +103,4 @@ class Event : public TObject {
     ClassDef(Event, 1)
 };
 
-#endif // #define EVENT_H
+#endif // #define Event_h

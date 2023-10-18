@@ -1,18 +1,18 @@
 // Jet analysis headers
-#include "AnalysisManager.h"
+#include "Manager.h"
 #include "Event.h"
 
-ClassImp(AnalysisManager)
+ClassImp(Manager)
 
 //________________
-AnalysisManager::AnalysisManager() : 
+Manager::Manager() : 
     fAnalysisCollection{nullptr}, fEventReader{nullptr},
     fEventsInChain{0} {
     fAnalysisCollection = new AnalysisCollection;
 }
 
 //________________
-AnalysisManager::~AnalysisManager() {
+Manager::~Manager() {
     AnalysisIterator iter;
     for (iter = fAnalysisCollection->begin(); 
          iter != fAnalysisCollection->end(); 
@@ -24,7 +24,7 @@ AnalysisManager::~AnalysisManager() {
 }
 
 //________________
-void AnalysisManager::init() {
+void Manager::init() {
     if (fEventReader) {
         fEventReader->init();
         fEventReader->report();
@@ -41,7 +41,7 @@ void AnalysisManager::init() {
 }
 
 //________________
-void AnalysisManager::finish() {
+void Manager::finish() {
     if (fEventReader) {
         fEventReader->finish();
     }
@@ -55,7 +55,7 @@ void AnalysisManager::finish() {
 }
 
 //________________
-void AnalysisManager::performAnalysis() {
+void Manager::performAnalysis() {
 
     // Loop over all events available
     for (Long64_t iEvent=0; iEvent<fEventsInChain; iEvent++) {
@@ -89,6 +89,6 @@ void AnalysisManager::performAnalysis() {
 }
 
 //________________
-void AnalysisManager::report() {
+void Manager::report() {
     std::cout << "Reporting from analysis manager" << std::endl;
 }

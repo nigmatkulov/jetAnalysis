@@ -1,5 +1,5 @@
-#ifndef COLLECTIONS_H
-#define COLLECTIONS_H
+#ifndef Collections_h
+#define Collections_h
 
 // Jeta analysis headers
 #include "BaseAnalysis.h"
@@ -30,4 +30,4 @@ typedef std::list<Track*>::iterator TrackIterator;
 typedef std::list<GenTrack*> GenTrackCollection;
 typedef std::list<GenTrack*>::iterator GenTrackIterator;
 
-#endif // #define COLLECTIONS_H
+#endif // #define Collections_h

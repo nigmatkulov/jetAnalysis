@@ -1,5 +1,5 @@
-#ifndef BASEANALYSIS_H
-#define BASEANALYSIS_H
+#ifndef BaseAnalysis_h
+#define BaseAnalysis_h
 
 // ROOT headers
 #include "TObject.h"
@@ -35,4 +35,4 @@ class BaseAnalysis {
     ClassDef(BaseAnalysis, 0)
 };
 
-#endif // #define BASEANALYSIS_H
+#endif // #define BaseAnalysis_h

@@ -1,5 +1,5 @@
-#ifndef EVENTCUT_H
-#define EVENTCUT_H
+#ifndef EventCut_h
+#define EventCut_h
 
 // Jet analysis headers
 #include "Event.h"
@@ -86,4 +86,4 @@ class EventCut {
     ClassDef(EventCut, 0)
 };
 
-#endif // #define EVENTCUT_H
+#endif // #define EventCut_h

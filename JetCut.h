@@ -1,5 +1,5 @@
-#ifndef JETCUT_H
-#define JETCUT_H
+#ifndef JetCut_h
+#define JetCut_h
 
 // Jet analysis headers
 #include "Jet.h"
@@ -66,4 +66,4 @@ class JetCut {
     ClassDef(JetCut, 0)
 };
 
-#endif // #define JETCUT_H
+#endif // #define JetCut_h

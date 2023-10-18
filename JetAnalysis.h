@@ -1,5 +1,5 @@
-#ifndef JETANALYSIS_H
-#define JETANALYSIS_H
+#ifndef JetAnalysis_h
+#define JetAnalysis_h
 
 // Load ROOT libraries
 #include "TObject.h"
@@ -47,4 +47,4 @@ class JetAnalysis : public BaseAnalysis {
   ClassDef(JetAnalysis, 0)
 };
 
-#endif // #define JETANALYSIS_H
+#endif // #define JetAnalysis_h

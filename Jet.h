@@ -1,5 +1,5 @@
-#ifndef JET_H
-#define JET_H
+#ifndef Jet_h
+#define Jet_h
 
 // ROOT headers
 #include "TObject.h"
@@ -134,4 +134,4 @@ class Jet : public TObject {
     ClassDef(Jet, 1)
 };
 
-#endif // #define JET_H
+#endif // #define Jet_h

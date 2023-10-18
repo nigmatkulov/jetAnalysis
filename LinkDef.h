@@ -17,7 +17,7 @@
 #pragma link C++ class JetUncertainty+;
 #pragma link C++ class EventCut+;
 #pragma link C++ class JetCut+;
-#pragma link C++ class AnalysisManager+;
+#pragma link C++ class Manager+;
 #pragma link C++ class BasicHistoManager+;
 
 // User-defined classes

@@ -1,5 +1,5 @@
-#ifndef TRACK_H
-#define TRACK_H
+#ifndef Track_h
+#define Track_h
 
 // ROOT headers
 #include "TObject.h"
@@ -15,4 +15,4 @@ class Track : public TObject {
     ClassDef(Track, 1)
 };
 
-#endif // #define TRACK_H
+#endif // #define Track_h

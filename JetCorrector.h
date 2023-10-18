@@ -1,5 +1,5 @@
-#ifndef JETCORRECTOR_H
-#define JETCORRECTOR_H
+#ifndef JetCorrector_h
+#define JetCorrector_h
 
 // SingleJetCorrector
 // v3.0
@@ -94,4 +94,4 @@ class JetCorrector {
     ClassDef(JetCorrector, 0)
 };
 
-#endif // #define JETCORRECTOR_H
+#endif // #define JetCorrector_h
