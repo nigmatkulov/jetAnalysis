@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2023
  * 
  */
+
 #ifndef JetCut_h
 #define JetCut_h
 

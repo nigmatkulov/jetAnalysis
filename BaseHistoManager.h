@@ -1,3 +1,14 @@
+/**
+ * @file BaseHistoManager.h
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Base class for histogram managers
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #ifndef BaseHistoManager_h
 #define BaseHistoManager_h
 

@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2023
  * 
  */
+
 #ifndef EventCut_h
 #define EventCut_h
 

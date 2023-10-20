@@ -1,3 +1,14 @@
+/**
+ * @file ForestAODReader.h
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief CMS ForestAOD reader
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #ifndef ForestAODReader_h
 #define ForestAODReader_h
 

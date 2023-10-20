@@ -1,3 +1,14 @@
+/**
+ * @file TriggerAndSkim.cc
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Trigger and skim properties of the event
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 // Jet analysis headers
 #include "TriggerAndSkim.h"
 
