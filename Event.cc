@@ -1,3 +1,14 @@
+/**
+ * @file Event.cc
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Internal event structure of the framework
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 // Jet analysis headers
 #include "Event.h"
 
@@ -9,26 +20,33 @@
 
 //________________
 Event::Event() : TObject(), fRunId{0}, fEventId{0}, fLumi{0},
-                 fVz{0}, fHiBin{-1}, fPtHat{-1}, fPtHatWeight{-1}, 
-                 fJetTriggerBit{-1} {
-    fPFJetCollection = new PartFlowJetCollection();
-    fCaloJetCollection = new CaloJetCollection();
-    fTrackCollection = new TrackCollection();
-    fGenTrackCollection = new GenTrackCollection();
+                 fVx{0}, fVy{0}, fVz{0}, fHiBin{-1}, fPtHat{-1}, fPtHatWeight{-1}, 
+                 fNBadPFJets{0},  fNBadCaloJets{0}, fMult{0} {
+    fPFJetCollection = new PartFlowJetCollection{};
+    fCaloJetCollection = new CaloJetCollection{};
+    fTrackCollection = new TrackCollection{};
+    fGenTrackCollection = new GenTrackCollection{};
+    fTrigAndSkim = new TriggerAndSkim{};
 }
 
 //________________
 Event::Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
-             const Float_t& vz, const Int_t& hiBin, const Float_t& ptHat, 
-             const Float_t& w, const Int_t& bit) : TObject(),
-    fRunId{runId}, fEventId{eventId}, fLumi{lumi}, fVz{vz},
-    fHiBin{(Short_t)hiBin}, fPtHat{ptHat}, fPtHatWeight{w}, fJetTriggerBit{bit} {
+             const Float_t& vx, const Float_t& vy, const Float_t& vz, 
+             const Int_t& hiBin, const Float_t& ptHat, 
+             const Float_t& w, const Int_t& nBadPFJets, 
+             const Int_t& nBadCaloJets, const Int_t& mult) : TObject(),
+    fRunId{runId}, fEventId{eventId}, fLumi{lumi}, 
+    fVx{vx}, fVy{vy}, fVz{vz},
+    fHiBin{(Short_t)hiBin}, fPtHat{ptHat}, fPtHatWeight{w}, 
+    fNBadPFJets{(UChar_t)nBadPFJets}, fNBadCaloJets{(UChar_t)nBadCaloJets},
+    fMult{(UShort_t)mult} {
     
     // Create new collections 
-    fPFJetCollection = new PartFlowJetCollection();
-    fCaloJetCollection = new CaloJetCollection();
-    fTrackCollection = new TrackCollection();
-    fGenTrackCollection = new GenTrackCollection();
+    fPFJetCollection = new PartFlowJetCollection{};
+    fCaloJetCollection = new CaloJetCollection{};
+    fTrackCollection = new TrackCollection{};
+    fGenTrackCollection = new GenTrackCollection{};
+    fTrigAndSkim = new TriggerAndSkim{};
 }
 
 //________________
@@ -53,13 +71,14 @@ Event::~Event() {
          iter!=fGenTrackCollection->end(); iter++) {
         delete *iter;
     }
+    // Clear trigger and skim instance
+    if (fTrigAndSkim) delete fTrigAndSkim;
 }
 
 //________________
 void Event::print() {
     std::cout << Form("-------------------------------------\n")
-              << Form("runId: %d  eventId: %llu  lumi: %d  vz: %5.2f\n", fRunId, fEventId, fLumi, fVz)
-              << Form("hiBin: %d  ptHat: %3.2f  ptHatWeight: %4.2f  jetTriggerBit: %d\n",
-                      hiBin(), fPtHat, fPtHatWeight, fJetTriggerBit)
+              << Form("runId: %d  eventId: %llu  lumi: %d  vx: %5.2f  vy: %5.2f  vz: %5.2f\n", fRunId, fEventId, fLumi, fVx, fVy, fVz)
+              << Form("hiBin: %d  ptHat: %3.2f  ptHatWeight: %4.2f \n", hiBin(), fPtHat, fPtHatWeight)
               << Form("-------------------------------------\n");
 }

@@ -1,3 +1,14 @@
+/**
+ * @file EventCut.cc
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Example of the event cut
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 // Jet analysis headers
 #include "EventCut.h"
 

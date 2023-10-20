@@ -1,3 +1,14 @@
+/**
+ * @file JetESRAnalysis.cc
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Jet energy scale and resolution analysis
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 // ROOT headers
 #include "TF1.h"
 #include "TVector3.h"
@@ -8,30 +19,30 @@
 #include <iostream>
 
 // Jet analysis headers
-#include "JetAnalysis.h"
+#include "JetESRAnalysis.h"
 
-ClassImp(JetAnalysis)
+ClassImp(JetESRAnalysis)
 
 //________________
-JetAnalysis::JetAnalysis() : BaseAnalysis(), fDebug(kFALSE), fHM(nullptr) {
+JetESRAnalysis::JetESRAnalysis() : BaseAnalysis(), fDebug(kFALSE), fHM(nullptr) {
     /* Empty */
 }
 
 //________________
-JetAnalysis::~JetAnalysis() {
+JetESRAnalysis::~JetESRAnalysis() {
     if (fHM) {delete fHM; fHM = nullptr; }
 }
 
 //________________
-void JetAnalysis::init() {
+void JetESRAnalysis::init() {
     // Initialize analysis
-    //std::cout << "JetAnalysis::init" << std::endl;
+    //std::cout << "JetESRAnalysis::init" << std::endl;
 }
 
 //________________
-void JetAnalysis::processEvent(const Event* event) {
+void JetESRAnalysis::processEvent(const Event* event) {
     // Perform the analysis
-    //std::cout << "JetAnalysis::processEvent" << std::endl;
+    //std::cout << "JetESRAnalysis::processEvent" << std::endl;
 
     if (fHM) {
         float ptHatW = event->ptHatWeight();
@@ -47,7 +58,7 @@ void JetAnalysis::processEvent(const Event* event) {
 
         Double_t ptHat = event->ptHat();
 
-        std::cout << "HiBin: " << event->hiBin() << " centrality: " << centrality << std::endl;
+        //std::cout << "HiBin: " << event->hiBin() << " centrality: " << centrality << std::endl;
 
         fHM->hNRecoJets->Fill( event->pfJetCollection()->size() );
         PartFlowJetIterator pfJetIter;
@@ -148,18 +159,18 @@ void JetAnalysis::processEvent(const Event* event) {
 }
 
 //________________
-void JetAnalysis::finish() {
+void JetESRAnalysis::finish() {
     // Save data and close files
-    std::cout << "JetAnalysis::finish" << std::endl;
+    std::cout << "JetESRAnalysis::finish" << std::endl;
 }
 
 //________________
-void JetAnalysis::report() {
+void JetESRAnalysis::report() {
     // Force to report everyone
 }
 
 //________________
-TList* JetAnalysis::getOutputList() {
+TList* JetESRAnalysis::getOutputList() {
     TList *outputList = new TList();
 
     // Add list of settings for cuts

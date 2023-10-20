@@ -1,3 +1,14 @@
+/**
+ * @file Jet.h
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Jet class description
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #ifndef Jet_h
 #define Jet_h
 
@@ -18,36 +29,40 @@ class Jet : public TObject {
     //
 
     /// @brief Set reconstructed jet pt 
-    void setRecoJetPt(const Float_t& pt)     { fRecoPt = pt; }
+    void setRecoJetPt(const Float_t& pt)     { fRecoPt = {pt}; }
     /// @brief Set reconstructed jet eta
-    void setRecoJetEta(const Float_t& eta)   { fRecoEta = eta; }
+    void setRecoJetEta(const Float_t& eta)   { fRecoEta = {eta}; }
     /// @brief Set reconstructed jet phi
-    void setRecoJetPhi(const Float_t& phi)   { fRecoPhi = phi; }
+    void setRecoJetPhi(const Float_t& phi)   { fRecoPhi = {phi}; }
     /// @brief Set reconstructed jet JEC-corrected pt
-    void setRecoJetPtJECCorr(const Float_t& pt) { fRecoPtJECCorr = pt; }
+    void setRecoJetPtJECCorr(const Float_t& pt) { fRecoPtJECCorr = {pt}; }
     /// @brief Set WTA eta axis
-    void setRecoJetWTAeta(const Float_t& eta) { fRecoWTAeta = eta; }
+    void setRecoJetWTAEta(const Float_t& eta) { fRecoWTAeta = {eta}; }
     /// @brief Set WTA phi axis
-    void setRecoJetWTAphi(const Float_t& phi) { fRecoWTAphi = phi; }
+    void setRecoJetWTAPhi(const Float_t& phi) { fRecoWTAphi = {phi}; }
     /// @brief Set jet weight (for MC). Jet pT-smearing is not applied
-    void setRecoJetPtWeight(const Float_t& w) { fRecoJetPtWeight = w; }
+    void setRecoJetPtWeight(const Float_t& w) { fRecoJetPtWeight = {w}; }
     /// @brief Set jet pT smearing weight (for MC)
-    void setRecoJetPtSmearingWeight(const Float_t& w) { fRecoJetPtSmearingWeight = w; }
+    void setRecoJetPtSmearingWeight(const Float_t& w) { fRecoJetPtSmearingWeight = {w}; }
 
     /// @brief Set jet-matched generated jet transverse momentum
-    void setRefJetPt(const Float_t& pt)   { fRefPt = pt; }
+    void setRefJetPt(const Float_t& pt)   { fRefPt = {pt}; }
     /// @brief Set jet-matched generated jet eta
-    void setRefJetEta(const Float_t& eta) { fRefEta = eta; }
+    void setRefJetEta(const Float_t& eta) { fRefEta = {eta}; }
     /// @brief Set jet-matched generated jet phi
-    void setRefJetPhi(const Float_t& phi) { fRefPhi = phi; }
+    void setRefJetPhi(const Float_t& phi) { fRefPhi = {phi}; }
+    /// @brief Set jet-matched generated jet WTA eta
+    void setRefJetWTAEta(const Float_t& eta) { fRefWTAEta = {eta}; }
+    /// @brief Set jet-matched generated jet WTA phi
+    void setRefJetWTAPhi(const Float_t& phi) { fRefWTAPhi = {phi}; }
     /// @brief Set flavor for generated jet
     void setRefFlavor(const Int_t& flav)
-    { fRefFlavor = (Short_t)flav; }
+    { fRefFlavor = {(Short_t)flav}; }
     /// @brief Set flavor for B
     void setRefFlavorForB(const Int_t& flav) 
-    { fRefFlavorForB = (Char_t)flav; }
+    { fRefFlavorForB = {(Char_t)flav}; }
     /// @brief Set jet-matched pT weight
-    void setRefJetPtWeight(const Float_t& w) { fRefPtWeight = w; }
+    void setRefJetPtWeight(const Float_t& w) { fRefPtWeight = {w}; }
     /// @brief Print parameters of the given jet
     void print();
 
@@ -89,6 +104,10 @@ class Jet : public TObject {
     Float_t refJetEta() const { return fRefEta; }
     /// @brief Generated jet phi that matched reconstructed one
     Float_t refJetPhi() const { return fRefPhi; }
+    /// @brief Generated jet WTA eta that matched reconstructed one
+    Float_t refJetWTAEta() const { return fRefWTAEta; }
+    /// @brief Generated jet WTA phi that matched reconstructed one
+    Float_t refJetWTAPhi() const { return fRefWTAPhi; }
     /// @brief Return vector of generated jet that matched reconstructed one
     TVector3 refJetVec() const  
     { TVector3 v; v.SetPtEtaPhi(fRefPt, fRefEta, fRefPhi); return v; }
@@ -124,6 +143,10 @@ class Jet : public TObject {
     Float_t fRefEta;
     /// @brief Reco-matched MC phi (-999. for non-existing MC jet)
     Float_t fRefPhi;
+    /// @brief Reco-matched MC WTA eta (-999. for non-existing MC jet)
+    Float_t fRefWTAEta;
+    /// @brief Reco-matched MC WTA phi (-999. for non-existing MC jet)
+    Float_t fRefWTAPhi;
     /// @brief Reco-matched MC flavor
     Short_t fRefFlavor;
     /// @brief Reco-matched MC flavor (-5 - antib, -4 - antic, -3 - antis, -2 - antiu, -1 - antid, 0 - unknown, 1 - d, 2 - u, 3 - s, 4 - c, 5 - b, 21 - gluon, -99 - for non-existing MC jet)

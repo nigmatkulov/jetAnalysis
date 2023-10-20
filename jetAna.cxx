@@ -4,7 +4,7 @@
 // Jet analysis headers
 #include "Manager.h"
 #include "ForestAODReader.h"
-#include "JetAnalysis.h"
+#include "JetESRAnalysis.h"
 #include "BasicHistoManager.h"
 #include "EventCut.h"
 #include "JetCut.h"
@@ -19,7 +19,9 @@ int main(int argc, char const *argv[]) {
     /* code */
 
     // Set default values for arguments
-    TString inFileName = "../../../data/HiForestAOD_PbPbMC2018skim_10.root";
+    
+    //"../../../data/HiForestAOD_PbPbMC2018skim_10.root"
+    TString inFileName = "../../../data/HiForesAOD_PbPb.list";
     TString oFileName = "oTestSimpleReadForest.root";
     Long64_t nEventsToRead = 500;
 
@@ -27,10 +29,10 @@ int main(int argc, char const *argv[]) {
     if (argc > 1) inFileName = argv[1];
     if (argc > 2) oFileName = argv[2];
 
-    Manager *manager = new Manager();
-    EventCut *eventCut = new EventCut();
+    Manager *manager = new Manager{};
+    EventCut *eventCut = new EventCut{};
     eventCut->setVz(-20., 20.);
-    JetCut *jetCut = new JetCut();
+    JetCut *jetCut = new JetCut{};
     jetCut->setMustHaveGenMathing();
     jetCut->setRecoPt(50., 1500.);
     //jetCut->setVerbose();
@@ -46,8 +48,8 @@ int main(int argc, char const *argv[]) {
     reader->fixJetArrays();
     manager->setEventReader(reader);
 
-    JetAnalysis *analysis = new JetAnalysis();
-    BasicHistoManager *hm = new BasicHistoManager();
+    JetESRAnalysis *analysis = new JetESRAnalysis{};
+    BasicHistoManager *hm = new BasicHistoManager{};
     hm->setIsMc(kTRUE);
     hm->init(kTRUE); // kTRUE stands up for use MC; need to FIX
     analysis->addHistoManager(hm);

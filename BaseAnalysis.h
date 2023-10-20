@@ -1,3 +1,14 @@
+/**
+ * @file BaseAnalysis.h
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Base class for physics analysis
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #ifndef BaseAnalysis_h
 #define BaseAnalysis_h
 

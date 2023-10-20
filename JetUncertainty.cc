@@ -1,3 +1,21 @@
+/**
+ * @file JetUncertainty.cc
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Jet uncertainty class. Original version from Yi Chen
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ * // JetUncertainty
+ * // v1.0
+ * // Author: Yi Chen
+ * // 
+ * // This class gives you jet uncertainties
+ * //
+ * 
+ */
+
 // Jet analysis headers
 #include "JetUncertainty.h"
 

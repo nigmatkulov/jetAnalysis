@@ -1,3 +1,22 @@
+/**
+ * @file JetCorrector.cc
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Jet energy corrector class. Original version from Yi Chen
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ * // SingleJetCorrector
+ * // v3.0
+ * // Author: Yi Chen
+ * // 
+ * // This class applies JEC for any given level using TF1 as the workhorse
+ * // Supposedly runs faster than v1.0
+ * // v3.0: one can add list of text files to apply them one by one
+ * 
+ */
+
 #include "JetCorrector.h"
 
 ClassImp(JetCorrector)

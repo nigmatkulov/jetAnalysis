@@ -4,7 +4,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class JetAnalysis+;
+#pragma link C++ class JetESRAnalysis+;
 #pragma link C++ class BaseAnalysis+;
 #pragma link C++ class BaseHistoManager+;
 #pragma link C++ class BaseReader+;
@@ -19,6 +19,7 @@
 #pragma link C++ class JetCut+;
 #pragma link C++ class Manager+;
 #pragma link C++ class BasicHistoManager+;
+#pragma link C++ class TriggerAndSkim+;
 
 // User-defined classes
 #pragma link C++ class ForestAODReader+;

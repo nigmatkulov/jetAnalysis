@@ -1,3 +1,14 @@
+/**
+ * @file Manager.cc
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Program manager - main entry point to the framework
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 // Jet analysis headers
 #include "Manager.h"
 #include "Event.h"

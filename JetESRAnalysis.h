@@ -1,5 +1,16 @@
-#ifndef JetAnalysis_h
-#define JetAnalysis_h
+/**
+ * @file JetESRAnalysis.h
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Jet energy scale and resolution analysis
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+#ifndef JetESRAnalysis_h
+#define JetESRAnalysis_h
 
 // Load ROOT libraries
 #include "TObject.h"
@@ -13,12 +24,12 @@
 #include "Event.h"
 
 //________________
-class JetAnalysis : public BaseAnalysis {
+class JetESRAnalysis : public BaseAnalysis {
   public:
     /// @brief Default constructor
-    JetAnalysis();
+    JetESRAnalysis();
     /// @brief Destructor
-    virtual ~JetAnalysis();
+    virtual ~JetESRAnalysis();
 
     /// @brief Initialize variables and functions
     void init();
@@ -44,7 +55,7 @@ class JetAnalysis : public BaseAnalysis {
     /// @brief Histogram manager
     BasicHistoManager *fHM;
 
-  ClassDef(JetAnalysis, 0)
+  ClassDef(JetESRAnalysis, 0)
 };
 
-#endif // #define JetAnalysis_h
+#endif // #define JetESRAnalysis_h

@@ -1,3 +1,14 @@
+/**
+ * @file BaseReader.h
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @brief Base class for event readers
+ * @version 0.1
+ * @date 2023-10-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #ifndef BaseReader_h
 #define BaseReader_h
 

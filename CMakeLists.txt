@@ -39,7 +39,7 @@ add_definitions(${ROOT_CXX_FLAGS})
 
 # List all headers to be used to generate dictionary and added to the library
 set(HEADERS
-        JetAnalysis.h
+        JetESRAnalysis.h
         Event.h
         Track.h
         GenTrack.h
@@ -55,11 +55,12 @@ set(HEADERS
         EventCut.h
         JetCut.h
         Manager.h
+        TriggerAndSkim.h
 )
 
 # List source files
 set(SRC 
-        JetAnalysis.cc
+        JetESRAnalysis.cc
         Event.cc
         Track.cc
         GenTrack.cc
@@ -72,6 +73,7 @@ set(SRC
         EventCut.cc
         JetCut.cc
         Manager.cc
+        TriggerAndSkim.cc
 )
 
 # Generate ROOT dictionaries
