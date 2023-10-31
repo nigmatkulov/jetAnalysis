@@ -5,7 +5,7 @@
 #include "Manager.h"
 #include "ForestAODReader.h"
 #include "JetESRAnalysis.h"
-#include "BasicHistoManager.h"
+#include "HistoManagerJetESR.h"
 #include "EventCut.h"
 #include "JetCut.h"
 
@@ -23,8 +23,31 @@ int main(int argc, char const *argv[]) {
     // Set default values for arguments
     
     //"../../../data/HiForestAOD_PbPbMC2018skim_10.root"
-    TString inFileName = "../../../data/HiForesAOD_PbPb.list";
-    TString oFileName = "oTestSimpleReadForest.root";
+
+    Bool_t isPbPb = kFALSE;
+    TString inFileName{};
+    Int_t   collEnergyGeV{};
+    TString collSystem{};
+    Int_t   collYear{};
+    TString pfBranchName{};
+    TString oFileName{};
+    if ( isPbPb ) {
+        inFileName = "../../../data/HiForesAOD_PbPb.list";
+        collEnergyGeV = {5020};
+        collSystem = "PbPb";
+        collYear = 2018;
+        pfBranchName = "akCs4PFJetAnalyzer";
+        oFileName = "oTestReadForest_PbPb.root";
+    }
+    else { // pp
+        inFileName = "../../../data/pp/HiForestAOD_1113.root";
+        collEnergyGeV = {5020};
+        collSystem = "pp";
+        collYear = 2018;
+        pfBranchName = "ak4PFJetAnalyzer";
+        oFileName = "oTestReadForest_pp.root";
+    }
+
     Long64_t nEventsToRead = 500;
 
     // Read input argument list 
@@ -33,25 +56,26 @@ int main(int argc, char const *argv[]) {
 
     Manager *manager = new Manager{};
     EventCut *eventCut = new EventCut{};
-    eventCut->setVz(-20., 20.);
+    eventCut->setVz(-40., 40.);
     JetCut *jetCut = new JetCut{};
-    jetCut->setMustHaveGenMathing();
-    jetCut->setRecoPt(50., 1500.);
+    //jetCut->setMustHaveGenMathing();
+    jetCut->setRecoPt(20., 1500.);
     //jetCut->setVerbose();
     ForestAODReader *reader = new ForestAODReader(inFileName);
     reader->setIsMc(kTRUE);
     reader->usePartFlowJetBranch();
+    reader->setPartFlowJetBranchName( pfBranchName.Data() );
     //reader->useCaloJetBranch();
-    reader->setCollidingSystem("PbPb");
-    reader->setCollidingEnergy(5020);
-    reader->setYearOfDataTaking(2018);
+    reader->setCollidingSystem( collSystem.Data() );
+    reader->setCollidingEnergy( collEnergyGeV) ;
+    reader->setYearOfDataTaking( collYear );
     reader->setEventCut(eventCut);
     reader->setJetCut(jetCut);
     reader->fixJetArrays();
     manager->setEventReader(reader);
 
     JetESRAnalysis *analysis = new JetESRAnalysis{};
-    BasicHistoManager *hm = new BasicHistoManager{};
+    HistoManagerJetESR *hm = new HistoManagerJetESR{};
     hm->setIsMc(kTRUE);
     hm->init(kTRUE); // kTRUE stands up for use MC; need to FIX
     analysis->addHistoManager(hm);

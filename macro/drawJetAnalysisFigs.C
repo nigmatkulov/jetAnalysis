@@ -309,7 +309,8 @@ void drawJESvsEta(TFile* inFile) {
 }
 
 //________________
-void drawJetAnalysisFigs(const Char_t *inFileName = "../build/oTestSimpleReadForest.root", 
+void drawJetAnalysisFigs(const Char_t *inFileNamePbPb = "../build/oTestReadForest_PbPb.root",
+                         const Char_t *inFileNamePP = "../build/oTestReadForest_pp.root", 
                          const Char_t *oFile = "oDrawJetAna.root") {
     
     //setStyle();
@@ -318,9 +319,16 @@ void drawJetAnalysisFigs(const Char_t *inFileName = "../build/oTestSimpleReadFor
     gStyle->SetPalette(kBird);
 
     // Read ROOT file                             
-    TFile *inFile = TFile::Open(inFileName);
-    if ( !inFile->IsOpen() ) {
-        std::cout << "Input file not opened. Terminating." << std::endl;
+    TFile *inFilePbPb = TFile::Open(inFileNamePbPb);
+    if ( !inFilePbPb->IsOpen() ) {
+        std::cout << "Input file for PbPb not opened. Terminating." << std::endl;
+        exit(0);
+    }
+
+    // Read ROOT file                             
+    TFile *inFilePP = TFile::Open(inFileNamePP);
+    if ( !inFilePP->IsOpen() ) {
+        std::cout << "Input file for pp not opened. Terminating." << std::endl;
         exit(0);
     }
 
@@ -328,8 +336,8 @@ void drawJetAnalysisFigs(const Char_t *inFileName = "../build/oTestSimpleReadFor
     drawEventQuantities(inFile);
 
     // Draw JES and JER as a function of centrality
-    drawJESvsCentrality(inFile);
+    //drawJESvsCentrality(inFile);
 
     // Draw JES and JER as a function of pseudorapidity
-    drawJESvsEta(inFile);
+    //drawJESvsEta(inFile);
 }

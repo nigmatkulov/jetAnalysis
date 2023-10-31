@@ -29,25 +29,29 @@ ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEve
     fUseTrackBranch{kFALSE}, fUseGenTrackBranch{kFALSE},
     fHltTree{nullptr}, fSkimTree{nullptr}, fEventTree{nullptr}, fCaloJetTree{nullptr},
     fPartFlowJetTree{nullptr}, fTrkTree{nullptr}, fGenTrkTree{nullptr},
+    fPFTreeName{"akCs4PFJetAnalyzer"}, fCaloTreeName{"fCaloTreeName"},
     fJEC{nullptr}, fJECFiles{}, fJEU{nullptr}, fJEUFiles{},
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
-    fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr} {
+    fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
+    fRecoPFJet2GenJetId{}, fGenJet2RecoPFJet{}, 
+    fRecoCaloJet2GenJetId{}, fGenJet2RecoCaloJet{} {
     // Initialize many variables
     clearVariables();
 }
 
 //_________________
 ForestAODReader::ForestAODReader(const Char_t* inputStream,  
-                    const Bool_t& useHltBranch, const Bool_t& useSkimmingBranch, 
-                    const Bool_t& usePFJetBranch, const Bool_t& useCaloJetBranch, 
-                    const Bool_t& useTrackBranch, const Bool_t& useGenTrackBranch, 
-                    const Bool_t& isMc) : 
+                                 const Bool_t& useHltBranch, const Bool_t& useSkimmingBranch, 
+                                 const Bool_t& usePFJetBranch, const Bool_t& useCaloJetBranch, 
+                                 const Bool_t& useTrackBranch, const Bool_t& useGenTrackBranch, 
+                                 const Bool_t& isMc) : 
     fEvent{nullptr}, fInFileName{inputStream}, fEvents2Read{0}, 
     fEventsProcessed{0}, fIsMc{isMc}, 
     fUseHltBranch{useHltBranch}, fUseSkimmingBranch{useSkimmingBranch}, 
     fUsePartFlowJetBranch{usePFJetBranch}, fUseCaloJetBranch{useCaloJetBranch}, 
     fUseTrackBranch{useTrackBranch}, fUseGenTrackBranch{useGenTrackBranch},
+    fPFTreeName{"akCs4PFJetAnalyzer"}, fCaloTreeName{"fCaloTreeName"},
     fJEC{nullptr}, fJECFiles{}, fJEU{nullptr}, fJEUFiles{},
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
@@ -209,6 +213,14 @@ void ForestAODReader::clearVariables() {
     fGenTrackCharge.clear();
     fGenTrackPid.clear();
     fGenTrackSube.clear();
+
+    if (fIsMc) {
+        fRecoPFJet2GenJetId.clear();
+        fGenJet2RecoPFJet.clear();
+
+        fRecoCaloJet2GenJetId.clear();
+        fGenJet2RecoCaloJet.clear();
+    }
 }
 
 //_________________
@@ -395,11 +407,11 @@ Int_t ForestAODReader::setupChains() {
     }
     // Use calo jet branch
     if ( fUseCaloJetBranch ) {
-        fCaloJetTree = new TChain("akPu4CaloJetAnalyzer/t");
+        fCaloJetTree = new TChain( Form( "%s/t", fCaloTreeName.Data() ) );
     }
     // Use particle flow jet branch
     if ( fUsePartFlowJetBranch ) {
-        fPartFlowJetTree = new TChain("akCs4PFJetAnalyzer/t");
+        fPartFlowJetTree = new TChain( Form( "%s/t", fPFTreeName.Data() ) );
     }
     // Use reconstructed track branch
     if ( fUseTrackBranch ) {
@@ -803,8 +815,16 @@ void ForestAODReader::report() {
 //_________________
 void ForestAODReader::readEvent() {
 
+    if (fIsMc) {
+        fRecoPFJet2GenJetId.clear();
+        fGenJet2RecoPFJet.clear();
+
+        fRecoCaloJet2GenJetId.clear();
+        fGenJet2RecoCaloJet.clear();
+    }
+
     // Or one can call the clearVariables() function (will take more time)
-    if (fUseGenTrackBranch) {
+    if (fUseGenTrackBranch && fIsMc) {
         fGenTrackPt.clear();
         fGenTrackEta.clear();
         fGenTrackPhi.clear();
@@ -832,42 +852,102 @@ void ForestAODReader::readEvent() {
 //________________
 void ForestAODReader::fixIndices() {
 
-    //std::cout << "Fix indices" << std::endl;
     if (fUsePartFlowJetBranch) {
-        //std::cout << "Will fix PF jets. nRecoJets: " << fNPFRecoJets << " nGenJet: " << fNPFGenJets << std::endl;
+
         // Loop over reconstructed jets
-        for (Int_t iRecoJet=0; iRecoJet<fNPFRecoJets; iRecoJet++) {
+        for (Int_t iRecoJet{0}; iRecoJet<fNPFRecoJets; iRecoJet++) {
+
+            if ( fNPFGenJets <= 0 ) {
+                fRecoPFJet2GenJetId.push_back(-1);
+                continue;
+            }
+
             // Must have a gen-matched jet
-            if ( fPFRefJetPt[iRecoJet] < 0) continue;
-            for (Int_t iGenJet=0; iGenJet<fNPFGenJets; iGenJet++) {
+            if ( fPFRefJetPt[iRecoJet] < 0) {
+                fRecoPFJet2GenJetId.push_back(-1);
+                continue;
+            }
+
+            for (Int_t iGenJet{0}; iGenJet<fNPFGenJets; iGenJet++) {
                 // Skip Ref and Gen jets that do not match on pT within computational precision
                 //std::cout << "|Gen pT - Ref pT| = " << TMath::Abs(fPFGenJetPt[iGenJet] - fPFRefJetPt[iRecoJet]) << std::endl;
-                if ( TMath::Abs(fPFGenJetPt[iGenJet] - fPFRefJetPt[iRecoJet]) > 2.f * FLT_EPSILON ) continue;
-                fPFRefJetEta[iRecoJet] = fPFGenJetEta[iGenJet];
-                fPFRefJetPhi[iRecoJet] = fPFGenJetPhi[iGenJet];
-                fPFRefJetWTAEta[iRecoJet] = fPFGenJetWTAEta[iGenJet];
-                fPFRefJetWTAPhi[iRecoJet] = fPFGenJetWTAPhi[iGenJet];
+
+                //std::cout << "iGen: " << iGenJet << " genPt: " << fPFGenJetPt[iGenJet] << std::endl;
+                if ( TMath::Abs(fPFGenJetPt[iGenJet] - fPFRefJetPt[iRecoJet]) > 2.f * FLT_EPSILON ) {
+                    // If it is the last one
+                    if ( iGenJet == (fNPFGenJets - 1) ) fRecoPFJet2GenJetId.push_back(-1);
+                    continue;
+                }
+                else {
+                    fPFRefJetEta[iRecoJet] = fPFGenJetEta[iGenJet];
+                    fPFRefJetPhi[iRecoJet] = fPFGenJetPhi[iGenJet];
+                    fPFRefJetWTAEta[iRecoJet] = fPFGenJetWTAEta[iGenJet];
+                    fPFRefJetWTAPhi[iRecoJet] = fPFGenJetWTAPhi[iGenJet];
+                    fRecoPFJet2GenJetId.push_back(iGenJet);
+                    break;
+                }
+
             }
         } //for (Int_t iRecoJet=0; iRecoJet<fNPFRecoJets; iRecoJet++)
+
+        // Fill the corresponding index in the reco vector and fill the gen
+        for (Int_t iGenJet{0}; iGenJet<fNPFGenJets; iGenJet++) {
+            std::vector<Int_t>::iterator it=std::find(fRecoPFJet2GenJetId.begin(), fRecoPFJet2GenJetId.end(), iGenJet);
+            if (it != fRecoPFJet2GenJetId.end()) {
+                fGenJet2RecoPFJet.push_back( std::distance(fRecoPFJet2GenJetId.begin(), it) );
+            }
+            else {
+                fGenJet2RecoPFJet.push_back(-1);
+            }
+        }
     } // if (fUsePartFlowJetBranch)
 
     if (fUseCaloJetBranch) {
         //std::cout << "Will fix Calo jets. nRecoJets: " << fNCaloRecoJets << " nGenJet: " << fNCaloGenJets << std::endl;
 
         // Loop over reconstructed jets
-        for (Int_t iRecoJet=0; iRecoJet<fNCaloRecoJets; iRecoJet++) {
+        for (Int_t iRecoJet{0}; iRecoJet<fNCaloRecoJets; iRecoJet++) {
+
+            if ( fNCaloGenJets <= 0 ) {
+                fRecoCaloJet2GenJetId.push_back(-1);
+                continue;    
+            }
+
             // Must have a gen-matched jet
-            if ( fCaloRefJetPt[iRecoJet] < 0) continue;
-            for (Int_t iGenJet=0; iGenJet<fNCaloGenJets; iGenJet++) {
+            if ( fCaloRefJetPt[iRecoJet] < 0) {
+                fRecoCaloJet2GenJetId.push_back(-1);
+                continue;
+            }
+            for (Int_t iGenJet{0}; iGenJet<fNCaloGenJets; iGenJet++) {
                 // Skip Ref and Gen jets that do not match on pT within computational precision
                 //std::cout << "|Gen pT - Ref pT| = " << TMath::Abs(fCaloGenJetPt[iGenJet] - fCaloRefJetPt[iRecoJet]) << std::endl;
-                if ( TMath::Abs(fCaloGenJetPt[iGenJet] - fCaloRefJetPt[iRecoJet]) > 2.f * FLT_EPSILON ) continue;
-                fCaloRefJetEta[iRecoJet] = fCaloGenJetEta[iGenJet];
-                fCaloRefJetPhi[iRecoJet] = fCaloGenJetPhi[iGenJet];
-                fCaloRefJetWTAEta[iRecoJet] = fCaloGenJetWTAEta[iGenJet];
-                fCaloRefJetWTAPhi[iRecoJet] = fCaloGenJetWTAPhi[iGenJet];
+                if ( TMath::Abs(fCaloGenJetPt[iGenJet] - fCaloRefJetPt[iRecoJet]) > 2.f * FLT_EPSILON ) {
+                    // In case of the last generated jet
+                    if ( iGenJet == (fNCaloGenJets-1) ) fRecoCaloJet2GenJetId.push_back(-1);;
+                    continue;
+                }
+                else {
+                    fCaloRefJetEta[iRecoJet] = fCaloGenJetEta[iGenJet];
+                    fCaloRefJetPhi[iRecoJet] = fCaloGenJetPhi[iGenJet];
+                    fCaloRefJetWTAEta[iRecoJet] = fCaloGenJetWTAEta[iGenJet];
+                    fCaloRefJetWTAPhi[iRecoJet] = fCaloGenJetWTAPhi[iGenJet];
+                    fRecoCaloJet2GenJetId.push_back(iGenJet);
+                    break;
+                }
+                
             }
         } //for (Int_t iRecoJet=0; iRecoJet<fNCaloRecoJets; iRecoJet++)
+
+        // Fill the corresponding index in the reco vector and fill the gen
+        for (Int_t iGenJet{0}; iGenJet<fNCaloGenJets; iGenJet++) {
+            std::vector<Int_t>::iterator it=std::find(fRecoCaloJet2GenJetId.begin(), fRecoCaloJet2GenJetId.end(), iGenJet);
+            if (it != fRecoCaloJet2GenJetId.end()) {
+                fGenJet2RecoCaloJet.push_back( std::distance(fRecoCaloJet2GenJetId.begin(), it) );
+            }
+            else {
+                fGenJet2RecoCaloJet.push_back(-1);
+            }
+        }
     } // if (fUseCaloJetBranch)
 
     //std::cout << "Indices fixed" << std::endl;
@@ -957,14 +1037,38 @@ Event* ForestAODReader::returnEvent() {
     // Create particle flow jet instances
     if ( fUsePartFlowJetBranch ) {
 
+        // Loop over generated jets
+        if ( fIsMc && !fEvent->isGenJetCollectionFilled() ) {
+
+            // std::cout << "nGenPFJets: " << fNPFGenJets << std::endl;
+
+            for (Int_t iGenJet{0}; iGenJet<fNPFGenJets; iGenJet++) {
+                GenJet *jet = new GenJet{};
+                jet->setPt( fPFGenJetPt[iGenJet] );
+                jet->setEta( fPFGenJetEta[iGenJet] );
+                jet->setPhi( fPFGenJetPhi[iGenJet] );
+                jet->setWTAEta( fPFGenJetWTAEta[iGenJet] );
+                jet->setWTAPhi( fPFGenJetWTAPhi[iGenJet] );
+                jet->setFlavor( fPFRefJetPartonFlavor[fGenJet2RecoPFJet.at(iGenJet)] );
+                jet->setFlavorForB( fPFRefJetPartonFlavorForB[fGenJet2RecoPFJet.at(iGenJet)] );
+                jet->setPtWeight( jetPtWeight(fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
+                                              fCollidingEnergyGeV, fPFGenJetPt[iGenJet]) );
+                fEvent->genJetCollection()->push_back( jet );
+            } // for (Int_t iGenJet{0}; iGenJet<fNPFGenJets; iGenJet++)
+
+            // Projection from filling the collection several times
+            fEvent->setGenJetCollectionIsFilled();
+        } // if ( fIsMc )
+        
+
         // Loop over reconstructed jets
         
-        //std::cout << "nJets: " << fNPFRecoJets << std::endl;
+        // std::cout << "nRecoPFJets: " << fNPFRecoJets << std::endl;
 
         for (Int_t iJet{0}; iJet<fNPFRecoJets; iJet++) {
 
             // Create a new jet instance
-            Jet *jet = new Jet();
+            RecoJet *jet = new RecoJet{};
 
             if ( fIsMc ) {
                 // Count number of reconstructed jets
@@ -972,48 +1076,28 @@ Event* ForestAODReader::returnEvent() {
                 if ( fPFRecoJetPt[iJet] > fPtHat ) {
                     nBadPFJets++;
                 }
+
+                // Add index of the matched GenJet
+                jet->setGenJetId( fRecoPFJet2GenJetId.at(iJet) );
             } // if ( fIsMc )
 
             // Reco
-            jet->setRecoJetPt( fPFRecoJetPt[iJet] );
-            jet->setRecoJetEta( fPFRecoJetEta[iJet] );
-            jet->setRecoJetPhi( fPFRecoJetPhi[iJet] );
+            jet->setPt( fPFRecoJetPt[iJet] );
+            jet->setEta( fPFRecoJetEta[iJet] );
+            jet->setPhi( fPFRecoJetPhi[iJet] );
+            jet->setWTAEta( fPFRecoJetWTAEta[iJet] );
+            jet->setWTAPhi( fPFRecoJetWTAPhi[iJet] );
             if ( fJEC ) {
                 fJEC->SetJetPT( fPFRecoJetPt[iJet] );
                 fJEC->SetJetEta( fPFRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fPFRecoJetPhi[iJet] );
                 double pTcorr = fJEC->GetCorrectedPT();
                 //std::cout << "pTCorr: " << pTcorr << std::endl; 
-                jet->setRecoJetPtJECCorr( fJEC->GetCorrectedPT() );
+                jet->setPtJECCorr( fJEC->GetCorrectedPT() );
                 //std::cout << "pTCorr: " << jet->recoJetPtJECCorr() << std::endl; 
-                
-                jet->setRecoJetPtWeight( jetPtWeight( fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                      fCollidingEnergyGeV, jet->recoJetPtJECCorr() ) );
-                
-                //resolutionfactor: Worsening resolution by 20%: 0.663, by 10%: 0.458 , by 30%: 0.831
-                jet->setRecoJetPtSmearingWeight( jetPtSmeringWeight( fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                                     fCollidingEnergyGeV, jet->recoJetPtJECCorr(), 
-                                                                     fDoJetPtSmearing, 0.663) );
             }
             else { // If no JEC available
-                jet->setRecoJetPtJECCorr( -999.f );
-                jet->setRecoJetPtWeight( -999.f );
-                jet->setRecoJetPtSmearingWeight( -999.f );
-            }
-            jet->setRecoJetWTAEta( fPFRecoJetWTAEta[iJet] );
-            jet->setRecoJetWTAPhi( fPFRecoJetWTAPhi[iJet] );
-
-            if ( fIsMc ) {
-                // Ref
-                jet->setRefJetPt( fPFRefJetPt[iJet] );
-                jet->setRefJetEta( fPFRefJetEta[iJet] );
-                jet->setRefJetPhi( fPFRefJetPhi[iJet] );
-                jet->setRefJetWTAEta( fPFRefJetWTAEta[iJet] );
-                jet->setRefJetWTAPhi( fPFRefJetWTAPhi[iJet] );
-                jet->setRefFlavor( fPFRefJetPartonFlavor[iJet] );
-                jet->setRefFlavorForB( fPFRefJetPartonFlavorForB[iJet] );
-                jet->setRefJetPtWeight( jetPtWeight(fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                    fCollidingEnergyGeV, fPFRefJetPt[iJet]) );
+                jet->setPtJECCorr( -999.f );
             }
 
             // jet->print();
@@ -1036,53 +1120,38 @@ Event* ForestAODReader::returnEvent() {
         for (Int_t iJet{0}; iJet<fNCaloRecoJets; iJet++) {
 
             // Create a new jet instance
-            Jet *jet = new Jet();
+            RecoJet *jet = new RecoJet{};
 
-            if ( fIsMc ) {
+                if ( fIsMc ) {
                 // Count number of reconstructed jets
                 // with pT > pThat of the event (wrong )
                 if ( fCaloRecoJetPt[iJet] > fPtHat ) {
-                    nBadCaloJets++;
+                    nBadPFJets++;
                 }
+
+                // Add index of the matched GenJet
+                jet->setGenJetId( fRecoCaloJet2GenJetId.at(iJet) );
             } // if ( fIsMc )
 
-            // Reco
-            jet->setRecoJetPt( fCaloRecoJetPt[iJet] );
-            jet->setRecoJetEta( fCaloRecoJetEta[iJet] );
-            jet->setRecoJetPhi( fCaloRecoJetPhi[iJet] );
-            jet->setRecoJetPtJECCorr( -999.f );
-            jet->setRecoJetWTAEta( fCaloRecoJetWTAEta[iJet] );
-            jet->setRecoJetWTAPhi( fCaloRecoJetWTAPhi[iJet] );
 
+            // Reco
+            jet->setPt( fCaloRecoJetPt[iJet] );
+            jet->setEta( fCaloRecoJetEta[iJet] );
+            jet->setPhi( fCaloRecoJetPhi[iJet] );
+            jet->setWTAEta( fCaloRecoJetWTAEta[iJet] );
+            jet->setWTAPhi( fCaloRecoJetWTAPhi[iJet] );
             if ( fJEC ) {
                 fJEC->SetJetPT( fCaloRecoJetPt[iJet] );
                 fJEC->SetJetEta( fCaloRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fCaloRecoJetPhi[iJet] );
-                jet->setRecoJetPtJECCorr( fJEC->GetCorrectedPT() );
-                jet->setRecoJetPtWeight( jetPtWeight( fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                      fCollidingEnergyGeV, jet->recoJetPtJECCorr() ) );
-                
-                //resolutionfactor: Worsening resolution by 20%: 0.663, by 10%: 0.458 , by 30%: 0.831
-                jet->setRecoJetPtSmearingWeight( jetPtSmeringWeight( fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                                                     fCollidingEnergyGeV, jet->recoJetPtJECCorr(), 
-                                                                     fDoJetPtSmearing, 0.663) );
+                double pTcorr = fJEC->GetCorrectedPT();
+                //std::cout << "pTCorr: " << pTcorr << std::endl; 
+                jet->setPtJECCorr( fJEC->GetCorrectedPT() );
+                //std::cout << "pTCorr: " << jet->recoJetPtJECCorr() << std::endl; 
             }
             else { // If no JEC available
-                jet->setRecoJetPtJECCorr( -999.f );
-                jet->setRecoJetPtWeight( -999.f );
-                jet->setRecoJetPtSmearingWeight( -999.f );
+                jet->setPtJECCorr( -999.f );
             } 
-
-            if ( fIsMc) {
-                // Ref
-                jet->setRefJetPt( fCaloRefJetPt[iJet] );
-                jet->setRefJetEta( fCaloRefJetEta[iJet] );
-                jet->setRefJetPhi( fCaloRefJetPhi[iJet] );
-                jet->setRefJetWTAEta( fCaloRefJetWTAEta[iJet] );
-                jet->setRefJetWTAPhi( fCaloRefJetWTAPhi[iJet] );
-                jet->setRefFlavor( fCaloRefJetPartonFlavor[iJet] );
-                jet->setRefFlavorForB( fCaloRefJetPartonFlavorForB[iJet] );
-            }
 
             // Check fron-loaded cut
             if ( fJetCut && !fJetCut->pass(jet) ) {

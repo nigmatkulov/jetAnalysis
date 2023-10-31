@@ -13,7 +13,7 @@
 #define JetCut_h
 
 // Jet analysis headers
-#include "Jet.h"
+#include "RecoJet.h"
 
 // ROOT headers
 #include "Rtypes.h"
@@ -48,7 +48,7 @@ class JetCut {
     /// @brief Report cut limits and passed/failed statistics
     void report();
     /// @brief Check if jet passes the cut 
-    virtual Bool_t pass(const Jet* jet);
+    virtual Bool_t pass(const RecoJet* jet);
     /// @brief Set verbose mode
     void setVerbose() { fVerbose = kTRUE; }
 

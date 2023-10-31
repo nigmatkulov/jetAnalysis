@@ -21,9 +21,11 @@
 //________________
 Event::Event() : TObject(), fRunId{0}, fEventId{0}, fLumi{0},
                  fVx{0}, fVy{0}, fVz{0}, fHiBin{-1}, fPtHat{-1}, fPtHatWeight{-1}, 
-                 fNBadPFJets{0},  fNBadCaloJets{0}, fMult{0} {
+                 fNBadPFJets{0},  fNBadCaloJets{0}, fMult{0},
+                 fGenJetsCollectionIsFilled{kFALSE} {
     fPFJetCollection = new PartFlowJetCollection{};
     fCaloJetCollection = new CaloJetCollection{};
+    fGenJetCollection = new GenJetCollection{};
     fTrackCollection = new TrackCollection{};
     fGenTrackCollection = new GenTrackCollection{};
     fTrigAndSkim = new TriggerAndSkim{};
@@ -39,11 +41,12 @@ Event::Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi,
     fVx{vx}, fVy{vy}, fVz{vz},
     fHiBin{(Short_t)hiBin}, fPtHat{ptHat}, fPtHatWeight{w}, 
     fNBadPFJets{(UChar_t)nBadPFJets}, fNBadCaloJets{(UChar_t)nBadCaloJets},
-    fMult{(UShort_t)mult} {
+    fMult{(UShort_t)mult}, fGenJetsCollectionIsFilled{kFALSE} {
     
     // Create new collections 
     fPFJetCollection = new PartFlowJetCollection{};
     fCaloJetCollection = new CaloJetCollection{};
+    fGenJetCollection = new GenJetCollection{};
     fTrackCollection = new TrackCollection{};
     fGenTrackCollection = new GenTrackCollection{};
     fTrigAndSkim = new TriggerAndSkim{};
@@ -59,6 +62,11 @@ Event::~Event() {
     // Clean collection of calorimeter jets
     for (CaloJetIterator iter=fCaloJetCollection->begin();
          iter!=fCaloJetCollection->end(); iter++) {
+        delete *iter;
+    }
+    // Clean collection of generated jets
+    for (GenJetIterator iter=fGenJetCollection->begin();
+         iter!=fGenJetCollection->end(); iter++) {
         delete *iter;
     }
     // Clean track collection

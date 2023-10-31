@@ -14,7 +14,8 @@
 
 // Jeta analysis headers
 #include "BaseAnalysis.h"
-#include "Jet.h"
+#include "RecoJet.h"
+#include "GenJet.h"
 #include "Track.h"
 #include "GenTrack.h"
 
@@ -26,12 +27,16 @@ typedef std::vector<BaseAnalysis*> AnalysisCollection;
 typedef std::vector<BaseAnalysis*>::iterator AnalysisIterator;
 
 // Particle flow jet collection
-typedef std::vector<Jet*> PartFlowJetCollection;
-typedef std::vector<Jet*>::iterator PartFlowJetIterator;
+typedef std::vector<RecoJet*> PartFlowJetCollection;
+typedef std::vector<RecoJet*>::iterator PartFlowJetIterator;
 
 // Calorimeter jet collection
-typedef std::vector<Jet*> CaloJetCollection;
-typedef std::vector<Jet*>::iterator CaloJetIterator;
+typedef std::vector<RecoJet*> CaloJetCollection;
+typedef std::vector<RecoJet*>::iterator CaloJetIterator;
+
+// Generated jet collection
+typedef std::vector<GenJet*> GenJetCollection;
+typedef std::vector<GenJet*>::iterator GenJetIterator;
 
 // Reconstructed track collection
 typedef std::vector<Track*> TrackCollection;

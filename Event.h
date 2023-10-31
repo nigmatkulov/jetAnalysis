@@ -61,6 +61,8 @@ class Event : public TObject {
     void setNumberOfOverscaledCaloJets(const Int_t& n) { fNBadCaloJets = (UChar_t)n; }
     /// @brief Set reference multiplicity (CMS way)
     void setMultiplicity(const Int_t& mult) { fMult = (UShort_t)mult; }
+    /// @brief Set the flag that generated jet collection is filled to true
+    void setGenJetCollectionIsFilled()      { fGenJetsCollectionIsFilled = kTRUE; }
     /// @brief  Print event information
     void print();
 
@@ -90,6 +92,14 @@ class Event : public TObject {
     Int_t numberOfOverscaledCaloJets() const { return (Int_t)fNBadCaloJets; }
     /// @brief Return reference multiplicity (CMS way) 
     Int_t multiplicity() const { return (Int_t)fMult; }
+    /// @brief Return if generated jet collection filled 
+    Bool_t isGenJetCollectionFilled() const { return fGenJetsCollectionIsFilled; }
+    /// @brief Return number of particle flow jets 
+    UInt_t numberOfPFJets() const   { return this->pfJetCollection()->size(); }
+    /// @brief Return number of calorimeter jets 
+    UInt_t numberOfCaloJets() const { return this->caloJetCollection()->size(); }
+    /// @brief Return number of generated jets 
+    UInt_t numberOfGenJets() const  { return this->genJetCollection()->size(); }
 
     /// @brief Return pointer to a collection of tracks
     TrackCollection *trackCollection() const { return fTrackCollection; }
@@ -99,6 +109,8 @@ class Event : public TObject {
     PartFlowJetCollection *pfJetCollection() const { return fPFJetCollection; }
     /// @brief Return pointer to a collection of calorimeter jets 
     CaloJetCollection *caloJetCollection() const { return fCaloJetCollection; }
+    /// @brief Return pointer to a collection of generated jets 
+    GenJetCollection *genJetCollection() const { return fGenJetCollection; }
     /// @brief Return pointer to a trigger and skimming information 
     TriggerAndSkim *trigAndSkim() const { return fTrigAndSkim; }
 
@@ -127,15 +139,21 @@ class Event : public TObject {
     UChar_t   fNBadCaloJets;
     /// @brief Reference charged track multiplicity (CMS way)
     UShort_t  fMult;
+    /// @brief Check if collection of generated jets is filled
+    Bool_t    fGenJetsCollectionIsFilled;
 
     /// @brief Particle flow jet collection
     PartFlowJetCollection *fPFJetCollection;
     /// @brief Calorimeter jet collection
     CaloJetCollection *fCaloJetCollection;
+    /// @brief Generated jet collection
+    GenJetCollection *fGenJetCollection;
+
     /// @brief Track collection
     TrackCollection *fTrackCollection;
     /// @brief MC track collection
     GenTrackCollection *fGenTrackCollection;
+
 
     /// @brief Trigger and skimming information
     TriggerAndSkim *fTrigAndSkim;

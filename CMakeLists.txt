@@ -43,11 +43,13 @@ set(HEADERS
         Event.h
         Track.h
         GenTrack.h
-        Jet.h
+        RecoJet.h
+        GenJet.h
         BaseAnalysis.h
         BaseReader.h
         BaseHistoManager.h
-        BasicHistoManager.h
+        BaseJet.h
+        HistoManagerJetESR.h
         Collections.h
         ForestAODReader.h
         JetCorrector.h
@@ -64,9 +66,11 @@ set(SRC
         Event.cc
         Track.cc
         GenTrack.cc
-        Jet.cc
+        RecoJet.cc
+        GenJet.cc
         BaseReader.cc
-        BasicHistoManager.cc
+        BaseJet.cc
+        HistoManagerJetESR.cc
         ForestAODReader.cc
         JetCorrector.cc
         JetUncertainty.cc

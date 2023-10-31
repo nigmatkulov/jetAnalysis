@@ -59,8 +59,12 @@ class ForestAODReader : public BaseReader {
     void useSkimmingBranch()    { fUseSkimmingBranch = {kTRUE}; }
     /// Turn-on particle flow branch to be read
     void usePartFlowJetBranch() { fUsePartFlowJetBranch = {kTRUE}; }
+    /// @brief Set particle flow jet branch name
+    void setPartFlowJetBranchName(const Char_t *name = "akCs4PFJetAnalyzer") { fPFTreeName = name; }
     /// Turn-on calorimeter jet branch to be read
     void useCaloJetBranch()     { fUseCaloJetBranch = {kTRUE}; }
+    /// @brief Set calorimeter jet branch name
+    void setCaloJetBranchName(const Char_t *name = "akPu4CaloJetAnalyzer") { fCaloTreeName = name; }
     /// Turn-on calorimeter jet branch to be read
     void useTrackBranch()       { fUseTrackBranch = {kTRUE}; }
 
@@ -197,6 +201,7 @@ class ForestAODReader : public BaseReader {
     /// @brief Switch MC track branch ON
     Bool_t fUseGenTrackBranch;
 
+
     /// @brief Chain conaining HLT information (used to friend other trees)
     TChain *fHltTree;
     /// @brief Chain containing skimming information
@@ -211,6 +216,11 @@ class ForestAODReader : public BaseReader {
     TChain *fTrkTree;
     /// @brief Chain containing Monte Carlo tracks
     TChain *fGenTrkTree;
+
+    /// @brief Name of the particle flow tree (e.g. akCs4PFJetAnalyzer for PbPb or ak4PFJetAnalyzer for pp)
+    TString fPFTreeName;
+    /// @brief Name of the particle flow tree (e.g. akPu4CaloJetAnalyzer for PbPb)
+    TString fCaloTreeName;
 
     //
     // Variables to store information from TTree
@@ -468,6 +478,20 @@ class ForestAODReader : public BaseReader {
     EventCut *fEventCut;
     /// @brief Jet cut
     JetCut *fJetCut;
+
+    /// @brief Vector that contains indices of generated jets that matched to the reconsructed 
+    /// particle flow jet (should be of the reco/red size)
+    std::vector<Int_t> fRecoPFJet2GenJetId;
+    /// @brief Vector that contains indices of the reconstructed particle flow jets that 
+    /// macthed to generated jet
+    std::vector<Int_t> fGenJet2RecoPFJet;
+
+    /// @brief Vector that contains indices of generated jets that matched to the reconsructed 
+    /// calorimeter jet (should be of the reco/red size)
+    std::vector<Int_t> fRecoCaloJet2GenJetId;
+    /// @brief Vector that contains indices of the reconstructed calorimeter jets that 
+    /// macthed to generated jet
+    std::vector<Int_t> fGenJet2RecoCaloJet;
 
     ClassDef(ForestAODReader, 1)
 };

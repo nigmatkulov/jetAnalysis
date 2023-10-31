@@ -11,6 +11,7 @@
 
 // Jet analysis headers
 #include "JetCut.h"
+#include "GenJet.h"
 
 // ROOT headers
 #include "TMath.h"
@@ -49,20 +50,20 @@ void JetCut::report() {
 }
 
 //________________
-Bool_t JetCut::pass(const Jet* jet) {
+Bool_t JetCut::pass(const RecoJet* jet) {
     if (fVerbose) {
         std::cout << "\n----- Jet cut -----\n";
     }
 
-    Bool_t goodRecoPt = (fRecoPt[0] <= jet->recoJetPtJECCorr() &&
-                         jet->recoJetPtJECCorr() <= fRecoPt[1]);
+    Bool_t goodRecoPt = (fRecoPt[0] <= jet->pt() &&
+                         jet->pt() <= fRecoPt[1]);
     if (fVerbose) {
-        std::cout << Form("reco pT    : %5.2f <= %5.2f <= %5.2f \t %s \n",
-                          fRecoPt[0], jet->recoJetPtJECCorr(), fRecoPt[1], ( goodRecoPt ) ? "true" : "false" );
+        std::cout << Form("reco pT raw : %5.2f <= %5.2f <= %5.2f \t %s \n",
+                          fRecoPt[0], jet->pt(), fRecoPt[1], ( goodRecoPt ) ? "true" : "false" );
     }
 
-    Float_t recoR = TMath::Sqrt( jet->recoJetPhi() * jet->recoJetPhi() + 
-                                 jet->recoJetEta() * jet->recoJetEta() );
+    Float_t recoR = TMath::Sqrt( jet->phi() * jet->phi() + 
+                                 jet->eta() * jet->eta() );
     Bool_t goodRecoConeR = (recoR <= fRecoConeR);
     if (fVerbose) {
         std::cout << Form("reco cone R: %5.2f <= %5.2f \t %s \n",
@@ -73,35 +74,40 @@ Bool_t JetCut::pass(const Jet* jet) {
     if (fMustHaveGenMatching) {
         goodMatching = jet->hasMatching();
     }
+
     if (fVerbose) {
         std::cout << Form("has matching: \t %s \n",
                           ( goodMatching ) ? "true" : "false" );        
     }
 
-    Bool_t goodRefPt = (fRefPt[0] <= jet->refJetPt() &&
-                               jet->refJetPt() <= fRefPt[1]);
-    if (fVerbose) {
-        std::cout << Form("gen pT    : %5.2f <= %5.2f <= %5.2f \t %s \n",
-                          fRefPt[0], jet->refJetPt(), fRefPt[1], ( goodRefPt ) ? "true" : "false" );
-    }
+    // if ( goodMatching )
+    // Bool_t goodRefPt = (fRefPt[0] <= jet->refJetPt() &&
+    //                            jet->refJetPt() <= fRefPt[1]);
+    // if (fVerbose) {
+    //     std::cout << Form("gen pT    : %5.2f <= %5.2f <= %5.2f \t %s \n",
+    //                       fRefPt[0], jet->refJetPt(), fRefPt[1], ( goodRefPt ) ? "true" : "false" );
+    // }
 
-    Float_t refR = TMath::Sqrt( jet->refJetPhi() * jet->refJetPhi() + 
-                                jet->refJetEta() * jet->refJetEta() );
-    Bool_t goodRefConeR = (refR <= fRefConeR);
-    if (fVerbose) {
-        std::cout << Form("ref cone R: %5.2f <= %5.2f \t %s \n",
-                          refR, fRefConeR, ( goodRefConeR ) ? "true" : "false" );
-    }
+    // Float_t refR = TMath::Sqrt( jet->refJetPhi() * jet->refJetPhi() + 
+    //                             jet->refJetEta() * jet->refJetEta() );
+    // Bool_t goodRefConeR = (refR <= fRefConeR);
+    // if (fVerbose) {
+    //     std::cout << Form("ref cone R: %5.2f <= %5.2f \t %s \n",
+    //                       refR, fRefConeR, ( goodRefConeR ) ? "true" : "false" );
+    // }
 
-    Bool_t goodFlavorForB = ( fRefFlavorForB[0] <= jet->refFlavorForB() &&
-                                    jet->refFlavorForB() <= fRefFlavorForB[1] );
-    if (fVerbose) {
-        std::cout << Form("ref flavorB: %d <= %d <= %d \t %s \n",
-                          fRefFlavorForB[0], jet->refFlavorForB(), fRefFlavorForB[1], ( goodFlavorForB ) ? "true" : "false" );
-    }
+    // Bool_t goodFlavorForB = ( fRefFlavorForB[0] <= jet->refFlavorForB() &&
+    //                                 jet->refFlavorForB() <= fRefFlavorForB[1] );
+    // if (fVerbose) {
+    //     std::cout << Form("ref flavorB: %d <= %d <= %d \t %s \n",
+    //                       fRefFlavorForB[0], jet->refFlavorForB(), fRefFlavorForB[1], ( goodFlavorForB ) ? "true" : "false" );
+    // }
 
-    Bool_t isGood = goodRecoPt && goodRecoConeR && goodMatching &&
-                          goodRefPt && goodRefConeR && goodFlavorForB;
+
+    Bool_t isGood = goodRecoPt && goodRecoConeR && goodMatching;
+
+    // Bool_t isGood = goodRecoPt && goodRecoConeR && goodMatching &&
+    //                       goodRefPt && goodRefConeR && goodFlavorForB;
 
     if (fVerbose) {
         std::cout << Form("good jet     : \t %s \n", (isGood) ? "true" : "false");
