@@ -60,7 +60,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
         fHM->hHiBin->Fill( event->hiBin() );
         fHM->hHiBinWeighted->Fill( event->hiBin(), ptHatW );
         fHM->hPtHat->Fill( ptHat );
-        fHM->hPtHatWeighted->Fill( event->ptHat(), ptHatW );
+        fHM->hPtHatWeighted->Fill( ptHat, ptHatW );
         fHM->hPtHatWeight->Fill( ptHatW );
 
         // Collision centrality
@@ -68,6 +68,11 @@ void JetESRAnalysis::processEvent(const Event* event) {
         fHM->hCentrality->Fill( centrality );
         fHM->hCentralityWeighted->Fill( centrality, ptHatW );
 
+        fHM->hNBadJets[0]->Fill( event->numberOfOverscaledPFJets() );
+        if ( ptHat > 20 ) fHM->hNBadJets[1]->Fill( event->numberOfOverscaledPFJets() );
+        if ( ptHat > 40 ) fHM->hNBadJets[2]->Fill( event->numberOfOverscaledPFJets() );
+        if ( ptHat > 60 ) fHM->hNBadJets[3]->Fill( event->numberOfOverscaledPFJets() );
+        if ( ptHat > 80 ) fHM->hNBadJets[4]->Fill( event->numberOfOverscaledPFJets() );
         
 
         //std::cout << "HiBin: " << event->hiBin() << " centrality: " << centrality << std::endl;
@@ -76,13 +81,19 @@ void JetESRAnalysis::processEvent(const Event* event) {
         // Gen jet quantities
         //
 
-        fHM->hNGenJets->Fill( event->numberOfGenJets() );
+        // Counters for gen jets with pT cuts: >0, >20, >50, >80, >120 GeV
+        Int_t nGenJets[5] {0, 0, 0, 0, 0};
         GenJetIterator genJetIter;
         for ( genJetIter = event->genJetCollection()->begin();
               genJetIter != event->genJetCollection()->end();
               genJetIter++ ) {
 
             Double_t pt = (*genJetIter)->pt();
+            nGenJets[0]++;
+            if ( pt > 20 ) nGenJets[1]++;
+            if ( pt > 50 ) nGenJets[2]++;
+            if ( pt > 80 ) nGenJets[3]++;
+            if ( pt > 120 ) nGenJets[4]++;
             Double_t eta = (*genJetIter)->eta();
             Double_t phi = (*genJetIter)->phi();
             Double_t flavB{-6};
@@ -141,14 +152,32 @@ void JetESRAnalysis::processEvent(const Event* event) {
             fHM->hGenJetPtFlavPtHatCentWeighted->Fill( genJetPtFlavPtHatCent, ptHatW );
         } // for ( genJetIter = event->genJetCollection()->begin();
 
-
         //
         // Reco jet quantities
         //
 
-        fHM->hNRecoJets->Fill( event->numberOfPFJets() );
+        // Counters for gen jets with pT cuts: >0, >20, >50, >80, >120 GeV
+        Int_t nRecoJets[5] {0, 0, 0, 0, 0};
+        Int_t nRefJets[5] {0, 0, 0, 0, 0};
+        Int_t leadJetIndex{-1}, currentIndex{0};
+        Double_t leadJetPt{-1};
         PartFlowJetIterator pfJetIter;
-        Int_t nRefJets{0};
+
+        // Loop to find leading jet
+        for ( pfJetIter = event->pfJetCollection()->begin();
+              pfJetIter != event->pfJetCollection()->end();
+              pfJetIter++ ) {
+            Double_t pt = (*pfJetIter)->ptJECCorr();
+            if ( pt > leadJetPt ) {
+                leadJetIndex = currentIndex;
+                leadJetPt = pt;
+            }
+            currentIndex++;
+        }
+
+        currentIndex = {0}; // Restart counter
+
+        // Loop over reconstructed particle flow jets
         for ( pfJetIter = event->pfJetCollection()->begin();
               pfJetIter != event->pfJetCollection()->end();
               pfJetIter++ ) {
@@ -162,14 +191,20 @@ void JetESRAnalysis::processEvent(const Event* event) {
             Double_t ptRaw = (*pfJetIter)->pt();
             Double_t WTAeta = (*pfJetIter)->WTAEta();
             Double_t WTAphi = (*pfJetIter)->WTAPhi();
+            Double_t dphi = TVector2::Phi_mpi_pi(phi - WTAphi);
             Double_t deltaR = TMath::Sqrt( (eta - WTAeta) * (eta - WTAeta) +
-                                           (phi - WTAphi) * (phi - WTAphi) );
+                                           dphi * dphi );
 
             Double_t recoJetRawPtEtaPhiCent[4]{ ptRaw, eta, phi, centrality };
             fHM->hRecoJetRawPtEtaPhiCent->Fill( recoJetRawPtEtaPhiCent );
 
             // Corrected momentum of the reconstructed jet
             Double_t pt = (*pfJetIter)->ptJECCorr();
+            nRecoJets[0]++;
+            if ( pt > 20 ) nRecoJets[1]++;
+            if ( pt > 50 ) nRecoJets[2]++;
+            if ( pt > 80 ) nRecoJets[3]++;
+            if ( pt > 120 ) nRecoJets[4]++;
             Double_t recoJetPtEtaPhiCent[4]{ pt, eta, phi, centrality };
             Double_t deltaRPtCent[3] = { deltaR, pt, centrality };
             fHM->hRecoJetDeltaRPtCent->Fill( deltaRPtCent );
@@ -179,17 +214,29 @@ void JetESRAnalysis::processEvent(const Event* event) {
                 Double_t tmp[4] {pt, -6., ptHat, centrality };
                 fHM->hRecoJetPtFlavPtHatCentInclusive->Fill( tmp );
                 fHM->hRecoJetPtFlavPtHatCentInclusiveWeighted->Fill( tmp, ptHatW );
+                fHM->hRecoUmnatchedJetPtFlavPtHatCent->Fill( tmp );
+                fHM->hRecoUmnatchedJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW );
+            }
+
+            // Fill the information for lead jet (regardless of matching)
+            if ( currentIndex == leadJetIndex ) {
+                Double_t tmp[4] {pt, -6., ptHat, centrality };
+                fHM->hRecoLeadJetPtFlavPtHatCent->Fill( tmp );
+                fHM->hRecoLeadJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW );
             }
 
             // For the JES and other histograms matching is important
             if ( !(*pfJetIter)->hasMatching() ) continue;
 
-            nRefJets++;
-
             // Retrieve matched gen jet
             GenJet *matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
 
             Double_t genPt = matchedJet->pt();
+            nRefJets[0]++;
+            if ( genPt > 20 ) nRefJets[1]++;
+            if ( genPt > 50 ) nRefJets[2]++;
+            if ( genPt > 80 ) nRefJets[3]++;
+            if ( genPt > 120 ) nRefJets[4]++;
             Double_t genEta = matchedJet->eta();
             Double_t genPhi = matchedJet->phi();
             switch ( matchedJet->flavorForB() )
@@ -237,6 +284,9 @@ void JetESRAnalysis::processEvent(const Event* event) {
                 flavB = -6;
                 break;
             }
+
+            Double_t ptRawPtCorrPtGenCent[4] = { ptRaw, pt, genPt, centrality };
+            fHM->hRecoJetRawPtCorrPtGenPtCent->Fill( ptRawPtCorrPtGenCent );
             
             fHM->hRecoJetPtEtaPhiCent->Fill( recoJetPtEtaPhiCent );
             fHM->hRecoJetPtEtaPhiCentWeighted->Fill( recoJetPtEtaPhiCent, ptHatW );
@@ -273,9 +323,17 @@ void JetESRAnalysis::processEvent(const Event* event) {
             fHM->hJESPtFlavPtHatCent->Fill( jesPtFlavPtHatCent );
             fHM->hJESPtFlavPtHatCentWeighted->Fill( jesPtFlavPtHatCent, ptHatW );
 
+            currentIndex++;
         } // for ( pfJetIter = event->pfJetCollection()->begin();
 
-        fHM->hNRefJets->Fill( nRefJets );
+        //std::cout << "-------------------" << std::endl;
+        for (Int_t i{0}; i<5; i++) {
+            fHM->hNRecoJets[i]->Fill( nRecoJets[i] );
+            fHM->hNGenJets[i]->Fill( nGenJets[i] );
+            fHM->hNRefJets[i]->Fill( nRefJets[i] );
+            // std::cout << Form("nRecoJets: %d nGenJets: %d nRefJets: %d\n", 
+            //                   nRecoJets[i], nGenJets[i], nRefJets[i] );
+        }
     } // if (fHM)
 }
 

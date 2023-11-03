@@ -81,7 +81,7 @@ class Event : public TObject {
     /// @brief Return hiBin bin 
     Int_t hiBin() const       { return (Int_t)fHiBin; }
     /// @brief Return centrality bin
-    Double_t centrality() const  { return 100. - Double_t(200 - fHiBin) * 0.5; }
+    Double_t centrality() const  { return (fHiBin < 0) ? -5 : 100. - Double_t(200 - fHiBin) * 0.5; }
     /// @brief Return ptHat 
     Float_t ptHat() const     { return fPtHat; }
     /// @brief Return event weight 

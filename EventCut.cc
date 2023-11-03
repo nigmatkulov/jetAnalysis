@@ -26,6 +26,12 @@ EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fShiftVx{0}, fShiftVy{0}, fVR{1e9}, 
     fHiBin{-1000, 1000}, fCentVal{-1000., 1000.},
     fPtHat{-1e9, 1e9}, fPtHatWeight{-1e9, 1e9}, fVerbose{kFALSE},
+    fPPrimaryVertexFilter{kFALSE},
+    fHBHENoiseFilterResultRun2Loose{kFALSE},
+    fCollisionEventSelectionAODc2{kFALSE},
+    fPhfCoincFilter2Th4{kFALSE},
+    fPPAprimaryVertexFilter{kFALSE},
+    fPBeamScrapingFilter{kFALSE},
     fEventsPassed{0}, fEventsFailed{0} {
     fLumi[0] = 0;
     fLumi[1] = std::numeric_limits<unsigned int>::max();
@@ -96,7 +102,30 @@ Bool_t EventCut::pass(const Event* ev) {
     if (fVerbose) {
         std::cout << Form("eventWeight  : %7.2f <= %7.2f < %7.2f \t %s \n",
                           fPtHatWeight[0], ev->ptHatWeight(), fPtHatWeight[1], ( goodPtHatWeight ) ? "true" : "false" );
-    }    
+    }
+
+    Bool_t goodFilters = kTRUE;
+    if ( fPPrimaryVertexFilter ) {
+        if ( ev->trigAndSkim()->pPAprimaryVertexFilter() == 0 ) goodFilters = kFALSE;
+    }
+    if ( fHBHENoiseFilterResultRun2Loose ) {
+        if ( ev->trigAndSkim()->HBHENoiseFilterResultRun2Loose() == 0 ) goodFilters = kFALSE;
+    }
+    if ( fCollisionEventSelectionAODc2 ) {
+        if ( ev->trigAndSkim()->collisionEventSelectionAODv2() == 0 ) goodFilters = kFALSE;
+    }
+    if ( fPhfCoincFilter2Th4 ) {
+        if ( ev->trigAndSkim()->phfCoincFilter2Th4() == 0 ) goodFilters = kFALSE;
+    }
+    if ( fPPAprimaryVertexFilter ) {
+        if ( ev->trigAndSkim()->pPAprimaryVertexFilter() == 0 ) goodFilters = kFALSE;
+    }
+    if ( fPBeamScrapingFilter ) {
+        if ( ev->trigAndSkim()->pBeamScrapingFilter() == 0 ) goodFilters = kFALSE;
+    }
+    if (fVerbose) {
+        std::cout << Form("Event filters passed: %s\n", (goodFilters) ? "true" : "false");
+    }
 
     Bool_t passEvent = goodVx && goodVy && goodVz && goodHiBin &&
                        goodCent && goodPtHat && goodPtHatWeight;

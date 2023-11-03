@@ -83,11 +83,12 @@ class HistoManagerJetESR : public BaseHistoManager {
     TH1D *hPtHatWeight;
     TH1D *hCentrality;
     TH1D *hCentralityWeighted;
+    TH1D *hNBadJets[5];   // pThat >0, >20, >40, >60, >80
 
     //
     // Gen jet histograms
     //
-    TH1D *hNGenJets;
+    TH1D *hNGenJets[5];   // for jets with pT cuts: >0, >20, >50, >80, >120 GeV
     THnSparseD *hGenJetPtEtaPhiCent;              // pt, eta, phi, centrality
     THnSparseD *hGenJetPtEtaPhiCentWeighted;      // pt, eta, phi, centrality
     THnSparseD *hGenJetPtFlavPtHatCent;         // pt, flavorForB, ptHat, centrality
@@ -96,7 +97,7 @@ class HistoManagerJetESR : public BaseHistoManager {
     //
     // Reco jet histograms
     //
-    TH1D *hNRecoJets;
+    TH1D *hNRecoJets[5];  // for jets with pT cuts: >0, >20, >50, >80, >120 GeV
     THnSparseD *hRecoJetRawPtEtaPhiCent;       // ptRaw, eta, phi, centrality
     THnSparseD *hRecoJetPtEtaPhiCent;          // ptCorr, eta, phi, centrality
     THnSparseD *hRecoJetPtEtaPhiCentWeighted;  // ptCorr, eta, phi, centrality
@@ -105,11 +106,17 @@ class HistoManagerJetESR : public BaseHistoManager {
     THnSparseD *hRecoJetPtFlavPtHatCentInclusive; // (matched + unmatched) ptCorr, flavorForB, ptHat, centrality
     THnSparseD *hRecoJetPtFlavPtHatCentInclusiveWeighted; // (matched + unmatched) ptCorr, flavorForB, ptHat, centrality
     THnSparseD *hRecoJetDeltaRPtCent;           // deltaR=sqrt((eta-WTAeta)^2+(phi-WTAphi)^2),ptCorr,centrality
+    THnSparseD *hRecoUmnatchedJetPtFlavPtHatCent; // ptCorr of unmatched jets, flavorForB, ptHat, centrality
+    THnSparseD *hRecoUmnatchedJetPtFlavPtHatCentWeighted; // ptCorr of unmatched jets, flavorForB, ptHat, centrality
+    THnSparseD *hRecoLeadJetPtFlavPtHatCent;    // Leading jet ptCorr, ptHat, centrality
+    THnSparseD *hRecoLeadJetPtFlavPtHatCentWeighted;    // Leading jet ptCorr, ptHat, centrality
+
+    THnSparseD *hRecoJetRawPtCorrPtGenPtCent;   // Reconstructed jet raw pT, corrected pT, gen pT, centrality
     
     //
     // Ref jet histograms
     //
-    TH1D *hNRefJets;
+    TH1D *hNRefJets[5];   // for jets with pT cuts: >0, >20, >50, >80, >120 GeV
     THnSparseD *hRefJetPtEtaPhiCent;               // pt, eta, phi, centrality
     THnSparseD *hRefJetPtEtaPhiCentWeighted;       // pt, eta, phi, centrality
     THnSparseD *hRefJetPtFlavPtHatCent;            // ptCorr, flavorForB, ptHat, centrality

@@ -31,8 +31,9 @@ int main(int argc, char const *argv[]) {
     Int_t   collYear{};
     TString pfBranchName{};
     TString oFileName{};
+    TString JECFileName;
     if ( isPbPb ) {
-        inFileName = "../../../data/HiForesAOD_PbPb.list";
+        inFileName = "../../../data/HiForestAOD_PbPb.list";
         collEnergyGeV = {5020};
         collSystem = "PbPb";
         collYear = 2018;
@@ -40,12 +41,14 @@ int main(int argc, char const *argv[]) {
         oFileName = "oTestReadForest_PbPb.root";
     }
     else { // pp
-        inFileName = "../../../data/pp/HiForestAOD_1113.root";
+        //inFileName = "../../../data/pp/HiForestAOD_1113.root";
+        inFileName = "../../../data/HiForestAOD_pp.list";
         collEnergyGeV = {5020};
         collSystem = "pp";
         collYear = 2018;
         pfBranchName = "ak4PFJetAnalyzer";
         oFileName = "oTestReadForest_pp.root";
+        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
     }
 
     Long64_t nEventsToRead = 500;
@@ -57,6 +60,19 @@ int main(int argc, char const *argv[]) {
     Manager *manager = new Manager{};
     EventCut *eventCut = new EventCut{};
     eventCut->setVz(-40., 40.);
+    if ( isPbPb ) {
+        eventCut->usePPrimaryVertexFilter();
+        eventCut->useHBHENoiseFilterResultRun2Loose();
+        eventCut->useCollisionEventSelectionAODv2();
+        eventCut->usePhfCoincFilter2Th4();
+    }
+    else { // pp case
+        eventCut->useHBHENoiseFilterResultRun2Loose();
+        eventCut->usePPAprimaryVertexFilter();
+        eventCut->usePBeamScrapingFilter();
+    }
+    eventCut->setPtHat(50, 1e6);
+
     JetCut *jetCut = new JetCut{};
     //jetCut->setMustHaveGenMathing();
     jetCut->setRecoPt(20., 1500.);
@@ -72,6 +88,9 @@ int main(int argc, char const *argv[]) {
     reader->setEventCut(eventCut);
     reader->setJetCut(jetCut);
     reader->fixJetArrays();
+    if ( !isPbPb ) {
+        reader->setJECFileName(JECFileName.Data());
+    }
     manager->setEventReader(reader);
 
     JetESRAnalysis *analysis = new JetESRAnalysis{};

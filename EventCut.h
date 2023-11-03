@@ -57,6 +57,13 @@ class EventCut {
     void setPtHatWeight(const Double_t& lo=-1e9, const Double_t& hi=1e9) { fPtHatWeight[0]=lo; fPtHatWeight[1]=hi; }
     /// @brief Print information each event
     void setVerbose(const Bool_t& v) { fVerbose = v; }
+    // Skim selection criteria
+    void usePPrimaryVertexFilter()           { fPPrimaryVertexFilter = kTRUE; }
+    void useHBHENoiseFilterResultRun2Loose() { fHBHENoiseFilterResultRun2Loose = kTRUE; }
+    void useCollisionEventSelectionAODv2()   { fCollisionEventSelectionAODc2 = kTRUE; }
+    void usePhfCoincFilter2Th4()             { fPhfCoincFilter2Th4 = kTRUE; }
+    void usePPAprimaryVertexFilter()         { fPPAprimaryVertexFilter = kTRUE; }
+    void usePBeamScrapingFilter()            { fPBeamScrapingFilter = kTRUE; }
     /// @brief Report information about
     void report();
     /// @brief Check if evn 
@@ -88,6 +95,15 @@ class EventCut {
     Double_t fPtHatWeight[2];
     /// @brief  Print information each time
     Bool_t fVerbose;
+
+    // Skim flags 
+    Bool_t fPPrimaryVertexFilter;
+    Bool_t fHBHENoiseFilterResultRun2Loose;
+    Bool_t fCollisionEventSelectionAODc2;
+    Bool_t fPhfCoincFilter2Th4;
+
+    Bool_t fPPAprimaryVertexFilter;
+    Bool_t fPBeamScrapingFilter;
 
     /// @brief Number of events passed cut
     Long64_t fEventsPassed;
