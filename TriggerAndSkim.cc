@@ -65,6 +65,7 @@ TriggerAndSkim::TriggerAndSkim() :
   fPVertexFilterCutGloose{0},
   fPVertexFilterCutGtight{0},
   fPVertexFilterCutE{0},
-  fPVertexFilterCutEandG{0} {
+  fPVertexFilterCutEandG{0},
+  fPClusterCompatibilityFilter{0} {
     /* empty */
 }

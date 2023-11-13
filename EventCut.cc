@@ -32,6 +32,7 @@ EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fPhfCoincFilter2Th4{kFALSE},
     fPPAprimaryVertexFilter{kFALSE},
     fPBeamScrapingFilter{kFALSE},
+    fPClusterCompatibilityFilter{kFALSE},
     fEventsPassed{0}, fEventsFailed{0} {
     fLumi[0] = 0;
     fLumi[1] = std::numeric_limits<unsigned int>::max();
@@ -122,6 +123,9 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPBeamScrapingFilter ) {
         if ( ev->trigAndSkim()->pBeamScrapingFilter() == 0 ) goodFilters = kFALSE;
+    }
+    if ( fPClusterCompatibilityFilter ) {
+        if ( ev->trigAndSkim()->pClusterCompatibilityFilter() == 0 ) goodFilters = kFALSE;
     }
     if (fVerbose) {
         std::cout << Form("Event filters passed: %s\n", (goodFilters) ? "true" : "false");

@@ -31,8 +31,9 @@ HistoManagerJetESR::HistoManagerJetESR() :
   fEtaBins{50}, fEtaRange{-2.5, 2.5},
   fPhiBins{32}, fPhiRange{-TMath::Pi(), TMath::Pi()},
   fJESBins{500}, fJESRange{0., 5.},
-  fPtHatBins{30}, fPtHatRange{15., 615.},
+  fPtHatBins{120}, fPtHatRange{15., 615.},
   fFlavorForBBins{14}, fFlavorForBRange{-6.5, 6.5},
+  hVzPtHatCent{nullptr}, hVzPtHatCentWeighted{nullptr},
 
   hVz{nullptr}, hVzWeighted{nullptr}, hMult{nullptr},
   hHiBin{nullptr}, hHiBinWeighted{nullptr},
@@ -49,7 +50,7 @@ HistoManagerJetESR::HistoManagerJetESR() :
   hRecoJetPtEtaPhiCentWeighted{nullptr}, hRecoJetPtFlavPtHatCent{nullptr}, hRecoJetPtFlavPtHatCentWeighted{nullptr},
   hRecoJetPtFlavPtHatCentInclusive{nullptr}, hRecoJetPtFlavPtHatCentInclusiveWeighted{nullptr},
   hRecoJetDeltaRPtCent{nullptr},
-  hRecoUmnatchedJetPtFlavPtHatCent{nullptr}, hRecoUmnatchedJetPtFlavPtHatCentWeighted{nullptr},
+  hRecoUnmatchedJetPtFlavPtHatCent{nullptr}, hRecoUnmatchedJetPtFlavPtHatCentWeighted{nullptr},
   hRecoLeadJetPtFlavPtHatCent{nullptr}, hRecoLeadJetPtFlavPtHatCentWeighted{nullptr},
   hRecoJetRawPtCorrPtGenPtCent{nullptr},
 
@@ -77,6 +78,8 @@ HistoManagerJetESR::~HistoManagerJetESR() {
     if (hPtHatWeight)   delete hPtHatWeight;
     if (hCentrality)    delete hCentrality;
     if (hCentralityWeighted) delete hCentralityWeighted;
+    if (hVzPtHatCent) delete hVzPtHatCent;
+    if (hVzPtHatCentWeighted) delete hVzPtHatCentWeighted;
 
     for (Int_t i{0}; i<5; i++) {
         if (hNBadJets[i]) delete hNBadJets[i];
@@ -90,8 +93,8 @@ HistoManagerJetESR::~HistoManagerJetESR() {
     if (hRecoJetPtFlavPtHatCentInclusive) delete hRecoJetPtFlavPtHatCentInclusive;
     if (hRecoJetPtFlavPtHatCentInclusiveWeighted) delete hRecoJetPtFlavPtHatCentInclusiveWeighted;
     if (hRecoJetDeltaRPtCent) delete hRecoJetDeltaRPtCent;
-    if (hRecoUmnatchedJetPtFlavPtHatCent) delete hRecoUmnatchedJetPtFlavPtHatCent;
-    if (hRecoUmnatchedJetPtFlavPtHatCentWeighted) delete hRecoUmnatchedJetPtFlavPtHatCentWeighted;
+    if (hRecoUnmatchedJetPtFlavPtHatCent) delete hRecoUnmatchedJetPtFlavPtHatCent;
+    if (hRecoUnmatchedJetPtFlavPtHatCentWeighted) delete hRecoUnmatchedJetPtFlavPtHatCentWeighted;
     if (hRecoLeadJetPtFlavPtHatCent) delete hRecoLeadJetPtFlavPtHatCent;
     if (hRecoLeadJetPtFlavPtHatCentWeighted) delete hRecoLeadJetPtFlavPtHatCentWeighted;
     if (hRecoJetRawPtCorrPtGenPtCent) delete hRecoJetRawPtCorrPtGenPtCent;
@@ -132,6 +135,25 @@ void HistoManagerJetESR::init(const Bool_t& isMc) {
     
     Int_t    prescale = 2;
 
+    Int_t    vzBins = 360;
+    Double_t vzRange[2] = {-45., 45.};
+    Int_t    multBins{1800};
+    Double_t multRange[2] = {-0.5, 1799.5};
+    Int_t    hiBinBins{203};
+    Double_t hiBinRange[2] = {-1.5, 201.5};
+    Int_t    centralityBins{101};
+    Double_t centralityRange[2] = {-0.5, 100.5};
+    Int_t    weightBins{110};
+    Double_t weightRange[2] = {-0.05, 1.05};
+    Int_t    ptHatBins{100};
+    Double_t ptHatRange[2] = {0., 1000.};
+    Int_t    deltaRBins{80};
+    Double_t deltaRRange[2] = {-0.05, 0.35};
+
+    Int_t    bins3D_ev_VzCent[3] = {     vzBins,     fPtHatBins, fCentBins     };
+    Double_t xmin3D_ev_VzCent[3] = { vzRange[0], fPtHatRange[0], fCentRange[0] };
+    Double_t xmax3D_ev_VzCent[3] = { vzRange[1], fPtHatRange[1], fCentRange[1] };
+
     Int_t    bins4D_jet_PtEtaPhiCent[4] = { fPtBins    , fEtaBins    , fPhiBins    , fCentBins     };
     Double_t xmin4D_jet_PtEtaPhiCent[4] = { fPtRange[0], fEtaRange[0], fPhiRange[0], fCentRange[0] };
     Double_t xmax4D_jet_PtEtaPhiCent[4] = { fPtRange[1], fEtaRange[1], fPhiRange[1], fCentRange[1] };
@@ -152,24 +174,11 @@ void HistoManagerJetESR::init(const Bool_t& isMc) {
     Double_t xmin5D_jes_PtFlavPthatCent[5] = { fJESRange[0], fPtRange[0], fFlavorForBRange[0], fPtHatRange[0], fCentRange[0] };
     Double_t xmax5D_jes_PtFlavPthatCent[5] = { fJESRange[1], fPtRange[1], fFlavorForBRange[1], fPtHatRange[1], fCentRange[1] };
 
-    Int_t    multBins{1800};
-    Double_t multRange[2] = {-0.5, 1799.5};
-    Int_t    hiBinBins{203};
-    Double_t hiBinRange[2] = {-1.5, 201.5};
-    Int_t    centralityBins{101};
-    Double_t centralityRange[2] = {-0.5, 100.5};
-    Int_t    weightBins{110};
-    Double_t weightRange[2] = {-0.05, 1.05};
-    Int_t    ptHatBins{100};
-    Double_t ptHatRange[2] = {0., 1000.};
-
-    Int_t    deltaRBins{80};
-    Double_t deltaRRange[2] = {-0.05, 0.35};
     Int_t    bins3D_jet_DeltaRPtCent[3] = { deltaRBins    ,  fPtBins   , fCentBins     };
     Double_t xmin3D_jet_DeltaRPtCent[3] = { deltaRRange[0], fPtRange[0], fCentRange[0] };
     Double_t xmax3D_jet_DeltaRPtCent[3] = { deltaRRange[1], fPtRange[1], fCentRange[1] };
 
-    hVz = new TH1D("hVz","Vertex z position;vz (cm);Entries", 400, -50., 50.);
+    hVz = new TH1D("hVz","Vertex z position;vz (cm);Entries", vzBins, vzRange[0], vzRange[1]);
     hVz->Sumw2();
     hVzWeighted = new TH1D("hVzWeighted","Vertex z position;vz (cm);Entries", 400, -50., 50.);
     hVzWeighted->Sumw2();
@@ -202,7 +211,13 @@ void HistoManagerJetESR::init(const Bool_t& isMc) {
                                 6, -0.5, 5.5);
         hNBadJets[i]->Sumw2();
     }
-    
+
+    hVzPtHatCent = new THnSparseD( "hVzPtHatCent","Vertex and centrality;vz (cm);#hat{p_{T}} (GeV/c);centrality",
+                                   3, bins3D_ev_VzCent, xmin3D_ev_VzCent, xmax3D_ev_VzCent );
+    hVzPtHatCent->Sumw2();
+    hVzPtHatCentWeighted = new THnSparseD( "hVzPtHatCentWeighted","Vertex and centrality weighted;vz (cm);#hat{p_{T}} (GeV/c);centrality",
+                                            3, bins3D_ev_VzCent, xmin3D_ev_VzCent, xmax3D_ev_VzCent );
+    hVzPtHatCentWeighted->Sumw2();
 
     //
     // Gen jets
@@ -259,12 +274,12 @@ void HistoManagerJetESR::init(const Bool_t& isMc) {
                                           3, bins3D_jet_DeltaRPtCent, xmin3D_jet_DeltaRPtCent, xmax3D_jet_DeltaRPtCent);
     hRecoJetDeltaRPtCent->Sumw2();
 
-    hRecoUmnatchedJetPtFlavPtHatCent = new THnSparseD("hRecoUmnatchedJetPtFlavPtHatCent","Reconstructed jet unmatched to gen;p_{T}^{corr} (GeV/c);flavorForB;#hat{p_{T}} (GeV/c);centrality",
+    hRecoUnmatchedJetPtFlavPtHatCent = new THnSparseD("hRecoUnmatchedJetPtFlavPtHatCent","Reconstructed jet unmatched to gen;p_{T}^{corr} (GeV/c);flavorForB;#hat{p_{T}} (GeV/c);centrality",
                                                        4, bins4D_jet_PtFlavPthatCent, xmin4D_jet_PtFlavPthatCent, xmax4D_jet_PtFlavPthatCent);
-    hRecoUmnatchedJetPtFlavPtHatCent->Sumw2();
-    hRecoUmnatchedJetPtFlavPtHatCentWeighted = new THnSparseD("hRecoUmnatchedJetPtFlavPtHatCentWeighted","Reconstructed jet unmatched to gen;p_{T}^{corr} (GeV/c);flavorForB;#hat{p_{T}} (GeV/c);centrality",
+    hRecoUnmatchedJetPtFlavPtHatCent->Sumw2();
+    hRecoUnmatchedJetPtFlavPtHatCentWeighted = new THnSparseD("hRecoUnmatchedJetPtFlavPtHatCentWeighted","Reconstructed jet unmatched to gen;p_{T}^{corr} (GeV/c);flavorForB;#hat{p_{T}} (GeV/c);centrality",
                                                        4, bins4D_jet_PtFlavPthatCent, xmin4D_jet_PtFlavPthatCent, xmax4D_jet_PtFlavPthatCent);
-    hRecoUmnatchedJetPtFlavPtHatCentWeighted->Sumw2();
+    hRecoUnmatchedJetPtFlavPtHatCentWeighted->Sumw2();
     hRecoLeadJetPtFlavPtHatCent = new THnSparseD("hRecoLeadJetPtFlavPtHatCent","Leading jet pt;p_{T}^{corr} (GeV/c);flavorForB;#hat{p_{T}} (GeV/c);centrality",
                                                  4, bins4D_jet_PtFlavPthatCent, xmin4D_jet_PtFlavPthatCent, xmax4D_jet_PtFlavPthatCent);
     hRecoLeadJetPtFlavPtHatCent->Sumw2();
@@ -341,6 +356,8 @@ void HistoManagerJetESR::writeOutput() {
     hPtHatWeight->Write();
     hCentrality->Write();
     hCentralityWeighted->Write();
+    hVzPtHatCent->Write();
+    hVzPtHatCentWeighted->Write();
 
     // Reco jets
     for (Int_t i{0}; i<5; i++) {
@@ -355,8 +372,8 @@ void HistoManagerJetESR::writeOutput() {
     hRecoJetPtFlavPtHatCentInclusive->Write();
     hRecoJetPtFlavPtHatCentInclusiveWeighted->Write();
     hRecoJetDeltaRPtCent->Write();
-    hRecoUmnatchedJetPtFlavPtHatCent->Write();
-    hRecoUmnatchedJetPtFlavPtHatCentWeighted->Write();
+    hRecoUnmatchedJetPtFlavPtHatCent->Write();
+    hRecoUnmatchedJetPtFlavPtHatCentWeighted->Write();
     hRecoLeadJetPtFlavPtHatCent->Write();
     hRecoLeadJetPtFlavPtHatCentWeighted->Write();
     hRecoJetRawPtCorrPtGenPtCent->Write();

@@ -141,6 +141,7 @@ void ForestAODReader::clearVariables() {
     fPVertexFilterCutGtight = {0};
     fPVertexFilterCutE = {0};
     fPVertexFilterCutEandG = {0};
+    fPClusterCompatibilityFilter = {0};
 
     // Loop over jets and tracks
     for (Short_t i{0}; i<9999; i++) {
@@ -622,6 +623,7 @@ void ForestAODReader::setupBranches() {
         fSkimTree->SetBranchStatus("pVertexFilterCutGtight", 1);
         fSkimTree->SetBranchStatus("pVertexFilterCutE", 1);
         fSkimTree->SetBranchStatus("pVertexFilterCutEandG", 1);
+        fSkimTree->SetBranchStatus("pclusterCompatibilityFilter", 1);
 
         fSkimTree->SetBranchAddress("HBHENoiseFilterResultRun2Loose", &fHBHENoiseFilterResultRun2Loose);
         fSkimTree->SetBranchAddress("HBHENoiseFilterResultRun2Tight", &fHBHENoiseFilterResultRun2Tight);
@@ -636,6 +638,7 @@ void ForestAODReader::setupBranches() {
         fSkimTree->SetBranchAddress("pVertexFilterCutGtight", &fPVertexFilterCutGtight);
         fSkimTree->SetBranchAddress("pVertexFilterCutE", &fPVertexFilterCutE);
         fSkimTree->SetBranchAddress("pVertexFilterCutEandG", &fPVertexFilterCutEandG);
+        fSkimTree->SetBranchAddress("pclusterCompatibilityFilter", &fPClusterCompatibilityFilter);
     } // if ( fUseSkimmingBranch )
 
     // Jet quantities
@@ -1030,6 +1033,7 @@ Event* ForestAODReader::returnEvent() {
         fEvent->trigAndSkim()->setPVertexFilterCutGtight(fPVertexFilterCutGtight);
         fEvent->trigAndSkim()->setPVertexFilterCutE(fPVertexFilterCutE);
         fEvent->trigAndSkim()->setPVertexFilterCutEandG(fPVertexFilterCutEandG);
+        fEvent->trigAndSkim()->setPClusterCompatibilityFilter(fPClusterCompatibilityFilter);
     }
 
     //fEvent->print();

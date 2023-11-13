@@ -298,6 +298,7 @@ class ForestAODReader : public BaseReader {
     Int_t fPVertexFilterCutGtight;
     Int_t fPVertexFilterCutE;
     Int_t fPVertexFilterCutEandG;
+    Int_t fPClusterCompatibilityFilter;
 
 
     //

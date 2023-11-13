@@ -38,7 +38,7 @@ void setStyle() {
 
 //________________
 void setPadStyle() {
-    gPad->SetTopMargin(0.05);
+    gPad->SetTopMargin(0.04);
     gPad->SetBottomMargin(0.15);
     gPad->SetRightMargin(0.01);
     gPad->SetLeftMargin(0.15);
@@ -309,7 +309,6 @@ void drawReco2GenSpectraPtHatComparison(TFile *inFile) {
 
 }
 
-
 //________________
 void drawPtHatVsLeadingJet(TFile *inFile) {
     // Retrieve histogram
@@ -334,8 +333,8 @@ void drawPtHatVsLeadingJet(TFile *inFile) {
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
-    Int_t scaleX = 1;
-    Int_t scaleY = 2;
+    Int_t rebinX = 1;
+    Int_t rebinY = 2;
 
     // Loop over centralities
     for (Int_t i{0}; i<centLow.size(); i++) {
@@ -359,7 +358,7 @@ void drawPtHatVsLeadingJet(TFile *inFile) {
         setPadStyle();
         hPtHatVsLeadJetPt[i]->Draw("colz");
         gPad->SetLogz(1);
-        t.DrawLatexNDC(0.3, 0.9, Form("%d-%d%% Pb+Pb #sqrt{s_{NN}}=5020 GeV",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        t.DrawLatexNDC(0.3, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
         t.DrawLatexNDC(0.2, 0.8, "Before reweighting");
 
         // With ptHatW reweighting
@@ -369,7 +368,7 @@ void drawPtHatVsLeadingJet(TFile *inFile) {
         hPtHatVsLeadJetPtWeighted[i]->GetXaxis()->SetRangeUser(15., 315.);
         hPtHatVsLeadJetPtWeighted[i]->GetYaxis()->SetRangeUser(15., 315.);
         gPad->SetLogz(1);
-        t.DrawLatexNDC(0.3, 0.9, Form("%d-%d%% Pb+Pb #sqrt{s_{NN}}=5020 GeV",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        t.DrawLatexNDC(0.3, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
         t.DrawLatexNDC(0.25, 0.8, "After reweighting");
     } // for (Int_t i{0}; i<centLow.size(); i++) 
 }
@@ -475,8 +474,8 @@ void drawPtRawCorrGen(TFile *inFile) {
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
-    Int_t scaleX = 1;
-    Int_t scaleY = 1;
+    Int_t rebinX = 1;
+    Int_t rebinY = 1;
 
     for (Int_t i{0}; i<centLow.size(); i++) {
         hRecoJetRawPtCorrPtGenPtCent->GetAxis(3)->SetRange(centLow.at(i), centHi.at(i));
@@ -496,7 +495,7 @@ void drawPtRawCorrGen(TFile *inFile) {
         setPadStyle();
         hPtCorrVsPtRaw[i]->Draw("colz");
         gPad->SetLogz(1);
-        t.DrawLatexNDC(0.3, 0.9, Form("%d-%d%% Pb+Pb #sqrt{s_{NN}}=5020 GeV",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        t.DrawLatexNDC(0.3, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
 
         // PtCorr vs. PtGen
         canv->cd(i+1+centLow.size());
@@ -522,38 +521,115 @@ void drawCompareGenPP2PbPb(TFile *pbpbFile, TFile *ppFile) {
     Int_t firstHistBin = 1;
     vector<Int_t> centLow{6, 4, 2, 1};
     vector<Int_t> centHi {9, 5, 3, 1};
-    for (Int_t iCent{0}; iCent<centLow.size(); iCent++) {
-        centLow.at(iCent) += firstHistBin;
-        centHi.at(iCent) +=  firstHistBin;
+    Int_t ptBinLow{6};
+    Int_t ptBinHi{50};
+    Int_t etaBinLow{10};
+    Int_t etaBinHi{40};
+    for (Int_t i{0}; i<centLow.size(); i++) {
+        centLow.at(i) += firstHistBin;
+        centHi.at(i) += firstHistBin;
     }
+    ptBinLow += firstHistBin;
+    ptBinHi += firstHistBin;
+    etaBinLow += firstHistBin;
+    etaBinHi  += firstHistBin;
 
-    Int_t rebin = 4;
+    // Set common pt and eta limits
+    hGenJetPtEtaPhiCentPbPb->GetAxis(0)->SetRange(ptBinLow, ptBinHi);
+    hGenJetPtEtaPhiCentPbPb->GetAxis(1)->SetRange(etaBinLow, etaBinHi);
+
+    hGenJetPtEtaPhiCentPP->GetAxis(0)->SetRange(ptBinLow, ptBinHi);
+    hGenJetPtEtaPhiCentPP->GetAxis(1)->SetRange(etaBinLow, etaBinHi);
+
+    // Define histograms
+    Int_t rebinPt = 1;
+    Int_t rebinEta = 1;
+    Int_t rebinPhi = 1;
+
+    // Pythia + Hydjet
     TH1D* hGenJetPtPbPb[ centLow.size() ];
+    TH1D* hGenJetEtaPbPb[ centLow.size() ];
+    TH1D* hGenJetPhiPbPb[ centLow.size() ];
+    TH2D* hGenJetPhiVsEtaPbPb[ centLow.size() ];
+    
+    // Pythia
     TH1D* hGenJetPtPP = (TH1D*)hGenJetPtEtaPhiCentPP->Projection(0);
-    hGenJetPtPP->Rebin( rebin );
+    hGenJetPtPP->Scale(1./hGenJetPtPP->Integral());
+    hGenJetPtPP->Rebin( rebinPt );
+    TH1D* hGenJetEtaPP = (TH1D*)hGenJetPtEtaPhiCentPP->Projection(1);
+    hGenJetEtaPP->Scale(1./hGenJetEtaPP->Integral());
+    hGenJetEtaPP->Rebin( rebinEta );
+    TH1D* hGenJetPhiPP = (TH1D*)hGenJetPtEtaPhiCentPP->Projection(2);
+    hGenJetPhiPP->Scale(1./hGenJetPhiPP->Integral());
+    hGenJetPhiPP->Rebin( rebinPhi );
+    TH2D* hGenJetPhiVsEtaPP = (TH2D*)hGenJetPtEtaPhiCentPP->Projection(2,1);
+    set2DStyle(hGenJetPhiVsEtaPP);
     TH1D* hPbPb2PPRaio[centLow.size()];
     set1DStyle(hGenJetPtPP, 1);
+    set1DStyle(hGenJetEtaPP, 1);
+    set1DStyle(hGenJetPhiPP, 1);
 
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    // Set canvases
     TCanvas *canv = new TCanvas("canv","canv", 1600, 800);
     canv->Divide( centLow.size(), 2);
+
+    TCanvas *canv2 = new TCanvas("canv2","canv2", 1200, 800);
+    canv2->Divide( centLow.size()+1, 3);
+    
+    canv2->cd(1);
+    setPadStyle();
+    hGenJetPhiVsEtaPP->Draw("colz");
+    gPad->SetLogz(1);
+    t.DrawLatexNDC(0.3, 0.85, "PYTHIA");
+
+    TLegend *leg;
 
     for (Int_t i{0}; i<centLow.size(); i++) {
         hGenJetPtEtaPhiCentPbPb->GetAxis(3)->SetRange(centLow.at(i), centHi.at(i));
         hGenJetPtPbPb[i] = (TH1D*)hGenJetPtEtaPhiCentPbPb->Projection(0);
         hGenJetPtPbPb[i]->SetName(Form("%s_%d",hGenJetPtEtaPhiCentPbPb->GetName(),i));
-        hGenJetPtPbPb[i]->Rebin( rebin );
+        hGenJetPtPbPb[i]->Rebin( rebinPt );
         set1DStyle(hGenJetPtPbPb[i], 0);
+        hGenJetEtaPbPb[i] = (TH1D*)hGenJetPtEtaPhiCentPbPb->Projection(1);
+        hGenJetEtaPbPb[i]->SetName(Form("%s_%d",hGenJetPtEtaPhiCentPbPb->GetName(),i));
+        hGenJetEtaPbPb[i]->Rebin( rebinEta );
+        set1DStyle(hGenJetEtaPbPb[i], 0);
+        hGenJetPhiPbPb[i] = (TH1D*)hGenJetPtEtaPhiCentPbPb->Projection(2);
+        hGenJetPhiPbPb[i]->SetName(Form("%s_%d",hGenJetPtEtaPhiCentPbPb->GetName(),i));
+        hGenJetPhiPbPb[i]->Rebin( rebinPhi );
+        set1DStyle(hGenJetPhiPbPb[i], 0);
+
+
+        hGenJetPhiVsEtaPbPb[i] = (TH2D*)hGenJetPtEtaPhiCentPbPb->Projection(2,1);
+        hGenJetPhiVsEtaPbPb[i]->SetName(Form("hGenJetPhiVsEtaPbPb_%d",i));
+        set2DStyle(hGenJetPhiVsEtaPbPb[i]);
 
         canv->cd(i+1);
         setPadStyle();
         hGenJetPtPbPb[i]->Scale(1./hGenJetPtPbPb[i]->Integral());
-        hGenJetPtPP->Scale(1./hGenJetPtPP->Integral());
         hGenJetPtPbPb[i]->Draw();
         hGenJetPtPP->Draw("same");
         gPad->SetLogy(1);
 
+        if ( i == 0) {
+            leg = new TLegend(0.5, 0.65, 0.9, 0.75);
+            leg->AddEntry(hGenJetPtPbPb[i],"PYTHIA+HYDJET","p");
+            leg->AddEntry(hGenJetPtPP,"PYTHIA","p");
+            leg->SetBorderSize(0);
+            leg->SetTextSize(0.05);
+            leg->Draw();
+            t.DrawLatexNDC(0.55, 0.78, "#hat{p_{T}} > 50 GeV/c");
+        }
+        t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        
+
         canv->cd(i+1+centLow.size());
-        hPbPb2PPRaio[i] = new TH1D( Form("hPbPb2PPRaio_%d",i), "Ratio of gen jet p_{T} spectra in PbPb to pp;p_{T}^{gen} (GeV/c);Normalized #frac{dN^{PbPb}}{dp_{T}}/#frac{dN^{pp}}{dp_{T}}",
+        setPadStyle();
+        hPbPb2PPRaio[i] = new TH1D( Form("hPbPb2PPRaio_%d",i), "Ratio of gen jet p_{T} spectra in PbPb to pp;p_{T}^{gen} (GeV/c);dN^{PbPb}/dp_{T} / dN^{pp}/dp_{T}",
                                     hGenJetPtPP->GetNbinsX(),
                                     hGenJetPtPP->GetXaxis()->GetBinLowEdge(1),
                                     hGenJetPtPP->GetXaxis()->GetBinUpEdge( hGenJetPtPP->GetNbinsX() ) );
@@ -561,6 +637,24 @@ void drawCompareGenPP2PbPb(TFile *pbpbFile, TFile *ppFile) {
         hPbPb2PPRaio[i]->Divide(hGenJetPtPbPb[i], hGenJetPtPP);
         setJetStyle(hPbPb2PPRaio[i], 2);
         hPbPb2PPRaio[i]->Draw();
+
+        canv2->cd(i+2);
+        setPadStyle();
+        hGenJetPhiVsEtaPbPb[i]->Draw("colz");
+        gPad->SetLogz(1);
+        t.DrawLatexNDC(0.3, 0.85, Form("PYTHIA+HYDJET %d-%d%%", (centLow.at(i)-2)*10,  (centHi.at(i)-1)*10) );
+
+        canv2->cd(i+2+centLow.size()+1);
+        setPadStyle();
+        hGenJetEtaPbPb[i]->Scale(1./hGenJetEtaPbPb[i]->Integral());
+        hGenJetEtaPbPb[i]->Draw();
+        hGenJetEtaPP->Draw("same");
+
+        canv2->cd(i + 2 + 2*centLow.size() + 2);
+        setPadStyle();
+        hGenJetPhiPbPb[i]->Scale(1./hGenJetPhiPbPb[i]->Integral());
+        hGenJetPhiPbPb[i]->Draw();
+        hGenJetPhiPP->Draw("same");
     } // for (Int_t i{0}; i<centLow.size(); i++)
 }
 
@@ -580,6 +674,8 @@ void drawJESvsCentrality(TFile *inFile) {
         centLow.at(iCent) += firstHistBin;
         centHi.at(iCent) +=  firstHistBin;
     }
+    Int_t ptLowBin{10};
+    Int_t ptHiBin{50};
 
     TH2D *hJESvsGenPt[ centLow.size() ];
     TH1D *hJESMean[ centLow.size() ];
@@ -595,8 +691,8 @@ void drawJESvsCentrality(TFile *inFile) {
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
-    Int_t scaleX = 2;
-    Int_t scaleY = 2;
+    Int_t rebinX = 2;
+    Int_t rebinY = 2;
 
     TLegend *leg;
     // Centrality dependence
@@ -608,8 +704,8 @@ void drawJESvsCentrality(TFile *inFile) {
         hJESPtEtaPhiCent->GetAxis(4)->SetRange(centLow.at(iCent), centHi.at(iCent));
         hJESvsGenPt[iCent] = (TH2D*)hJESPtEtaPhiCent->Projection(0,1);
         hJESvsGenPt[iCent]->SetName(Form("hJESvsGenPt_%d",iCent));
-        hJESvsGenPt[iCent]->RebinX(scaleX);
-        hJESvsGenPt[iCent]->RebinY(scaleY);
+        hJESvsGenPt[iCent]->RebinX(rebinX);
+        hJESvsGenPt[iCent]->RebinY(rebinY);
 
         hJESvsGenPt[iCent]->FitSlicesY();
         hJESMean[iCent] = (TH1D*)gDirectory->Get(Form("hJESvsGenPt_%d_%d", iCent, 1));
@@ -621,8 +717,8 @@ void drawJESvsCentrality(TFile *inFile) {
         hJESPtEtaPhiCentWeighted->GetAxis(4)->SetRange(centLow.at(iCent), centHi.at(iCent));
         hJESvsGenPtW[iCent] = (TH2D*)hJESPtEtaPhiCentWeighted->Projection(0,1);
         hJESvsGenPtW[iCent]->SetName(Form("hJESvsGenPtW_%d",iCent));
-        hJESvsGenPtW[iCent]->RebinX(scaleX);
-        hJESvsGenPtW[iCent]->RebinY(scaleY);
+        hJESvsGenPtW[iCent]->RebinX(rebinX);
+        hJESvsGenPtW[iCent]->RebinY(rebinY);
 
         hJESvsGenPtW[iCent]->FitSlicesY();
         hJESMeanW[iCent] = (TH1D*)gDirectory->Get(Form("hJESvsGenPtW_%d_%d", iCent, 1));
@@ -765,7 +861,289 @@ void drawJESvsEta(TFile* inFile) {
 }
 
 //________________
-void drawJetAnalysisFigs(const Char_t *inFileNamePbPb = "../build/oTestReadForest_PbPb_ptHat50.root",
+void drawRecoUnmatched2Inclusive(TFile *inFile) {
+
+    // Need to plot ptHat vs jet pt
+
+    // Read N-dimensional histograms
+    auto hRecoJetPtFlavPtHatCentInclusiveWeighted = (THnSparseD*)inFile->Get("hRecoJetPtFlavPtHatCentInclusive");
+    auto hRecoUnmatchedJetPtFlavPtHatCentWeighted = (THnSparseD*)inFile->Get("hRecoUnmatchedJetPtFlavPtHatCent");
+    // Matched jets
+    auto hRecoJetPtFlavPtHatCentWeighted = (THnSparseD*)inFile->Get("hRecoJetPtFlavPtHatCent");
+
+    //auto hRecoJetPtFlavPtHatCentInclusiveWeighted = (THnSparseD*)inFile->Get("hRecoJetPtFlavPtHatCentInclusiveWeighted");
+    //auto hRecoUnmatchedJetPtFlavPtHatCentWeighted = (THnSparseD*)inFile->Get("hRecoUnmatchedJetPtFlavPtHatCentWeighted");
+    // Matched jets
+    //auto hRecoJetPtFlavPtHatCentWeighted = (THnSparseD*)inFile->Get("hRecoJetPtFlavPtHatCentWeighted");
+
+    // Setup centralities to read
+    Int_t firstHistBin = 1;
+    vector<Int_t> centLow{6, 4, 2, 1};
+    vector<Int_t> centHi {9, 5, 3, 1};
+    for (Int_t i{0}; i<centLow.size(); i++) {
+        centLow.at(i) += firstHistBin;
+        centHi.at(i) += firstHistBin;
+    }
+
+    // Histograms to fill
+    TH1D *hPtInclusiveW[ centLow.size() ];
+    TH1D *hPtUnmatchedW[ centLow.size() ];
+    TH1D* hPtMatchedW[ centLow.size() ];
+
+    TH2D *hPtHatVsInclusivePt[ centLow.size() ];
+    TH2D *hPtHatVsUnmatchedPt[ centLow.size() ];
+
+    // Create canvas
+    TCanvas *canv = new TCanvas("canv","canv", 1200, 400);
+    canv->Divide( centLow.size(), 1 );
+
+    TCanvas *canv2 = new TCanvas("canv2", "canv2", 1200, 800);
+    canv2->Divide( centLow.size(), 2 );
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    TLegend *leg;
+
+    // Loop over centralities
+    for (Int_t i{0}; i<centLow.size(); i++) {
+        // Fill inclusive reco jets
+        hRecoJetPtFlavPtHatCentInclusiveWeighted->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
+        hPtInclusiveW[i] = (TH1D*)hRecoJetPtFlavPtHatCentInclusiveWeighted->Projection(0);
+        hPtInclusiveW[i]->SetName(Form("hPtInclusiveW_%d",i));
+        set1DStyle(hPtInclusiveW[i], 1);
+        hPtInclusiveW[i]->Scale(1./hPtInclusiveW[i]->Integral());
+        hPtInclusiveW[i]->GetYaxis()->SetTitle("1/N_{jet} dN_{jet}/dp_{T}^{reco}");
+
+        hPtHatVsInclusivePt[i] = (TH2D*)hRecoJetPtFlavPtHatCentInclusiveWeighted->Projection(2,0);
+        hPtHatVsInclusivePt[i]->SetName(Form("hPtHatVsInclusivePt_%d",i));
+        set2DStyle( hPtHatVsInclusivePt[i] );
+
+        // Fill unmatched reco jets
+        hRecoUnmatchedJetPtFlavPtHatCentWeighted->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
+        hPtUnmatchedW[i] = (TH1D*)hRecoUnmatchedJetPtFlavPtHatCentWeighted->Projection(0);
+        hPtUnmatchedW[i]->SetName(Form("hPtUnmatchedW_%d",i));
+        set1DStyle(hPtUnmatchedW[i], 0);
+        hPtUnmatchedW[i]->Scale(1./hPtUnmatchedW[i]->Integral());
+
+        hPtHatVsUnmatchedPt[i] = (TH2D*)hRecoUnmatchedJetPtFlavPtHatCentWeighted->Projection(2,0);
+        hPtHatVsUnmatchedPt[i]->SetName( Form("hPtHatVsUnmatchedPt[i]_%d",i) );
+        set2DStyle( hPtHatVsUnmatchedPt[i] );
+
+        // Fill matched reco jets
+        hRecoJetPtFlavPtHatCentWeighted->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
+        hPtMatchedW[i] = (TH1D*)hRecoJetPtFlavPtHatCentWeighted->Projection(0);
+        hPtMatchedW[i]->SetName( Form("hPtMatchedW_%d",i) );
+        setJetStyle(hPtMatchedW[i], 2);
+        hPtMatchedW[i]->Scale(1./hPtMatchedW[i]->Integral());
+
+        // Compare unmatched to inclusive
+        canv->cd(i+1);
+        setPadStyle();
+        hPtInclusiveW[i]->Draw();
+        hPtUnmatchedW[i]->Draw("same");
+        hPtMatchedW[i]->Draw("same");
+        gPad->SetLogy(1);
+        t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        if ( i == 0) {
+            leg = new TLegend(0.5, 0.75, 0.9, 0.85);
+            leg->AddEntry(hPtInclusiveW[i],"Inclusive","p");
+            leg->AddEntry(hPtUnmatchedW[i],"Unmatched","p");
+            leg->AddEntry(hPtMatchedW[i],"Matched","p");
+            leg->SetBorderSize(0);
+            leg->SetTextSize(0.05);
+            leg->Draw();
+            //t.DrawLatexNDC(0.55, 0.78, "#hat{p_{T}} > 50 GeV/c");
+        }
+
+        // Plot ptHat vs pT of inclusive jet pT and unmatched jet pT
+        canv2->cd(i+1);
+        setPadStyle();
+        hPtHatVsInclusivePt[i]->Draw("colz");
+        //gPad->SetLogz(1);
+        t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+
+        canv2->cd( i+1+centLow.size() );
+        setPadStyle();
+        hPtHatVsUnmatchedPt[i]->Draw("colz");
+        //gPad->SetLogz(1);
+        t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+    }
+
+    //
+    // Compare inclusive jet pT spectra for different pThat
+    //
+
+    Int_t ptHatMin = 15;
+    Int_t ptHatStep = 20;
+    vector<Int_t> ptHatLow{0, 1, 2, 3};
+    vector<Int_t> ptHatHi{29, 29, 29, 29};
+    for (Int_t i{0}; i<ptHatLow.size(); i++) {
+        ptHatLow.at(i) += firstHistBin;
+        ptHatHi.at(i) += firstHistBin;
+    }
+
+    TH1D* hInclusivePt[ centLow.size() ][ ptHatLow.size() ];
+    TH1D* hInclusivePtratio[ centLow.size() ][ ptHatLow.size() ];
+
+    TCanvas *canv3 = new TCanvas("canv3", "canv3", 1200, 400);
+    canv3->Divide( centLow.size(), 1 );
+
+    for (Int_t iCent{0}; iCent<centLow.size(); iCent++) {
+        hRecoJetPtFlavPtHatCentInclusiveWeighted->GetAxis(3)->SetRange( centLow.at(iCent), centHi.at(iCent) );
+        leg = new TLegend(0.5, 0.75, 0.9, 0.85);
+        for (Int_t iPtHat{0}; iPtHat<ptHatLow.size(); iPtHat++) {            
+            hRecoJetPtFlavPtHatCentInclusiveWeighted->GetAxis(2)->SetRange( ptHatLow.at(iPtHat), ptHatHi.at(iPtHat) );
+            hInclusivePt[iCent][iPtHat] = (TH1D*)hRecoJetPtFlavPtHatCentInclusiveWeighted->Projection(0);
+            hInclusivePt[iCent][iPtHat]->SetName( Form("hInclusivePt_%d_%d",iCent,iPtHat) );
+            setJetStyle( hInclusivePt[iCent][iPtHat], iPtHat );
+            Int_t nBinsPt = hInclusivePt[iCent][iPtHat]->GetNbinsX();
+            hInclusivePt[iCent][iPtHat]->Scale(1./hInclusivePt[iCent][iPtHat]->Integral( nBinsPt / 2, nBinsPt ) );
+            hInclusivePt[iCent][iPtHat]->GetYaxis()->SetTitle("1/N_{jets} dN/dp_{T}");
+
+            canv3->cd(iCent+1);
+            setPadStyle();
+            hInclusivePt[iCent][iPtHat]->Draw("same");
+            gPad->SetLogy(1);
+
+            
+            if ( iCent == 0 ) {
+                leg->AddEntry(hInclusivePt[0][iPtHat],Form("#hat{p_{T}}>%d GeV/c",ptHatMin + iPtHat*ptHatStep), "p");
+                leg->SetBorderSize(0);
+                //t.DrawLatexNDC(0.55, 0.78, "#hat{p_{T}} > 50 GeV/c");
+            }
+        } // for (Int_t iPtHat{0}; iPtHat<ptHatLow.size(); iPtHat++)
+        t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(iCent)-2)*10, (centHi.at(iCent)-1)*10));
+        if ( iCent == 0 ) {
+            leg->SetTextSize(0.05);
+            leg->Draw();
+        }
+    } // for (Int_t iCent{0}; iCent<centLow.size(); iCent++)
+}
+
+//________________
+void drawRecoUnmatched(TFile *inFile) {
+
+    auto hVzCent = (THnSparseD*)inFile->Get("hVzCent");
+    auto hVzCentWeighted = (THnSparseD*)inFile->Get("hVzCentWeighted");
+    auto hRecoUnmatchedJetPtFlavPtHatCent = (THnSparseD*)inFile->Get("hRecoUnmatchedJetPtFlavPtHatCent");
+    auto hRecoUnmatchedJetPtFlavPtHatCentWeighted = (THnSparseD*)inFile->Get("hRecoUnmatchedJetPtFlavPtHatCentWeighted");
+    // Matched
+    auto hRecoJetPtFlavPtHatCentWeighted = (THnSparseD*)inFile->Get("hRecoJetPtFlavPtHatCentWeighted");
+
+    // Setup centralities to read
+    Int_t firstHistBin = 1;
+    vector<Int_t> centLow{6, 4, 2, 1};
+    vector<Int_t> centHi {9, 5, 3, 1};
+    for (Int_t i{0}; i<centLow.size(); i++) {
+        centLow.at(i) += firstHistBin;
+        centHi.at(i) += firstHistBin;
+    }
+
+    // Create histograms
+    TH1D *hVz[ centLow.size() ];
+    TH1D *hVzW[ centLow.size() ];
+    TH1D *hPtUnmatched[ centLow.size() ];
+    TH1D *hPtUnmatchedW[ centLow.size() ];
+    TH1D *hPtMatchedW[ centLow.size() ];
+    TH1D *hPtWeighted2Unweighted[ centLow.size() ];
+    TH1D *hPtUnmatched2MatchedW[ centLow.size() ];
+
+    auto canv = new TCanvas("canv", "canv", 1200, 800);
+    canv->Divide( centLow.size(), 3 );
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    TLegend *leg;
+
+    // Loop over centralities
+    for (Int_t i{0}; i<centLow.size(); i++) {
+        
+        // Select centrality range
+        hVzCent->GetAxis(1)->SetRange( centLow.at(i), centHi.at(i) );
+        hVzCentWeighted->GetAxis(1)->SetRange( centLow.at(i), centHi.at(i) );
+        hRecoUnmatchedJetPtFlavPtHatCent->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
+        hRecoUnmatchedJetPtFlavPtHatCentWeighted->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
+        hRecoJetPtFlavPtHatCentWeighted->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
+        
+        // Event-wise histograms and integrals
+        hVz[i] = (TH1D*)hVzCent->Projection(0);
+        hVz[i]->SetName(Form("hVz_%d",i));
+        hVzW[i] = (TH1D*)hVzCentWeighted->Projection(0);
+        hVzW[i]->SetName(Form("hVzW_%d",i));
+        Double_t scaleUnweighted = hVz[i]->Integral();
+        Double_t scaleWeighted = hVzW[i]->Integral();
+
+        // Project spectra
+        hPtUnmatched[i] = (TH1D*)hRecoUnmatchedJetPtFlavPtHatCent->Projection(0);
+        hPtUnmatched[i]->SetName(Form("hPtUnmatched_%d",i));
+        hPtUnmatchedW[i] = (TH1D*)hRecoUnmatchedJetPtFlavPtHatCentWeighted->Projection(0);
+        hPtUnmatchedW[i]->SetName(Form("hPtUnmatchedW_%d",i));
+        hPtMatchedW[i] = (TH1D*)hRecoJetPtFlavPtHatCentWeighted->Projection(0);
+        hPtMatchedW[i]->SetName(Form("hPtMatchedW_%d",i));
+        setJetStyle(hPtUnmatched[i], 0);
+        setJetStyle(hPtUnmatchedW[i], 1);
+        setJetStyle(hPtMatchedW[i], 3);
+
+        hPtUnmatched[i]->Scale( 1./scaleUnweighted );
+        hPtUnmatchedW[i]->Scale( 1./scaleWeighted );
+        hPtMatchedW[i]->Scale( 1./scaleWeighted );
+
+        hPtWeighted2Unweighted[i] = new TH1D( Form("hPtWeighted2Unweighted_%d",i),"Ratio of unweighted to weighted;p_{T}^{corr} (GeV/c); weighted / unweighted",
+                                              hPtUnmatched[i]->GetNbinsX(),
+                                              hPtUnmatched[i]->GetXaxis()->GetBinLowEdge(1),
+                                              hPtUnmatched[i]->GetXaxis()->GetBinUpEdge( hPtUnmatched[i]->GetNbinsX() ) );
+        hPtWeighted2Unweighted[i]->Sumw2();
+        setJetStyle(hPtWeighted2Unweighted[i], 2);
+        hPtWeighted2Unweighted[i]->Divide( hPtUnmatchedW[i], hPtUnmatched[i] );
+
+        hPtUnmatched2MatchedW[i] = new TH1D( Form("hPtUnmatched2MatchedW_%d",i),"Unmatched over matched (both weighted);p_{T}^{corr} (GeV/c);unmatched / matched",
+                                             hPtUnmatched[i]->GetNbinsX(),
+                                             hPtUnmatched[i]->GetXaxis()->GetBinLowEdge(1),
+                                             hPtUnmatched[i]->GetXaxis()->GetBinUpEdge( hPtUnmatched[i]->GetNbinsX() ) );
+        setJetStyle(hPtUnmatched2MatchedW[i], 4);
+        hPtUnmatched2MatchedW[i]->Divide( hPtUnmatchedW[i], hPtMatchedW[i] );
+
+
+        // Plot spectra on the same plot
+        canv->cd(i + 1);
+        setPadStyle();
+        hPtUnmatched[i]->Draw();
+        hPtUnmatchedW[i]->Draw("same");
+        hPtMatchedW[i]->Draw("same");
+        gPad->SetLogy(1);
+        t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        if ( i == 0) {
+            leg = new TLegend(0.5, 0.75, 0.9, 0.85);
+            leg->AddEntry(hPtUnmatched[i],"Unweighted","p");
+            leg->AddEntry(hPtUnmatchedW[i],"Weighted","p");
+            leg->AddEntry(hPtMatchedW[i],"Matched (w)", "p");
+            leg->SetBorderSize(0);
+            leg->SetTextSize(0.05);
+            leg->Draw();
+            //t.DrawLatexNDC(0.55, 0.78, "#hat{p_{T}} > 50 GeV/c");
+        }
+
+        // Plot ratio of unmatched weighted to unweighted
+        canv->cd(i + 1 + centLow.size());
+        setPadStyle();
+        hPtWeighted2Unweighted[i]->Draw();
+        hPtWeighted2Unweighted[i]->GetYaxis()->SetRangeUser(-0.5, 2.);
+
+        // Plot ratio of matched to unmatched (both weighted)
+        canv->cd(i + 1 + 2 * centLow.size());
+        setPadStyle();
+        hPtUnmatched2MatchedW[i]->Draw();
+        hPtUnmatched2MatchedW[i]->GetYaxis()->SetRangeUser(0.01, 100.);
+        gPad->SetLogy(1);
+    } // for (Int_t i{0}; i<centLow.size(); i++)
+}
+
+//________________
+void drawJetAnalysisFigs(const Char_t *inFileNamePbPb = "../build/oTestReadForest_PbPb_noPtHatCut.root",
                          const Char_t *inFileNamePP = "../build/oTestReadForest_pp_ptHat50.root", 
                          const Char_t *oFile = "oDrawJetAna.root") {
 
@@ -798,12 +1176,12 @@ void drawJetAnalysisFigs(const Char_t *inFileNamePbPb = "../build/oTestReadFores
     //drawEventQuantities(inFilePbPb);
 
     // Draw number of jets
-    //drawNumberOfJets(inFilePP);
+    //drawNumberOfJets(inFilePbPb);
 
     //drawReco2GenSpectraPtHatComparison(inFilePbPb);
 
     // Draw gen pt distribution to find pthat
-    //drawFindPtHatCut(inFilePbPb);
+    //drawFindPtHatCut(inFilePP);
 
     // Draw correlation between pT corr vs. raw, corr vs. gen
     //drawPtRawCorrGen(inFilePbPb);
@@ -814,8 +1192,13 @@ void drawJetAnalysisFigs(const Char_t *inFileNamePbPb = "../build/oTestReadFores
     // Draw JES and JER as a function of centrality
     //drawJESvsCentrality(inFilePbPb);
 
+    // Draw comparison of unmatched to inclusive reco jets
+    //drawRecoUnmatched2Inclusive(inFilePbPb);
+
+    drawRecoUnmatched(inFilePbPb);
+
     // For the events with ptHat>x compare gen jet pT spectra
-    drawCompareGenPP2PbPb(inFilePbPb, inFilePP);
+    //drawCompareGenPP2PbPb(inFilePbPb, inFilePP);
 
     // Draw JES and JER as a function of pseudorapidity
     //drawJESvsEta(inFile);

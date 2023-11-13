@@ -64,6 +64,7 @@ class EventCut {
     void usePhfCoincFilter2Th4()             { fPhfCoincFilter2Th4 = kTRUE; }
     void usePPAprimaryVertexFilter()         { fPPAprimaryVertexFilter = kTRUE; }
     void usePBeamScrapingFilter()            { fPBeamScrapingFilter = kTRUE; }
+    void usePClusterCompatibilityFilter()    { fPClusterCompatibilityFilter = kTRUE; }
     /// @brief Report information about
     void report();
     /// @brief Check if evn 
@@ -104,6 +105,7 @@ class EventCut {
 
     Bool_t fPPAprimaryVertexFilter;
     Bool_t fPBeamScrapingFilter;
+    Bool_t fPClusterCompatibilityFilter;
 
     /// @brief Number of events passed cut
     Long64_t fEventsPassed;

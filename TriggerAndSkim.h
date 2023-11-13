@@ -77,6 +77,7 @@ class TriggerAndSkim : public TObject {
     void setPVertexFilterCutGtight(const Int_t& b)         { fPVertexFilterCutGtight = (Char_t)b; }
     void setPVertexFilterCutE(const Int_t& b)              { fPVertexFilterCutE = (Char_t)b; }
     void setPVertexFilterCutEandG(const Int_t& b)          { fPVertexFilterCutEandG = (Char_t)b; }
+    void setPClusterCompatibilityFilter(const Int_t& b)    { fPClusterCompatibilityFilter = (Char_t)b; }
 
     //
     // Getters
@@ -132,6 +133,7 @@ class TriggerAndSkim : public TObject {
     Int_t pVertexFilterCutGtight() const { return (Int_t)fPVertexFilterCutGtight; }
     Int_t pVertexFilterCutE() const { return (Int_t)fPVertexFilterCutE; }
     Int_t pVertexFilterCutEandG() const { return (Int_t)fPVertexFilterCutEandG; }
+    Int_t pClusterCompatibilityFilter() const { return (Int_t)fPClusterCompatibilityFilter; }
 
   private:
 
@@ -186,6 +188,7 @@ class TriggerAndSkim : public TObject {
     Char_t fPVertexFilterCutGtight;
     Char_t fPVertexFilterCutE;
     Char_t fPVertexFilterCutEandG;
+    Char_t fPClusterCompatibilityFilter;
 
     ClassDef(TriggerAndSkim, 0)
 };

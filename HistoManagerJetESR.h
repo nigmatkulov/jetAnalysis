@@ -84,6 +84,8 @@ class HistoManagerJetESR : public BaseHistoManager {
     TH1D *hCentrality;
     TH1D *hCentralityWeighted;
     TH1D *hNBadJets[5];   // pThat >0, >20, >40, >60, >80
+    THnSparseD *hVzPtHatCent;
+    THnSparseD *hVzPtHatCentWeighted;
 
     //
     // Gen jet histograms
@@ -106,8 +108,8 @@ class HistoManagerJetESR : public BaseHistoManager {
     THnSparseD *hRecoJetPtFlavPtHatCentInclusive; // (matched + unmatched) ptCorr, flavorForB, ptHat, centrality
     THnSparseD *hRecoJetPtFlavPtHatCentInclusiveWeighted; // (matched + unmatched) ptCorr, flavorForB, ptHat, centrality
     THnSparseD *hRecoJetDeltaRPtCent;           // deltaR=sqrt((eta-WTAeta)^2+(phi-WTAphi)^2),ptCorr,centrality
-    THnSparseD *hRecoUmnatchedJetPtFlavPtHatCent; // ptCorr of unmatched jets, flavorForB, ptHat, centrality
-    THnSparseD *hRecoUmnatchedJetPtFlavPtHatCentWeighted; // ptCorr of unmatched jets, flavorForB, ptHat, centrality
+    THnSparseD *hRecoUnmatchedJetPtFlavPtHatCent; // ptCorr of unmatched jets, flavorForB, ptHat, centrality
+    THnSparseD *hRecoUnmatchedJetPtFlavPtHatCentWeighted; // ptCorr of unmatched jets, flavorForB, ptHat, centrality
     THnSparseD *hRecoLeadJetPtFlavPtHatCent;    // Leading jet ptCorr, ptHat, centrality
     THnSparseD *hRecoLeadJetPtFlavPtHatCentWeighted;    // Leading jet ptCorr, ptHat, centrality
 

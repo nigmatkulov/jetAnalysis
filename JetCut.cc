@@ -23,9 +23,8 @@
 ClassImp(JetCut)
 
 //________________
-JetCut::JetCut() : fRecoPt{0., 1e6}, fRecoConeR{1e6},
-    fMustHaveGenMatching{kFALSE}, fRefPt{0., 1e6},
-    fRefConeR{1e6}, fRefFlavorForB{-100000, 100000},
+JetCut::JetCut() : fPt{0., 1e6}, fConeR{1e6},
+    fMustHaveGenMatching{kFALSE}, fEta{-1e6, 1e6},
     fJetsPassed{0}, fJetsFailed{0} {
     /* Empty */
 }
@@ -38,12 +37,10 @@ JetCut::~JetCut() {
 //________________
 void JetCut::report() {
     TString report = "\nReporting from JetCut";
-    report += TString::Format( "reco pT         :\t %f - %f\n", fRecoPt[0], fRecoPt[1] );
-    report += TString::Format( "reco R          :\t %f\n", fRecoConeR );
+    report += TString::Format( "pT              :\t %f - %f\n", fPt[0], fPt[1] );
+    report += TString::Format( "cone R          :\t %f\n", fConeR );
     report += TString::Format( "match to gen    :\t %d\n", fMustHaveGenMatching);
-    report += TString::Format( "gen pT          :\t %f - %f\n", fRefPt[0], fRefPt[1] );
-    report += TString::Format( "gen R           :\t %f\n", fRefConeR );
-    report += TString::Format( "flavorForB      :\t %d - %d\n", fRefFlavorForB[0], fRefFlavorForB[1] );
+    report += TString::Format( "eta             :\t %f - %f\n", fEta[0], fEta[1] );
     report += TString::Format( "Jets passed     :\t %lld\n", fJetsPassed );
     report += TString::Format( "Jets failed     :\t %lld\n", fJetsFailed );
     std::cout << report.Data() << std::endl;
@@ -52,22 +49,22 @@ void JetCut::report() {
 //________________
 Bool_t JetCut::pass(const RecoJet* jet) {
     if (fVerbose) {
-        std::cout << "\n----- Jet cut -----\n";
+        std::cout << "\n----- Reco jet cut -----\n";
     }
 
-    Bool_t goodRecoPt = (fRecoPt[0] <= jet->pt() &&
-                         jet->pt() <= fRecoPt[1]);
+    Bool_t goodPt = (fPt[0] <= jet->pt() &&
+                     jet->pt() <= fPt[1]);
     if (fVerbose) {
-        std::cout << Form("reco pT raw : %5.2f <= %5.2f <= %5.2f \t %s \n",
-                          fRecoPt[0], jet->pt(), fRecoPt[1], ( goodRecoPt ) ? "true" : "false" );
+        std::cout << Form("pT raw : %5.2f <= %5.2f <= %5.2f \t %s \n",
+                          fPt[0], jet->pt(), fPt[1], ( goodPt ) ? "true" : "false" );
     }
 
     Float_t recoR = TMath::Sqrt( jet->phi() * jet->phi() + 
                                  jet->eta() * jet->eta() );
-    Bool_t goodRecoConeR = (recoR <= fRecoConeR);
+    Bool_t goodConeR = (recoR <= fConeR);
     if (fVerbose) {
-        std::cout << Form("reco cone R: %5.2f <= %5.2f \t %s \n",
-                          recoR, fRecoConeR, ( goodRecoConeR ) ? "true" : "false" );
+        std::cout << Form("cone R: %5.2f <= %5.2f \t %s \n",
+                          recoR, fConeR, ( goodConeR ) ? "true" : "false" );
     }
 
     Bool_t goodMatching = kTRUE;
@@ -78,6 +75,13 @@ Bool_t JetCut::pass(const RecoJet* jet) {
     if (fVerbose) {
         std::cout << Form("has matching: \t %s \n",
                           ( goodMatching ) ? "true" : "false" );        
+    }
+
+    Bool_t goodEta = ( fEta[0] <= jet->eta() &&
+                       jet->eta() <= fEta[1] );
+    if (fVerbose) {
+        std::cout << Form("eta : %5.2f <= %5.2f <= %5.2f \t %s \n",
+                          fEta[0], jet->eta(), fEta[1], ( goodEta ) ? "true" : "false" );
     }
 
     // if ( goodMatching )
@@ -104,7 +108,7 @@ Bool_t JetCut::pass(const RecoJet* jet) {
     // }
 
 
-    Bool_t isGood = goodRecoPt && goodRecoConeR && goodMatching;
+    Bool_t isGood = goodPt && goodConeR && goodMatching && goodEta;
 
     // Bool_t isGood = goodRecoPt && goodRecoConeR && goodMatching &&
     //                       goodRefPt && goodRefConeR && goodFlavorForB;
@@ -114,4 +118,13 @@ Bool_t JetCut::pass(const RecoJet* jet) {
     }
 
     return isGood;
+}
+
+//________________
+Bool_t JetCut::pass(const GenJet* jet) {
+    if (fVerbose) {
+        std::cout << "\n----- Gen jet cut -----\n";
+    }
+    // TODO: replace with real cut info
+    return kTRUE;
 }

@@ -68,6 +68,10 @@ void JetESRAnalysis::processEvent(const Event* event) {
         fHM->hCentrality->Fill( centrality );
         fHM->hCentralityWeighted->Fill( centrality, ptHatW );
 
+        Double_t vzPtHatCent[3] = { event->vz(), ptHat, centrality };
+        fHM->hVzPtHatCent->Fill( vzPtHatCent );
+        fHM->hVzPtHatCentWeighted->Fill( vzPtHatCent, ptHatW );
+
         fHM->hNBadJets[0]->Fill( event->numberOfOverscaledPFJets() );
         if ( ptHat > 20 ) fHM->hNBadJets[1]->Fill( event->numberOfOverscaledPFJets() );
         if ( ptHat > 40 ) fHM->hNBadJets[2]->Fill( event->numberOfOverscaledPFJets() );
@@ -214,8 +218,8 @@ void JetESRAnalysis::processEvent(const Event* event) {
                 Double_t tmp[4] {pt, -6., ptHat, centrality };
                 fHM->hRecoJetPtFlavPtHatCentInclusive->Fill( tmp );
                 fHM->hRecoJetPtFlavPtHatCentInclusiveWeighted->Fill( tmp, ptHatW );
-                fHM->hRecoUmnatchedJetPtFlavPtHatCent->Fill( tmp );
-                fHM->hRecoUmnatchedJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW );
+                fHM->hRecoUnmatchedJetPtFlavPtHatCent->Fill( tmp );
+                fHM->hRecoUnmatchedJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW );
             }
 
             // Fill the information for lead jet (regardless of matching)

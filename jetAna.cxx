@@ -24,7 +24,7 @@ int main(int argc, char const *argv[]) {
     
     //"../../../data/HiForestAOD_PbPbMC2018skim_10.root"
 
-    Bool_t isPbPb = kFALSE;
+    Bool_t isPbPb = kTRUE;
     TString inFileName{};
     Int_t   collEnergyGeV{};
     TString collSystem{};
@@ -59,26 +59,31 @@ int main(int argc, char const *argv[]) {
 
     Manager *manager = new Manager{};
     EventCut *eventCut = new EventCut{};
-    eventCut->setVz(-40., 40.);
+    eventCut->setVz(-15., 15.);
     if ( isPbPb ) {
         eventCut->usePPrimaryVertexFilter();
         eventCut->useHBHENoiseFilterResultRun2Loose();
         eventCut->useCollisionEventSelectionAODv2();
         eventCut->usePhfCoincFilter2Th4();
+        eventCut->usePClusterCompatibilityFilter();
     }
     else { // pp case
         eventCut->useHBHENoiseFilterResultRun2Loose();
         eventCut->usePPAprimaryVertexFilter();
         eventCut->usePBeamScrapingFilter();
     }
-    eventCut->setPtHat(50, 1e6);
+    eventCut->setPtHat(15, 1e6);
 
     JetCut *jetCut = new JetCut{};
     //jetCut->setMustHaveGenMathing();
-    jetCut->setRecoPt(20., 1500.);
+    jetCut->setPt(20., 1500.);
+    jetCut->setEta(-1.6, 1.6);
+
     //jetCut->setVerbose();
     ForestAODReader *reader = new ForestAODReader(inFileName);
     reader->setIsMc(kTRUE);
+    reader->useHltBranch();
+    reader->useSkimmingBranch();
     reader->usePartFlowJetBranch();
     reader->setPartFlowJetBranchName( pfBranchName.Data() );
     //reader->useCaloJetBranch();
