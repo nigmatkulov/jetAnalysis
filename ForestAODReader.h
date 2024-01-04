@@ -83,7 +83,9 @@ class ForestAODReader : public BaseReader {
     /// @brief Set jet cut
     void setJetCut(JetCut *cut) { fJetCut = {cut}; }
     /// @brief Is the dataset from MC
-    void setIsMc(const Bool_t& isMc) { fIsMc = {isMc}; }
+    void setIsMc() { fIsMc = {kTRUE}; }
+    /// @brief Correct centrality for MC events
+    void setCorrectCentMC() { fCorrectCentMC = {kTRUE}; }
     /// @brief Fix jet arrays
     void fixJetArrays() { fFixJetArrays = {kTRUE}; }
 
@@ -174,6 +176,9 @@ class ForestAODReader : public BaseReader {
     Float_t trkEtaMixWeight(const Bool_t& isMC, const std::string& system, const Int_t& year, 
                             const Int_t& energy, const Float_t& trketa, const Bool_t& reco) const;
 
+    /// @brief Calculate centrality weight
+    Double_t evalCentralityWeight(const Double_t& hiBin);
+
     /// @brief Event with jets and other variables
     Event *fEvent;
 
@@ -186,6 +191,8 @@ class ForestAODReader : public BaseReader {
 
     /// @brief Is file with MC information
     Bool_t fIsMc;
+    /// @brief Use to apply hiBin shift for centrality correction
+    Bool_t fCorrectCentMC;
 
     /// @brief Switch HLT branch ON
     Bool_t fUseHltBranch;

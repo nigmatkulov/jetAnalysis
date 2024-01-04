@@ -133,7 +133,7 @@ class TriggerAndSkim : public TObject {
     Int_t pVertexFilterCutGtight() const { return (Int_t)fPVertexFilterCutGtight; }
     Int_t pVertexFilterCutE() const { return (Int_t)fPVertexFilterCutE; }
     Int_t pVertexFilterCutEandG() const { return (Int_t)fPVertexFilterCutEandG; }
-    Int_t pClusterCompatibilityFilter() const { return (Int_t)fPClusterCompatibilityFilter; }
+    Int_t pClusterCompatibilityFilter() const {return (Int_t)fPClusterCompatibilityFilter; }
 
   private:
 

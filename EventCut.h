@@ -56,15 +56,16 @@ class EventCut {
     /// @brief Set limits on event weight
     void setPtHatWeight(const Double_t& lo=-1e9, const Double_t& hi=1e9) { fPtHatWeight[0]=lo; fPtHatWeight[1]=hi; }
     /// @brief Print information each event
-    void setVerbose(const Bool_t& v) { fVerbose = v; }
+    void setVerbose() { fVerbose = {kTRUE}; }
     // Skim selection criteria
-    void usePPrimaryVertexFilter()           { fPPrimaryVertexFilter = kTRUE; }
-    void useHBHENoiseFilterResultRun2Loose() { fHBHENoiseFilterResultRun2Loose = kTRUE; }
-    void useCollisionEventSelectionAODv2()   { fCollisionEventSelectionAODc2 = kTRUE; }
-    void usePhfCoincFilter2Th4()             { fPhfCoincFilter2Th4 = kTRUE; }
-    void usePPAprimaryVertexFilter()         { fPPAprimaryVertexFilter = kTRUE; }
-    void usePBeamScrapingFilter()            { fPBeamScrapingFilter = kTRUE; }
-    void usePClusterCompatibilityFilter()    { fPClusterCompatibilityFilter = kTRUE; }
+    void usePPrimaryVertexFilter()           { fPPrimaryVertexFilter = {kTRUE}; }
+    void useHBHENoiseFilterResultRun2Loose() { fHBHENoiseFilterResultRun2Loose = {kTRUE}; }
+    void useCollisionEventSelectionAODv2()   { fCollisionEventSelectionAODc2 = {kTRUE}; }
+    void usePhfCoincFilter2Th4()             { fPhfCoincFilter2Th4 = {kTRUE}; }
+    void usePPAprimaryVertexFilter()         { fPPAprimaryVertexFilter = {kTRUE}; }
+    void usePBeamScrapingFilter()            { fPBeamScrapingFilter = {kTRUE}; }
+    void usePClusterCompatibilityFilter()    { fPClusterCompatibilityFilter = {kTRUE}; }
+    void useHLT_HIPuAK4CaloJet80Eta5p1_v1()  { fHLT_HIPuAK4CaloJet80Eta5p1_v1 = {kTRUE}; }
     /// @brief Report information about
     void report();
     /// @brief Check if evn 
@@ -106,6 +107,9 @@ class EventCut {
     Bool_t fPPAprimaryVertexFilter;
     Bool_t fPBeamScrapingFilter;
     Bool_t fPClusterCompatibilityFilter;
+
+    // Triggers
+    Bool_t fHLT_HIPuAK4CaloJet80Eta5p1_v1;
 
     /// @brief Number of events passed cut
     Long64_t fEventsPassed;

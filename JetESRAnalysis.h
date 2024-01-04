@@ -52,6 +52,8 @@ class JetESRAnalysis : public BaseAnalysis {
 
     /// @brief Pring debug information
     Bool_t fDebug;
+    /// @brief Centrality weight
+    Bool_t fUseCentralityWeight;
     /// @brief Histogram manager
     HistoManagerJetESR *fHM;
 

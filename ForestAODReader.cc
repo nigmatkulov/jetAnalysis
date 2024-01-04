@@ -24,7 +24,7 @@ ClassImp(ForestAODReader)
 
 //_________________
 ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEvents2Read{0}, fEventsProcessed{0},
-    fIsMc{kFALSE}, fUseHltBranch{kTRUE}, fUseSkimmingBranch{kTRUE}, 
+    fIsMc{kFALSE}, fCorrectCentMC{kFALSE}, fUseHltBranch{kTRUE}, fUseSkimmingBranch{kTRUE}, 
     fUsePartFlowJetBranch{kTRUE}, fUseCaloJetBranch{kFALSE}, 
     fUseTrackBranch{kFALSE}, fUseGenTrackBranch{kFALSE},
     fHltTree{nullptr}, fSkimTree{nullptr}, fEventTree{nullptr}, fCaloJetTree{nullptr},
@@ -47,7 +47,7 @@ ForestAODReader::ForestAODReader(const Char_t* inputStream,
                                  const Bool_t& useTrackBranch, const Bool_t& useGenTrackBranch, 
                                  const Bool_t& isMc) : 
     fEvent{nullptr}, fInFileName{inputStream}, fEvents2Read{0}, 
-    fEventsProcessed{0}, fIsMc{isMc}, 
+    fEventsProcessed{0}, fIsMc{isMc}, fCorrectCentMC{kFALSE},
     fUseHltBranch{useHltBranch}, fUseSkimmingBranch{useSkimmingBranch}, 
     fUsePartFlowJetBranch{usePFJetBranch}, fUseCaloJetBranch{useCaloJetBranch}, 
     fUseTrackBranch{useTrackBranch}, fUseGenTrackBranch{useGenTrackBranch},
@@ -378,6 +378,24 @@ Float_t ForestAODReader::eventWeight(const Bool_t &isMC, const Bool_t &use_centr
 
 	totalweight = evtweight * multweight * vzweight * multefficiency * jetefficiency;
 	return totalweight;
+}
+
+//________________
+Double_t ForestAODReader::evalCentralityWeight(const Double_t& x) {
+    Double_t weight{1.};
+    Double_t p0{4.363352};
+    Double_t p1{-8.957467e-02};
+    Double_t p2{7.301890e-04};
+    Double_t p3{-2.885492e-06};
+    Double_t p4{4.741175e-09};
+    Double_t p5{0.};
+    //Double_t p5{-1.407975e-09};
+
+    weight = p0 + p1 * x + p2 * TMath::Power(x, 2) +
+             p3 * TMath::Power(x, 3) + p4 * TMath::Power(x, 4) +
+             p5 * TMath::Power(x, 5);
+
+    return weight;
 }
 
 //_________________
@@ -971,11 +989,30 @@ Event* ForestAODReader::returnEvent() {
 
     fEvent = new Event();
 
+    if ( fIsMc && fCorrectCentMC && fHiBin<10) {
+        delete fEvent;
+        fEvent = nullptr;
+        return fEvent;
+    }
+
     fEvent->setRunId( fRunId );
     fEvent->setEventId( fEventId );
     fEvent->setLumi( fLumi );
     fEvent->setVz( fVertexZ );
-    fEvent->setHiBin( fHiBin );
+    Float_t centW{1.f};
+    if ( fIsMc && fCorrectCentMC) {
+        // To handle centrality weight
+        fEvent->setHiBin( fHiBin - 10 );
+        centW = evalCentralityWeight( fHiBin - 10 );
+    }
+    else if ( fIsMc ) {
+        fEvent->setHiBin( fHiBin );
+    }
+    else {
+        fEvent->setHiBin( fHiBin );
+    }
+    fEvent->setCentralityWeight( centW );
+    
     if ( fIsMc ) {
         fEvent->setPtHat( fPtHat );
         fEvent->setPtHatWeight( fPtHatWeight );
@@ -1091,7 +1128,7 @@ Event* ForestAODReader::returnEvent() {
             jet->setPhi( fPFRecoJetPhi[iJet] );
             jet->setWTAEta( fPFRecoJetWTAEta[iJet] );
             jet->setWTAPhi( fPFRecoJetWTAPhi[iJet] );
-            if ( fJEC ) {
+            if ( fJEC && fIsMc) {
                 fJEC->SetJetPT( fPFRecoJetPt[iJet] );
                 fJEC->SetJetEta( fPFRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fPFRecoJetPhi[iJet] );

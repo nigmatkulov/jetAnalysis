@@ -105,34 +105,83 @@ Bool_t EventCut::pass(const Event* ev) {
                           fPtHatWeight[0], ev->ptHatWeight(), fPtHatWeight[1], ( goodPtHatWeight ) ? "true" : "false" );
     }
 
-    Bool_t goodFilters = kTRUE;
+    Bool_t goodFilters{kTRUE};
     if ( fPPrimaryVertexFilter ) {
-        if ( ev->trigAndSkim()->pPAprimaryVertexFilter() == 0 ) goodFilters = kFALSE;
+        if ( ev->trigAndSkim()->pprimaryVertexFilter() == 0 ) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad pprimaryVertexFilter\n");
+            }
+        }
+
     }
     if ( fHBHENoiseFilterResultRun2Loose ) {
-        if ( ev->trigAndSkim()->HBHENoiseFilterResultRun2Loose() == 0 ) goodFilters = kFALSE;
+        if ( ev->trigAndSkim()->HBHENoiseFilterResultRun2Loose() == 0 ) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad HBHENoiseFilterResultRun2Loos\n");
+            }
+        }
     }
     if ( fCollisionEventSelectionAODc2 ) {
-        if ( ev->trigAndSkim()->collisionEventSelectionAODv2() == 0 ) goodFilters = kFALSE;
+        if ( ev->trigAndSkim()->collisionEventSelectionAODv2() == 0 ) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad collisionEventSelectionAODv2\n");
+            }
+        }
     }
     if ( fPhfCoincFilter2Th4 ) {
-        if ( ev->trigAndSkim()->phfCoincFilter2Th4() == 0 ) goodFilters = kFALSE;
+        if ( ev->trigAndSkim()->phfCoincFilter2Th4() == 0 ) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad phfCoincFilter2Th4\n");
+            }
+        }
     }
     if ( fPPAprimaryVertexFilter ) {
-        if ( ev->trigAndSkim()->pPAprimaryVertexFilter() == 0 ) goodFilters = kFALSE;
+        if ( ev->trigAndSkim()->pPAprimaryVertexFilter() == 0 ) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad pPAprimaryVertexFilter\n");
+            }
+        }
     }
     if ( fPBeamScrapingFilter ) {
-        if ( ev->trigAndSkim()->pBeamScrapingFilter() == 0 ) goodFilters = kFALSE;
+        if ( ev->trigAndSkim()->pBeamScrapingFilter() == 0 ) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad pBeamScrapingFilter\n");
+            }
+        }
     }
     if ( fPClusterCompatibilityFilter ) {
-        if ( ev->trigAndSkim()->pClusterCompatibilityFilter() == 0 ) goodFilters = kFALSE;
+        if ( ev->trigAndSkim()->pClusterCompatibilityFilter() == 0 ) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad pClusterCompatibilityFilter\n");
+            }
+        }
     }
     if (fVerbose) {
         std::cout << Form("Event filters passed: %s\n", (goodFilters) ? "true" : "false");
     }
 
+    Bool_t goodTrigger{kTRUE};
+    if ( fHLT_HIPuAK4CaloJet80Eta5p1_v1 ) {
+        if ( ev->trigAndSkim()->HLT_HIPuAK4CaloJet80Eta5p1_v1() == 0 ) {
+            goodTrigger = { kFALSE };
+            if ( fVerbose ) {
+                std::cout << Form("Bad trigger: HLT_HIPuAK4CaloJet80Eta5p1_v1\n");
+            }
+        }
+    }
+    if ( fVerbose ) {
+        std::cout << Form("Event triggers passed: %s\n", (goodTrigger) ? "true" : "false");
+    }
+
     Bool_t passEvent = goodVx && goodVy && goodVz && goodHiBin &&
-                       goodCent && goodPtHat && goodPtHatWeight;
+                       goodCent && goodPtHat && goodPtHatWeight && goodTrigger;
     ( passEvent ) ? fEventsPassed++ : fEventsFailed++;
     
     return passEvent;

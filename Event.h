@@ -25,7 +25,7 @@ class Event : public TObject {
     /// @brief Parametrized constructor
     Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
           const Float_t& vx, const Float_t& vy, const Float_t& vz, 
-          const Int_t& hiBin, const Float_t& ptHat, 
+          const Int_t& hiBin, const Float_t& centW, const Float_t& ptHat, 
           const Float_t& w, const Int_t& nBadPFJets, 
           const Int_t& nBadCaloJets, const Int_t& mult);
     /// @brief Destructor
@@ -51,6 +51,8 @@ class Event : public TObject {
     void setVertex(const Float_t& x, const Float_t& y, const Float_t &z) { fVx = x; fVy = y; fVz = z; }
     /// @brief Set centrality bin (0-200)
     void setHiBin(const Int_t& hiBin)    { fHiBin = hiBin; }
+    /// @brief Set centrality weight
+    void setCentralityWeight(const Float_t& w) { fCentralityWeight = w; }
     /// @brief Set ptHat
     void setPtHat(const Float_t& ptHat)  { fPtHat = ptHat; }
     /// @brief Set event weight
@@ -82,6 +84,8 @@ class Event : public TObject {
     Int_t hiBin() const       { return (Int_t)fHiBin; }
     /// @brief Return centrality bin
     Double_t centrality() const  { return (fHiBin < 0) ? -5 : 100. - Double_t(200 - fHiBin) * 0.5; }
+    /// @brief Return centrality weight 
+    Double_t centralityWeight() const { return (Double_t)fCentralityWeight; }
     /// @brief Return ptHat 
     Float_t ptHat() const     { return fPtHat; }
     /// @brief Return event weight 
@@ -129,6 +133,8 @@ class Event : public TObject {
     Float_t   fVz;
     /// @brief Centrality bin
     Short_t   fHiBin;
+    /// @brief Centrality weight
+    Float_t   fCentralityWeight;
     /// @brief pthat sclaing
     Float_t   fPtHat;
     /// @brief Event weight scaling

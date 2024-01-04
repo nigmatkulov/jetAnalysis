@@ -24,7 +24,9 @@ int main(int argc, char const *argv[]) {
     
     //"../../../data/HiForestAOD_PbPbMC2018skim_10.root"
 
-    Bool_t isPbPb = kTRUE;
+    Bool_t isPbPb{kTRUE};
+    Bool_t isMc{kTRUE};
+    Bool_t isCentWeightCalc{kTRUE};
     TString inFileName{};
     Int_t   collEnergyGeV{};
     TString collSystem{};
@@ -33,7 +35,8 @@ int main(int argc, char const *argv[]) {
     TString oFileName{};
     TString JECFileName;
     if ( isPbPb ) {
-        inFileName = "../../../data/HiForestAOD_PbPb.list";
+        inFileName = "../../../data/HiForestAOD_PbPb_sim.list";
+        //inFileName = "../../../data/HiForestAOD_PbPb_exp.list";
         collEnergyGeV = {5020};
         collSystem = "PbPb";
         collYear = 2018;
@@ -66,29 +69,44 @@ int main(int argc, char const *argv[]) {
         eventCut->useCollisionEventSelectionAODv2();
         eventCut->usePhfCoincFilter2Th4();
         eventCut->usePClusterCompatibilityFilter();
+        // Trigger
+        eventCut->useHLT_HIPuAK4CaloJet80Eta5p1_v1();
     }
     else { // pp case
         eventCut->useHBHENoiseFilterResultRun2Loose();
         eventCut->usePPAprimaryVertexFilter();
         eventCut->usePBeamScrapingFilter();
     }
-    eventCut->setPtHat(15, 1e6);
+
+    if ( isMc ) {
+        //eventCut->setPtHat(50, 1e6);
+        eventCut->setPtHat(15, 1e6);
+    }
+    //eventCut->setVerbose();
 
     JetCut *jetCut = new JetCut{};
     //jetCut->setMustHaveGenMathing();
+    //jetCut->setPt(50., 1500.);
     jetCut->setPt(20., 1500.);
-    jetCut->setEta(-1.6, 1.6);
+    //jetCut->setEta(-1.6, 1.6);
 
     //jetCut->setVerbose();
     ForestAODReader *reader = new ForestAODReader(inFileName);
-    reader->setIsMc(kTRUE);
+    if (isMc) {
+        // If is MC
+        reader->setIsMc();
+        if ( isCentWeightCalc ) {
+            // Apply hiBin shift and centrality weight calculation
+            reader->setCorrectCentMC();
+        }
+    }
     reader->useHltBranch();
     reader->useSkimmingBranch();
     reader->usePartFlowJetBranch();
     reader->setPartFlowJetBranchName( pfBranchName.Data() );
     //reader->useCaloJetBranch();
     reader->setCollidingSystem( collSystem.Data() );
-    reader->setCollidingEnergy( collEnergyGeV) ;
+    reader->setCollidingEnergy( collEnergyGeV ) ;
     reader->setYearOfDataTaking( collYear );
     reader->setEventCut(eventCut);
     reader->setJetCut(jetCut);
