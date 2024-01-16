@@ -24,6 +24,7 @@
 #pragma link C++ class JetESRAnalysis+;
 #pragma link C++ class Manager+;
 #pragma link C++ class HistoManagerJetESR+;
+#pragma link C++ class HistoManagerDiJet+;
 #pragma link C++ class TriggerAndSkim+;
 
 // User-defined classes

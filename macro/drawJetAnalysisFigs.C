@@ -1288,6 +1288,8 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
     auto hRecoUnmatchedJetPtFlavPtHatCent = (THnSparseD*)inFile->Get("hRecoUnmatchedJetPtFlavPtHatCent");
     // Leading jet (centrality * ptHat weighted)
     auto hRecoLeadJetPtFlavPtHatCentWeighted = (THnSparseD*)inFile->Get("hRecoLeadJetPtFlavPtHatCentWeighted");
+    // Gen jet (centrality * ptHat weighted)
+    auto hGenJetPtFlavPtHatCentWeighted = (THnSparseD*)inFile->Get("hGenJetPtFlavPtHatCentWeighted");
 
     // Event information
     auto hVzPtHatCent = (THnSparseD*)inFile->Get("hVzPtHatCent");
@@ -1337,6 +1339,8 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
     TCanvas *canvUnmatchedJetPtHat;
     TCanvas *canvInclusiveJetPtHat;
     TCanvas *canvLeadJetPtHat;
+    TCanvas *canvGenJetPtHat;
+
     if ( isPbPb ) {
         canvVz = new TCanvas("canvVz","canvVz", 1200, 300);
         for (Int_t i{0}; i<centLow.size(); i++) {
@@ -1348,6 +1352,7 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         canvUnmatchedJetPtHat = new TCanvas("canvUnmatchedJetPtHat","canvUnmatchedJetPtHat", 1200, 800);
         canvInclusiveJetPtHat = new TCanvas("canvInclusiveJetPtHat","canvInclusiveJetPtHat", 1200, 800);
         canvLeadJetPtHat = new TCanvas("canvLeadJetPtHat","canvLeadJetPtHat", 1200, 800);
+        canvGenJetPtHat = new TCanvas("canvGenJetPtPtHat","canvGenJetPtPtHat", 1200, 800);
     }
     else {
         canvVz = new TCanvas("canvVz","canvVz", 300, 300);
@@ -1360,6 +1365,7 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         canvUnmatchedJetPtHat = new TCanvas("canvUnmatchedJetPtHat","canvUnmatchedJetPtHat", 300, 800);
         canvInclusiveJetPtHat = new TCanvas("canvInclusiveJetPtHat","canvInclusiveJetPtHat", 300, 800);
         canvLeadJetPtHat = new TCanvas("canvLeadJetPtHat","canvLeadJetPtHat", 300, 800);
+        canvGenJetPtHat = new TCanvas("canvGenJetPtPtHat","canvGenJetPtPtHat", 300, 800);
     }
     canvMatchedJetPtHat->Divide( centLow.size(), 3 );
     canvUnmatchedJetPtHat->Divide( centLow.size(), 3 );
@@ -1367,6 +1373,7 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
     canvLeadJetPtHat->Divide( centLow.size(), 3 );
     canvVz->Divide( centLow.size(), 1 );
     canvUnmatchedJetPtForPtHat->Divide( centLow.size(), 1);
+    canvGenJetPtHat->Divide( centLow.size(), 3 );
 
     TLatex t;
     t.SetTextFont(42);
@@ -1377,26 +1384,31 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
     TLegend *leg3;  // pt for different ptHat
     TLegend *leg4;  // Leading jet
     TLegend *leg5;  // Inclusive
+    TLegend *leg6;  // Gen jet
 
     TH2D* hMatchedPtHatVsPtReco[ centLow.size() ];
     TH2D* hUnmatchedPtHatVsPtReco[ centLow.size() ];
     TH2D* hInclusivePtHatVsPtReco[ centLow.size() ];
     TH2D* hMatchedLeadPtHatVsPtReco[ centLow.size() ];
+    TH2D* hGenPtHatVsPtGen[ centLow.size() ];
 
     TH1D* hPtHatMatched[centLow.size()][jetPtLow.size()];
     TH1D* hPtHatUnmatched[centLow.size()][jetPtLow.size()];
     TH1D* hPtHatInclusive[centLow.size()][jetPtLow.size()];
     TH1D* hPtHatMatchedLead[centLow.size()][jetPtLow.size()];
+    TH1D* hPtHatGen[centLow.size()][jetPtLow.size()];
 
     TGraph* hPtHatMatchedIntegral[centLow.size()][jetPtLow.size()];
     TGraph* hPtHatUnmatchedIntegral[centLow.size()][jetPtLow.size()];
     TGraph* hPtHatInclusiveIntegral[centLow.size()][jetPtLow.size()];
     TGraph* hPtHatMatchedLeadIntegral[centLow.size()][jetPtLow.size()];
+    TGraph* hPtHatGenIntegral[centLow.size()][jetPtLow.size()];
 
     TMultiGraph *mgPtHatMatchedIntegral[centLow.size()];
     TMultiGraph *mgPtHatUnmatchedIntegral[centLow.size()];
     TMultiGraph *mgPtHatInclusiveIntegral[centLow.size()];
     TMultiGraph *mgPtHatMatchedLeadIntegral[centLow.size()];
+    TMultiGraph *mgPtHatGenIntegral[centLow.size()];
 
     TH1D *hVz[ centLow.size() ];
     TH1D *hVzPtHatDep[ centLow.size() ][ ptHatLow.size() ]; 
@@ -1410,6 +1422,7 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         hRecoUnmatchedJetPtFlavPtHatCent->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
         hRecoJetPtFlavPtHatCentInclusive->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
         hRecoLeadJetPtFlavPtHatCentWeighted->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
+        hGenJetPtFlavPtHatCentWeighted->GetAxis(3)->SetRange( centLow.at(i), centHi.at(i) );
         hVzPtHatCent->GetAxis(2)->SetRange( centLow.at(i), centHi.at(i) );
 
         // Vz
@@ -1486,42 +1499,51 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         // Restore ptHat projection back
         hRecoUnmatchedJetPtFlavPtHatCent->GetAxis(2)->SetRange(0, 120);
 
-        // Matched
+        // Matched jets
         hMatchedPtHatVsPtReco[i] = (TH2D*)hRecoJetPtFlavPtHatCent->Projection(2, 0);
         hMatchedPtHatVsPtReco[i]->SetName(Form("hMatchedPtHatVsPtReco_%d",i));
         set2DStyle(hMatchedPtHatVsPtReco[i]);
-        // Unmatched
+        // Unmatched jets
         hUnmatchedPtHatVsPtReco[i] = (TH2D*)hRecoUnmatchedJetPtFlavPtHatCent->Projection(2, 0);
         hUnmatchedPtHatVsPtReco[i]->SetName(Form("hUnmatchedPtHatVsPtReco_%d",i));
         set2DStyle(hUnmatchedPtHatVsPtReco[i]);
-        // Inclusive
+        // Inclusive jets
         hInclusivePtHatVsPtReco[i] = (TH2D*)hRecoJetPtFlavPtHatCentInclusive->Projection(2, 0);
         hInclusivePtHatVsPtReco[i]->SetName(Form("hInclusivePtHatVsPtReco_%d",i));
         set2DStyle(hInclusivePtHatVsPtReco[i]);
-        // Matched lead
+        // Matched lead jets
         hMatchedLeadPtHatVsPtReco[i] = (TH2D*)hRecoLeadJetPtFlavPtHatCentWeighted->Projection(2, 0);
         hMatchedLeadPtHatVsPtReco[i]->SetName(Form("hMatchedLeadPtHatVsPtReco_%d",i));
         set2DStyle(hMatchedLeadPtHatVsPtReco[i]);
+        // Generated jets
+        hGenPtHatVsPtGen[i] = (TH2D*)hGenJetPtFlavPtHatCentWeighted->Projection(2, 0);
+        hGenPtHatVsPtGen[i]->SetName(Form("hGenPtHatVsPtGen_%d",i));
+        set2DStyle(hGenPtHatVsPtGen[i]);
 
 
         // Set multigraphs
 
-        // Matched
+        // Matched jets
         mgPtHatMatchedIntegral[i] = new TMultiGraph();
         mgPtHatMatchedIntegral[i]->SetNameTitle(Form("mgPtHatMatchedIntegral_%d",i),
                                                 Form("mgPtHatMatchedIntegral_%d;#hat{p_{T}} (GeV/c);Fraction of total integral", i) );
-        // Unmatched
+        // Unmatched jets
         mgPtHatUnmatchedIntegral[i] = new TMultiGraph();
         mgPtHatUnmatchedIntegral[i]->SetNameTitle(Form("mgPtHatUnmatchedIntegral_%d",i),
                                                   Form("mgPtHatUnmatchedIntegral_%d;#hat{p_{T}} (GeV/c);Fraction of total integral", i) );
-        // Inclusive
+        // Inclusive jets
         mgPtHatInclusiveIntegral[i] = new TMultiGraph();
         mgPtHatInclusiveIntegral[i]->SetNameTitle(Form("mgPtHatInclusiveIntegral_%d",i),
                                                   Form("mgPtHatInclusiveIntegral_%d;#hat{p_{T}} (GeV/c);Fraction of total integral", i) );
-        // Matched lead
+        // Matched lead jets
         mgPtHatMatchedLeadIntegral[i] = new TMultiGraph();
         mgPtHatMatchedLeadIntegral[i]->SetNameTitle(Form("mgPtHatMatchedLeadIntegral_%d",i),
                                                     Form("mgPtHatMatchedLeadIntegral_%d",i));
+
+        // Gen jets
+        mgPtHatGenIntegral[i] = new TMultiGraph();
+        mgPtHatGenIntegral[i]->SetNameTitle(Form("mgPtHatGenIntegral_%d",i),
+                                            Form("mgPtHatGenIntegral_%d",i));
 
 
         //
@@ -1529,7 +1551,9 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         //
         for (Int_t j{0}; j<jetPtLow.size(); j++) {
 
+            //
             // Matched jets
+            //
             //Int_t ptBins[2] = {1, 50};
             hPtHatMatched[i][j] = (TH1D*)hMatchedPtHatVsPtReco[i]->ProjectionY(Form("hPtHatMatched_%d_%d",i,j), jetPtLow.at(j),jetPtHi.at(j));
             hPtHatMatched[i][j]->SetName( Form("hPtHatMatched_%d_%d", i, j) );
@@ -1541,8 +1565,9 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
             calculateCumulativeIntegral(hPtHatMatchedIntegral[i][j], hPtHatMatched[i][j], j);
             mgPtHatMatchedIntegral[i]->Add(hPtHatMatchedIntegral[i][j]);
 
-
+            //
             // Unmatched jets
+            //
             hPtHatUnmatched[i][j] = (TH1D*)hUnmatchedPtHatVsPtReco[i]->ProjectionY(Form("hPtHatUnmatched_%d_%d",i,j), jetPtLow.at(j),jetPtHi.at(j));
             hPtHatUnmatched[i][j]->SetName( Form("hPtHatUnmatched_%d_%d", i, j) );
             setJetStyle(hPtHatUnmatched[i][j], j);
@@ -1553,8 +1578,9 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
             calculateCumulativeIntegral(hPtHatUnmatchedIntegral[i][j], hPtHatUnmatched[i][j], j);
             mgPtHatUnmatchedIntegral[i]->Add(hPtHatUnmatchedIntegral[i][j]);
 
-
+            //
             // Inclusive jets
+            //
             hPtHatInclusive[i][j] = (TH1D*)hInclusivePtHatVsPtReco[i]->ProjectionY(Form("hPtHatInclusive_%d_%d",i,j), jetPtLow.at(j),jetPtHi.at(j));
             hPtHatInclusive[i][j]->SetName( Form("hPtHatInclusive_%d_%d",i,j) );
             setJetStyle(hPtHatInclusive[i][j], j);
@@ -1565,8 +1591,9 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
             calculateCumulativeIntegral(hPtHatInclusiveIntegral[i][j], hPtHatInclusive[i][j], j);
             mgPtHatInclusiveIntegral[i]->Add(hPtHatInclusiveIntegral[i][j]);
 
-
+            //
             // Matched leading jets
+            //
             hPtHatMatchedLead[i][j] = (TH1D*)hMatchedLeadPtHatVsPtReco[i]->ProjectionY(Form("hPtHatMatchedLead_%d_%d",i,j), jetPtLow.at(j),jetPtHi.at(j));
             hPtHatMatchedLead[i][j]->SetName( Form("hPtHatMatchedLead_%d_%d",i,j) );
             setJetStyle(hPtHatMatchedLead[i][j], j);
@@ -1575,6 +1602,18 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
                                                            Form("hPtHatMatchedLeadIntegral_%d_%d;#hat{p_{T}} (GeV/c);Fraction of total integral", i, j) );
             calculateCumulativeIntegral(hPtHatMatchedLeadIntegral[i][j], hPtHatMatchedLead[i][j], j);
             mgPtHatMatchedLeadIntegral[i]->Add( hPtHatMatchedLeadIntegral[i][j] );
+
+            //
+            // Gen jets
+            //
+            hPtHatGen[i][j] = (TH1D*)hGenPtHatVsPtGen[i]->ProjectionY(Form("hPtHatGen_%d_%d",i,j), jetPtLow.at(j), jetPtHi.at(j));
+            hPtHatGen[i][j]->SetName( Form("hPtHatGen_%d_%d",i,j) );
+            setJetStyle(hPtHatGen[i][j], j);
+            hPtHatGenIntegral[i][j] = new TGraph();
+            hPtHatGenIntegral[i][j]->SetNameTitle( Form("hPtHatGenIntegral_%d_%d",i,j),
+                                                   Form("hPtHatGenIntegral_%d_%d;#hat{p_{T}} (GeV/c);Fraction of total integral", i, j) );
+            calculateCumulativeIntegral(hPtHatGenIntegral[i][j], hPtHatGen[i][j], j);
+            mgPtHatGenIntegral[i]->Add( hPtHatGenIntegral[i][j] );
         }
 
 
@@ -1828,6 +1867,10 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         // Zoom in
         mgPtHatMatchedLeadIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
         mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
+
+        // mgPtHatMatchedLeadIntegral[i]->GetYaxis()->SetRangeUser(0., 0.35);
+        // mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(15., 155.);
+
         gPad->SetGridx(1);
         gPad->SetGridy(1);
 
@@ -1838,19 +1881,100 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
             t.DrawLatexNDC(0.55, 0.3, Form("PYTHIA"));
         }
         t.DrawLatexNDC(0.5, 0.2, Form("Leading jets (matched)"));
+
+
+
+        //
+        // Gen jets 
+        // 
+
+        // ptHat vs. gen jet pT
+        canvGenJetPtHat->cd( i + 1 );
+        setPadStyle();
+        hGenPtHatVsPtGen[i]->Draw("colz");
+        gPad->SetLogz(1);
+        if ( isPbPb ) {
+            t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        }
+        else {
+            t.DrawLatexNDC(0.32, 0.9, Form("PYTHIA"));
+        }
+        t.DrawLatexNDC(0.32, 0.8, Form("Gen jets"));
+
+        // ptHat for different jet pT
+        canvGenJetPtHat->cd( centLow.size() + i + 1 );
+        setPadStyle();
+        if (i == 0) {
+            leg4 = new TLegend(0.5, 0.65, 0.9, 0.85);
+        }
+        for (Int_t j{0}; j<jetPtLow.size(); j++) {
+            hPtHatGen[i][j]->Draw("same");
+            if (i == 0) {
+                leg4->AddEntry(hPtHatGen[i][j], Form("%d<p_{T} (GeV/c)<%d", 
+                              ptLowVal + ptStep * (jetPtLow.at(j)-1) , 
+                              ptLowVal + ptStep * ( jetPtHi.at(j) )), "p");
+            }
+        }
+        gPad->SetLogy(1);
+        if ( isPbPb ) {
+            t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        }
+        else {
+            t.DrawLatexNDC(0.32, 0.9, Form("PYTHIA"));
+        }
+        t.DrawLatexNDC(0.32, 0.8, Form("Gen jets"));
+     
+        if ( i == 0 ) {
+            leg4->SetLineWidth(0);
+            leg4->SetTextSize(0.05);
+            leg4->Draw();
+        }
+
+        // Gen jet pT cumulative integrals
+        canvGenJetPtHat->cd( 2 * centLow.size() + i + 1 );
+        setPadStyle();
+        mgPtHatGenIntegral[i]->Draw("AP");
+        mgPtHatGenIntegral[i]->GetYaxis()->SetTitleSize(0.06);
+        mgPtHatGenIntegral[i]->GetYaxis()->SetLabelSize(0.06);
+        mgPtHatGenIntegral[i]->GetXaxis()->SetTitleSize(0.06);
+        mgPtHatGenIntegral[i]->GetXaxis()->SetLabelSize(0.06);
+        mgPtHatGenIntegral[i]->GetXaxis()->SetNdivisions(208);
+        mgPtHatGenIntegral[i]->GetYaxis()->SetNdivisions(208);    
+        mgPtHatGenIntegral[i]->GetYaxis()->SetTitleOffset(1.0);
+
+        // Zoom in
+        //mgPtHatGenIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
+        //mgPtHatGenIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
+
+        mgPtHatGenIntegral[i]->GetYaxis()->SetRangeUser(0.0, 0.35);
+        mgPtHatGenIntegral[i]->GetXaxis()->SetRangeUser(15., 155.);
+
+        gPad->SetGridx(1);
+        gPad->SetGridy(1);
+
+        if ( isPbPb ) {
+            t.DrawLatexNDC(0.55, 0.3, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+        }
+        else {
+            t.DrawLatexNDC(0.55, 0.3, Form("PYTHIA"));
+        }
+        t.DrawLatexNDC(0.5, 0.2, Form("Gen jets"));
+
+
+
     } // for (Int_t i{0}; i<centLow.size(); i++)
 
 }
 
 //________________
-void drawJetAnalysisFigs(const Char_t *inFileNamePbPb = "../build/oTestReadForest_PbPb_mcHiBinShift_centWeight.root",
+void drawJetAnalysisFigs(const Char_t *inFileNamePbPb = "../build/../build/oTestReadForest_PbPb_mcHiBinShift_centWeight_leadJetSelection.root",
                          const Char_t *inFileNamePP = "../build/oTestReadForest_pp_noPtHatCut.root", 
                          const Char_t *oFile = "oDrawJetAna.root") {
 
     // "../build/oTestReadForest_PbPb_ptHat50.root"
     // "../build/oTestReadForest_PbPb_ptHat50_jetpt50.root"
     // "../build/oTestReadForest_PbPb_noPtHatCut.root"
-    // "../build/../build/oTestReadForest_PbPb_mcHiBinShift_centWeight_leadJetSelection.root"
+    // "../build/oTestReadForest_PbPb_mcHiBinShift_centWeight_leadJetSelection.root"
 
     // "../build/oTestReadForest_pp_ptHat50.root"
     // "../build/oTestReadForest_pp_noPtHatCut.root"

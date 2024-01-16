@@ -16,7 +16,7 @@ message(STATUS "Looking for CERN ROOT")
 #Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
-find_package(ROOT CONFIG REQUIRED)
+find_package(ROOT REQUIRED COMPONENTS RIO Net Physics Hist MathCore ROOTVecOps Rint Tree Core)
 if (ROOT_FOUND)
         message(STATUS "ROOT ${ROOT_VERSION} found at ${ROOT_BINDIR}") 
         message(STATUS "ROOT include dir found at ${ROOT_INCLUDE_DIRS}")
@@ -24,6 +24,16 @@ if (ROOT_FOUND)
 else()
         message(FATAL_ERROR "ROOT not found. CMake will exit!")
 endif()
+
+
+# find_package(ROOT CONFIG REQUIRED)
+# if (ROOT_FOUND)
+#         message(STATUS "ROOT ${ROOT_VERSION} found at ${ROOT_BINDIR}") 
+#         message(STATUS "ROOT include dir found at ${ROOT_INCLUDE_DIRS}")
+#         message(STATUS "ROOT libraries found at ${ROOT_LIBRARIES}")
+# else()
+#         message(FATAL_ERROR "ROOT not found. CMake will exit!")
+# endif()
 
 #Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 include(${ROOT_USE_FILE})
@@ -50,6 +60,7 @@ set(HEADERS
         BaseHistoManager.h
         BaseJet.h
         HistoManagerJetESR.h
+        HistoManagerDiJet.h
         Collections.h
         ForestAODReader.h
         JetCorrector.h
@@ -58,6 +69,7 @@ set(HEADERS
         JetCut.h
         Manager.h
         TriggerAndSkim.h
+        DiJetAnalysis.h
 )
 
 # List source files
@@ -71,6 +83,7 @@ set(SRC
         BaseReader.cc
         BaseJet.cc
         HistoManagerJetESR.cc
+        HistoManagerDiJet.cc
         ForestAODReader.cc
         JetCorrector.cc
         JetUncertainty.cc
@@ -78,6 +91,7 @@ set(SRC
         JetCut.cc
         Manager.cc
         TriggerAndSkim.cc
+        DiJetAnalysis.cc
 )
 
 # Generate ROOT dictionaries
