@@ -1,11 +1,11 @@
 /**
  * @file DiJetAnalysis.cc
  * @author Grigory Nigmatkulov (gnigmat@uic.edu)
- * @brief Jet energy scale and resolution analysis
+ * @brief Dijet analysis
  * @version 0.1
- * @date 2023-10-19
+ * @date 2024-01-09
  * 
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2024
  * 
  */
 
@@ -50,7 +50,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
     }
 
     // IMPORTANT!!! Skip events with more than two jets 
-    if ( event->genJetCollection()->size() > 2 ) continue;
+    if ( event->genJetCollection()->size() != 2 ) return;
 
     //
     // Event quantities
@@ -102,6 +102,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
         Double_t pt = (*genJetIter)->pt();
         Double_t eta = (*genJetIter)->eta();
         Double_t phi = (*genJetIter)->phi();
+        
         if ( pt > ptLead ) {
             ptSubLead = ptLead;
             etaSubLead = etaLead;
@@ -110,17 +111,38 @@ void DiJetAnalysis::processEvent(const Event* event) {
             etaLead = eta;
             phiLead = phi;
         }
+        else if ( pt > ptSubLead ) {
+            ptSubLead = pt;
+            etaSubLead = eta;
+            phiSubLead = phi;
+        }
     } // for ( genJetIter = event->genJetCollection()->begin();
 
-    std::cout << "phiLead - phiSubLead: " << phiLead - phiSubLead << std::endl;
+    
+    /*
+    std::cout << "ptLead: " << ptLead << " ptSubLead: " << ptSubLead
+              << " etaLead: " << etaLead << " etaSubLead: " << etaSubLead 
+              << " phiLead - phiSubLead: " << phiLead - phiSubLead << std::endl;
+    */
 
     // Apply hardcoded cut
-    if ( ptLead < 30. || ptSubLead < 20. || 
-         TMath::Abs(etaLead) > 2.5 || TMath::Abs(etaSubLead) > 2.5 ||
-         (phiLead - phiSubLead) < phiDiJetCut ) continue;
+    if ( ptLead < 30. || ptSubLead < 20. ||
+         etaLead < -3.465 || 2.535 < etaLead ||
+         etaSubLead < -3.465 || 2.535 < etaSubLead ||
+         /* TMath::Abs(etaLead) > 2.5 || TMath::Abs(etaSubLead) > 2.5 */
+         TMath::Abs(phiLead - phiSubLead) < phiDiJetCut ) return;
+
+    // std::cout << "Passed dijet cut" << std::endl;
 
     Double_t ptDiJet = 0.5 * (ptLead + ptSubLead);
-    Double_t etaDiJet = 0.5 * (etaLead + etaSubLead);
+    Double_t etaDiJet = 0.5 * (etaLead + etaSubLead) + fEtaShift;
+
+    /*
+    std::cout << "ptLead: " << ptLead << " ptSubLead: " << ptSubLead
+              << " etaLead: " << etaLead << " etaSubLead: " << etaSubLead 
+              << " phiLead - phiSubLead: " << phiLead - phiSubLead 
+              << " ptDiJet: " << ptDiJet << " etaDiJet: " << etaDiJet << std::endl;
+    */
 
     Double_t jetLeadPtEtaPhiSubLeadPtEtaPhi[7] { ptLead, etaLead, phiLead, ptSubLead, etaSubLead, phiSubLead, centrality };
     fHM->hGenLeadJetPtEtaPhiSubLeadPtEtaPhiCent->Fill( jetLeadPtEtaPhiSubLeadPtEtaPhi );

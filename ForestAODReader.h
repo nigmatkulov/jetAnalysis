@@ -74,6 +74,8 @@ class ForestAODReader : public BaseReader {
     void setCollidingEnergy(const Int_t& ene = 5020)    { fCollidingEnergyGeV = {ene}; }
     /// @brief Set year of data taking
     void setYearOfDataTaking(const Int_t& year = 2018)  { fYearOfDataTaking = {year}; }
+    /// @brief Path to jetAnalysis directory (or any folder) that contains aux_files/... with JEC corrections
+    void setPath2JetAnalysis(const Char_t *name = "/Users/gnigmat/work/cms/soft/jetAnalysis") { fJECPath = name; }
     /// @brief Set input
     void setJECFileName(const Char_t *name = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt") { fJECInputFileName = name; }
     /// @brief Apply jet pT-smearing
@@ -463,6 +465,8 @@ class ForestAODReader : public BaseReader {
     JetCorrector *fJEC;
     /// @brief List of files with JEC
     std::vector< std::string > fJECFiles;
+    /// @brief Path to jetAnalysis directory
+    TString fJECPath;
     /// @brief 
     TString fJECInputFileName;
     /// @brief Jet Energy Uncertainty instance

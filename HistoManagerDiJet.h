@@ -1,7 +1,7 @@
 /**
- * @file HistoManagerDiJetR.h
+ * @file HistoManagerDiJet.h
  * @author Grigory Nigmatkulov (gnigmat@uic.edu)
- * @brief Histograms for JES and JER studies
+ * @brief Histograms for dijet studies
  * @version 0.1
  * @date 2024-01-10
  * 
@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef HistoManagerDiJetR_h
-#define HistoManagerDiJetR_h
+#ifndef HistoManagerDiJet_h
+#define HistoManagerDiJet_h
 
 // Jet analysis headers
 #include "BaseHistoManager.h"
@@ -26,12 +26,12 @@
 #include "TMath.h"
 
 //________________
-class HistoManagerDiJetR : public BaseHistoManager {
+class HistoManagerDiJet : public BaseHistoManager {
   public:
     /// @brief Constructor
-    HistoManagerDiJetR();
+    HistoManagerDiJet();
     /// @brief Destructor
-    virtual ~HistoManagerDiJetR();
+    virtual ~HistoManagerDiJet();
 
     /// @brief Initialize and create histograms
     void init(const Bool_t& isMc = kFALSE);
@@ -75,7 +75,6 @@ class HistoManagerDiJetR : public BaseHistoManager {
     TH1D *hPtHatWeight;
     TH1D *hCentrality;
     TH1D *hCentralityWeighted;
-    TH1D *hNBadJets[5];   // pThat >0, >20, >40, >60, >80
     THnSparseD *hVzPtHatCent;
     THnSparseD *hVzPtHatCentWeighted;
 
@@ -115,7 +114,7 @@ class HistoManagerDiJetR : public BaseHistoManager {
     /// @brief Jet type: PF or Calo
     TString  fJetType;
 
-    ClassDef(HistoManagerDiJetR, 0)
+    ClassDef(HistoManagerDiJet, 0)
 };
 
-#endif // #define HistoManagerDiJetR_h
+#endif // #define HistoManagerDiJet_h

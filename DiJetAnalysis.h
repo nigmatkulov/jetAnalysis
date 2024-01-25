@@ -1,11 +1,11 @@
 /**
  * @file DiJetAnalysis.h
  * @author Grigory Nigmatkulov (gnigmat@uic.edu)
- * @brief Jet di-jet analysis
+ * @brief Dijet analysis
  * @version 0.1
  * @date 2024-01-09
  * 
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2024
  * 
  */
 
@@ -44,11 +44,11 @@ class DiJetAnalysis : public BaseAnalysis {
     virtual TList* getOutputList();
 
     /// @brief Set debug information
-    void setDebug(const Bool_t debug) { fDebug = debug; }
+    void setDebug(const Bool_t& debug) { fDebug = debug; }
     /// @brief Add histogram manager to the analysis
     void addHistoManager(HistoManagerDiJet *hm) { fHM = hm; }
     /// @brief Add lorentz shift
-    void setEtaShift(const Double_t& shift)
+    void setEtaShift(const Double_t& shift) { fEtaShift = shift; }
 
   private:
 

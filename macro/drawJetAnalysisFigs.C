@@ -376,9 +376,9 @@ void drawReco2GenSpectraPtHatComparison(TFile *inFile) {
         hGenJetPt[iCent]->GetXaxis()->SetTitle("p_{T} (GeV/c)");
 
         hReco2GenPtRatio[iCent] = new TH1D(Form("hReco2GenPtRatio_%d",iCent),";p_{T} (GeV/c);Reco/Gen", 
-            hRecoJetPt[iCent]->GetNbinsX(), 
-            hRecoJetPt[iCent]->GetXaxis()->GetBinLowEdge(1), 
-            hRecoJetPt[iCent]->GetXaxis()->GetBinUpEdge( hRecoJetPt[iCent]->GetNbinsX() ));
+                                            hRecoJetPt[iCent]->GetNbinsX(), 
+                                            hRecoJetPt[iCent]->GetXaxis()->GetBinLowEdge(1), 
+                                            hRecoJetPt[iCent]->GetXaxis()->GetBinUpEdge( hRecoJetPt[iCent]->GetNbinsX() ));
         hReco2GenPtRatio[iCent]->Divide( hRecoJetPt[iCent], hGenJetPt[iCent], 1., 1. );
         hReco2GenPtRatio[iCent]->SetName(Form("hReco2GenPtRatio_%d", iCent));
         setJetStyle(hReco2GenPtRatio[iCent], 2);
@@ -1283,7 +1283,7 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
     // To protect from possible crash due to the name inconsistency
     hRecoJetPtFlavPtHatCent->SetName("hRecoJetPtFlavPtHatCent");
     // Inclusive (centrality weighted)
-    auto hRecoJetPtFlavPtHatCentInclusive = (THnSparseD*)inFile->Get("hRecoJetPtFlavPtHatCentInclusive");
+    auto hRecoJetPtFlavPtHatCentInclusive = (THnSparseD*)inFile->Get("hRecoJetPtFlavPtHatCentInclusiveWeighted");
     // Unmatched (centrality weighted)
     auto hRecoUnmatchedJetPtFlavPtHatCent = (THnSparseD*)inFile->Get("hRecoUnmatchedJetPtFlavPtHatCent");
     // Leading jet (centrality * ptHat weighted)
@@ -1320,8 +1320,12 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
     Int_t ptStep = 10;
     // vector<Int_t> jetPtLow{0, 1, 2, 3, 5};
     // vector<Int_t> jetPtHi{1, 2, 3, 5, 49};
-    vector<Int_t> jetPtLow{4, 5, 6, 7, 8 };
-    vector<Int_t> jetPtHi{4, 5, 6, 7, 8  };
+
+    // vector<Int_t> jetPtLow{4, 5, 6, 7, 8 };
+    // vector<Int_t> jetPtHi{4, 5, 6, 7, 8  };
+
+    vector<Int_t> jetPtLow{4, 6, 10 };
+    vector<Int_t> jetPtHi {7, 9, 12  };
     updateVectorLimits( jetPtLow );
     updateVectorLimits( jetPtHi );
 
@@ -1865,11 +1869,11 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         mgPtHatMatchedLeadIntegral[i]->GetYaxis()->SetTitleOffset(1.0);
 
         // Zoom in
-        mgPtHatMatchedLeadIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
-        mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
+        // mgPtHatMatchedLeadIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
+        // mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
 
-        // mgPtHatMatchedLeadIntegral[i]->GetYaxis()->SetRangeUser(0., 0.35);
-        // mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(15., 155.);
+        mgPtHatMatchedLeadIntegral[i]->GetYaxis()->SetRangeUser(0., 0.35);
+        mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(15., 155.);
 
         gPad->SetGridx(1);
         gPad->SetGridy(1);
@@ -1946,8 +1950,8 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         //mgPtHatGenIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
         //mgPtHatGenIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
 
-        mgPtHatGenIntegral[i]->GetYaxis()->SetRangeUser(0.0, 0.35);
-        mgPtHatGenIntegral[i]->GetXaxis()->SetRangeUser(15., 155.);
+        mgPtHatGenIntegral[i]->GetYaxis()->SetRangeUser(0.0, 0.25);
+        mgPtHatGenIntegral[i]->GetXaxis()->SetRangeUser(15., 80.);
 
         gPad->SetGridx(1);
         gPad->SetGridy(1);

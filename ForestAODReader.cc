@@ -239,10 +239,22 @@ Int_t ForestAODReader::init() {
 //________________
 void ForestAODReader::setupJEC() {
     if ( fJECFiles.empty() ) {
-        if (fJECInputFileName.Length()<=0) {
+        
+        // If no path to the aux_file
+        if ( fJECPath.Length() <= 0 ) {
+            // Set default values
+            std::cout << "[WARNING] Default path to JEC files will be used" << std::endl;
+            setPath2JetAnalysis();
+        }
+
+        // If no correction file is specified
+        if ( fJECInputFileName.Length() <= 0 ) {
+            std::cout << "[WARNING] Default JEC file with parameters will be used" << std::endl;
             setJECFileName();
         }
-        fJECFiles.push_back(Form("/Users/gnigmat/work/cms/soft/jetAnalysis/aux_files/%s_%i/JEC/%s",fCollidingSystem.Data(),fCollidingEnergyGeV,fJECInputFileName.Data()));
+        fJECFiles.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
+                                   fJECPath.Data(), fCollidingSystem.Data(),
+                                   fCollidingEnergyGeV, fJECInputFileName.Data() ) );
         std::cout << Form("Add JEC file: %s\n", fJECFiles.back().c_str());
     }
 	
