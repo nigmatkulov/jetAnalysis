@@ -113,11 +113,11 @@ int main(int argc, char const *argv[]) {
     reader->setEventCut(eventCut);
     reader->setJetCut(jetCut);
     reader->fixJetArrays();
-    reader->setPath2JetAnalysis()
-    if ( !isPbPb ) {
-        
-        reader->setJECFileName(JECFileName.Data());
-    }
+
+    // Set path to jet analysis (then will automatically add path to aux_files)
+    reader->setPath2JetAnalysis( path2JEC.Data() );
+    reader->setJECFileName( JECFileName.Data() );
+
     manager->setEventReader(reader);
 
     DiJetAnalysis *analysis = new DiJetAnalysis{};

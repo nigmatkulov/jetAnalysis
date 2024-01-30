@@ -34,6 +34,7 @@ int main(int argc, char const *argv[]) {
     TString pfBranchName{};
     TString oFileName{};
     TString JECFileName;
+    TString path2JEC = "/Users/gnigmat/work/cms/soft/jetAnalysis";
     if ( isPbPb ) {
         inFileName = "../../../data/HiForestAOD_PbPb_sim.list";
         //inFileName = "../../../data/HiForestAOD_PbPb_exp.list";
@@ -42,6 +43,7 @@ int main(int argc, char const *argv[]) {
         collYear = 2018;
         pfBranchName = "akCs4PFJetAnalyzer";
         oFileName = "oTestReadForest_PbPb.root";
+        JECFileName = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
     }
     else { // pp
         //inFileName = "../../../data/pp/HiForestAOD_1113.root";
@@ -111,9 +113,11 @@ int main(int argc, char const *argv[]) {
     reader->setEventCut(eventCut);
     reader->setJetCut(jetCut);
     reader->fixJetArrays();
-    if ( !isPbPb ) {
-        reader->setJECFileName(JECFileName.Data());
-    }
+
+    // Set path to jet analysis (then will automatically add path to aux_files)
+    reader->setPath2JetAnalysis( path2JEC.Data() );
+    reader->setJECFileName( JECFileName.Data() );
+    
     manager->setEventReader(reader);
 
     JetESRAnalysis *analysis = new JetESRAnalysis{};

@@ -1542,12 +1542,12 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         // Matched lead jets
         mgPtHatMatchedLeadIntegral[i] = new TMultiGraph();
         mgPtHatMatchedLeadIntegral[i]->SetNameTitle(Form("mgPtHatMatchedLeadIntegral_%d",i),
-                                                    Form("mgPtHatMatchedLeadIntegral_%d",i));
+                                                    Form("mgPtHatMatchedLeadIntegral_%d;#hat{p_{T}} (GeV/c);Fraction of total integral",i));
 
         // Gen jets
         mgPtHatGenIntegral[i] = new TMultiGraph();
         mgPtHatGenIntegral[i]->SetNameTitle(Form("mgPtHatGenIntegral_%d",i),
-                                            Form("mgPtHatGenIntegral_%d",i));
+                                            Form("mgPtHatGenIntegral_%d;#hat{p_{T}} (GeV/c);Fraction of total integral",i));
 
 
         //
@@ -1680,18 +1680,20 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         mgPtHatMatchedIntegral[i]->GetYaxis()->SetTitleOffset(1.0);
 
         // Zoom in
-        mgPtHatMatchedIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
-        mgPtHatMatchedIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
+        // mgPtHatMatchedIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
+        // mgPtHatMatchedIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
+        mgPtHatMatchedIntegral[i]->GetYaxis()->SetRangeUser(0., 0.35);
+        mgPtHatMatchedIntegral[i]->GetXaxis()->SetRangeUser(15., 75.);
         gPad->SetGridx(1);
         gPad->SetGridy(1);
 
         if ( isPbPb ) {
-            t.DrawLatexNDC(0.55, 0.3, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+            t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
         }
         else {
-            t.DrawLatexNDC(0.55, 0.3, Form("PYTHIA"));
+            t.DrawLatexNDC(0.32, 0.9, Form("PYTHIA"));
         }
-        t.DrawLatexNDC(0.5, 0.2, Form("Matched jets"));
+        t.DrawLatexNDC(0.32, 0.8, Form("Matched jets"));
 
 
         //
@@ -1778,8 +1780,16 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         // ptHat projections for different jet pT
         canvInclusiveJetPtHat->cd( centLow.size() + i + 1 );
         setPadStyle();
+        if (i == 0) {
+            leg5 = new TLegend(0.5, 0.65, 0.9, 0.85);
+        }
         for (Int_t j{0}; j<jetPtLow.size(); j++) {
             hPtHatInclusive[i][j]->Draw("same");
+            if (i == 0) {
+                leg5->AddEntry(hPtHatInclusive[i][j], Form("%d<p_{T} (GeV/c)<%d", 
+                               ptLowVal + ptStep * (jetPtLow.at(j)-1) , 
+                               ptLowVal + ptStep * ( jetPtHi.at(j) )), "p");
+            }
         }
         gPad->SetLogy(1);
         if ( isPbPb ) {
@@ -1789,6 +1799,12 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
             t.DrawLatexNDC(0.32, 0.9, Form("PYTHIA"));
         }
         t.DrawLatexNDC(0.32, 0.8, Form("Inclusive jets"));
+
+        if ( i == 0 ) {
+            leg5->SetLineWidth(0);
+            leg5->SetTextSize(0.05);
+            leg5->Draw();
+        }
 
         // Cumulative integrals
         canvInclusiveJetPtHat->cd( 2 * centLow.size() + i + 1 );
@@ -1801,13 +1817,24 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         mgPtHatInclusiveIntegral[i]->GetXaxis()->SetNdivisions(208);
         mgPtHatInclusiveIntegral[i]->GetYaxis()->SetNdivisions(208);    
         mgPtHatInclusiveIntegral[i]->GetYaxis()->SetTitleOffset(1.0);
+
+
+        // Zoom in
+        // mgPtHatInclusiveIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
+        // mgPtHatInclusiveIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
+
+        mgPtHatInclusiveIntegral[i]->GetYaxis()->SetRangeUser(0., 0.35);
+        mgPtHatInclusiveIntegral[i]->GetXaxis()->SetRangeUser(15., 75.);
+        gPad->SetGridx(1);
+        gPad->SetGridy(1);
+
         if ( isPbPb ) {
-            t.DrawLatexNDC(0.55, 0.3, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+            t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
         }
         else {
-            t.DrawLatexNDC(0.55, 0.3, Form("PYTHIA"));
+            t.DrawLatexNDC(0.32, 0.9, Form("PYTHIA"));
         }
-        t.DrawLatexNDC(0.5, 0.2, Form("Inclusive jets"));
+        t.DrawLatexNDC(0.32, 0.8, Form("Inclusive jets"));
 
 
         //
@@ -1873,18 +1900,18 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         // mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
 
         mgPtHatMatchedLeadIntegral[i]->GetYaxis()->SetRangeUser(0., 0.35);
-        mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(15., 155.);
+        mgPtHatMatchedLeadIntegral[i]->GetXaxis()->SetRangeUser(15., 75.);
 
         gPad->SetGridx(1);
         gPad->SetGridy(1);
 
         if ( isPbPb ) {
-            t.DrawLatexNDC(0.55, 0.3, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+            t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
         }
         else {
-            t.DrawLatexNDC(0.55, 0.3, Form("PYTHIA"));
+            t.DrawLatexNDC(0.32, 0.9, Form("PYTHIA"));
         }
-        t.DrawLatexNDC(0.5, 0.2, Form("Leading jets (matched)"));
+        t.DrawLatexNDC(0.32, 0.8, Form("Leading jets (matched)"));
 
 
 
@@ -1950,19 +1977,19 @@ void drawPtHatVsRecoJets(TFile* inFile, Bool_t isPbPb) {
         //mgPtHatGenIntegral[i]->GetYaxis()->SetRangeUser(0.84, 1.01);
         //mgPtHatGenIntegral[i]->GetXaxis()->SetRangeUser(65., 155.);
 
-        mgPtHatGenIntegral[i]->GetYaxis()->SetRangeUser(0.0, 0.25);
-        mgPtHatGenIntegral[i]->GetXaxis()->SetRangeUser(15., 80.);
+        mgPtHatGenIntegral[i]->GetYaxis()->SetRangeUser(0.0, 0.35);
+        mgPtHatGenIntegral[i]->GetXaxis()->SetRangeUser(15., 75.);
 
         gPad->SetGridx(1);
         gPad->SetGridy(1);
 
         if ( isPbPb ) {
-            t.DrawLatexNDC(0.55, 0.3, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
+            t.DrawLatexNDC(0.32, 0.9, Form("%d-%d%% PYTHIA+HYDJET",(centLow.at(i)-2)*10, (centHi.at(i)-1)*10));
         }
         else {
-            t.DrawLatexNDC(0.55, 0.3, Form("PYTHIA"));
+            t.DrawLatexNDC(0.32, 0.9, Form("PYTHIA"));
         }
-        t.DrawLatexNDC(0.5, 0.2, Form("Gen jets"));
+        t.DrawLatexNDC(0.32, 0.8, Form("Gen jets"));
 
 
 
