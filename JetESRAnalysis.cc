@@ -45,7 +45,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
     // Perform the analysis
     //std::cout << "JetESRAnalysis::processEvent" << std::endl;
 
-    if ( fHM ) return;
+    if ( !fHM ) return;
 
     Int_t leadJetIndex{-1}, currentIndex{0};
     Double_t leadJetPt{-1};

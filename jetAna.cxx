@@ -66,6 +66,7 @@ int main(int argc, char const *argv[]) {
     if (argc <= 1) {
         std::cout << "Too few arguments passed. Terminating" << std::endl;
         usage();
+				return -1;
     }
     else {
         // Read input argument list 
@@ -112,8 +113,8 @@ int main(int argc, char const *argv[]) {
     //jetCut->setPt(50., 1500.);
     jetCut->setPt(20., 1500.);
     //jetCut->setEta(-1.6, 1.6);
-
     //jetCut->setVerbose();
+
     ForestAODReader *reader = new ForestAODReader(inFileName);
     if (isMc) {
         // If is MC

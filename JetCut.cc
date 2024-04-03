@@ -25,7 +25,7 @@ ClassImp(JetCut)
 //________________
 JetCut::JetCut() : fPt{0., 1e6}, fConeR{1e6},
     fMustHaveGenMatching{kFALSE}, fEta{-1e6, 1e6},
-    fJetsPassed{0}, fJetsFailed{0} {
+		fVerbose{kFALSE}, fJetsPassed{0}, fJetsFailed{0} {
     /* Empty */
 }
 
