@@ -13,6 +13,11 @@
 #include "TFile.h"
 
 //________________
+void usage() {
+    std::cout << "./programName inputFileList oFileName" << std::endl;
+}
+
+//________________
 /// @brief The prorgram that launches the physics analysis
 /// @param argc Number of arguments
 /// @param argv Argument list
@@ -24,13 +29,19 @@ int main(int argc, char const *argv[]) {
     
     //"../../../data/HiForestAOD_PbPbMC2018skim_10.root"
 
+    // Sequence of command line arguments:
+    //
+    // inputFileList (or forest.root) - input file list with forest
+    // outputFileName.root            - output file name
+    //
+
     Bool_t isPbPb{kTRUE};
     Bool_t isMc{kTRUE};
     Bool_t isCentWeightCalc{kTRUE};
     TString inFileName{};
-    Int_t   collEnergyGeV{};
+    Int_t   collEnergyGeV{5020};
     TString collSystem{};
-    Int_t   collYear{};
+    Int_t   collYear{2018};
     TString pfBranchName{};
     TString oFileName{};
     TString JECFileName;
@@ -38,9 +49,7 @@ int main(int argc, char const *argv[]) {
     if ( isPbPb ) {
         inFileName = "../../../data/HiForestAOD_PbPb_sim.list";
         //inFileName = "../../../data/HiForestAOD_PbPb_exp.list";
-        collEnergyGeV = {5020};
         collSystem = "PbPb";
-        collYear = 2018;
         pfBranchName = "akCs4PFJetAnalyzer";
         oFileName = "oTestReadForest_PbPb.root";
         JECFileName = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
@@ -48,19 +57,31 @@ int main(int argc, char const *argv[]) {
     else { // pp
         //inFileName = "../../../data/pp/HiForestAOD_1113.root";
         inFileName = "../../../data/HiForestAOD_pp.list";
-        collEnergyGeV = {5020};
         collSystem = "pp";
-        collYear = 2018;
         pfBranchName = "ak4PFJetAnalyzer";
         oFileName = "oTestReadForest_pp.root";
         JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
     }
 
-    Long64_t nEventsToRead = 500;
+    if (argc <= 1) {
+        std::cout << "Too few arguments passed. Terminating" << std::endl;
+        usage();
+    }
+    else {
+        // Read input argument list 
+        inFileName = argv[1];
+        oFileName = argv[2];
+    }
 
-    // Read input argument list 
-    if (argc > 1) inFileName = argv[1];
-    if (argc > 2) oFileName = argv[2];
+    std::cout << "Arguments passed:\n"
+              << "Input file name       : " << inFileName << std::endl
+              << "Output file name      : " << oFileName << std::endl
+              << "Is MC                 : " << isMc << std::endl
+              << "Use centrality weight : " << isCentWeightCalc << std::endl
+              << std::endl;
+
+
+    Long64_t nEventsToRead = 500;
 
     Manager *manager = new Manager{};
     EventCut *eventCut = new EventCut{};
