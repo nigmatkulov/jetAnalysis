@@ -1140,11 +1140,11 @@ Event* ForestAODReader::returnEvent() {
             jet->setPhi( fPFRecoJetPhi[iJet] );
             jet->setWTAEta( fPFRecoJetWTAEta[iJet] );
             jet->setWTAPhi( fPFRecoJetWTAPhi[iJet] );
-            if ( fJEC && fIsMc) {
+            if ( fJEC && fIsMc ) {
                 fJEC->SetJetPT( fPFRecoJetPt[iJet] );
                 fJEC->SetJetEta( fPFRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fPFRecoJetPhi[iJet] );
-                double pTcorr = fJEC->GetCorrectedPT();
+                // double pTcorr = fJEC->GetCorrectedPT();
                 //std::cout << "pTCorr: " << pTcorr << std::endl; 
                 jet->setPtJECCorr( fJEC->GetCorrectedPT() );
                 //std::cout << "pTCorr: " << jet->recoJetPtJECCorr() << std::endl; 
