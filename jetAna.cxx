@@ -45,7 +45,8 @@ int main(int argc, char const *argv[]) {
     TString pfBranchName{};
     TString oFileName{};
     TString JECFileName;
-    TString path2JEC = "/Users/gnigmat/work/cms/soft/jetAnalysis";
+    //TString path2JEC = "/Users/gnigmat/work/cms/soft/jetAnalysis";
+    TString path2JEC = "../";
     if ( isPbPb ) {
         inFileName = "../../../data/HiForestAOD_PbPb_sim.list";
         //inFileName = "../../../data/HiForestAOD_PbPb_exp.list";

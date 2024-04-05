@@ -36,3 +36,9 @@
 
 # build directory
 build/*
+
+# processing
+processing/input/*
+processing/output/*
+processing/log/*
+processin/voms_proxy.txt
