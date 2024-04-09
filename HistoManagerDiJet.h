@@ -40,10 +40,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     /// @brief Write all objects to the output file
     void writeOutput();
 
-    /// @brief Set number of centrality bins
-    void setCentBins(const Int_t& n = 6) { fCentBins = n; }
-    /// @brief Set centrality range (in percentage)
-    void setCentRange(const Double_t& lo = 0, const Double_t& hi = 60) { fCentRange[0]=lo; fCentRange[1]=hi; }
+    // /// @brief Set number of centrality bins
+    // void setCentBins(const Int_t& n = 6) { fCentBins = n; }
+    // /// @brief Set centrality range (in percentage)
+    // void setCentRange(const Double_t& lo = 0, const Double_t& hi = 60) { fCentRange[0]=lo; fCentRange[1]=hi; }
 
     /// @brief Set number of jet pT bins
     void setJetPtBins(const Int_t& n = 200) { fPtBins = n; }
@@ -73,28 +73,108 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hPtHat;
     TH1D *hPtHatWeighted;
     TH1D *hPtHatWeight;
-    TH1D *hCentrality;
-    TH1D *hCentralityWeighted;
-    THnSparseD *hVzPtHatCent;
-    THnSparseD *hVzPtHatCentWeighted;
+    // TH1D *hCentrality;
+    // TH1D *hCentralityWeighted;
+    THnSparseD *hVzPtHat;
+    THnSparseD *hVzPtHatWeighted;
 
     //
     // Gen jet histograms
     //
-    THnSparseD *hGenLeadJetPtEtaPhiSubLeadPtEtaPhiCent;
-    THnSparseD *hGenLeadJetPtEtaPhiSubLeadPtEtaPhiCentWeighted;
-    THnSparseD *hGenDiJetPtEtaDeltaPhiCent;
-    THnSparseD *hGenDiJetPtEtaDeltaPhiCentWeighted;
+
+    // Dijet pt, dijet eta, dijet dphi, lead pt, lead eta, lead phi, 
+    // sublead pt, sublead eta, sublead phi [9]
+    THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
+    // Dijet pt, dijet eta, dijet dphi, lead pt, lead eta, lead phi, 
+    // sublead pt, sublead eta, sublead phi weighted [9]
+    THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
+    TH1D *hGenInclusiveJetPt;
+    TH2D *hGenInclusiveJetPtEta;
+    TH2D *hGenPtLeadPtSublead;
+    TH2D *hGenEtaLeadEtaSublead;
+
+    //
+    // Reco jet histograms
+    //
+
+
+    // Single jets
+
+    // Inclusive jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen [5]
+    THnSparseD *hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen;
+    // Inclusive jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen, weighted [5]
+    THnSparseD *hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+    // Leading jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen [5]
+    THnSparseD *hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
+    // Leading jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen, weighted [5]
+    THnSparseD *hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+    // Subleading jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen [5]
+    THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
+    // Subleading jet pt corr, pt raw, 
+    // pt ref, eta corr, eta gen, weighted [5]
+    THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+    // pt corr / pt gen, gen pt, reco eta, reco phi, ptHat [5]
+    THnSparseD *hJESInclusiveJetPtEtaPhiPtHat;
+    // pt corr / pt gen, gen pt, reco eta, reco phi, ptHat [5]
+    THnSparseD *hJESInclusiveJetPtEtaPhiPtHatWeighted;
+    TH2D *hRecoMatchedPtEta;
+
+    // Dijets
+
+    // Experiment
+
+    // Reco dijet pt, reco dijet eta, reco dijet dphi,
+    // Reco lead pt, reco lead eta, reco lead phi,
+    // Reco sublead pt, reco sublead eta, reco sublead phi [9]
+    THnSparseD *hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
+    // Reco dijet pt, reco dijet eta, reco dijet dphi,
+    // Reco lead pt, reco lead eta, reco lead phi,
+    // Reco sublead pt, reco sublead eta, reco sublead phi weighted [9]
+    THnSparseD *hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;    THnSparseD *hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
+    TH1D *hRecoInclusiveJetPt;
+    TH2D *hRecoPtLeadPtSublead;
+    TH2D *hRecoEtaLeadEtaSublead;
+
+    // MC
+
+    // Reco dijet pt, dijet eta, 
+    // Reco lead pt, lead eta,
+    // Reco sublead pt, sublead eta,
+    // Ref dijet pt, dijet eta,
+    // Ref lead pt, lead eta,
+    // Ref sublead pt, sublead eta [12]
+    THnSparseD *hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta;
+    // Reco dijet pt, dijet eta, 
+    // Reco lead pt, lead eta,
+    // Reco sublead pt, sublead eta,
+    // Ref dijet pt, dijet eta,
+    // Ref lead pt, lead eta,
+    // Ref sublead pt, sublead eta weighted [12]
+    THnSparseD *hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
+    // Reco dijet pt / gen dijet pt, reco dijet eta / gen dijet eta, reco dijet dphi / gen dijet dphi,
+    // gen dijet pt, dijet eta, dijet delta phi, ptHat
+    //THnSparseD *hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat;
+    // Reco dijet pt / gen dijet pt, reco dijet eta / gen dijet eta, reco dijet dphi / gen dijet dphi,
+    // gen dijet pt, dijet eta, dijet delta phi, ptHat, weighted
+    //THnSparseD *hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted;
+
+    TH1D *hRefInclusiveJetPt;
+    TH2D *hRefPtLeadPtSublead;
+    TH2D *hRefEtaLeadEtaSublead;
 
   private:
 
     /// @brief Is Monte Carlo
     Bool_t fIsMc;
-
-    /// @brief  Number of centrality bins
-    Int_t    fCentBins;
-    /// @brief Centrality range
-    Double_t fCentRange[2];
+    // /// @brief  Number of centrality bins
+    // Int_t    fCentBins;
+    // /// @brief Centrality range
+    // Double_t fCentRange[2];
     /// @brief Number of pT bins
     Int_t    fPtBins;
     /// @brief Transverse momentum range
@@ -107,9 +187,21 @@ class HistoManagerDiJet : public BaseHistoManager {
     Int_t    fPhiBins;
     /// @brief Azimuthal angle range
     Double_t fPhiRange[2];
+    /// @brief Number of dijet pT bins
+    Int_t    fDijetPtBins;
+    /// @brief Dijet pT range
+    Double_t fDijetPtRange[2];
+    /// @brief Number of dijet eta bins
+    Int_t    fDijetEtaBins;
+    /// @brief Dijet eta range
+    Double_t fDijetEtaRange[2];
+    /// @brief Number of dijet delta phi bins
+    Int_t    fDijetDphiBins;
+    /// @brief Dijet delta phi range
+    Double_t fDijetDphiRange[2];
     /// @brief Number of ptHat bins
     Int_t    fPtHatBins;
-
+    /// @brief PtHat range
     Double_t fPtHatRange[2];
     /// @brief Jet type: PF or Calo
     TString  fJetType;
