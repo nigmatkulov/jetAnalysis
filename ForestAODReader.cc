@@ -793,7 +793,7 @@ void ForestAODReader::setupBranches() {
         fTrkTree->SetBranchStatus("trkChi2", 1);
         fTrkTree->SetBranchStatus("trkNdof", 1);
         fTrkTree->SetBranchStatus("trkCharge", 1);
-        fTrkTree->SetBranchStatus("trыkNHit", 1);
+        fTrkTree->SetBranchStatus("trkNHit", 1);
         fTrkTree->SetBranchStatus("trkNlayer", 1);
         fTrkTree->SetBranchStatus("highPurity", 1);
         fTrkTree->SetBranchStatus("pfEcal", 1);
@@ -1140,6 +1140,8 @@ Event* ForestAODReader::returnEvent() {
             jet->setPhi( fPFRecoJetPhi[iJet] );
             jet->setWTAEta( fPFRecoJetWTAEta[iJet] );
             jet->setWTAPhi( fPFRecoJetWTAPhi[iJet] );
+            jet->setRawPt( fPFRecoJetPt[iJet] );
+            jet->setTrackMaxPt( fPFRecoJetTrackMax[iJet] );
             if ( fJEC && fIsMc ) {
                 fJEC->SetJetPT( fPFRecoJetPt[iJet] );
                 fJEC->SetJetEta( fPFRecoJetEta[iJet] );

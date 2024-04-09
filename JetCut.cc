@@ -25,7 +25,8 @@ ClassImp(JetCut)
 //________________
 JetCut::JetCut() : fPt{0., 1e6}, fConeR{1e6},
     fMustHaveGenMatching{kFALSE}, fEta{-1e6, 1e6},
-		fVerbose{kFALSE}, fJetsPassed{0}, fJetsFailed{0} {
+    fTrackMaxPtOverRawPt{0.01, 0.98},
+	fVerbose{kFALSE}, fJetsPassed{0}, fJetsFailed{0} {
     /* Empty */
 }
 
@@ -67,7 +68,7 @@ Bool_t JetCut::pass(const RecoJet* jet) {
                           recoR, fConeR, ( goodConeR ) ? "true" : "false" );
     }
 
-    Bool_t goodMatching = kTRUE;
+    Bool_t goodMatching {kTRUE};
     if (fMustHaveGenMatching) {
         goodMatching = jet->hasMatching();
     }
@@ -82,6 +83,20 @@ Bool_t JetCut::pass(const RecoJet* jet) {
     if (fVerbose) {
         std::cout << Form("eta : %5.2f <= %5.2f <= %5.2f \t %s \n",
                           fEta[0], jet->eta(), fEta[1], ( goodEta ) ? "true" : "false" );
+    }
+
+    Bool_t goodChargeComponent{kTRUE};
+    Float_t rawPt = jet->rawPt();
+    Float_t trackMaxPt = jet->trackMaxPt();
+    if ( TMath::Abs( jet->eta() ) < 2.4 && 
+         ( trackMaxPt/rawPt < fTrackMaxPtOverRawPt[0] ||
+           trackMaxPt/rawPt > fTrackMaxPtOverRawPt[1]) ) {
+        goodChargeComponent = {kFALSE};
+    }
+
+    if (fVerbose) {
+        std::cout << Form("rawPt: %5.2f trackMaxPt: %5.2f ptMax/rawPt: %3.2f lowCut: %3.2f highCut: %3.2f\n",
+                          rawPt, trackMaxPt, trackMaxPt/rawPt, fTrackMaxPtOverRawPt[0], fTrackMaxPtOverRawPt[1] );
     }
 
     // if ( goodMatching )
@@ -108,7 +123,7 @@ Bool_t JetCut::pass(const RecoJet* jet) {
     // }
 
 
-    Bool_t isGood = goodPt && goodConeR && goodMatching && goodEta;
+    Bool_t isGood = goodPt && goodConeR && goodMatching && goodEta && goodChargeComponent;
 
     // Bool_t isGood = goodRecoPt && goodRecoConeR && goodMatching &&
     //                       goodRefPt && goodRefConeR && goodFlavorForB;

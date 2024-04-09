@@ -41,6 +41,158 @@ void DiJetAnalysis::init() {
 }
 
 //________________
+Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb, 
+                                    const Double_t& ptHat, const Double_t& vz) {
+    Double_t weight{1.};
+    Double_t genWeight{1.};
+    Double_t vzWeight{1.};
+
+    if (isMc && isPPb) {
+
+        // Magic numbers are (cross section x Nevents generated)
+		if (ptHat > 15.0 && ptHat <= 30.)       { genWeight = 1.0404701e-06 /* * 961104 */; }
+		else if (ptHat > 30. && ptHat <= 50.)   { genWeight = 7.7966624e-08 /* * 952110 */; }
+		else if (ptHat > 50. && ptHat <= 80.)   { genWeight = 1.0016052e-08 /* * 952554 */; }
+		else if (ptHat > 80. && ptHat <= 120.)  { genWeight = 1.3018269e-09 /* * 996844 */; }
+		else if (ptHat > 120.&& ptHat <= 170.)  { genWeight = 2.2648493e-10 /* * 964681 */; }
+		else if (ptHat > 170. && ptHat <= 220.) { genWeight = 4.0879112e-11 /* * 999260 */; }
+		else if (ptHat > 220. && ptHat <= 280.) { genWeight = 1.1898939e-11 /* * 964336 */; }
+		else if (ptHat > 280. && ptHat <= 370.) { genWeight = 3.3364433e-12 /* * 995036 */; }
+		else if (ptHat > 370. && ptHat <= 460.) { genWeight = 7.6612402e-13 /* * 958160 */; }
+		else if (ptHat > 460. && ptHat <= 540.) { genWeight = 2.1341026e-13 /* * 981427 */; }
+		else if (ptHat > 540.)                  { genWeight = 7.9191586e-14 /* * 1000000 */; }
+		//evtgenWeight = (float) evtgenWeight/nevents;
+		
+		// Vz weighting
+        TF1 *VzWeightFunction = new TF1("VzWeightFunction", "pol8", -15.1, 15.1);
+        VzWeightFunction->SetParameters(0.856516,-0.0159813,0.00436628,-0.00012862,2.61129e-05,-4.16965e-07,1.73711e-08,-3.11953e-09,6.24993e-10);
+        vzWeight = VzWeightFunction->Eval( vz );
+        vzWeight = 1. / vzWeight;
+    } // if (isMc && isPPb)
+
+    weight = genWeight * vzWeight;
+
+    return weight;
+}
+
+//________________
+void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
+
+    Double_t ptLeadCut{30.};
+    Double_t ptSubLeadCut{20.};
+    Double_t phiDiJetCut{2. * TMath::Pi() / 3};
+
+    Double_t ptLead{-1.}, ptSubLead{-1.}, etaLead{0.}, etaSubLead{0.},
+             phiLead{0.},  phiSubLead{0.};
+
+    GenJetIterator genJetIter;
+    // Loop over generated jets
+    for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ ) {
+
+        Double_t pt = (*genJetIter)->pt();
+        Double_t eta = (*genJetIter)->eta();
+        Double_t phi = (*genJetIter)->phi();
+
+        // Apply lab frame boost to CM for the pPb 
+        if ( fIsPPb ) {
+            if ( fIsPbGoingDir ) {
+                eta += fEtaShift;
+            }
+            else {
+                eta -= fEtaShift;
+                eta = -eta;
+            }
+        } // if ( fIsPPb ) 
+        
+        if ( pt > ptLead ) {
+            ptSubLead = ptLead;
+            etaSubLead = etaLead;
+            phiSubLead = phiLead;
+            ptLead = pt;
+            etaLead = eta;
+            phiLead = phi;
+        }
+        else if ( pt > ptSubLead ) {
+            ptSubLead = pt;
+            etaSubLead = eta;
+            phiSubLead = phi;
+        }
+        // Fill inclusive jet pt
+        fHM->hGenInclusiveJetPt->Fill(pt);
+        fHM->hGenInclusiveJetPtEta->Fill(eta, pt);
+    } // for ( genJetIter = event->genJetCollection()->begin();
+
+    // Check the dijet selection on the MC level
+    if ( !isGoodDijet(ptLead, ptSubLead, TMath::Abs(phiLead - phiSubLead)) ) continue;
+
+    fHM->hGenPtLeadPtSublead->Fill(ptLead, ptSubLead);
+    fHM->hGenEtaLeadEtaSublead->Fill(etaLead, etaSubLead);
+
+    Double_t dijetPt = 0.5 * (ptLead + ptSubLead);
+    Double_t dijetEta = 0.5 * (etaLead + etaSubLead);
+    Double_t dijetDphi = TMath::Abs(phiLead - phiSubLead); // Should abs be used here
+
+    Double_t genDijetLeadSublead[9] {dijetPt, dijetEta, dijetDphi, 
+                                     ptLead, etaLead, phiLead, 
+                                     ptSubLead, etaSubLead, phiSubLead };
+    fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(genDijetLeadSublead);
+    fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(genDijetLeadSublead, ptHatW);
+}
+
+//________________
+void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
+
+    Double_t ptLead{-1.}, ptSubLead{-1.}, etaLead{0.}, etaSubLead{0.},
+             phiLead{0.},  phiSubLead{0.};
+
+    // Loop over reconstructed jets
+    PartFlowJetIterator pfJetIter;
+    for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ ) {
+
+        Double_t pt = (*pfJetIter)->ptJECCorr();
+        Double_t eta = (*pfJetIter)->eta();
+        Double_t phi = (*pfJetIter)->phi();
+
+        // Apply lab frame boost to CM for the pPb 
+        if ( fIsPPb ) {
+            if ( fIsPbGoingDir ) {
+                eta += fEtaShift;
+            }
+            else {
+                eta -= fEtaShift;
+                eta = -eta;
+            }
+        } // if ( fIsPPb ) 
+        
+        if ( pt > ptLead ) {
+            ptSubLead = ptLead;
+            etaSubLead = etaLead;
+            phiSubLead = phiLead;
+            ptLead = pt;
+            etaLead = eta;
+            phiLead = phi;
+        }
+        else if ( pt > ptSubLead ) {
+            ptSubLead = pt;
+            etaSubLead = eta;
+            phiSubLead = phi;
+        }
+        
+        // Fill inclusive jet pt
+        fHM->hRecoInclusiveJetPt->Fill(pt);
+        fHM->hGenInclusiveJetPtEta->Fill(eta, pt);
+    } // for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ )
+}
+
+//________________
+Bool_t DiJetAnalysis::isGoodDijet(const Double_t& ptLead, const Double_t& ptSublead, const Double_t& dphi) {
+    Bool_t isGood = ( ptLead > fLeadJetPtLow &&
+                      ptSublead > fSubleadJetPtLow &&
+                      dphi > fDijetPhiCut );
+    return isGood;
+}
+
+//________________
 void DiJetAnalysis::processEvent(const Event* event) {
     // Perform the analysis
     //std::cout << "DiJetAnalysis::processEvent" << std::endl;
@@ -49,19 +201,37 @@ void DiJetAnalysis::processEvent(const Event* event) {
         std::cout << "[Warning] No histogram manager connected to the DiJetAnalysis\n";
     }
 
-    // IMPORTANT!!! Skip events with more than two jets 
-    if ( event->genJetCollection()->size() != 2 ) return;
-
     //
     // Event quantities
     //
 
-    // ptHat weights
-    float ptHatW = event->ptHatWeight();
-
     // ptHat
     Double_t ptHat = event->ptHat();
+    Double_t vz = event->vz();
+    // ptHat weight (a.k.a. event weight that includes the ptHat and vz)
+    Double_t ptHatW{1.}
+    // Check correct MC sample
+    if ( fIsMc && fIsPPb ) {
+        // Skip events with ptHat that is outside the ranged embedded
+        if ( ptHat <= fPtHatRange[0] || ptHat > fPtHatRange[1] ) continue;
+        ptHatW = eventWeight(fIsMc, fIsPPb, ptHat, vz);
+    }
+
+    // Check collision system and account for the lab frame rapidity
+    if ( fIsPPb ) {
+        if ( fIsPbGoingDir) {
+            fEtaShift = {0.4654094531};
+        }
+        else {
+            fEtaShift = {-0.4654094531};
+        }
+    }
+    else {
+        fEtaShift = {0};
+    }
+
     Double_t centW = event->centralityWeight();
+    centW = {1.}; // Do not apply weight for pPb
     //std::cout << "centrality weight: " << centW << std::endl;
 
     fHM->hHiBin->Fill( event->hiBin() );
@@ -74,14 +244,17 @@ void DiJetAnalysis::processEvent(const Event* event) {
     fHM->hPtHatWeighted->Fill( ptHat, ptHatW * centW );
     fHM->hPtHatWeight->Fill( ptHatW, centW );
 
-    // Collision centrality
-    Double_t centrality = event->centrality();
-    fHM->hCentrality->Fill( centrality, centW );
-    fHM->hCentralityWeighted->Fill( centrality, ptHatW * centW );
+    Double_t vzPtHat[2] = { vz, ptHat };
+    fHM->hVzPtHat->Fill( vzPtHat, centW );
+    fHM->hVzPtHatWeighted->Fill( vzPtHat, ptHatW * centW );
 
-    Double_t vzPtHatCent[3] = { event->vz(), ptHat, centrality };
-    fHM->hVzPtHatCent->Fill( vzPtHatCent, centW );
-    fHM->hVzPtHatCentWeighted->Fill( vzPtHatCent, ptHatW * centW );
+    if ( fIsMc ) {
+        // Process and analyze gen jets
+        processGenJets(event, ptHatW);
+    }
+
+    // Process and analyze reco jets
+    processRecoJets(event, ptHatW);
 
     //
     // Generated jets
@@ -151,619 +324,6 @@ void DiJetAnalysis::processEvent(const Event* event) {
     Double_t diJetPtEtaDeltaPhiCent[4] { ptDiJet, etaDiJet, phiLead - phiSubLead, centrality };
     fHM->hGenDiJetPtEtaDeltaPhiCent->Fill( diJetPtEtaDeltaPhiCent );
     fHM->hGenDiJetPtEtaDeltaPhiCentWeighted->Fill( diJetPtEtaDeltaPhiCent, ptHatW * centW );
-
-
-    // Int_t leadJetIndex{-1}, currentIndex{0};
-    // Double_t leadJetPt{-1};
-    // PartFlowJetIterator pfJetIter;
-
-    // // Loop to find leading jet
-    // for ( pfJetIter = event->pfJetCollection()->begin();
-    //         pfJetIter != event->pfJetCollection()->end();
-    //         pfJetIter++ ) {
-    //     Double_t pt = (*pfJetIter)->ptJECCorr();
-    //     if ( pt > leadJetPt ) {
-    //         leadJetIndex = currentIndex;
-    //         leadJetPt = pt;
-    //     }
-    //     currentIndex++;
-    // }
-
-    // if ( leadJetIndex >= 0 ) {
-    //     RecoJet *jet = event->pfJetCollection()->at( leadJetIndex );
-    //     //std::cout << "Read leading jet info" << std::endl;
-    //     if ( TMath::Abs( jet->eta() ) > 1.6 ||
-    //             !jet->hasMatching() ) {
-    //         //std::cout << "Bad event. Skip" << std::endl;
-    //         return;
-    //     }
-    // }
-
-    // //
-    // // Event quantities
-    // //
-
-    // // ptHat weights
-    // float ptHatW = event->ptHatWeight();
-    // // ptHat
-    // Double_t ptHat = event->ptHat();
-    // Double_t centW = event->centralityWeight();
-    // //std::cout << "centrality weight: " << centW << std::endl;
-
-    // fHM->hHiBin->Fill( event->hiBin() );
-
-    // fHM->hVz->Fill( event->vz(),  centW );
-    // fHM->hVzWeighted->Fill( event->vz(), ptHatW * centW );
-
-    // fHM->hHiBinWeighted->Fill( event->hiBin(), ptHatW * centW );
-    // fHM->hPtHat->Fill( ptHat, centW );
-    // fHM->hPtHatWeighted->Fill( ptHat, ptHatW * centW );
-    // fHM->hPtHatWeight->Fill( ptHatW, centW );
-
-    // // Collision centrality
-    // Double_t centrality = event->centrality();
-    // fHM->hCentrality->Fill( centrality, centW );
-    // fHM->hCentralityWeighted->Fill( centrality, ptHatW * centW );
-
-    // Double_t vzPtHatCent[3] = { event->vz(), ptHat, centrality };
-    // fHM->hVzPtHatCent->Fill( vzPtHatCent, centW );
-    // fHM->hVzPtHatCentWeighted->Fill( vzPtHatCent, ptHatW * centW );
-
-    // fHM->hNBadJets[0]->Fill( event->numberOfOverscaledPFJets() );
-    // if ( ptHat > 20 ) fHM->hNBadJets[1]->Fill( event->numberOfOverscaledPFJets() );
-    // if ( ptHat > 40 ) fHM->hNBadJets[2]->Fill( event->numberOfOverscaledPFJets() );
-    // if ( ptHat > 60 ) fHM->hNBadJets[3]->Fill( event->numberOfOverscaledPFJets() );
-    // if ( ptHat > 80 ) fHM->hNBadJets[4]->Fill( event->numberOfOverscaledPFJets() );
-    
-
-    // //std::cout << "HiBin: " << event->hiBin() << " centrality: " << centrality << std::endl;
-
-    // //
-    // // Gen jet quantities
-    // //
-
-    // // Counters for gen jets with pT cuts: >0, >20, >50, >80, >120 GeV
-    // Int_t nGenJets[5] {0, 0, 0, 0, 0};
-    // GenJetIterator genJetIter;
-    // for ( genJetIter = event->genJetCollection()->begin();
-    //         genJetIter != event->genJetCollection()->end();
-    //         genJetIter++ ) {
-
-    //     Double_t pt = (*genJetIter)->pt();
-    //     nGenJets[0]++;
-    //     if ( pt > 20 ) nGenJets[1]++;
-    //     if ( pt > 50 ) nGenJets[2]++;
-    //     if ( pt > 80 ) nGenJets[3]++;
-    //     if ( pt > 120 ) nGenJets[4]++;
-    //     Double_t eta = (*genJetIter)->eta();
-    //     Double_t phi = (*genJetIter)->phi();
-    //     Double_t flavB{-6};
-    //     switch ( (*genJetIter)->flavorForB() )
-    //     {
-    //     case -99:
-    //         flavB = -6;
-    //         break;
-    //     case -5:
-    //         flavB = -5;
-    //         break;
-    //     case -4:
-    //         flavB = -4;
-    //         break;
-    //     case -3:
-    //         flavB = -3;
-    //         break;
-    //     case -2:
-    //         flavB = -2;
-    //         break;
-    //     case -1:
-    //         flavB = -1;
-    //         break;
-    //     case 0:
-    //         flavB = 0;
-    //         break;
-    //     case 1:
-    //         flavB = 1;
-    //         break;
-    //     case 2:
-    //         flavB = 2;
-    //         break;
-    //     case 3:
-    //         flavB = 3;
-    //         break;
-    //     case 4:
-    //         flavB = 4;
-    //         break;
-    //     case 5:
-    //         flavB = 5;
-    //         break;
-    //     case 21:
-    //         flavB = 6;
-    //         break;
-    //     default:
-    //         flavB = -6;
-    //         break;
-    //     }
-
-    //     Double_t genJetPtEtaPhiCent[4]{ pt, eta, phi, centrality };
-    //     Double_t genJetPtFlavPtHatCent[4]{ pt, flavB, ptHat, centrality };
-
-    //     fHM->hGenJetPtEtaPhiCent->Fill( genJetPtEtaPhiCent, centW);
-    //     fHM->hGenJetPtEtaPhiCentWeighted->Fill( genJetPtEtaPhiCent, ptHatW * centW);
-    //     fHM->hGenJetPtFlavPtHatCent->Fill( genJetPtFlavPtHatCent, centW);
-    //     fHM->hGenJetPtFlavPtHatCentWeighted->Fill( genJetPtFlavPtHatCent, ptHatW * centW );
-    // } // for ( genJetIter = event->genJetCollection()->begin();
-
-    // //
-    // // Reco jet quantities
-    // //
-
-    // // Counters for gen jets with pT cuts: >0, >20, >50, >80, >120 GeV
-    // Int_t nRecoJets[5] {0, 0, 0, 0, 0};
-    // Int_t nRefJets[5] {0, 0, 0, 0, 0};
-
-
-
-
-
-    // currentIndex = {0}; // Restart counter
-
-    // // Loop over reconstructed particle flow jets
-    // for ( pfJetIter = event->pfJetCollection()->begin();
-    //         pfJetIter != event->pfJetCollection()->end();
-    //         pfJetIter++ ) {
-
-    //     // For speed up purpose here
-    //     // if ( !(*pfJetIter)->hasMatching() ) continue;
-
-    //     // Reco jets
-    //     Double_t eta = (*pfJetIter)->eta();
-    //     Double_t phi = (*pfJetIter)->phi();
-    //     Double_t ptRaw = (*pfJetIter)->pt();
-    //     Double_t WTAeta = (*pfJetIter)->WTAEta();
-    //     Double_t WTAphi = (*pfJetIter)->WTAPhi();
-    //     Double_t dphi = TVector2::Phi_mpi_pi(phi - WTAphi);
-    //     Double_t deltaR = TMath::Sqrt( (eta - WTAeta) * (eta - WTAeta) +
-    //                                     dphi * dphi );
-
-    //     Double_t recoJetRawPtEtaPhiCent[4]{ ptRaw, eta, phi, centrality };
-    //     fHM->hRecoJetRawPtEtaPhiCent->Fill( recoJetRawPtEtaPhiCent, centW );
-
-    //     // Corrected momentum of the reconstructed jet
-    //     Double_t pt = (*pfJetIter)->ptJECCorr();
-    //     nRecoJets[0]++;
-    //     if ( pt > 20 ) nRecoJets[1]++;
-    //     if ( pt > 50 ) nRecoJets[2]++;
-    //     if ( pt > 80 ) nRecoJets[3]++;
-    //     if ( pt > 120 ) nRecoJets[4]++;
-    //     Double_t recoJetPtEtaPhiCent[4]{ pt, eta, phi, centrality };
-    //     Double_t deltaRPtCent[3] = { deltaR, pt, centrality };
-    //     fHM->hRecoJetDeltaRPtCent->Fill( deltaRPtCent, centW );
-
-    //     Double_t flavB{-6};
-    //     if ( !(*pfJetIter)->hasMatching() ) {
-    //         Double_t tmp[4] {pt, -6., ptHat, centrality };
-    //         fHM->hRecoJetPtFlavPtHatCentInclusive->Fill( tmp, centW );
-    //         fHM->hRecoJetPtFlavPtHatCentInclusiveWeighted->Fill( tmp, ptHatW * centW );
-    //         fHM->hRecoUnmatchedJetPtFlavPtHatCent->Fill( tmp, centW);
-    //         fHM->hRecoUnmatchedJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW * centW);
-    //     }
-
-    //     // For the JES and other histograms matching is important
-    //     if ( !(*pfJetIter)->hasMatching() ) continue;
-
-    //     // Retrieve matched gen jet
-    //     GenJet *matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
-
-    //     Double_t genPt = matchedJet->pt();
-    //     nRefJets[0]++;
-    //     if ( genPt > 20 ) nRefJets[1]++;
-    //     if ( genPt > 50 ) nRefJets[2]++;
-    //     if ( genPt > 80 ) nRefJets[3]++;
-    //     if ( genPt > 120 ) nRefJets[4]++;
-    //     Double_t genEta = matchedJet->eta();
-    //     Double_t genPhi = matchedJet->phi();
-    //     switch ( matchedJet->flavorForB() )
-    //     {
-    //     case -99:
-    //         flavB = -6;
-    //         break;
-    //     case -5:
-    //         flavB = -5;
-    //         break;
-    //     case -4:
-    //         flavB = -4;
-    //         break;
-    //     case -3:
-    //         flavB = -3;
-    //         break;
-    //     case -2:
-    //         flavB = -2;
-    //         break;
-    //     case -1:
-    //         flavB = -1;
-    //         break;
-    //     case 0:
-    //         flavB = 0;
-    //         break;
-    //     case 1:
-    //         flavB = 1;
-    //         break;
-    //     case 2:
-    //         flavB = 2;
-    //         break;
-    //     case 3:
-    //         flavB = 3;
-    //         break;
-    //     case 4:
-    //         flavB = 4;
-    //         break;
-    //     case 5:
-    //         flavB = 5;
-    //         break;
-    //     case 21:
-    //         flavB = 6;
-    //         break;
-    //     default:
-    //         flavB = -6;
-    //         break;
-    //     }
-
-    //     Double_t ptRawPtCorrPtGenCent[4] = { ptRaw, pt, genPt, centrality };
-    //     fHM->hRecoJetRawPtCorrPtGenPtCent->Fill( ptRawPtCorrPtGenCent, centW );
-        
-    //     fHM->hRecoJetPtEtaPhiCent->Fill( recoJetPtEtaPhiCent, centW );
-    //     fHM->hRecoJetPtEtaPhiCentWeighted->Fill( recoJetPtEtaPhiCent, ptHatW * centW);
-    //     Double_t recoJetPtFlavPtHatCent[4] { pt, flavB, ptHat, centrality };
-    //     fHM->hRecoJetPtFlavPtHatCent->Fill( recoJetPtFlavPtHatCent, centW );
-    //     fHM->hRecoJetPtFlavPtHatCentWeighted->Fill( recoJetPtFlavPtHatCent, ptHatW * centW);
-    //     fHM->hRecoJetPtFlavPtHatCentInclusive->Fill( recoJetPtFlavPtHatCent, centW );
-    //     fHM->hRecoJetPtFlavPtHatCentInclusiveWeighted->Fill( recoJetPtFlavPtHatCent, ptHatW * centW );
-
-    //     // Fill the phi for lead jet (regardless of matching)
-    //     if ( currentIndex == leadJetIndex ) {
-    //         Double_t tmp[4] {pt, flavB, ptHat, centrality };
-    //         fHM->hRecoLeadJetPtFlavPtHatCent->Fill( tmp, centW );
-    //         fHM->hRecoLeadJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW * centW );
-    //     }
-
-    //     //
-    //     // Ref jets
-    //     //
-
-    //     Double_t refJetPtEtaPhiCent[4] { genPt, genEta, genPhi, centrality };
-    //     Double_t refJetPtFlavPtHatCent[4] { genPt, flavB, ptHat, centrality };
-    //     fHM->hRefJetPtEtaPhiCent->Fill( refJetPtEtaPhiCent, centW );
-    //     fHM->hRefJetPtEtaPhiCentWeighted->Fill( refJetPtEtaPhiCent, ptHatW * centW );
-    //     fHM->hRefJetPtFlavPtHatCent->Fill( refJetPtFlavPtHatCent, centW );
-    //     fHM->hRefJetPtFlavPtHatCentWeighted->Fill( refJetPtFlavPtHatCent, ptHatW * centW);
-
-    //     //
-    //     // Jet Energy Scale
-    //     //
-
-    //     Double_t JESraw = ptRaw / genPt;
-    //     Double_t JES = pt / genPt;
-    //     Double_t jesPtEtaPhiCent[5] { JES, genPt, genEta, genPhi, centrality };
-    //     Double_t jesRawPtEtaPhiCent[5] { JESraw, genPt, genEta, genPhi, centrality };
-    //     Double_t jesPtFlavPtHatCent[5] { JES, genPt, flavB, ptHat, centrality };
-    //     fHM->hJESPtEtaPhiCent->Fill( jesPtEtaPhiCent );
-    //     fHM->hJESPtEtaPhiCentWeighted->Fill( jesPtEtaPhiCent, ptHatW );
-    //     fHM->hJESRawPtFlavPtHatCent->Fill( jesRawPtEtaPhiCent );
-    //     fHM->hJESRawPtFlavPtHatCentWeighted->Fill( jesRawPtEtaPhiCent, ptHatW );
-    //     fHM->hJESPtFlavPtHatCent->Fill( jesPtFlavPtHatCent );
-    //     fHM->hJESPtFlavPtHatCentWeighted->Fill( jesPtFlavPtHatCent, ptHatW );
-
-    //     currentIndex++;
-    // } // for ( pfJetIter = event->pfJetCollection()->begin();
-
-    // //std::cout << "-------------------" << std::endl;
-    // for (Int_t i{0}; i<5; i++) {
-    //     fHM->hNRecoJets[i]->Fill( nRecoJets[i] );
-    //     fHM->hNGenJets[i]->Fill( nGenJets[i] );
-    //     fHM->hNRefJets[i]->Fill( nRefJets[i] );
-    //     // std::cout << Form("nRecoJets: %d nGenJets: %d nRefJets: %d\n", 
-    //     //                   nRecoJets[i], nGenJets[i], nRefJets[i] );
-    // }
-    //         case -99:
-    //             flavB = -6;
-    //             break;
-    //         case -5:
-    //             flavB = -5;
-    //             break;
-    //         case -4:
-    //             flavB = -4;
-    //             break;
-    //         case -3:
-    //             flavB = -3;
-    //             break;
-    //         case -2:
-    //             flavB = -2;
-    //             break;
-    //         case -1:
-    //             flavB = -1;
-    //             break;
-    //         case 0:
-    //             flavB = 0;
-    //             break;
-    //         case 1:
-    //             flavB = 1;
-    //             break;
-    //         case 2:
-    //             flavB = 2;
-    //             break;
-    //         case 3:
-    //             flavB = 3;
-    //             break;
-    //         case 4:
-    //             flavB = 4;
-    //             break;
-    //         case 5:
-    //             flavB = 5;
-    //             break;
-    //         case 21:
-    //             flavB = 6;
-    //             break;
-    //         default:
-    //             flavB = -6;
-    //             break;
-    //         }
-
-    //         Double_t ptRawPtCorrPtGenCent[4] = { ptRaw, pt, genPt, centrality };
-    //         fHM->hRecoJetRawPtCorrPtGenPtCent->Fill( ptRawPtCorrPtGenCent, centW );
-            
-    //         fHM->hRecoJetPtEtaPhiCent->Fill( recoJetPtEtaPhiCent, centW );
-    //         fHM->hRecoJetPtEtaPhiCentWeighted->Fill( recoJetPtEtaPhiCent, ptHatW * centW);
-    //         Double_t recoJetPtFlavPtHatCent[4] { pt, flavB, ptHat, centrality };
-    //         fHM->hRecoJetPtFlavPtHatCent->Fill( recoJetPtFlavPtHatCent, centW );
-    //         fHM->hRecoJetPtFlavPtHatCentWeighted->Fill( recoJetPtFlavPtHatCent, ptHatW * centW);
-    //         fHM->hRecoJetPtFlavPtHatCentInclusive->Fill( recoJetPtFlavPtHatCent, centW );
-    //         fHM->hRecoJetPtFlavPtHatCentInclusiveWeighted->Fill( recoJetPtFlavPtHatCent, ptHatW * centW );
-
-    //         // Fill the phi for lead jet (regardless of matching)
-    //         if ( currentIndex == leadJetIndex ) {
-    //             Double_t tmp[4] {pt, flavB, ptHat, centrality };
-    //             fHM->hRecoLeadJetPtFlavPtHatCent->Fill( tmp, centW );
-    //             fHM->hRecoLeadJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW * centW );
-    //         }
-
-    //         //
-    //         // Ref jets
-    //         //
-
-    //         Double_t refJetPtEtaPhiCent[4] { genPt, genEta, genPhi, centrality };
-    //         Double_t refJetPtFlavPtHatCent[4] { genPt, flavB, ptHat, centrality };
-    //         fHM->hRefJetPtEtaPhiCent->Fill( refJetPtEtaPhiCent, centW );
-    //         fHM->hRefJetPtEtaPhiCentWeighted->Fill( refJetPtEtaPhiCent, ptHatW * centW );
-    //         fHM->hRefJetPtFlavPtHatCent->Fill( refJetPtFlavPtHatCent, centW );
-    //         fHM->hRefJetPtFlavPtHatCentWeighted->Fill( refJetPtFlavPtHatCent, ptHatW * centW);
-
-    //         //
-    //         // Jet Energy Scale
-    //         //
-
-    //         Double_t JESraw = ptRaw / genPt;
-    //         Double_t JES = pt / genPt;
-    //         Double_t jesPtEtaPhiCent[5] { JES, genPt, genEta, genPhi, centrality };
-    //         Double_t jesRawPtEtaPhiCent[5] { JESraw, genPt, genEta, genPhi, centrality };
-    //         Double_t jesPtFlavPtHatCent[5] { JES, genPt, flavB, ptHat, centrality };
-    //         fHM->hJESPtEtaPhiCent->Fill( jesPtEtaPhiCent );
-    //         fHM->hJESPtEtaPhiCentWeighted->Fill( jesPtEtaPhiCent, ptHatW );
-    //         fHM->hJESRawPtFlavPtHatCent->Fill( jesRawPtEtaPhiCent );
-    //         fHM->hJESRawPtFlavPtHatCentWeighted->Fill( jesRawPtEtaPhiCent, ptHatW );
-    //         fHM->hJESPtFlavPtHatCent->Fill( jesPtFlavPtHatCent );
-    //         fHM->hJESPtFlavPtHatCentWeighted->Fill( jesPtFlavPtHatCent, ptHatW );
-
-    //         currentIndex++;
-    //     } // for ( pfJetIter = event->pfJetCollection()->begin();
-
-    //     //std::cout << "-------------------" << std::endl;
-    //     for (Int_t i{0}; i<5; i++) {
-    //         fHM->hNRecoJets[i]->Fill( nRecoJets[i] );
-    //         fHM->hNGenJets[i]->Fill( nGenJets[i] );
-    //         fHM->hNRefJets[i]->Fill( nRefJets[i] );
-    //         // std::cout << Form("nRecoJets: %d nGenJets: %d nRefJets: %d\n", 
-    //         //                   nRecoJets[i], nGenJets[i], nRefJets[i] );
-    //     }
-    //         case -99:
-    //             flavB = -6;
-    //             break;
-    //         case -5:
-    //             flavB = -5;
-    //             break;
-    //         case -4:
-    //             flavB = -4;
-    //             break;
-    //         case -3:
-    //             flavB = -3;
-    //             break;
-    //         case -2:
-    //             flavB = -2;
-    //             break;
-    //         case -1:
-    //             flavB = -1;
-    //             break;
-    //         case 0:
-    //             flavB = 0;
-    //             break;
-    //         case 1:
-    //             flavB = 1;
-    //             break;
-    //         case 2:
-    //             flavB = 2;
-    //             break;
-    //         case 3:
-    //             flavB = 3;
-    //             break;
-    //         case 4:
-    //             flavB = 4;
-    //             break;
-    //         case 5:
-    //             flavB = 5;
-    //             break;
-    //         case 21:
-    //             flavB = 6;
-    //             break;
-    //         default:
-    //             flavB = -6;
-    //             break;
-    //         }
-
-    //         Double_t ptRawPtCorrPtGenCent[4] = { ptRaw, pt, genPt, centrality };
-    //         fHM->hRecoJetRawPtCorrPtGenPtCent->Fill( ptRawPtCorrPtGenCent, centW );
-            
-    //         fHM->hRecoJetPtEtaPhiCent->Fill( recoJetPtEtaPhiCent, centW );
-    //         fHM->hRecoJetPtEtaPhiCentWeighted->Fill( recoJetPtEtaPhiCent, ptHatW * centW);
-    //         Double_t recoJetPtFlavPtHatCent[4] { pt, flavB, ptHat, centrality };
-    //         fHM->hRecoJetPtFlavPtHatCent->Fill( recoJetPtFlavPtHatCent, centW );
-    //         fHM->hRecoJetPtFlavPtHatCentWeighted->Fill( recoJetPtFlavPtHatCent, ptHatW * centW);
-    //         fHM->hRecoJetPtFlavPtHatCentInclusive->Fill( recoJetPtFlavPtHatCent, centW );
-    //         fHM->hRecoJetPtFlavPtHatCentInclusiveWeighted->Fill( recoJetPtFlavPtHatCent, ptHatW * centW );
-
-    //         // Fill the phi for lead jet (regardless of matching)
-    //         if ( currentIndex == leadJetIndex ) {
-    //             Double_t tmp[4] {pt, flavB, ptHat, centrality };
-    //             fHM->hRecoLeadJetPtFlavPtHatCent->Fill( tmp, centW );
-    //             fHM->hRecoLeadJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW * centW );
-    //         }
-
-    //         //
-    //         // Ref jets
-    //         //
-
-    //         Double_t refJetPtEtaPhiCent[4] { genPt, genEta, genPhi, centrality };
-    //         Double_t refJetPtFlavPtHatCent[4] { genPt, flavB, ptHat, centrality };
-    //         fHM->hRefJetPtEtaPhiCent->Fill( refJetPtEtaPhiCent, centW );
-    //         fHM->hRefJetPtEtaPhiCentWeighted->Fill( refJetPtEtaPhiCent, ptHatW * centW );
-    //         fHM->hRefJetPtFlavPtHatCent->Fill( refJetPtFlavPtHatCent, centW );
-    //         fHM->hRefJetPtFlavPtHatCentWeighted->Fill( refJetPtFlavPtHatCent, ptHatW * centW);
-
-    //         //
-    //         // Jet Energy Scale
-    //         //
-
-    //         Double_t JESraw = ptRaw / genPt;
-    //         Double_t JES = pt / genPt;
-    //         Double_t jesPtEtaPhiCent[5] { JES, genPt, genEta, genPhi, centrality };
-    //         Double_t jesRawPtEtaPhiCent[5] { JESraw, genPt, genEta, genPhi, centrality };
-    //         Double_t jesPtFlavPtHatCent[5] { JES, genPt, flavB, ptHat, centrality };
-    //         fHM->hJESPtEtaPhiCent->Fill( jesPtEtaPhiCent );
-    //         fHM->hJESPtEtaPhiCentWeighted->Fill( jesPtEtaPhiCent, ptHatW );
-    //         fHM->hJESRawPtFlavPtHatCent->Fill( jesRawPtEtaPhiCent );
-    //         fHM->hJESRawPtFlavPtHatCentWeighted->Fill( jesRawPtEtaPhiCent, ptHatW );
-    //         fHM->hJESPtFlavPtHatCent->Fill( jesPtFlavPtHatCent );
-    //         fHM->hJESPtFlavPtHatCentWeighted->Fill( jesPtFlavPtHatCent, ptHatW );
-
-    //         currentIndex++;
-    //     } // for ( pfJetIter = event->pfJetCollection()->begin();
-
-    //     //std::cout << "-------------------" << std::endl;
-    //     for (Int_t i{0}; i<5; i++) {
-    //         fHM->hNRecoJets[i]->Fill( nRecoJets[i] );
-    //         fHM->hNGenJets[i]->Fill( nGenJets[i] );
-    //         fHM->hNRefJets[i]->Fill( nRefJets[i] );
-    //         // std::cout << Form("nRecoJets: %d nGenJets: %d nRefJets: %d\n", 
-    //         //                   nRecoJets[i], nGenJets[i], nRefJets[i] );
-    //     }
-    //         case -99:
-    //             flavB = -6;
-    //             break;
-    //         case -5:
-    //             flavB = -5;
-    //             break;
-    //         case -4:
-    //             flavB = -4;
-    //             break;
-    //         case -3:
-    //             flavB = -3;
-    //             break;
-    //         case -2:
-    //             flavB = -2;
-    //             break;
-    //         case -1:
-    //             flavB = -1;
-    //             break;
-    //         case 0:
-    //             flavB = 0;
-    //             break;
-    //         case 1:
-    //             flavB = 1;
-    //             break;
-    //         case 2:
-    //             flavB = 2;
-    //             break;
-    //         case 3:
-    //             flavB = 3;
-    //             break;
-    //         case 4:
-    //             flavB = 4;
-    //             break;
-    //         case 5:
-    //             flavB = 5;
-    //             break;
-    //         case 21:
-    //             flavB = 6;
-    //             break;
-    //         default:
-    //             flavB = -6;
-    //             break;
-    //         }
-
-    //         Double_t ptRawPtCorrPtGenCent[4] = { ptRaw, pt, genPt, centrality };
-    //         fHM->hRecoJetRawPtCorrPtGenPtCent->Fill( ptRawPtCorrPtGenCent, centW );
-            
-    //         fHM->hRecoJetPtEtaPhiCent->Fill( recoJetPtEtaPhiCent, centW );
-    //         fHM->hRecoJetPtEtaPhiCentWeighted->Fill( recoJetPtEtaPhiCent, ptHatW * centW);
-    //         Double_t recoJetPtFlavPtHatCent[4] { pt, flavB, ptHat, centrality };
-    //         fHM->hRecoJetPtFlavPtHatCent->Fill( recoJetPtFlavPtHatCent, centW );
-    //         fHM->hRecoJetPtFlavPtHatCentWeighted->Fill( recoJetPtFlavPtHatCent, ptHatW * centW);
-    //         fHM->hRecoJetPtFlavPtHatCentInclusive->Fill( recoJetPtFlavPtHatCent, centW );
-    //         fHM->hRecoJetPtFlavPtHatCentInclusiveWeighted->Fill( recoJetPtFlavPtHatCent, ptHatW * centW );
-
-    //         // Fill the phi for lead jet (regardless of matching)
-    //         if ( currentIndex == leadJetIndex ) {
-    //             Double_t tmp[4] {pt, flavB, ptHat, centrality };
-    //             fHM->hRecoLeadJetPtFlavPtHatCent->Fill( tmp, centW );
-    //             fHM->hRecoLeadJetPtFlavPtHatCentWeighted->Fill( tmp, ptHatW * centW );
-    //         }
-
-    //         //
-    //         // Ref jets
-    //         //
-
-    //         Double_t refJetPtEtaPhiCent[4] { genPt, genEta, genPhi, centrality };
-    //         Double_t refJetPtFlavPtHatCent[4] { genPt, flavB, ptHat, centrality };
-    //         fHM->hRefJetPtEtaPhiCent->Fill( refJetPtEtaPhiCent, centW );
-    //         fHM->hRefJetPtEtaPhiCentWeighted->Fill( refJetPtEtaPhiCent, ptHatW * centW );
-    //         fHM->hRefJetPtFlavPtHatCent->Fill( refJetPtFlavPtHatCent, centW );
-    //         fHM->hRefJetPtFlavPtHatCentWeighted->Fill( refJetPtFlavPtHatCent, ptHatW * centW);
-
-    //         //
-    //         // Jet Energy Scale
-    //         //
-
-    //         Double_t JESraw = ptRaw / genPt;
-    //         Double_t JES = pt / genPt;
-    //         Double_t jesPtEtaPhiCent[5] { JES, genPt, genEta, genPhi, centrality };
-    //         Double_t jesRawPtEtaPhiCent[5] { JESraw, genPt, genEta, genPhi, centrality };
-    //         Double_t jesPtFlavPtHatCent[5] { JES, genPt, flavB, ptHat, centrality };
-    //         fHM->hJESPtEtaPhiCent->Fill( jesPtEtaPhiCent );
-    //         fHM->hJESPtEtaPhiCentWeighted->Fill( jesPtEtaPhiCent, ptHatW );
-    //         fHM->hJESRawPtFlavPtHatCent->Fill( jesRawPtEtaPhiCent );
-    //         fHM->hJESRawPtFlavPtHatCentWeighted->Fill( jesRawPtEtaPhiCent, ptHatW );
-    //         fHM->hJESPtFlavPtHatCent->Fill( jesPtFlavPtHatCent );
-    //         fHM->hJESPtFlavPtHatCentWeighted->Fill( jesPtFlavPtHatCent, ptHatW );
-
-    //         currentIndex++;
-    //     } // for ( pfJetIter = event->pfJetCollection()->begin();
-
-    //     //std::cout << "-------------------" << std::endl;
-    //     for (Int_t i{0}; i<5; i++) {
-    //         fHM->hNRecoJets[i]->Fill( nRecoJets[i] );
-    //         fHM->hNGenJets[i]->Fill( nGenJets[i] );
-    //         fHM->hNRefJets[i]->Fill( nRefJets[i] );
-    //         // std::cout << Form("nRecoJets: %d nGenJets: %d nRefJets: %d\n", 
-    //         //                   nRecoJets[i], nGenJets[i], nRefJets[i] );
-    //     }
 }
 
 //________________

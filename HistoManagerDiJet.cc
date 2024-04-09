@@ -96,8 +96,8 @@ HistoManagerDiJet::~HistoManagerDiJet() {
 
     if (fIsMc) {
       // Gen jets
-      if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiPtHat;
-      if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiPtHatWeighted;
+      if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
+      if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
       if (hGenInclusiveJetPt) delete hGenInclusiveJetPt;
       if (hGenInclusiveJetPtEta) delete hGenInclusiveJetPtEta;
       if (hGenPtLeadPtSublead) delete hGenPtLeadPtSublead;
@@ -156,7 +156,7 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     Int_t    ptHatBins{100};
     Double_t ptHatRange[2] {0., 1000.};
     Int_t    fJESBins{100}; 
-    Double_t fJESRange[2] {0., 2.},
+    Double_t fJESRange[2] {0., 2.};
 
 
     Int_t    bins2D_ev_VzPtHat[2] {     vzBins,     fPtHatBins };
@@ -279,10 +279,117 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
       //
       // Reco single jets
       //
-      hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenPtHat = new THnSparseD("hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenPtHat","Reconstructed inclusive jets;Reco p_{T, corr}^{Inclusive} (GeV/c);Reco p_{T, raw}^{Inclusive} (GeV/c);Ref p_{T}^{Inclusive} (GeV/c);Reco #eta^{Inclusive};Ref #eta^{Inclusive};#hat{p_{T}} (GeV/c)",
-      )
+      hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen = new THnSparseD("hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen","Reconstructed inclusive jets;Reco p_{T, corr}^{Inclusive} (GeV/c);Reco p_{T, raw}^{Inclusive} (GeV/c);Ref p_{T}^{Inclusive} (GeV/c);Reco #eta^{Inclusive};Ref #eta^{Inclusive}",
+            5,
+            bins5D_jet_PtPtPtEtaEta,
+            xmin5D_jet_PtPtPtEtaEta,
+            xmax5D_jet_PtPtPtEtaEta);
+      hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Sumw2();
+      hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted = new THnSparseD("hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted","Reconstructed inclusive jets weighted;Reco p_{T, corr}^{Inclusive} (GeV/c);Reco p_{T, raw}^{Inclusive} (GeV/c);Ref p_{T}^{Inclusive} (GeV/c);Reco #eta^{Inclusive};Ref #eta^{Inclusive}",
+            5,
+            bins5D_jet_PtPtPtEtaEta,
+            xmin5D_jet_PtPtPtEtaEta,
+            xmax5D_jet_PtPtPtEtaEta);
+      hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Sumw2();
+      hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen = new THnSparseD("hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen","Reconstructed leading jets;Reco p_{T, corr}^{Leading} (GeV/c);Reco p_{T, raw}^{Leading} (GeV/c);Ref p_{T}^{Leading} (GeV/c);Reco #eta^{Leading};Ref #eta^{Leading}",
+            5,
+            bins5D_jet_PtPtPtEtaEta,
+            xmin5D_jet_PtPtPtEtaEta,
+            xmax5D_jet_PtPtPtEtaEta);
+      hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Sumw2();
+      hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted = new THnSparseD("hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted","Reconstructed leading jets weighted;Reco p_{T, corr}^{Leading} (GeV/c);Reco p_{T, raw}^{Leading} (GeV/c);Ref p_{T}^{Leading} (GeV/c);Reco #eta^{Leading};Ref #eta^{Leading}",
+            5,
+            bins5D_jet_PtPtPtEtaEta,
+            xmin5D_jet_PtPtPtEtaEta,
+            xmax5D_jet_PtPtPtEtaEta);
+      hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Sumw2();
+      hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen = new THnSparseD("hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen","Reconstructed subleading jets;Reco p_{T, corr}^{Subleading} (GeV/c);Reco p_{T, raw}^{Subleading} (GeV/c);Ref p_{T}^{Subleading} (GeV/c);Reco #eta^{Subleading};Ref #eta^{Subleading}",
+            5,
+            bins5D_jet_PtPtPtEtaEta,
+            xmin5D_jet_PtPtPtEtaEta,
+            xmax5D_jet_PtPtPtEtaEta);
+      hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Sumw2();
+      hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted = new THnSparseD("hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted","Reconstructed subleading jets weighted;Reco p_{T, corr}^{Subleading} (GeV/c);Reco p_{T, raw}^{Subleading} (GeV/c);Ref p_{T}^{Subleading} (GeV/c);Reco #eta^{Subleading};Ref #eta^{Subleading}",
+            5,
+            bins5D_jet_PtPtPtEtaEta,
+            xmin5D_jet_PtPtPtEtaEta,
+            xmax5D_jet_PtPtPtEtaEta);
+      hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Sumw2();
 
+      hJESInclusiveJetPtEtaPhiPtHat = new THnSparseD("hJESInclusiveJetPtEtaPhiPtHat","JES of inclusive jets;p_{T}^{reco}/p_{T}^{gen};Ref p_{T} (GeV/c);#eta^{reco};#phi^{reco} (rad);#hat{p_{T}} (GeV/c)",
+            5,
+            bins5D_jet_JESPtEtaPhiPtHat,
+            xmin5D_jet_JESPtEtaPhiPtHat,
+            xmax5D_jet_JESPtEtaPhiPtHat);
+      hJESInclusiveJetPtEtaPhiPtHat->Sumw2();
+      hJESInclusiveJetPtEtaPhiPtHatWeighted = new THnSparseD("hJESInclusiveJetPtEtaPhiPtHatWeighted","JES of inclusive jet weighted;p_{T}^{reco}/p_{T}^{gen};Ref p_{T} (GeV/c);#eta^{reco};#phi^{reco} (rad);#hat{p_{T}} (GeV/c)",
+            5,
+            bins5D_jet_JESPtEtaPhiPtHat,
+            xmin5D_jet_JESPtEtaPhiPtHat,
+            xmax5D_jet_JESPtEtaPhiPtHat);
+      hJESInclusiveJetPtEtaPhiPtHatWeighted->Sumw2();
+
+      hRecoMatchedPtEta = new TH2D("hRecoMatchedPtEta","Reconstructed jets that matched gen;#eta^{reco};p_{T}^{reco} (GeV/c)",
+            fEtaBins, fEtaRange[0], fEtaRange[1],
+            fPtBins, fPtRange[0], fPtRange[1]);
+      hRecoMatchedPtEta->Sumw2();
+
+      //
+      // Reco dijet with MC
+      //
+      hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta = new THnSparseD("hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta",
+            "Reco to ref correspondence;Reco p_{T}^{dijet} (GeV/c);Reco #eta^{dijet};Reco p_{T}^{Leading} (GeV/c);Reco #eta^{Leading};Reco p_{T}^{Subleading} (GeV/c);Reco #eta^{Subleading};Ref p_{T}^{dijet};Ref #eta^{dijet};Ref p_{T}^{Leading} (GeV/c);Ref #eta^{Leading};Ref p_{T}^{Subleading} (GeV/c);Ref #eta^{Subleading}",
+            12,
+            bins12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta,
+            xmin12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta,
+            xmax12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta);
+      hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Sumw2();
+      hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted = new THnSparseD("hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted",
+            "Reco to ref correspondence weighted;Reco p_{T}^{dijet} (GeV/c);Reco #eta^{dijet};Reco p_{T}^{Leading} (GeV/c);Reco #eta^{Leading};Reco p_{T}^{Subleading} (GeV/c);Reco #eta^{Subleading};Ref p_{T}^{dijet};Ref #eta^{dijet};Ref p_{T}^{Leading} (GeV/c);Ref #eta^{Leading};Ref p_{T}^{Subleading} (GeV/c);Ref #eta^{Subleading}",
+            12,
+            bins12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta,
+            xmin12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta,
+            xmax12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta);
+      hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Sumw2();
+
+      hRefInclusiveJetPt = new TH1D("hRefInclusiveJetPt","Ref jet p_{T};Ref p_{T} (GeV/c);Entries",
+                                    fPtBins, fPtRange[0], fPtRange[1]);
+      hRefInclusiveJetPt->Sumw2();
+      hRefPtLeadPtSublead = new TH2D("hRefPtLeadPtSublead","Ref leading vs subleading p_{T};Ref p_{T}^{Leading} (GeV/c);Ref p_{T}^{Subleading} (GeV/c)",
+                                     fPtBins, fPtRange[0], fPtRange[1],
+                                     fPtBins, fPtRange[0], fPtRange[1]);
+      hRefPtLeadPtSublead->Sumw2();
+      hRefEtaLeadEtaSublead = new TH2D("hRefEtaLeadEtaSublead","Ref leading vs subleading #eta;Ref #eta^{Leading};Ref #eta^{Subleading}",
+                                       fEtaBins, fEtaRange[0], fEtaRange[1],
+                                       fEtaBins, fEtaRange[0], fEtaRange[1]);
+      hRefEtaLeadEtaSublead->Sumw2();
     } // if (fIsMc)
+
+    hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi = new THnSparseD("hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi",
+            "Reconstructed dijet and jet info;p_{T}^{dijet} (GeV/c);#eta^{dijet};#Delta#phi^{dijet} (rad);p_{T}^{Leading} (GeV/c);#eta^{Leading};#phi^{Leading} (rad);p_{T}^{Subleading} (GeV/c);#eta^{Subleading};#phi^{Subleading} (rad)",
+            9,
+            bins9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhiPtEtaPhi,
+            xmin9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhiPtEtaPhi,
+            xmin9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhiPtEtaPhi);
+    hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Sumw2();
+    hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted = new THnSparseD("hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted",
+            "Reconstructed dijet and jet info weighted;p_{T}^{dijet} (GeV/c);#eta^{dijet};#Delta#phi^{dijet} (rad);p_{T}^{Leading} (GeV/c);#eta^{Leading};#phi^{Leading} (rad);p_{T}^{Subleading} (GeV/c);#eta^{Subleading};#phi^{Subleading} (rad)",
+            9,
+            bins9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhiPtEtaPhi,
+            xmin9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhiPtEtaPhi,
+            xmin9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhiPtEtaPhi);
+    hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Sumw2();
+    hRecoInclusiveJetPt = new TH1D("hRecoInclusiveJetPt","Reco jet p_{T};Reco p_{T} (GeV/c);Entries",
+                                   fPtBins, fPtRange[0], fPtRange[1]);
+    hRecoInclusiveJetPt->Sumw2();
+    hRecoPtLeadPtSublead = new TH2D("hRecoPtLeadPtSublead","Reco leading vs subleading p_{T};Reco p_{T}^{Leading} (GeV/c);Reco p_{T}^{Subleading} (GeV/c)",
+                                     fPtBins, fPtRange[0], fPtRange[1],
+                                     fPtBins, fPtRange[0], fPtRange[1]);
+    hRecoPtLeadPtSublead->Sumw2();
+    hRecoEtaLeadEtaSublead = new TH2D("hRecoEtaLeadEtaSublead","Reco leading vs subleading #eta;Reco #eta^{Leading};Reco #eta^{Subleading}",
+                                       fEtaBins, fEtaRange[0], fEtaRange[1],
+                                       fEtaBins, fEtaRange[0], fEtaRange[1]);
+    hRecoEtaLeadEtaSublead->Sumw2();
 }
 
 //________________
@@ -296,18 +403,42 @@ void HistoManagerDiJet::writeOutput() {
     hPtHat->Write();
     hPtHatWeighted->Write();
     hPtHatWeight->Write();
-    hCentrality->Write();
-    hCentralityWeighted->Write();
-    hVzPtHatCent->Write();
-    hVzPtHatCentWeighted->Write();
+    // hCentrality->Write();
+    // hCentralityWeighted->Write();
+    hVzPtHat->Write();
+    hVzPtHatWeighted->Write();
 
     // Reco jets
 
     if (fIsMc) {
         // Gen jets
-        hGenLeadJetPtEtaPhiSubLeadPtEtaPhiCent->Write();
-        hGenLeadJetPtEtaPhiSubLeadPtEtaPhiCentWeighted->Write();
-        hGenDiJetPtEtaDeltaPhiCent->Write();
-        hGenDiJetPtEtaDeltaPhiCentWeighted->Write();
-    }
+        hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Write();
+        hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Write();
+        hGenInclusiveJetPt->Write();
+        hGenInclusiveJetPtEta->Write();
+        hGenPtLeadPtSublead->Write();
+        hGenEtaLeadEtaSublead->Write();
+
+        hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Write();
+        hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Write();
+        hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Write();
+        hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Write();
+        hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Write();
+        hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Write();
+        hJESInclusiveJetPtEtaPhiPtHat->Write();
+        hJESInclusiveJetPtEtaPhiPtHatWeighted->Write();
+        hRecoMatchedPtEta->Write();
+
+        hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Write();
+        hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Write();
+        hRefInclusiveJetPt->Write();
+        hRefPtLeadPtSublead->Write();
+        hRefEtaLeadEtaSublead->Write();
+    } // if ( fIsMc )
+
+    hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Write();
+    hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Write();
+    hRecoInclusiveJetPt->Write();
+    hRecoPtLeadPtSublead->Write();
+    hRecoEtaLeadEtaSublead->Write();
 }

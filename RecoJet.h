@@ -35,6 +35,10 @@ class RecoJet : public BaseJet {
     void setPtJECCorr(const Float_t& pt) { fPtJECCorr = {pt}; }
     /// @brief Set index of the matched GenJet
     void setGenJetId(const Int_t& id)    { fGenJetId = (Char_t)id; }
+    /// @brief Set transverse momentum of tracks in jet
+    void setRawPt(const Float_t& pt)     { fRawPt = pt; }
+    /// @brief Set momentum of the track with the highest pt in the jet
+    void setTrackMaxPt(const Float_t& pt){ fTrackMaxPt = pt; }
     /// @brief Print parameters of the given jet
     void print();
 
@@ -52,6 +56,10 @@ class RecoJet : public BaseJet {
     { return (fGenJetId < 0) ? kFALSE : kTRUE; }
     /// @brief Index of the matched GenJet
     Int_t genJetId() const  { return (Int_t)fGenJetId; }
+    /// @brief Return sum of tracks pT in the jet
+    Float_t rawPt() const      { return fRawPt; }
+    /// @brief Return transverse momentum of the track with highest pT in the jet
+    Float_t trackMaxPt() const { return fTrackMaxPt; }
 
   private:
 
@@ -59,8 +67,12 @@ class RecoJet : public BaseJet {
     Float_t fPtJECCorr;
     /// @brief Index of the matched Monte Carlo jet (-99 if not matched)
     Char_t   fGenJetId;
+    /// @brief Raw pT of tracks in the jet
+    Float_t fRawPt;
+    /// @brief Track in the jet with the highest pT
+    Float_t fTrackPtMax;
     
-    ClassDef(RecoJet, 1)
+    ClassDef(RecoJet, 2)
 };
 
 #endif // #define RecoJet_h

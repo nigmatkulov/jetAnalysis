@@ -2023,11 +2023,12 @@ void drawJetAnalysisFigs(const Char_t *inFileNamePbPb = "../build/../build/oTest
     }
 
     // Read ROOT file                             
-    TFile *inFilePP = TFile::Open(inFileNamePP);
-    if ( !inFilePP->IsOpen() ) {
-        std::cout << "Input file for pp not opened. Terminating." << std::endl;
-        exit(0);
-    }
+    // TFile *inFilePP = TFile::Open(inFileNamePP);
+    // if ( !inFilePP->IsOpen() ) {
+    //     std::cout << "Input file for pp not opened. Terminating." << std::endl;
+    //     exit(0);
+    // }
+
 
     // Draw event histograms
     //drawEventQuantities(inFilePbPb);

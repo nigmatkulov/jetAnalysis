@@ -68,7 +68,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
         RecoJet *jet = event->pfJetCollection()->at( leadJetIndex );
         //std::cout << "Read leading jet info" << std::endl;
         if ( TMath::Abs( jet->eta() ) > 1.6 ||
-                !jet->hasMatching() ) {
+             !jet->hasMatching() ) {
             //std::cout << "Bad event. Skip" << std::endl;
             return;
         }
@@ -192,6 +192,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
 
 
     //
+    // Reco jets
     //
 
     // Counters for gen jets with pT cuts: >0, >20, >50, >80, >120 GeV
@@ -201,9 +202,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
     currentIndex = {0}; 
 
     // Loop over reconstructed particle flow jets
-    for ( pfJetIter = event->pfJetCollection()->begin();
-            pfJetIter != event->pfJetCollection()->end();
-            pfJetIter++ ) {
+    for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ ) {
 
         // For speed up purpose here
         // if ( !(*pfJetIter)->hasMatching() ) continue;

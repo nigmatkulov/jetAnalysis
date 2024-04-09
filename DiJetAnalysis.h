@@ -49,16 +49,57 @@ class DiJetAnalysis : public BaseAnalysis {
     void addHistoManager(HistoManagerDiJet *hm) { fHM = hm; }
     /// @brief Add lorentz shift
     void setEtaShift(const Double_t& shift) { fEtaShift = shift; }
+    /// @brief Set dataset to be MC
+    void setIsMc(const Bool_t& isMc) { fIsMc = isMc; }
+    /// @brief Is pPb dataset
+    void setIsPPb()                  { fIsPPb = kTRUE; }
+    /// @brief Set cut on the ptHat of the event (for MC in pPb only due to the xsection matching)
+    void setPtHatRange(const Double_t& lo, const Double_t& hi) { fPtHatRange[0] = lo; fPtHatRange[1] = hi; }
+    /// @brief Cut on the lowest momentum of leading jet
+    void setLeadJetPtLow(const Double_t& lo) { fLeadJetPtLow = lo; }
+    /// @brief Cut on the lowest momentum of subleading jet
+    void setSubleadJetPtLow(const Double_t& lo) { fSubleadJetPtLow = lo; }
+    /// @brief Cut on angle between leading and subleading jet
+    void setDijetPhiCut(const Double_t& cut) { fDijetPhiCut = cut; }
+
+    void setPbGoing()                        { fPbGoingDir = kTRUE; }
+
 
   private:
 
+    // Calculate event weight
+    Double_t eventWeight(const Bool_t& isMc, const Bool_t& isPPb, const Double_t& ptHat, const Double_t& vz);
+    // Process gen jets
+    void processGenJets(const Event* event, Double_t ptHatW);
+    // Process reco jets
+    void processRecoJets(const Event* event, Double_t ptHatW);
+    // Dijet selection
+    Bool_t isGoodDijet(const Double_t& ptLead, const Double_t& ptSublead, const Double_t& dphi);
+
     /// @brief Print debug information
-    Bool_t fDebug;
+    Bool_t   fDebug;
     /// @brief Centrality weight
-    Bool_t fUseCentralityWeight;
+    Bool_t   fUseCentralityWeight;
     /// @brief Histogram manager
     HistoManagerDiJet *fHM;
     /// @brief Eta shift
+    Double_t fEtaShift;
+    /// @brief Is MC sample (needed for event weight corrections)
+    Bool_t   fIsMc;
+    /// @brief  Is pPb dataset
+    Bool_t   fIsPPb;
+    /// @brief ptHat range for the generated events (must cut events on this one)
+    Double_t fPtHatRange[2];
+
+    /// @brief Momentum selection of the leading jet
+    Double_t fLeadJetPtLow;
+    /// @brief Momentum selection of the subleading jet
+    Double_t fSubleadJetPtLow;
+    /// @brief Angular selection of dijet
+    Double_t fDijetPhiCut;
+    /// @brief Lead going direction for pPb collisions
+    Bool_t   fPbGoingDir;
+    /// @brief Pseudorapidity shift for asymmetric collisions (pPb)
     Double_t fEtaShift;
 
 

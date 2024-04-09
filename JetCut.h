@@ -42,6 +42,8 @@ class JetCut {
     void setMustHaveGenMathing() { fMustHaveGenMatching=kTRUE; }
     /// @brief Preudorapidity of the reconstructed jet
     void setEta(const Double_t& lo, const Double_t& hi) { fEta[0]=lo; fEta[1]=hi; }
+    /// @brief Cut jets with values below low and above high at midrapidity
+    void setTrackMaxPtOverRawPt(const Double_t& lo, const Double_t& hi) { fTrackMaxPtOverRawPt[0]=lo; fTrackMaxPtOverRawPt[1]=hi; }
     /// @brief Report cut limits and passed/failed statistics
     void report();
     /// @brief Check if jet passes the cut 
@@ -61,6 +63,8 @@ class JetCut {
     Bool_t   fMustHaveGenMatching;
     /// @brief Pseudorapidity of the jet
     Double_t fEta[2];
+    /// @brief Cut on charged particle fraction inside jet (at midrapidity cut jets with val<[0] and val>[1])
+    Double_t fTrackMaxPtOverRawPt[2];
     /// @brief Print status for each jet
     Bool_t   fVerbose; 
     /// @brief Number of jets passed cut
