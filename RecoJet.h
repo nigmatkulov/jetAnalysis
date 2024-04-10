@@ -38,7 +38,7 @@ class RecoJet : public BaseJet {
     /// @brief Set transverse momentum of tracks in jet
     void setRawPt(const Float_t& pt)     { fRawPt = pt; }
     /// @brief Set momentum of the track with the highest pt in the jet
-    void setTrackMaxPt(const Float_t& pt){ fTrackMaxPt = pt; }
+    void setTrackMaxPt(const Float_t& pt){ fTrackPtMax = pt; }
     /// @brief Print parameters of the given jet
     void print();
 
@@ -59,7 +59,7 @@ class RecoJet : public BaseJet {
     /// @brief Return sum of tracks pT in the jet
     Float_t rawPt() const      { return fRawPt; }
     /// @brief Return transverse momentum of the track with highest pT in the jet
-    Float_t trackMaxPt() const { return fTrackMaxPt; }
+    Float_t trackMaxPt() const { return fTrackPtMax; }
 
   private:
 

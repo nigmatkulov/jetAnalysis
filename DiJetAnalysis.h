@@ -62,7 +62,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Cut on angle between leading and subleading jet
     void setDijetPhiCut(const Double_t& cut) { fDijetPhiCut = cut; }
 
-    void setPbGoing()                        { fPbGoingDir = kTRUE; }
+    void setPbGoing()                        { fIsPbGoingDir = kTRUE; }
 
 
   private:
@@ -82,7 +82,7 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t   fUseCentralityWeight;
     /// @brief Histogram manager
     HistoManagerDiJet *fHM;
-    /// @brief Eta shift
+    /// @brief  Pseudorapidity shift for asymmetric collisions (pPb)
     Double_t fEtaShift;
     /// @brief Is MC sample (needed for event weight corrections)
     Bool_t   fIsMc;
@@ -98,10 +98,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Angular selection of dijet
     Double_t fDijetPhiCut;
     /// @brief Lead going direction for pPb collisions
-    Bool_t   fPbGoingDir;
-    /// @brief Pseudorapidity shift for asymmetric collisions (pPb)
-    Double_t fEtaShift;
-
+    Bool_t   fIsPbGoingDir;
 
   ClassDef(DiJetAnalysis, 0)
 };
