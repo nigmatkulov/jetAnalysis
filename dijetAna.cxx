@@ -24,37 +24,25 @@ int main(int argc, char const *argv[]) {
     
     //"../../../data/HiForestAOD_PbPbMC2018skim_10.root"
 
-    Bool_t isPbPb{kFALSE};
     Bool_t isMc{kTRUE};
     Bool_t isCentWeightCalc{kFALSE};
     TString inFileName{};
     Int_t   collEnergyGeV{};
-    TString collSystem{};
-    Int_t   collYear{};
+    TString collSystem{pPb};
+    Int_t   collYear{2018};
     TString pfBranchName{};
     TString oFileName{};
     TString JECFileName;
-    TString path2JEC = "/Users/gnigmat/work/cms/soft/jetAnalysis";
-    if ( isPbPb ) {
-        inFileName = "../../../data/HiForestAOD_PbPb_sim.list";
-        //inFileName = "../../../data/HiForestAOD_PbPb_exp.list";
-        collEnergyGeV = {5020};
-        collSystem = "PbPb";
-        collYear = 2018;
-        pfBranchName = "akCs4PFJetAnalyzer";
-        oFileName = "oDiJetReadForest_PbPb.root";
-        JECFileName = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
-    }
-    else { // pp
-        //inFileName = "../../../data/pp/HiForestAOD_1113.root";
-        inFileName = "../../../data/HiForestAOD_pp.list";
-        collEnergyGeV = {5020};
-        collSystem = "pp";
-        collYear = 2018;
-        pfBranchName = "ak4PFJetAnalyzer";
-        oFileName = "oDiJetReadForest_pp.root";
-        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
-    }
+    TString path2JEC = "../";
+
+    inFileName = "../../../data/HiForestAOD_PbPb_sim.list";
+    collEnergyGeV = {8160};
+    collSystem = "pPb";
+    collYear = 2018;
+    pfBranchName = "akCs4PFJetAnalyzer";
+    oFileName = "oDiJetReadForest_PbPb.root";
+    JECFileName = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
+
 
     Long64_t nEventsToRead = 500;
 

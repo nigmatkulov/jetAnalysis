@@ -78,10 +78,6 @@ Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb,
 //________________
 void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
-    Double_t ptLeadCut{30.};
-    Double_t ptSubLeadCut{20.};
-    Double_t phiDiJetCut{2. * TMath::Pi() / 3};
-
     Double_t ptLead{-1.}, ptSubLead{-1.}, etaLead{0.}, etaSubLead{0.},
              phiLead{0.},  phiSubLead{0.};
 
