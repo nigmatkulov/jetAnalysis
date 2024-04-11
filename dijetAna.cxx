@@ -119,9 +119,9 @@ int main(int argc, char const *argv[]) {
 
     // Initialize event reader
     ForestAODReader *reader = new ForestAODReader(inFileName);
-    reader->setIsMc(isMc);
     if (isMc) {
-        // Check if apply centrality weight
+        // If is MC
+        reader->setIsMc(isMc);
         if ( isCentWeightCalc ) {
             // Apply hiBin shift and centrality weight calculation
             reader->setCorrectCentMC();
@@ -148,6 +148,7 @@ int main(int argc, char const *argv[]) {
 
     // Initialize analysis
     DiJetAnalysis *analysis = new DiJetAnalysis{};
+    analysis->setIsMc(isMc);
     analysis->setIsPPb();
     if ( isPbGoingDir ) {
         analysis->setPbGoing();
