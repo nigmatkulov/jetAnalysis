@@ -68,10 +68,10 @@ class EventCut {
     void useHLT_HIPuAK4CaloJet80Eta5p1_v1()  { fHLT_HIPuAK4CaloJet80Eta5p1_v1 = {kTRUE}; }
     void useHLT_PAAK4PFJet80_Eta5p1_v3()     { fHLT_PAAK4PFJet80_Eta5p1_v3 = {kTRUE}; }
 
-    void usePhfCoincFilter()                { fPhfCoincFilter = {kTRUE} };
-    void usePVertexFilterCutdz1p0()         { fPVertexFilterCutdz1p0 = {kTRUE} };
-    void usePVertexFilterCutGplus()         { fPVertexFilterCutGplus = {kTRUE} };
-    void usePVertexFilterCutVtx1()          { fPVertexFilterCutVtx1 = {kTRUE} };
+    void usePhfCoincFilter()                { fPhfCoincFilter = {kTRUE}; }
+    void usePVertexFilterCutdz1p0()         { fPVertexFilterCutdz1p0 = {kTRUE}; }
+    void usePVertexFilterCutGplus()         { fPVertexFilterCutGplus = {kTRUE}; }
+    void usePVertexFilterCutVtx1()          { fPVertexFilterCutVtx1 = {kTRUE}; }
     /// @brief Report information about
     void report();
     /// @brief Check if evn 
