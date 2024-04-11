@@ -156,6 +156,7 @@ int main(int argc, char const *argv[]) {
     analysis->setLeadJetPtLow( 30. );
     analysis->setSubLeadJetPtLow( 20. );
     analysis->setDijetPhiCut( TMath::TwoPi() / 3 );
+    analysis->setVerbose();
     
     // Initialize histogram manager
     HistoManagerDiJet *hm = new HistoManagerDiJet{};

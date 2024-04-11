@@ -394,7 +394,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
 
     if ( fVerbose ) {
         std::cout << "Event quantities were read properly" << std::endl;
-        event->print();
+        //event->print();
     }
 
     if ( fIsMc ) {
