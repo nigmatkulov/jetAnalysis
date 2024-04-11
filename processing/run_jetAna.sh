@@ -16,6 +16,6 @@ echo -e "Input file list: ${input_file_list}"
 echo -e "Output file name: ${output_file_name}"
 
 # Run jetAna
-../build/jetAna ${input_file_list} ${output_file_name}
+../build/jetAna ${input_file_list} /eos/user/g/gnigmatk/ana/pbpb_5020_hydjet/${output_file_name}
 
 echo -e "Data processing of thes ${input_file_list} is finished"
