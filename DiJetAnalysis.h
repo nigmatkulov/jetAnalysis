@@ -67,6 +67,8 @@ class DiJetAnalysis : public BaseAnalysis {
     void setpGoing()                         { fIsPbGoingDir = {kFALSE}; }
     /// @brief Set verbose mode
     void setVerbose()                        { fVerbose = {kTRUE}; }
+    /// @brief Print DiJetAnalysis setup
+    void print();
 
   private:
 

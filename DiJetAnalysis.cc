@@ -43,7 +43,28 @@ DiJetAnalysis::~DiJetAnalysis() {
 //________________
 void DiJetAnalysis::init() {
     // Initialize analysis
-    //std::cout << "DiJetAnalysis::init" << std::endl;
+    if ( fVerbose ) {
+        std::cout << "DiJetAnalysis::init" << std::endl;
+        print();
+    }
+    
+}
+
+//________________
+void DiJetAnalysis::print() {
+    std::cout << "----------------------------------------\n";
+    std::cout << "DiJetAnalysis parameters:\n";
+    std::cout << "Use centrality weight   : " << fUseCentralityWeight << std::endl
+              << "Histogram manager       : " << fHM << std::endl
+              << "Is MC                   : " << fIsMc << std::endl
+              << "Is pPb                  : " << fIsPPb << std::endl
+              << "Is Pb-going direction   : " << fIsPbGoingDir << std::endl
+              << "eta shift               : " << fEtaShift << std::endl
+              << "ptHat range             : " << fPtHatRange[0] << "-" << fPtHatRange[1] << std::endl
+              << "Leading jet pT          : " << fLeadJetPtLow << std::endl
+              << "SubLeading jet pT       : " << fSubleadJetPtLow << std::endl
+              << "Dijet phi cut           : " << fDijetPhiCut << std::endl;
+    std::cout << "----------------------------------------\n";
 }
 
 //________________
