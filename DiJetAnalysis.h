@@ -61,9 +61,12 @@ class DiJetAnalysis : public BaseAnalysis {
     void setSubLeadJetPtLow(const Double_t& lo) { fSubleadJetPtLow = lo; }
     /// @brief Cut on angle between leading and subleading jet
     void setDijetPhiCut(const Double_t& cut) { fDijetPhiCut = cut; }
-
-    void setPbGoing()                        { fIsPbGoingDir = kTRUE; }
-
+    /// @brief Set the direction of Pb-going ion
+    void setPbGoing()                        { fIsPbGoingDir = {kTRUE}; }
+    /// @brief Set the direction of p-going ion
+    void setpGoing()                         { fIsPbGoingDir = {kFALSE}; }
+    /// @brief Set verbose mode
+    void setVerbose()                        { fVerbose = {kTRUE}; }
 
   private:
 
@@ -99,6 +102,8 @@ class DiJetAnalysis : public BaseAnalysis {
     Double_t fDijetPhiCut;
     /// @brief Lead going direction for pPb collisions
     Bool_t   fIsPbGoingDir;
+    /// @brief Verbose mode
+    Bool_t   fVerbose;
 
   ClassDef(DiJetAnalysis, 0)
 };

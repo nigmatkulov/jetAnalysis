@@ -30,7 +30,7 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fEtaShift{0}, fIsMc{kFALSE}, fIsPPb{kTRUE},
     fLeadJetPtLow{30.}, fSubleadJetPtLow{20.},
     fDijetPhiCut{TMath::TwoPi() / 3},
-    fIsPbGoingDir{kFALSE} {
+    fIsPbGoingDir{kFALSE}, fVerbose{kFALSE} {
     fPtHatRange[0] = {15.};
     fPtHatRange[1] = {30.};
 }
@@ -84,16 +84,26 @@ Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb,
 //________________
 void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
+    if ( fVerbose ) {
+        std::cout << "Reporting from DiJetAnalysis::processGenJets" << std::endl;
+    }
+
     Double_t ptLead{-1.}, ptSubLead{-1.}, etaLead{0.}, etaSubLead{0.},
              phiLead{0.},  phiSubLead{0.};
 
     GenJetIterator genJetIter;
+    Int_t counter{0};
     // Loop over generated jets
     for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ ) {
 
         Double_t pt = (*genJetIter)->pt();
         Double_t eta = (*genJetIter)->eta();
         Double_t phi = (*genJetIter)->phi();
+
+        if ( fVerbose ) {
+            std::cout << "Gen jet #" << counter << " ";
+            (*genJetIter)->print();
+        }
 
         // Apply lab frame boost to CM for the pPb 
         if ( fIsPPb ) {
@@ -122,6 +132,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
         // Fill inclusive jet pt
         fHM->hGenInclusiveJetPt->Fill(pt);
         fHM->hGenInclusiveJetPtEta->Fill(eta, pt);
+        counter++;
     } // for ( genJetIter = event->genJetCollection()->begin();
 
     // Check the dijet selection on the MC level
@@ -139,10 +150,18 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
                                      ptSubLead, etaSubLead, phiSubLead };
     fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(genDijetLeadSublead);
     fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(genDijetLeadSublead, ptHatW);
+
+    if ( fVerbose ) {
+        std::cout << "Reporting from DiJetAnalysis::processGenJets - [DONE]" << std::endl;
+    }
 }
 
 //________________
 void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
+
+    if ( fVerbose ) {
+        std::cout << "Reporting from DiJetAnalysis::processRecoJets" << std::endl;
+    }
 
     Double_t ptRecoLead{-1.}, ptRecoSubLead{-1.},
              ptRawRecoLead{-1.}, ptRawRecoSubLead{-1.},
@@ -163,6 +182,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         Double_t eta = (*pfJetIter)->eta();
         Double_t phi = (*pfJetIter)->phi();
         Double_t ptRaw = (*pfJetIter)->pt();
+
+        if ( fVerbose ) {
+            std::cout << "Reco jet #" << counter << " ";
+            (*pfJetIter)->print();
+        }
 
         // On MC will work with matching jets only
         if ( fIsMc && !(*pfJetIter)->hasMatching() ) continue;
@@ -237,6 +261,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     if (idRecoLead>0 && idRecoSubLead>0) {
         isDijetFound = kTRUE;
     }
+
+    if ( fVerbose ) {
+        std::cout << "Dijet found: " << isDijetFound << std::endl;
+    }
     
     // Look only at events with dijets
     if ( !isDijetFound ) return;
@@ -288,6 +316,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
     fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );
     fHM->hRefDijetEtaVsRecoDijetEta->Fill( dijetRecoEta, dijetRefEta, ptHatW );
+
+    if ( fVerbose ) {
+        std::cout << "Reporting from DiJetAnalysis::processRecoJets - [DONE]" << std::endl;
+    }
 }
 
 //________________
@@ -295,13 +327,19 @@ Bool_t DiJetAnalysis::isGoodDijet(const Double_t& ptLead, const Double_t& ptSubl
     Bool_t isGood = ( ptLead > fLeadJetPtLow &&
                       ptSublead > fSubleadJetPtLow &&
                       dphi > fDijetPhiCut );
+    if ( fVerbose ) {
+        std::cout << "DiJetAnalysis::isGoodDijet " << isGood << " ";
+        std::cout << Form("pTlead: %5.2f pTsub: %5.2f dphi: %4.2f\n", ptLead, ptSublead, dphi);
+    }
     return isGood;
 }
 
 //________________
 void DiJetAnalysis::processEvent(const Event* event) {
     // Perform the analysis
-    //std::cout << "DiJetAnalysis::processEvent" << std::endl;
+    if ( fVerbose ) {
+        std::cout << "DiJetAnalysis::processEvent" << std::endl;
+    }
 
     if ( !fHM ) {
         std::cout << "[Warning] No histogram manager connected to the DiJetAnalysis\n";
@@ -353,6 +391,11 @@ void DiJetAnalysis::processEvent(const Event* event) {
     Double_t vzPtHat[2] = { vz, ptHat };
     fHM->hVzPtHat->Fill( vzPtHat, centW );
     fHM->hVzPtHatWeighted->Fill( vzPtHat, ptHatW * centW );
+
+    if ( fVerbose ) {
+        std::cout << "Event quantities were read properly" << std::endl;
+        event->print();
+    }
 
     if ( fIsMc ) {
         // Process and analyze gen jets
