@@ -14,6 +14,7 @@
 #include "TVector3.h"
 #include "TLorentzVector.h"
 #include "TROOT.h"
+#include "TMath.h"
 
 // C++ headers
 #include <iostream>
@@ -25,8 +26,13 @@ ClassImp(DiJetAnalysis)
 
 //________________
 DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(), 
-    fDebug{kFALSE}, fUseCentralityWeight{}, fHM{nullptr} {
-    /* Empty */
+    fDebug{kFALSE}, fUseCentralityWeight{}, fHM{nullptr},
+    fEtaShift{0}, fIsMc{kFALSE}, fIsPPb{kTRUE},
+    fLeadJetPtLow{30.}, fSubleadJetPtLow{20.},
+    fDijetPhiCut{TMath::TwoPi() / 3},
+    fIsPbGoingDir{kFALSE} {
+    fPtHatRange[0] = {15.};
+    fPtHatRange[1] = {30.};
 }
 
 //________________
@@ -269,6 +275,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                                 ptRecoSubLead, etaRecoSubLead, phiRecoSubLead };
     fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(dijetRecoInfo);
     fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(dijetRecoInfo, ptHatW);
+    fHM->hRecoDijetEta->Fill( dijetRecoEta, ptHatW );
 
     // Dijet reco vs ref for unfolding
     Double_t dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
@@ -279,6 +286,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                                      ptRefSubLead, etaRefSubLead };
     fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Fill(dijetRecoUnfold);
     fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
+    fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );
+    fHM->hRefDijetEtaVsRecoDijetEta->Fill( dijetRecoEta, dijetRefEta, ptHatW );
 }
 
 //________________

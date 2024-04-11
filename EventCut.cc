@@ -33,6 +33,12 @@ EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fPPAprimaryVertexFilter{kFALSE},
     fPBeamScrapingFilter{kFALSE},
     fPClusterCompatibilityFilter{kFALSE},
+    fPhfCoincFilter{kFALSE},
+    fPVertexFilterCutdz1p0{kFALSE},
+    fPVertexFilterCutGplus{kFALSE},
+    fPVertexFilterCutVtx1{kFALSE},
+    fHLT_HIPuAK4CaloJet80Eta5p1_v1{kFALSE},
+    fHLT_PAAK4PFJet80_Eta5p1_v3{kFALSE},
     fEventsPassed{0}, fEventsFailed{0} {
     fLumi[0] = 0;
     fLumi[1] = std::numeric_limits<unsigned int>::max();
@@ -163,6 +169,38 @@ Bool_t EventCut::pass(const Event* ev) {
             }
         }
     }
+    if ( fPhfCoincFilter ) {
+        if ( ev->trigAndSkim()->phfCoincFilter() == 0) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad phfCoincFilter\n");
+            }
+        }
+    }
+    if ( fPVertexFilterCutdz1p0 ) {
+        if ( ev->trigAndSkim()->pVertexFilterCutdz1p0() == 0) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad pVertexFilterCutdz1p0\n");
+            }
+        }
+    }
+    if ( fPVertexFilterCutGplus ) {
+        if ( ev->trigAndSkim()->pVertexFilterCutGplus() == 0) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad pVertexFilterCutGplus\n");
+            }
+        }
+    }
+    if ( fPVertexFilterCutVtx1 ) {
+        if ( ev->trigAndSkim()->pVertexFilterCutVtx1() == 0) {
+            goodFilters = {kFALSE};
+            if ( fVerbose ) {
+                std::cout << Form("Bad pVertexFilterCutVtx1\n");
+            }
+        }
+    }
     if (fVerbose) {
         std::cout << Form("Event filters passed: %s\n", (goodFilters) ? "true" : "false");
     }
@@ -173,6 +211,14 @@ Bool_t EventCut::pass(const Event* ev) {
             goodTrigger = { kFALSE };
             if ( fVerbose ) {
                 std::cout << Form("Bad trigger: HLT_HIPuAK4CaloJet80Eta5p1_v1\n");
+            }
+        }
+    }
+    if ( fHLT_PAAK4PFJet80_Eta5p1_v3 ) {
+        if ( ev->trigAndSkim()->HLT_PAAK4PFJet80_Eta5p1_v3() == 0 ) {
+            goodTrigger = { kFALSE };
+            if ( fVerbose ) {
+                std::cout << Form("Bad trigger: HLT_PAAK4PFJet80_Eta5p1_v3\n");
             }
         }
     }

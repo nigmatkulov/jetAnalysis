@@ -18,7 +18,14 @@
 ClassImp(TriggerAndSkim)
 
 //________________
-TriggerAndSkim::TriggerAndSkim() : 
+TriggerAndSkim::TriggerAndSkim() :
+  fHLT_PAAK4CaloJet60_Eta5p1_v3{0},
+  fHLT_PAAK4CaloJet80_Eta5p1_v3{0},
+  fHLT_PAAK4CaloJet100_Eta5p1_v3{0},
+  fHLT_PAAK4PFJet60_Eta5p1_v4{0},
+  fHLT_PAAK4PFJet80_Eta5p1_v3{0},
+  fHLT_PAAK4PFJet100_Eta5p1_v3{0},
+  fHLT_PAAK4PFJet120_Eta5p1_v2{0},
   fHLT_HIAK4PFJet15_v1{0},
   fHLT_HIAK4PFJet15_v1_Prescl{0},
   fHLT_HIAK4PFJet30_v1{0},
@@ -66,6 +73,11 @@ TriggerAndSkim::TriggerAndSkim() :
   fPVertexFilterCutGtight{0},
   fPVertexFilterCutE{0},
   fPVertexFilterCutEandG{0},
-  fPClusterCompatibilityFilter{0} {
+  fPClusterCompatibilityFilter{0},
+  
+  fPhfCoincFilter{0},
+  fPVertexFilterCutdz1p0{0},
+  fPVertexFilterCutGplus{0},
+  fPVertexFilterCutVtx1{0} {
     /* empty */
 }

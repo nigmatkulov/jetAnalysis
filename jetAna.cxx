@@ -67,7 +67,7 @@ int main(int argc, char const *argv[]) {
     if (argc <= 1) {
         std::cout << "Too few arguments passed. Terminating" << std::endl;
         usage();
-				return -1;
+		return -1;
     }
     else {
         // Read input argument list 

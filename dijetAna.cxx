@@ -11,6 +11,7 @@
 
 // ROOT headers
 #include "TFile.h"
+#include "TMath.h"
 
 //________________
 /// @brief The prorgram that launches the physics analysis
@@ -18,69 +19,100 @@
 /// @param argv Argument list
 /// @return 0 in case of OKAY
 int main(int argc, char const *argv[]) {
-    /* code */
 
     // Set default values for arguments
-    
-    //"../../../data/HiForestAOD_PbPbMC2018skim_10.root"
-
     Bool_t isMc{kTRUE};
     Bool_t isCentWeightCalc{kFALSE};
+    Bool_t isPbGoingDir{};
     TString inFileName{};
-    Int_t   collEnergyGeV{};
-    TString collSystem{pPb};
-    Int_t   collYear{2018};
-    TString pfBranchName{};
+    Int_t   collEnergyGeV{8160};
+    TString collSystem{"pPb"};
+    Int_t   collYear{2016};
+    TString pfBranchName{"akCs4PFJetAnalyzer"};
     TString oFileName{};
     TString JECFileName;
     TString path2JEC = "../";
+    Double_t ptHatCut[2] {15., 30.};
 
-    inFileName = "../../../data/HiForestAOD_PbPb_sim.list";
-    collEnergyGeV = {8160};
-    collSystem = "pPb";
-    collYear = 2018;
-    pfBranchName = "akCs4PFJetAnalyzer";
-    oFileName = "oDiJetReadForest_PbPb.root";
-    JECFileName = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
-
-
-    Long64_t nEventsToRead = 500;
+    // Sequence of command line arguments:
+    //
+    // inputFileList (or forest.root) - input file list with forest
+    // outputFileName.root            - output file name
+    // isMc                           - 1 (embedding), 0 (data)
+    // isPbGoingDir                   - 1 (Pb-going), 0 (p-going)
+    // ptHatLow                       - Low ptHat cut (for embedding)
+    // ptHatHi                        - High ptHat cut (for embedding)
 
     // Read input argument list 
-    if (argc > 1) inFileName = argv[1];
-    if (argc > 2) oFileName = argv[2];
+    if (argc <= 1) {
+        std::cout << "Too few arguments passed. Terminating" << std::endl;
+        usage();
+		return -1;
+    }
+    else {
+        inFileName   = argv[1];
+        oFileName    = argv[2];
+        isMc         = argv[3];
+        isPbGoingDir = argv[4];
+        ptHatCut[0]  = argv[5];
+        ptHatCut[1]  = argv[6];
+    }
 
+    std::cout << "Arguments passed:\n"
+              << "Input file name       : " << inFileName << std::endl
+              << "Output file name      : " << oFileName << std::endl
+              << "Is MC                 : " << isMc << std::endl
+              << "Is Pb-going direction : " << isPbGoingDir << std::endl
+              << "ptHat range           : " << ptHatCut[0] << "-" << ptHatCut[1] << std::endl
+              << "Use centrality weight : " << isCentWeightCalc << std::endl
+              << std::endl;
+
+    if (isMc) {
+        if (isPbGoingDir) {
+            JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
+        }
+        else {
+            JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
+        }
+    }
+    else {
+        if (isPbGoingDir) { // Remember to flip to p-going for data
+            // TODO: get the correct filename
+            JESFileName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt"; 
+        }
+        else {
+
+        }
+    } // else
+
+    // Initialize package manager
     Manager *manager = new Manager{};
+
+    // Initialize event cut
     EventCut *eventCut = new EventCut{};
     eventCut->setVz(-15., 15.);
-    if ( isPbPb ) {
-        eventCut->usePPrimaryVertexFilter();
-        eventCut->useHBHENoiseFilterResultRun2Loose();
-        eventCut->useCollisionEventSelectionAODv2();
-        eventCut->usePhfCoincFilter2Th4();
-        eventCut->usePClusterCompatibilityFilter();
-        // Trigger
-        eventCut->useHLT_HIPuAK4CaloJet80Eta5p1_v1();
-    }
-    else { // pp case
-        eventCut->useHBHENoiseFilterResultRun2Loose();
-        eventCut->usePPAprimaryVertexFilter();
-        eventCut->usePBeamScrapingFilter();
-    }
-
+    // Skim
+    eventCut->usePBeamScrapingFilter();
+    eventCut->usePPAprimaryVertexFilter();
+    eventCut->useHBHENoiseFilterResultRun2Loose();
+    eventCut->usePhfCoincFilter();
+    eventCut->usePVertexFilterCutdz1p0();
+    // Trigger
+    eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
+    // Set ptHat cut for embedding
     if ( isMc ) {
-        //eventCut->setPtHat(50, 1e6);
-        eventCut->setPtHat(15, 1e6);
+        eventCut->setPtHat(ptHatCut[0], ptHatCut[1]);
     }
     //eventCut->setVerbose();
 
+    // Initialize jet cut 
     JetCut *jetCut = new JetCut{};
     //jetCut->setMustHaveGenMathing();
-    //jetCut->setPt(50., 1500.);
     jetCut->setPt(20., 1500.);
-    //jetCut->setEta(-1.6, 1.6);
-
+    jetCut->setEta(-5.1, 5.1);
     //jetCut->setVerbose();
+
+    // Initialize event reader
     ForestAODReader *reader = new ForestAODReader(inFileName);
     if (isMc) {
         // If is MC
@@ -106,21 +138,37 @@ int main(int argc, char const *argv[]) {
     reader->setPath2JetAnalysis( path2JEC.Data() );
     reader->setJECFileName( JECFileName.Data() );
 
+    // Pass reader to the manager
     manager->setEventReader(reader);
 
+    // Initialize analysis
     DiJetAnalysis *analysis = new DiJetAnalysis{};
-    analysis->setEtaShift( 0.465 );
+    analysis->setIsPPb();
+    if ( isPbGoingDir ) {
+        analysis->setPbGoing();
+    }
+    analysis->setEtaShift( 0.4654094531 );
+    analysis->setLeadJetPtLow( 30. );
+    analysis->setSubLeadJetPtLow( 20. );
+    analysis->setDijetPhiCut( TMath::TwoPi() / 3 );
     
+    // Initialize histogram manager
     HistoManagerDiJet *hm = new HistoManagerDiJet{};
     hm->setIsMc(kTRUE);
     hm->init(kTRUE); // kTRUE stands up for use MC; need to FIX
+
+    // Add histogram manager to analysis
     analysis->addHistoManager(hm);
+
+    // Add analysis to manager
     manager->addAnalysis(analysis);
 
+    // Run chain of analyses
     manager->init();
     manager->performAnalysis();
     manager->finish();
 
+    // Create output file and store results of calculations
     TFile* oFile = new TFile(oFileName, "recreate");
     hm->writeOutput();
     oFile->Close();

@@ -156,12 +156,17 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Ref lead pt, lead eta,
     // Ref sublead pt, sublead eta weighted [12]
     THnSparseD *hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
+    
     // Reco dijet pt / gen dijet pt, reco dijet eta / gen dijet eta, reco dijet dphi / gen dijet dphi,
     // gen dijet pt, dijet eta, dijet delta phi, ptHat
     //THnSparseD *hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat;
     // Reco dijet pt / gen dijet pt, reco dijet eta / gen dijet eta, reco dijet dphi / gen dijet dphi,
     // gen dijet pt, dijet eta, dijet delta phi, ptHat, weighted
     //THnSparseD *hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted;
+
+    TH1D *hRecoDijetEta;
+    TH1D *hRefDijetEta;
+    TH2D *hRefDijetEtaVsRecoDijetEta;
 
     TH1D *hRefInclusiveJetPt;
     TH2D *hRefPtLeadPtSublead;

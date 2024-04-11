@@ -258,6 +258,14 @@ class ForestAODReader : public BaseReader {
     // Trigger and skimming information
     //
 
+    Int_t fHLT_PAAK4CaloJet60_Eta5p1_v3;
+    Int_t fHLT_PAAK4CaloJet80_Eta5p1_v3;
+    Int_t fHLT_PAAK4CaloJet100_Eta5p1_v3;
+    Int_t fHLT_PAAK4PFJet60_Eta5p1_v4;
+    Int_t fHLT_PAAK4PFJet80_Eta5p1_v3;
+    Int_t fHLT_PAAK4PFJet100_Eta5p1_v3;
+    Int_t fHLT_PAAK4PFJet120_Eta5p1_v2;
+
     Int_t fHLT_HIAK4PFJet15_v1;
     Int_t fHLT_HIAK4PFJet15_v1_Prescl;
     Int_t fHLT_HIAK4PFJet30_v1;
@@ -309,6 +317,10 @@ class ForestAODReader : public BaseReader {
     Int_t fPVertexFilterCutEandG;
     Int_t fPClusterCompatibilityFilter;
 
+    Int_t fPhfCoincFilter;
+    Int_t fPVertexFilterCutdz1p0;
+    Int_t fPVertexFilterCutGplus;
+    Int_t fPVertexFilterCutVtx1;
 
     //
     // Jet information

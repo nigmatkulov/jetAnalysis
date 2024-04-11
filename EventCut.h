@@ -66,6 +66,12 @@ class EventCut {
     void usePBeamScrapingFilter()            { fPBeamScrapingFilter = {kTRUE}; }
     void usePClusterCompatibilityFilter()    { fPClusterCompatibilityFilter = {kTRUE}; }
     void useHLT_HIPuAK4CaloJet80Eta5p1_v1()  { fHLT_HIPuAK4CaloJet80Eta5p1_v1 = {kTRUE}; }
+    void useHLT_PAAK4PFJet80_Eta5p1_v3()     { fHLT_PAAK4PFJet80_Eta5p1_v3 = {kTRUE}; }
+
+    void usePhfCoincFilter()                { fPhfCoincFilter = {kTRUE} };
+    void usePVertexFilterCutdz1p0()         { fPVertexFilterCutdz1p0 = {kTRUE} };
+    void usePVertexFilterCutGplus()         { fPVertexFilterCutGplus = {kTRUE} };
+    void usePVertexFilterCutVtx1()          { fPVertexFilterCutVtx1 = {kTRUE} };
     /// @brief Report information about
     void report();
     /// @brief Check if evn 
@@ -107,9 +113,14 @@ class EventCut {
     Bool_t fPPAprimaryVertexFilter;
     Bool_t fPBeamScrapingFilter;
     Bool_t fPClusterCompatibilityFilter;
+    Bool_t fPhfCoincFilter;
+    Bool_t fPVertexFilterCutdz1p0;
+    Bool_t fPVertexFilterCutGplus;
+    Bool_t fPVertexFilterCutVtx1;
 
     // Triggers
     Bool_t fHLT_HIPuAK4CaloJet80Eta5p1_v1;
+    Bool_t fHLT_PAAK4PFJet80_Eta5p1_v3; // pPb
 
     /// @brief Number of events passed cut
     Long64_t fEventsPassed;

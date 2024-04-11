@@ -58,7 +58,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Cut on the lowest momentum of leading jet
     void setLeadJetPtLow(const Double_t& lo) { fLeadJetPtLow = lo; }
     /// @brief Cut on the lowest momentum of subleading jet
-    void setSubleadJetPtLow(const Double_t& lo) { fSubleadJetPtLow = lo; }
+    void setSubLeadJetPtLow(const Double_t& lo) { fSubleadJetPtLow = lo; }
     /// @brief Cut on angle between leading and subleading jet
     void setDijetPhiCut(const Double_t& cut) { fDijetPhiCut = cut; }
 

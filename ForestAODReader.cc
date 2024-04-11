@@ -94,6 +94,14 @@ void ForestAODReader::clearVariables() {
     fNCaloGenJets = {0};
     fNTracks = {0};
 
+    fHLT_PAAK4CaloJet60_Eta5p1_v3 = {0};
+    fHLT_PAAK4CaloJet80_Eta5p1_v3 = {0};
+    fHLT_PAAK4CaloJet100_Eta5p1_v3 = {0};
+    fHLT_PAAK4PFJet60_Eta5p1_v4 = {0};
+    fHLT_PAAK4PFJet80_Eta5p1_v3 = {0};
+    fHLT_PAAK4PFJet100_Eta5p1_v3 = {0};
+    fHLT_PAAK4PFJet120_Eta5p1_v2 = {0};
+
     fHLT_HIAK4PFJet15_v1 = {0};
     fHLT_HIAK4PFJet15_v1_Prescl = {0};
     fHLT_HIAK4PFJet30_v1 = {0};
@@ -142,6 +150,11 @@ void ForestAODReader::clearVariables() {
     fPVertexFilterCutE = {0};
     fPVertexFilterCutEandG = {0};
     fPClusterCompatibilityFilter = {0};
+
+    fPhfCoincFilter = {0};
+    fPVertexFilterCutdz1p0 = {0};
+    fPVertexFilterCutGplus = {0};
+    fPVertexFilterCutVtx1 = {0};
 
     // Loop over jets and tracks
     for (Short_t i{0}; i<9999; i++) {
@@ -568,6 +581,16 @@ void ForestAODReader::setupBranches() {
     }
 
     if ( fUseHltBranch ) {
+
+        // Status
+        fHltTree->SetBranchStatus("HLT_PAAK4CaloJet60_Eta5p1_v3", 1);
+        fHltTree->SetBranchStatus("HLT_PAAK4CaloJet80_Eta5p1_v3", 1);
+        fHltTree->SetBranchStatus("HLT_PAAK4CaloJet100_Eta5p1_v3", 1);
+        fHltTree->SetBranchStatus("HLT_PAAK4PFJet60_Eta5p1_v4", 1);
+        fHltTree->SetBranchStatus("HLT_PAAK4PFJet80_Eta5p1_v3", 1);
+        fHltTree->SetBranchStatus("HLT_PAAK4PFJet100_Eta5p1_v3", 1);
+        fHltTree->SetBranchStatus("HLT_PAAK4PFJet120_Eta5p1_v2", 1);
+
         fHltTree->SetBranchStatus("HLT_HIAK4PFJet15_v1", 1);
         fHltTree->SetBranchStatus("HLT_HIAK4PFJet15_v1_Prescl", 1);
         fHltTree->SetBranchStatus("HLT_HIAK4PFJet30_v1", 1);
@@ -602,6 +625,14 @@ void ForestAODReader::setupBranches() {
         fHltTree->SetBranchStatus("HLT_HIPuAK4CaloJet80Eta5p1_v1", 1);
         fHltTree->SetBranchStatus("HLT_HIPuAK4CaloJet100Eta5p1_v1", 1);
 
+        // Address
+        fHltTree->SetBranchAddress("HLT_PAAK4CaloJet60_Eta5p1_v3", &fHLT_PAAK4CaloJet60_Eta5p1_v3);
+        fHltTree->SetBranchAddress("HLT_PAAK4CaloJet80_Eta5p1_v3", &fHLT_PAAK4CaloJet80_Eta5p1_v3);
+        fHltTree->SetBranchAddress("HLT_PAAK4CaloJet100_Eta5p1_v3", &fHLT_PAAK4CaloJet100_Eta5p1_v3);
+        fHltTree->SetBranchAddress("HLT_PAAK4PFJet60_Eta5p1_v4", &fHLT_PAAK4PFJet60_Eta5p1_v4);
+        fHltTree->SetBranchAddress("HLT_PAAK4PFJet80_Eta5p1_v3", &fHLT_PAAK4PFJet80_Eta5p1_v3);
+        fHltTree->SetBranchAddress("HLT_PAAK4PFJet100_Eta5p1_v3", &fHLT_PAAK4PFJet100_Eta5p1_v3);
+        fHltTree->SetBranchAddress("HLT_PAAK4PFJet120_Eta5p1_v2", &fHLT_PAAK4PFJet120_Eta5p1_v2);
 
         fHltTree->SetBranchAddress("HLT_HIAK4PFJet15_v1", &fHLT_HIAK4PFJet15_v1);
         fHltTree->SetBranchAddress("HLT_HIAK4PFJet15_v1_Prescl", &fHLT_HIAK4PFJet15_v1_Prescl);
@@ -640,6 +671,7 @@ void ForestAODReader::setupBranches() {
 
     // Skimming quantities
     if ( fUseSkimmingBranch ) {
+        // Status
         fSkimTree->SetBranchStatus("HBHENoiseFilterResultRun2Loose", 1);
         fSkimTree->SetBranchStatus("HBHENoiseFilterResultRun2Tight", 1);
         fSkimTree->SetBranchStatus("HBHEIsoNoiseFilterResult", 1);
@@ -655,6 +687,13 @@ void ForestAODReader::setupBranches() {
         fSkimTree->SetBranchStatus("pVertexFilterCutEandG", 1);
         fSkimTree->SetBranchStatus("pclusterCompatibilityFilter", 1);
 
+        fSkimTree->SetBranchStatus("phfCoincFilter", 1);
+        fSkimTree->SetBranchStatus("pVertexFilterCutdz1p0", 1);
+        fSkimTree->SetBranchStatus("pVertexFilterCutGplus", 1);
+        fSkimTree->SetBranchStatus("pVertexFilterCutVtx1", 1);
+
+
+        // Address
         fSkimTree->SetBranchAddress("HBHENoiseFilterResultRun2Loose", &fHBHENoiseFilterResultRun2Loose);
         fSkimTree->SetBranchAddress("HBHENoiseFilterResultRun2Tight", &fHBHENoiseFilterResultRun2Tight);
         fSkimTree->SetBranchAddress("HBHEIsoNoiseFilterResult", &fHBHEIsoNoiseFilterResult);
@@ -669,6 +708,11 @@ void ForestAODReader::setupBranches() {
         fSkimTree->SetBranchAddress("pVertexFilterCutE", &fPVertexFilterCutE);
         fSkimTree->SetBranchAddress("pVertexFilterCutEandG", &fPVertexFilterCutEandG);
         fSkimTree->SetBranchAddress("pclusterCompatibilityFilter", &fPClusterCompatibilityFilter);
+
+        fSkimTree->SetBranchAddress("phfCoincFilter", &fPhfCoincFilter);
+        fSkimTree->SetBranchAddress("pVertexFilterCutdz1p0", &fPVertexFilterCutdz1p0);
+        fSkimTree->SetBranchAddress("pVertexFilterCutGplus", &fPVertexFilterCutGplus);
+        fSkimTree->SetBranchAddress("pVertexFilterCutVtx1", &fPVertexFilterCutVtx1);
     } // if ( fUseSkimmingBranch )
 
     // Jet quantities
@@ -1032,6 +1076,15 @@ Event* ForestAODReader::returnEvent() {
 
     // Fill HLT branch
     if ( fUseHltBranch ) {
+
+        fEvent->trigAndSkim()->setHLT_PAAK4CaloJet60_Eta5p1_v3(fHLT_PAAK4CaloJet60_Eta5p1_v3);
+        fEvent->trigAndSkim()->setHLT_PAAK4CaloJet80_Eta5p1_v3(fHLT_PAAK4CaloJet80_Eta5p1_v3);
+        fEvent->trigAndSkim()->setHLT_PAAK4CaloJet100_Eta5p1_v3(fHLT_PAAK4CaloJet100_Eta5p1_v3);
+        fEvent->trigAndSkim()->setHLT_PAAK4PFJet60_Eta5p1_v4(fHLT_PAAK4PFJet60_Eta5p1_v4);
+        fEvent->trigAndSkim()->setHLT_PAAK4PFJet80_Eta5p1_v3(fHLT_PAAK4PFJet80_Eta5p1_v3);
+        fEvent->trigAndSkim()->setHLT_PAAK4PFJet100_Eta5p1_v3(fHLT_PAAK4PFJet100_Eta5p1_v3);
+        fEvent->trigAndSkim()->setHLT_PAAK4PFJet120_Eta5p1_v2(fHLT_PAAK4PFJet120_Eta5p1_v2);
+
         fEvent->trigAndSkim()->setHLT_HIAK4PFJet15_v1(fHLT_HIAK4PFJet15_v1);
         fEvent->trigAndSkim()->setHLT_HIAK4PFJet15_v1_Prescl(fHLT_HIAK4PFJet15_v1_Prescl);
         fEvent->trigAndSkim()->setHLT_HIAK4PFJet30_v1(fHLT_HIAK4PFJet30_v1);
@@ -1083,6 +1136,11 @@ Event* ForestAODReader::returnEvent() {
         fEvent->trigAndSkim()->setPVertexFilterCutE(fPVertexFilterCutE);
         fEvent->trigAndSkim()->setPVertexFilterCutEandG(fPVertexFilterCutEandG);
         fEvent->trigAndSkim()->setPClusterCompatibilityFilter(fPClusterCompatibilityFilter);
+
+        fEvent->trigAndSkim()->setPhfCoincFilter(fPhfCoincFilter);
+        fEvent->trigAndSkim()->setPVertexFilterCutdz1p0(fPVertexFilterCutdz1p0);
+        fEvent->trigAndSkim()->setPVertexFilterCutGplus(fPVertexFilterCutGplus);
+        fEvent->trigAndSkim()->setPVertexFilterCutVtx1(fPVertexFilterCutVtx1);
     }
 
     //fEvent->print();
