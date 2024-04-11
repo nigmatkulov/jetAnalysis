@@ -103,7 +103,8 @@ int main(int argc, char const *argv[]) {
     eventCut->usePhfCoincFilter();
     eventCut->usePVertexFilterCutdz1p0();
     // Trigger
-    eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
+    //eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
+
     // Set ptHat cut for embedding
     if ( isMc ) {
         eventCut->setPtHat(ptHatCut[0], ptHatCut[1]);
