@@ -121,7 +121,7 @@ int main(int argc, char const *argv[]) {
     ForestAODReader *reader = new ForestAODReader(inFileName);
     if (isMc) {
         // If is MC
-        reader->setIsMc(isMc);
+        reader->setIsMc();
         if ( isCentWeightCalc ) {
             // Apply hiBin shift and centrality weight calculation
             reader->setCorrectCentMC();
