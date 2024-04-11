@@ -361,6 +361,7 @@ Bool_t DiJetAnalysis::isGoodDijet(const Double_t& ptLead, const Double_t& ptSubl
 void DiJetAnalysis::processEvent(const Event* event) {
     // Perform the analysis
     if ( fVerbose ) {
+        std::cout << "++++++++++++++++++++++++++++++++++++++++" << std::endl;
         std::cout << "DiJetAnalysis::processEvent" << std::endl;
     }
 
