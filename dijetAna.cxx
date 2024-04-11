@@ -14,6 +14,11 @@
 #include "TMath.h"
 
 //________________
+void usage() {
+    std::cout << "./programName inputFileList oFileName isMc isPbGoingDir ptHatLow ptHatHi" << std::endl;
+}
+
+//________________
 /// @brief The prorgram that launches the physics analysis
 /// @param argc Number of arguments
 /// @param argv Argument list
@@ -52,10 +57,10 @@ int main(int argc, char const *argv[]) {
     else {
         inFileName   = argv[1];
         oFileName    = argv[2];
-        isMc         = argv[3];
-        isPbGoingDir = argv[4];
-        ptHatCut[0]  = argv[5];
-        ptHatCut[1]  = argv[6];
+        isMc         = atoi(argv[3]);
+        isPbGoingDir = atoi(argv[4]);
+        ptHatCut[0]  = atoi(argv[5]);
+        ptHatCut[1]  = atoi(argv[6]);
     }
 
     std::cout << "Arguments passed:\n"
@@ -78,7 +83,7 @@ int main(int argc, char const *argv[]) {
     else {
         if (isPbGoingDir) { // Remember to flip to p-going for data
             // TODO: get the correct filename
-            JESFileName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt"; 
+            JECFileName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt"; 
         }
         else {
 
