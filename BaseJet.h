@@ -23,8 +23,6 @@ class BaseJet : public TObject {
     BaseJet();
     /// @brief Destructor
     virtual ~BaseJet() { /* Empty */ }
-    /// @brief Print jet information
-    virtual print();
 
     //
     // Setters
