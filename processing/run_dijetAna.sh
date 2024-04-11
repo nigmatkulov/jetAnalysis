@@ -24,6 +24,18 @@ echo -e "ptHatLow         : ${pt_hat_low}"
 echo -e "ptHatHi          : ${pt_hat_hi}"
 
 # Run jetAna
-../build/dijetAna ${input_file_list} /eos/user/g/gnigmatk/ana/ppb_8160_epos/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
+if [ "$is_mc" -eq 1 ]; then
+    if [ "$is_Pbgoing" -eq 1 ]; then
+        ../build/dijetAna ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/embedding/Pbgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
+    else
+        ../build/dijetAna ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/embedding/pgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
+    fi
+else
+    if [ "$is_Pbgoing" -eq 1 ]; then
+        ../build/dijetAna ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
+    else
+        ../build/dijetAna ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
+    fi
+fi
 
 echo -e "Data processing of thes ${input_file_list} is finished"
