@@ -189,7 +189,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         }
 
         // On MC will work with matching jets only
-        if ( fIsMc && !(*pfJetIter)->hasMatching() ) continue;
+        if ( fIsMc ) {
+            if ( !(*pfJetIter)->hasMatching() ) continue;
+        }
 
         GenJet *matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
         Double_t genPt = matchedJet->pt();
