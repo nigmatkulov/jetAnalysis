@@ -380,7 +380,12 @@ void DiJetAnalysis::processEvent(const Event* event) {
     // Check correct MC sample
     if ( fIsMc && fIsPPb ) {
         // Skip events with ptHat that is outside the ranged embedded
-        if ( ptHat <= fPtHatRange[0] || ptHat > fPtHatRange[1] ) return;
+        if ( ptHat <= fPtHatRange[0] || ptHat > fPtHatRange[1] ) {
+            if ( fVerbose ) {
+                std::cout << "[WARNING] Bad ptHat value" << std::endl;
+            }
+            return;
+        }
         ptHatW = eventWeight(fIsMc, fIsPPb, ptHat, vz);
     }
 
@@ -427,6 +432,10 @@ void DiJetAnalysis::processEvent(const Event* event) {
 
     // Process and analyze reco jets
     processRecoJets(event, ptHatW);
+
+    if ( fVerbose ) {
+        std::cout << "DiJetAnalysis::processEvent - [DONE]" << std::endl;
+    }
 }
 
 //________________
