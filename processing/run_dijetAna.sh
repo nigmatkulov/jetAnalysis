@@ -27,7 +27,7 @@ echo -e "ptHatHi          : ${pt_hat_hi}"
 if [ "$is_mc" -eq 1 ]; then
     if [ "$is_Pbgoing" -eq 1 ]; then
         ../build/dijetAna ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/embedding/Pbgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
-    else
+		else
         ../build/dijetAna ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/embedding/pgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
     fi
 else
