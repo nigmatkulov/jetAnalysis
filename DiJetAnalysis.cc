@@ -275,6 +275,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         fHM->hJESInclusiveJetPtEtaPhiPtHat->Fill(res);
         fHM->hJESInclusiveJetPtEtaPhiPtHatWeighted->Fill(res, ptHatW);
 
+        if ( fVerbose ) {
+            std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d\n", 
+                              ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead);
+        }
+
         // Increment counter
         counter++;
     } // for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ )
