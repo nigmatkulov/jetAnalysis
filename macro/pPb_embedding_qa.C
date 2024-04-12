@@ -87,15 +87,15 @@ void plotEfficiency(TFile *inFile, TString date) {
     hGenPtVsEta->SetName("hGenPtVsEta");
 
     // Read reco that matched gen acceptance
-    TH2D *hRecoPtVsEta = (TH2D*)inFile->Get("hRecoMatchedPtEta");
-    hRecoPtVsEta->SetName("hRecoPtVsEta");
+    TH2D *hRefPtVsEta = (TH2D*)inFile->Get("hRefInclusiveJetPtEta");
+    hRefPtVsEta->SetName("hRefPtVsEta");
 
     // Preform rebinning
     hGenPtVsEta->RebinX( rebinX );
     hGenPtVsEta->RebinY( rebinY );
 
-    hRecoPtVsEta->RebinX( rebinX );
-    hRecoPtVsEta->RebinY( rebinY );
+    hRefPtVsEta->RebinX( rebinX );
+    hRefPtVsEta->RebinY( rebinY );
 
     // Create plot for efficiency
     TH2D *hEfficiency = new TH2D("hEfficiency","Inclusive Reco (matched) / Gen;#eta;p_{T} (GeV/c)",
@@ -106,7 +106,7 @@ void plotEfficiency(TFile *inFile, TString date) {
                                  hGenPtVsEta->GetYaxis()->GetBinLowEdge(1),
                                  hGenPtVsEta->GetYaxis()->GetBinUpEdge( hGenPtVsEta->GetNbinsX() ) );
     hEfficiency->Sumw2();
-    hEfficiency->Divide(hRecoPtVsEta, hGenPtVsEta, 1., 1.);
+    hEfficiency->Divide(hRefPtVsEta, hGenPtVsEta, 1., 1.);
     set2DStyle( hEfficiency );
 
     // Plot efficiency
