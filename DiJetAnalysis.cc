@@ -110,6 +110,8 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
     Double_t ptLead{-1.}, ptSubLead{-1.}, etaLead{0.}, etaSubLead{0.},
              phiLead{0.},  phiSubLead{0.};
+    Int_t idLead{-1}, idSubLead{-1};
+    Bool_t isDijetFound{kFALSE};
 
     GenJetIterator genJetIter;
     Int_t counter{0};
@@ -140,24 +142,34 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             ptSubLead = ptLead;
             etaSubLead = etaLead;
             phiSubLead = phiLead;
+            idSubLead = idLead;
             ptLead = pt;
             etaLead = eta;
             phiLead = phi;
+            idLead = counter;
         }
         else if ( pt > ptSubLead ) {
             ptSubLead = pt;
             etaSubLead = eta;
             phiSubLead = phi;
+            idSubLead = counter;
         }
         // Fill inclusive jet pt
         fHM->hGenInclusiveJetPt->Fill(pt, ptHatW);
         fHM->hGenInclusiveJetPtEta->Fill(eta, pt, ptHatW);
 
         if ( fVerbose ) {
-            std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f\n", ptLead, ptSubLead);
+            std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f idLead: %d idSubLead: %d\n", 
+                              ptLead, ptSubLead, idLead, idSubLead);
         }
         counter++;
     } // for ( genJetIter = event->genJetCollection()->begin();
+
+    // Check if two jets found
+    if (idLead>=0 && idSubLead>=0) {
+        isDijetFound = {kTRUE};
+    }
+    if ( !isDijetFound ) return;
 
     // Check the dijet selection on the MC level
     if ( !isGoodDijet(ptLead, ptSubLead, TMath::Abs(phiLead - phiSubLead)) ) return;
