@@ -179,7 +179,7 @@ int main(int argc, char const *argv[]) {
 
     // Important for embedding reweightening
     if ( isMc ) {
-        analysis->setNEventsInSample( reader->->nEventsTotal() );
+        analysis->setNEventsInSample( reader->nEventsTotal() );
     }
 
     manager->performAnalysis();
