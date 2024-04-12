@@ -150,6 +150,9 @@ int main(int argc, char const *argv[]) {
     // Initialize analysis
     DiJetAnalysis *analysis = new DiJetAnalysis{};
     analysis->setIsMc(isMc);
+    if (isMc) {
+        analysis->setPtHatRange(ptHatCut[0], ptHatCut[1]);
+    }
     analysis->setIsPPb();
     if ( isPbGoingDir ) {
         analysis->setPbGoing();
