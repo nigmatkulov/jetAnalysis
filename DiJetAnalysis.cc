@@ -290,7 +290,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     } // for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ )
 
     // Check if leading and subleading jets were found
-    if (idRecoLead>0 && idRecoSubLead>0) {
+    if (idRecoLead>=0 && idRecoSubLead>=0) {
         isDijetFound = kTRUE;
     }
 
