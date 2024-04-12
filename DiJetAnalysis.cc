@@ -152,6 +152,10 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
         // Fill inclusive jet pt
         fHM->hGenInclusiveJetPt->Fill(pt, ptHatW);
         fHM->hGenInclusiveJetPtEta->Fill(eta, pt, ptHatW);
+
+        if ( fVerbose ) {
+            std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f\n", ptLead, ptSubLead);
+        }
         counter++;
     } // for ( genJetIter = event->genJetCollection()->begin();
 
