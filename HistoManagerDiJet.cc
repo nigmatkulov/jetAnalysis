@@ -76,6 +76,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRefDijetEta{nullptr},
   hRefDijetEtaVsRecoDijetEta{nullptr},
   hRefInclusiveJetPt{nullptr},
+  hRefInclusiveJetPtEta{nullptr},
   hRefPtLeadPtSublead{nullptr},
   hRefEtaLeadEtaSublead{nullptr}
 { 
@@ -137,6 +138,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
       // if (hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat) delete hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat;
       // if (hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted) delete hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted;
       if (hRefInclusiveJetPt) delete hRefInclusiveJetPt;
+      if (hRefInclusiveJetPtEta) delete hRefInclusiveJetPtEta;
       if (hRefPtLeadPtSublead) delete hRefPtLeadPtSublead;
       if (hRefEtaLeadEtaSublead) delete hRefEtaLeadEtaSublead;
       if (hRefDijetEta) delete hRefDijetEta;
@@ -362,6 +364,9 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
       hRefInclusiveJetPt = new TH1D("hRefInclusiveJetPt","Ref jet p_{T};Ref p_{T} (GeV/c);Entries",
                                     fPtBins, fPtRange[0], fPtRange[1]);
       hRefInclusiveJetPt->Sumw2();
+      hRefInclusiveJetPtEta = new TH2D("hRefInclusiveJetPtEta","Ref jet p_{T} vs #eta;Ref #eta;Ref p_{T} (GeV/c)",
+                                    fEtaBins, fEtaRange[0], fEtaRange[1],
+                                    fPtBins, fPtRange[0], fPtRange[1]);
       hRefPtLeadPtSublead = new TH2D("hRefPtLeadPtSublead","Ref leading vs subleading p_{T};Ref p_{T}^{Leading} (GeV/c);Ref p_{T}^{Subleading} (GeV/c)",
                                      fPtBins, fPtRange[0], fPtRange[1],
                                      fPtBins, fPtRange[0], fPtRange[1]);
@@ -451,6 +456,7 @@ void HistoManagerDiJet::writeOutput() {
         hRefDijetEta->Write();
         hRefDijetEtaVsRecoDijetEta->Write();
         hRefInclusiveJetPt->Write();
+        hRefInclusiveJetPtEta->Write();
         hRefPtLeadPtSublead->Write();
         hRefEtaLeadEtaSublead->Write();
     } // if ( fIsMc )
