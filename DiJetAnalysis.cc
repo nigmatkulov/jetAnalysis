@@ -46,8 +46,7 @@ void DiJetAnalysis::init() {
     if ( fVerbose ) {
         std::cout << "DiJetAnalysis::init" << std::endl;
         print();
-    }
-    
+    } 
 }
 
 //________________
@@ -151,16 +150,16 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             phiSubLead = phi;
         }
         // Fill inclusive jet pt
-        fHM->hGenInclusiveJetPt->Fill(pt);
-        fHM->hGenInclusiveJetPtEta->Fill(eta, pt);
+        fHM->hGenInclusiveJetPt->Fill(pt, ptHatW);
+        fHM->hGenInclusiveJetPtEta->Fill(eta, pt, ptHatW);
         counter++;
     } // for ( genJetIter = event->genJetCollection()->begin();
 
     // Check the dijet selection on the MC level
     if ( !isGoodDijet(ptLead, ptSubLead, TMath::Abs(phiLead - phiSubLead)) ) return;
 
-    fHM->hGenPtLeadPtSublead->Fill(ptLead, ptSubLead);
-    fHM->hGenEtaLeadEtaSublead->Fill(etaLead, etaSubLead);
+    fHM->hGenPtLeadPtSublead->Fill(ptLead, ptSubLead, ptHatW);
+    fHM->hGenEtaLeadEtaSublead->Fill(etaLead, etaSubLead, ptHatW);
 
     Double_t dijetPt = 0.5 * (ptLead + ptSubLead);
     Double_t dijetEta = 0.5 * (etaLead + etaSubLead);
