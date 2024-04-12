@@ -53,11 +53,11 @@ Bool_t JetCut::pass(const RecoJet* jet) {
         std::cout << "\n----- Reco jet cut -----\n";
     }
 
-    Bool_t goodPt = (fPt[0] <= jet->pt() &&
-                     jet->pt() <= fPt[1]);
+    Bool_t goodPt = (fPt[0] <= jet->ptJECCorr() &&
+                     jet->ptJECCorr() <= fPt[1]);
     if (fVerbose) {
-        std::cout << Form("pT raw : %5.2f <= %5.2f <= %5.2f \t %s \n",
-                          fPt[0], jet->pt(), fPt[1], ( goodPt ) ? "true" : "false" );
+        std::cout << Form("pT : %5.2f <= %5.2f <= %5.2f \t %s \n",
+                          fPt[0], jet->ptJECCorr(), fPt[1], ( goodPt ) ? "true" : "false" );
     }
 
     Float_t recoR = TMath::Sqrt( jet->phi() * jet->phi() + 
