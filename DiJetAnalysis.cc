@@ -191,11 +191,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
              ptRawRecoLead{-1.}, ptRawRecoSubLead{-1.},
              etaRecoLead{0.}, etaRecoSubLead{0.},
              phiRecoLead{0.},  phiRecoSubLead{0.}, 
-             idRecoLead{-1}, idRecoSubLead{-1},
              ptRefLead{-1.}, ptRefSubLead{-1.},
              etaRefLead{0.}, etaRefSubLead{0.},
              phiRefLead{0.}, phiRefSubLead{0.};
     Bool_t isDijetFound{kFALSE};
+    Int_t  idRecoLead{-1}, idRecoSubLead{-1};
 
     // Loop over reconstructed jets
     PartFlowJetIterator pfJetIter;
@@ -241,6 +241,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             etaRecoSubLead = etaRecoLead;
             phiRecoSubLead = phiRecoLead;
             ptRawRecoSubLead = ptRawRecoLead;
+            idRecoSubLead = idRecoLead;
             ptRecoLead = pt;
             ptRawRecoLead = ptRaw;
             etaRecoLead = eta;
