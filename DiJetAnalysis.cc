@@ -382,7 +382,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
         // Skip events with ptHat that is outside the ranged embedded
         if ( ptHat <= fPtHatRange[0] || ptHat > fPtHatRange[1] ) {
             if ( fVerbose ) {
-                std::cout << "[WARNING] Bad ptHat value" << std::endl;
+                std::cout << Form("[WARNING] Bad ptHat value: %4.1f < %4.1f <= %4.1f\n", fPtHatRange[0], ptHat, fPtHatRange[1]);
             }
             return;
         }
