@@ -176,6 +176,12 @@ int main(int argc, char const *argv[]) {
 
     // Run chain of analyses
     manager->init();
+
+    // Important for embedding reweightening
+    if ( isMc ) {
+        analysis->setNEventsInSample( reader->->nEventsTotal() );
+    }
+
     manager->performAnalysis();
     manager->finish();
 

@@ -67,6 +67,8 @@ class DiJetAnalysis : public BaseAnalysis {
     void setpGoing()                         { fIsPbGoingDir = {kFALSE}; }
     /// @brief Set verbose mode
     void setVerbose()                        { fVerbose = {kTRUE}; }
+    /// @brief Set number of events in the embedding sample (for the given ptHat)
+    void setNEventsInSample(const Int_t& n)  { fNEventsInSample = n; }
     /// @brief Print DiJetAnalysis setup
     void print();
 
@@ -106,6 +108,8 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t   fIsPbGoingDir;
     /// @brief Verbose mode
     Bool_t   fVerbose;
+    /// @brief Number of events in the embedding sample
+    Int_t    fNEventsInSample;
 
   ClassDef(DiJetAnalysis, 0)
 };

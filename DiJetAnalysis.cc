@@ -30,7 +30,8 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fEtaShift{0}, fIsMc{kFALSE}, fIsPPb{kTRUE},
     fLeadJetPtLow{30.}, fSubleadJetPtLow{20.},
     fDijetPhiCut{TMath::TwoPi() / 3},
-    fIsPbGoingDir{kFALSE}, fVerbose{kFALSE} {
+    fIsPbGoingDir{kFALSE}, fVerbose{kFALSE},
+    fNEventsInSample{1000000} {
     fPtHatRange[0] = {15.};
     fPtHatRange[1] = {30.};
 }
@@ -76,18 +77,18 @@ Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb,
     if (isMc && isPPb) {
 
         // Magic numbers are (cross section x Nevents generated)
-		if (ptHat > 15.0 && ptHat <= 30.)       { genWeight = 1.0404701e-06 /* * 961104 */; }
-		else if (ptHat > 30. && ptHat <= 50.)   { genWeight = 7.7966624e-08 /* * 952110 */; }
-		else if (ptHat > 50. && ptHat <= 80.)   { genWeight = 1.0016052e-08 /* * 952554 */; }
-		else if (ptHat > 80. && ptHat <= 120.)  { genWeight = 1.3018269e-09 /* * 996844 */; }
-		else if (ptHat > 120.&& ptHat <= 170.)  { genWeight = 2.2648493e-10 /* * 964681 */; }
-		else if (ptHat > 170. && ptHat <= 220.) { genWeight = 4.0879112e-11 /* * 999260 */; }
-		else if (ptHat > 220. && ptHat <= 280.) { genWeight = 1.1898939e-11 /* * 964336 */; }
-		else if (ptHat > 280. && ptHat <= 370.) { genWeight = 3.3364433e-12 /* * 995036 */; }
-		else if (ptHat > 370. && ptHat <= 460.) { genWeight = 7.6612402e-13 /* * 958160 */; }
-		else if (ptHat > 460. && ptHat <= 540.) { genWeight = 2.1341026e-13 /* * 981427 */; }
-		else if (ptHat > 540.)                  { genWeight = 7.9191586e-14 /* * 1000000 */; }
-		//evtgenWeight = (float) evtgenWeight/nevents;
+		if (ptHat > 15.0 && ptHat <= 30.)       { genWeight = 1.0404701e-06 * 961104 ; }
+		else if (ptHat > 30. && ptHat <= 50.)   { genWeight = 7.7966624e-08 * 952110 ; }
+		else if (ptHat > 50. && ptHat <= 80.)   { genWeight = 1.0016052e-08 * 952554 ; }
+		else if (ptHat > 80. && ptHat <= 120.)  { genWeight = 1.3018269e-09 * 996844 ; }
+		else if (ptHat > 120.&& ptHat <= 170.)  { genWeight = 2.2648493e-10 * 964681 ; }
+		else if (ptHat > 170. && ptHat <= 220.) { genWeight = 4.0879112e-11 * 999260 ; }
+		else if (ptHat > 220. && ptHat <= 280.) { genWeight = 1.1898939e-11 * 964336 ; }
+		else if (ptHat > 280. && ptHat <= 370.) { genWeight = 3.3364433e-12 * 995036 ; }
+		else if (ptHat > 370. && ptHat <= 460.) { genWeight = 7.6612402e-13 * 958160 ; }
+		else if (ptHat > 460. && ptHat <= 540.) { genWeight = 2.1341026e-13 * 981427 ; }
+		else if (ptHat > 540.)                  { genWeight = 7.9191586e-14 * 1000000; }
+		genWeight /= fNEventsInSample;
 		
 		// Vz weighting
         TF1 *VzWeightFunction = new TF1("VzWeightFunction", "pol8", -15.1, 15.1);
@@ -97,6 +98,12 @@ Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb,
     } // if (isMc && isPPb)
 
     weight = genWeight * vzWeight;
+
+    if ( fVerbose) {
+        std::cout << "fNEventsInSample: " << fNEventsInSample << " genWeight: " 
+                  << genWeight << " vzWeight: " << vzWeight 
+                  << " weight: " << weight << std::endl;
+    }
 
     return weight;
 }
