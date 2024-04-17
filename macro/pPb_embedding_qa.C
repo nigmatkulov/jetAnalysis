@@ -39,14 +39,34 @@ void setPadStyle() {
 }
 
 //________________
-void set1DStyle(TH1 *h, Int_t weight = 0) {
+void set1DStyle(TH1 *h, Int_t type = 0) {
     Int_t markerStyle = 20; // Full circle
     Double_t markerSize = 1.2;
     Int_t lineWidth = 2;
     Int_t color = 2;
-    if (weight) {
+    if (type == 0) {
+        color = 2;
+        markerStyle = 20;
+    }
+    else if (type == 1) {
         color = 4;
         markerStyle = 24;
+    }
+    else if (type == 2) {
+        color = 1;
+        markerStyle = 22;
+    }
+    else if (type == 3) {
+        color = 6;
+        markerStyle = 26;
+    }
+    else if (type == 4) {
+        color = 3;
+        markerStyle = 29;
+    }
+    else {
+        color = 9;
+        markerStyle = 30;
     }
 
     h->SetLineWidth( lineWidth );
@@ -79,8 +99,26 @@ void set2DStyle(TH2* h) {
 //________________
 void plotEfficiency(TFile *inFile, TString date) {
 
-    // Rebinning
+        // Rebinning
     Int_t rebinX{1}, rebinY{1};
+
+    //
+    // Plot ptHat distribution
+    //
+    TH1D* hPtHat = (TH1D*)inFile->Get("hPtHatWeighted");
+    hPtHat->SetName("hPtHat");
+
+    TCanvas *cPtHat = new TCanvas("cPtHat","cPtHat", 1200, 800);
+    setPadStyle();
+    set1DStyle(hPtHat, 2);
+    hPtHat->Draw();
+    gPad->SetLogy(1);
+    cPtHat->SaveAs(Form("%s/pPb8160_ptHat.pdf", date.Data()));
+
+
+    //
+    // Efficiency over the acceptance
+    //
 
     // Read gen jet acceptance
     TH2D *hGenPtVsEta = (TH2D*)inFile->Get("hGenInclusiveJetPtEta");
@@ -115,6 +153,8 @@ void plotEfficiency(TFile *inFile, TString date) {
     setPadStyle();
     hEfficiency->Draw("colz");
     gPad->SetLogz(1);
+
+    cEfficiency->SaveAs(Form("%s/pPb8160_pt_vs_eta_efficiency.pdf", date.Data()));
 }
 
 //________________
@@ -128,21 +168,23 @@ void plotEtaDijetCorrelation(TFile *inFile, TString date) {
     setPadStyle();
     hDijetEtaRefVsReco->Draw("colz");
     gPad->SetLogz(1);
+
+    cDijetEtaRefVsReco->SaveAs(Form("%s/pPb8160_ref_vs_reco_responce.pdf", date.Data()));
 }
 
 //________________
 void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root") {
 
     gStyle->SetOptStat(0);
-    //gStyle->SetOptTitle(0);
+    gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    TString date {"20240412"};
+    TString date {"20240416"};
     TFile *inFile = TFile::Open(inFileName);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
     plotEfficiency(inFile, date);
 
     // Plot correlation between ref and reco dijet eta
-    plotEtaDijetCorrelation(inFile, date);
+    //plotEtaDijetCorrelation(inFile, date);
 }
