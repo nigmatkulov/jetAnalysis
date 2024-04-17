@@ -91,7 +91,7 @@ void unfold1D(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen, TH1D* hUnfol
     Int_t genType{3};
 
     // Create response
-    RooUnfoldResponse response( hReco, hRef, hResponse, 
+    RooUnfoldResponse response( hReco, hGen, hResponse, 
                                 Form("%s", name.Data()), Form("%s", name.Data()) );
 
     // Create unfolding procedure 
@@ -175,6 +175,16 @@ void unfold1D(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen, TH1D* hUnfol
     hReco2RefRatio->GetYaxis()->SetTitle("Ratio to ref");
 
     canv->SaveAs( Form("%s/pPb8160_%s.pdf", date.Data(), name.Data()) );
+
+    auto* R = response.Hresponse();
+    auto* cResponse = new TCanvas(Form("cResponse_%s", name.Data()), 
+                                  Form("cResponse_%s", name.Data()), 
+                                  800, 800);
+    setPadStyle();
+    R->SetStats(0);
+    R->Draw("colz");
+    gPad->SetLogz(1);
+    cResponse->SaveAs(Form("%s/pPb8160_%s_response.pdf", date.Data(), name.Data()));
 }
 
 //________________
@@ -356,7 +366,7 @@ void unfoldDistributions(const Char_t *inFileName = "../build/oEmbedding_pPb8160
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    TString date {"20240416"};
+    TString date {"20240417"};
     TFile *inFile = TFile::Open(inFileName);
 
     // Run 1D unfolding
