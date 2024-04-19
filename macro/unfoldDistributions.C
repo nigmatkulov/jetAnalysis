@@ -282,7 +282,7 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
     if ( hGen ) {
         hGen->Draw("same");
     }
-    hReco->GetYaxis()->SetRangeUser(0., 0.0005);
+    //hReco->GetYaxis()->SetRangeUser(0., 0.0005);
     if ( hRefOrig ) {
         set1DStyle(hRefOrig, 4);
         hRefOrig->Draw("same");
@@ -582,7 +582,7 @@ void unfoldDifferentPtHat(TFile *inFile, TFile *inFilePtHat, Int_t ptHat, TStrin
     // Gen
     TH1D *hGenDijetPtHatEta = (TH1D*)hGenDijetPtHat->Projection(1);
     TH1D *hUnfoldEta = new TH1D();
-    TString name = "TestEtaPtHat50";
+    TString name = Form("TestEtaPtHat%d",ptHat);
     unfold1DPtHat(hRecoDijetPtHatEta, hRefDijetPtHatEta, hRef2RecoDijetEta, 
                   hGenDijetPtHatEta, hUnfoldEta, date, name, 4, ptHat, hRefDijetEta);
 }
@@ -599,7 +599,8 @@ void unfoldDistributions(const Char_t *dateToday = "20240418") {
     const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root";
     TFile *inFile = TFile::Open(inFileName);
 
-    const Char_t *inFileNameWithPtHat = "../build/oEmbedding_pPb8160_Pbgoing_50.root";
+    Int_t ptHat = 370;
+    const Char_t *inFileNameWithPtHat = Form("../build/oEmbedding_pPb8160_Pbgoing_%d.root", ptHat);
     TFile *inFileWithPtHat = TFile::Open(inFileNameWithPtHat);
 
     // Run 1D unfolding
@@ -610,5 +611,5 @@ void unfoldDistributions(const Char_t *dateToday = "20240418") {
 
     // Run 1D unfolding for ptHat distributions with the response matrix
     // for total ptHat
-    unfoldDifferentPtHat(inFile, inFileWithPtHat, 50, date);
+    unfoldDifferentPtHat(inFile, inFileWithPtHat, ptHat, date);
 }
