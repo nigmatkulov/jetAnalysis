@@ -69,6 +69,8 @@ void set1DStyle(TH1 *h, Int_t type = 0) {
     h->GetXaxis()->SetNdivisions(208);
     h->GetYaxis()->SetNdivisions(208);    
     h->GetYaxis()->SetTitleOffset(1.0);
+
+    h->Scale( 1./h->Integral());
 }
 
 //________________
@@ -211,6 +213,12 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
     Int_t unfoldType{2};
     Int_t genType{3};
 
+    set1DStyle(hReco, recoType);
+    set1DStyle(hRef, refType);
+    if ( hGen ) {
+        set1DStyle(hGen, genType);
+    }
+
     // Create response
     RooUnfoldResponse response( hReco, hRef, hResponse, 
                                 Form("%s", name.Data()), Form("%s", name.Data()) );
@@ -229,6 +237,7 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
     hUnfold = (TH1D*)unfold.Hunfold();
     hUnfold->SetNameTitle( Form("hUnfold_%s", name.Data()), 
                            Form("hUnfold_%s", name.Data()) );
+    set1DStyle(hUnfold, unfoldType);
 
     // Create histograms for ratios to ref
     TH1D *hReco2RefRatio = new TH1D( Form("hReco2RefRatio_%s", name.Data()), 
@@ -250,6 +259,12 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
                                     hGen->GetXaxis()->GetBinUpEdge( hGen->GetNbinsX() ) );
     hGen2RefRatio->Sumw2();
 
+    set1DStyle(hReco2RefRatio, recoType);
+    set1DStyle(hUnfold2RefRatio, unfoldType);
+    if ( hGen ) {
+        set1DStyle(hGen2RefRatio, genType);
+    }
+
     // Fill ratios
     hReco2RefRatio->Divide(hReco, hRef, 1., 1.);
     hUnfold2RefRatio->Divide(hUnfold, hRef, 1., 1.);
@@ -270,12 +285,7 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
     // Plot distributions
     canv->cd(1);
     setPadStyle();
-    set1DStyle(hReco, recoType);
-    set1DStyle(hRef, refType);
-    set1DStyle(hUnfold, unfoldType);
-    if ( hGen ) {
-        set1DStyle(hGen, genType);
-    }
+
     hReco->Draw();
     hRef->Draw("same");
     hUnfold->Draw("same");
@@ -307,11 +317,6 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
     // Plot ratios to ref
     canv->cd(2);
     setPadStyle();
-    set1DStyle(hReco2RefRatio, recoType);
-    set1DStyle(hUnfold2RefRatio, unfoldType);
-    if ( hGen ) {
-        set1DStyle(hGen2RefRatio, genType);
-    }
     hReco2RefRatio->Draw();
     hUnfold2RefRatio->Draw("same");
     if ( hGen ) {
@@ -331,8 +336,9 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
     R->SetStats(0);
     R->Draw("colz");
     gPad->SetLogz(1);
-    cResponse->SaveAs(Form("%s/pPb8160_%s_response.pdf", date.Data(), name.Data()));
     t.DrawLatexNDC(0.2, 0.9, Form("All #hat{p_{T}}"));
+    cResponse->SaveAs(Form("%s/pPb8160_%s_response.pdf", date.Data(), name.Data()));
+    
 }
 
 //________________
@@ -599,7 +605,7 @@ void unfoldDistributions(const Char_t *dateToday = "20240418") {
     const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root";
     TFile *inFile = TFile::Open(inFileName);
 
-    Int_t ptHat = 370;
+    Int_t ptHat = 50;
     const Char_t *inFileNameWithPtHat = Form("../build/oEmbedding_pPb8160_Pbgoing_%d.root", ptHat);
     TFile *inFileWithPtHat = TFile::Open(inFileNameWithPtHat);
 
