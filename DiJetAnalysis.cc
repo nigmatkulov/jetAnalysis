@@ -342,7 +342,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     // Check the dijet selection on the MC level
     if ( !isGoodDijet(ptRecoLead, ptRecoSubLead, TMath::Abs(phiRecoLead - phiRecoSubLead)) ) return;
 
-    if ( fIsMs ) {
+    if ( fIsMc ) {
         // Leading jet information
         Double_t correl[5] { ptRecoLead, ptRawRecoLead, ptRefLead, etaRecoLead, etaRefLead };
         fHM->hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
@@ -365,7 +365,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     // Dijet analysis
     Double_t dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
     Double_t dijetRecoEta = 0.5 * (etaRecoLead + etaRecoSubLead);
-    Double_t dijetRecoDphi = TMath::Abs(phiRecoLead - phiRecoSubLead); // Should abs be used here
+    Double_t dijetRecoDphi = TMath::Abs(phiRecoLead - phiRecoSubLead); // Should abs be used here?
 
     Double_t dijetRefPt{-999.};
     Double_t dijetRefEta{-999.};
@@ -400,6 +400,154 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
     if ( fVerbose ) {
         std::cout << "Reporting from DiJetAnalysis::processRecoJets - [DONE]" << std::endl;
+    }
+}
+
+//________________
+void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
+    if ( fVerbose ) {
+        std::cout << "Reporting from DiJetAnalysis::processRefJets" << std::endl;
+    }
+
+    Double_t ptRecoLead{-1.}, ptRecoSubLead{-1.},
+             ptRawRecoLead{-1.}, ptRawRecoSubLead{-1.},
+             etaRecoLead{0.}, etaRecoSubLead{0.},
+             phiRecoLead{0.},  phiRecoSubLead{0.}, 
+             ptRefLead{-1.}, ptRefSubLead{-1.},
+             etaRefLead{0.}, etaRefSubLead{0.},
+             phiRefLead{0.}, phiRefSubLead{0.};
+    Bool_t isDijetFound{kFALSE};
+    Int_t  idRecoLead{-1}, idRecoSubLead{-1};
+
+    // Loop over reconstructed jets
+    PartFlowJetIterator pfJetIter;
+    Int_t counter{0};
+    for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ ) {
+
+        if ( !(*pfJetIter)->hasMatching() ) continue;
+
+        GenJet *matchedJet{nullptr};
+        Double_t genPt{999.};
+        Double_t genEta{-999.};
+        Double_t genPhi{-999.};
+
+        Double_t pt = (*pfJetIter)->ptJECCorr();
+        Double_t eta = (*pfJetIter)->eta();
+        Double_t phi = (*pfJetIter)->phi();
+        Double_t ptRaw = (*pfJetIter)->pt();
+
+        matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
+        genPt = matchedJet->pt();
+        genEta = matchedJet->eta();
+        genPhi = matchedJet->phi();
+
+        if ( fVerbose ) {
+            std::cout << "Reco jet #" << counter << " ";
+            (*pfJetIter)->print();
+        }
+
+        // Apply lab frame boost to CM for the pPb 
+        if ( fIsPPb ) {
+            if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+                if ( fIsPbGoingDir ) {
+                    eta -= fEtaShift;
+                    eta = -eta;
+                    genEta -= fEtaShift;
+                    genEta = -genEta;
+                }
+                else {
+                    eta += fEtaShift;
+                    genEta += fEtaShift;
+                }
+            }
+            else { // For data: p goes to negative, Pb goes to positive
+                if ( fIsPbGoingDir ) {
+                    eta += fEtaShift;
+                }
+                else {
+                    eta -= fEtaShift;
+                    eta = -eta;
+                }
+            }
+
+        } // if ( fIsPPb )
+        
+        if ( genPt > ptRefLead ) {
+            ptRecoSubLead = ptRecoLead;
+            etaRecoSubLead = etaRecoLead;
+            phiRecoSubLead = phiRecoLead;
+            ptRawRecoSubLead = ptRawRecoLead;
+            idRecoSubLead = idRecoLead;
+            ptRecoLead = pt;
+            ptRawRecoLead = ptRaw;
+            etaRecoLead = eta;
+            phiRecoLead = phi;
+            idRecoLead = counter;
+
+            ptRefSubLead = ptRefLead;
+            etaRefSubLead = etaRefLead;
+            phiRefSubLead = phiRefLead;
+            ptRefLead = genPt;
+            etaRefLead = genEta;
+            phiRefLead = genPhi;
+        }
+        else if ( genPt > ptRefSubLead ) {
+            ptRecoSubLead = pt;
+            ptRawRecoSubLead = ptRaw;
+            etaRecoSubLead = eta;
+            phiRecoSubLead = phi;
+            idRecoSubLead = counter;
+
+            ptRefSubLead = genPt;
+            etaRefSubLead = genEta;
+            phiRefSubLead = genPhi;
+        }
+
+        if ( fVerbose ) {
+            std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d\n", 
+                              ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead);
+        }
+
+        // Increment counter
+        counter++;
+    } // for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ )
+
+    // Check if leading and subleading jets were found
+    if (idRecoLead>=0 && idRecoSubLead>=0) {
+        isDijetFound = kTRUE;
+    }
+
+    if ( fVerbose ) {
+        std::cout << "Dijet found: " << isDijetFound << std::endl;
+    }
+    
+    // Look only at events with dijets
+    if ( !isDijetFound ) return;
+
+    // Check the dijet selection on the MC level
+    if ( !isGoodDijet(ptRefLead, ptRefSubLead, TMath::Abs(phiRefLead - phiRefSubLead)) ) return;
+
+    // Dijet analysis
+    Double_t dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
+    Double_t dijetRecoEta = 0.5 * (etaRecoLead + etaRecoSubLead);
+    Double_t dijetRecoDphi = TMath::Abs(phiRecoLead - phiRecoSubLead); // Should abs be used here?
+
+    Double_t dijetRefPt = 0.5 * (ptRefLead + ptRefSubLead);
+    Double_t dijetRefEta = 0.5 * (etaRefLead + etaRefSubLead);
+    Double_t dijetRefDphi = TMath::Abs(phiRefLead - phiRefSubLead);
+
+    // Dijet reco vs ref for unfolding
+    Double_t dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
+                                     ptRecoLead, etaRecoLead,
+                                     ptRecoSubLead, etaRecoSubLead,
+                                     dijetRefPt, dijetRefEta,
+                                     ptRefLead, etaRefLead,
+                                     ptRefSubLead, etaRefSubLead };    
+
+    fHM->hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
+
+    if ( fVerbose ) {
+        std::cout << "Reporting from DiJetAnalysis::processRefJets - [DONE]" << std::endl;
     }
 }
 

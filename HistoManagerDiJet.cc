@@ -70,6 +70,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   // Dijets (MC)
   hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta{nullptr},
   hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted{nullptr},
+  hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted{nullptr},
   // hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat{nullptr},
   // hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted{nullptr},
   hRecoDijetEta{nullptr},
@@ -135,6 +136,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if ( fIsMc ) {
       if (hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta) delete hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta;
       if (hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted) delete hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
+      if (hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted) delete hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
       // if (hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat) delete hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat;
       // if (hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted) delete hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted;
       if (hRefInclusiveJetPt) delete hRefInclusiveJetPt;
@@ -361,6 +363,14 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
             xmax12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta);
       hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Sumw2();
 
+      hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted = new THnSparseD("hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted",
+            "Reco to ref correspondence (via ref selection) weighted;Reco p_{T}^{dijet} (GeV/c);Reco #eta^{dijet};Reco p_{T}^{Leading} (GeV/c);Reco #eta^{Leading};Reco p_{T}^{Subleading} (GeV/c);Reco #eta^{Subleading};Ref p_{T}^{dijet};Ref #eta^{dijet};Ref p_{T}^{Leading} (GeV/c);Ref #eta^{Leading};Ref p_{T}^{Subleading} (GeV/c);Ref #eta^{Subleading}",
+            12,
+            bins12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta,
+            xmin12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta,
+            xmax12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta);
+      hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Sumw2();
+
       hRefInclusiveJetPt = new TH1D("hRefInclusiveJetPt","Ref jet p_{T};Ref p_{T} (GeV/c);Entries",
                                     fPtBins, fPtRange[0], fPtRange[1]);
       hRefInclusiveJetPt->Sumw2();
@@ -398,6 +408,7 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
             xmin9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhiPtEtaPhi,
             xmin9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhiPtEtaPhi);
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Sumw2();
+    
     hRecoInclusiveJetPt = new TH1D("hRecoInclusiveJetPt","Reco jet p_{T};Reco p_{T} (GeV/c);Entries",
                                    fPtBins, fPtRange[0], fPtRange[1]);
     hRecoInclusiveJetPt->Sumw2();
@@ -453,6 +464,7 @@ void HistoManagerDiJet::writeOutput() {
 
         hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Write();
         hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Write();
+        hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Write();
         hRefDijetEta->Write();
         hRefDijetEtaVsRecoDijetEta->Write();
         hRefInclusiveJetPt->Write();

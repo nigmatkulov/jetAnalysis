@@ -80,6 +80,8 @@ class DiJetAnalysis : public BaseAnalysis {
     void processGenJets(const Event* event, Double_t ptHatW);
     // Process reco jets
     void processRecoJets(const Event* event, Double_t ptHatW);
+    // Process ref jets
+    void processRefJets(const Event* event, Double_t ptHatW);
     // Dijet selection
     Bool_t isGoodDijet(const Double_t& ptLead, const Double_t& ptSublead, const Double_t& dphi);
 
