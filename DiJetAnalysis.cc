@@ -650,6 +650,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
     if ( fIsMc ) {
         // Process and analyze gen jets
         processGenJets(event, ptHatW);
+        processRefJets(event, ptHatW);
     }
 
     // Process and analyze reco jets

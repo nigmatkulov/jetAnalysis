@@ -83,7 +83,7 @@ void set2DStyle(TH2* h) {
     h->GetYaxis()->SetNdivisions(208);    
     h->GetYaxis()->SetTitleOffset(1.0);
 
-    h->Scale( 1./( 1000000 * h->Integral() ) );
+    h->Scale( 1./( 1 * h->Integral() ) );
 }
 
 //________________
@@ -370,8 +370,13 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
 
     // Retrieve THnSparse for reco 2 ref
     THnSparseD *hReco2RefDijet = (THnSparseD*)inFile->Get("hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted");
+    hReco2RefDijet->SetName("hReco2RefDijet");
+    // Retrieve THnSparse for reco 2 ref with selection on ref
+    THnSparseD *hRefSelReco2RefDijet = (THnSparseD*)inFile->Get("hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted");
+    hRefSelReco2RefDijet->SetName("hRefSelReco2RefDijet");
     // Retrieve THnSparse for gen
     THnSparseD *hGenDijet = (THnSparseD*)inFile->Get("hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted");
+    hGenDijet->SetName("hGenDijet");
 
     // Define single-jet binning
     Int_t jetPtBins{50}, jetEtaBins{50};      // fPtRange{20., 520.}, fEtaRange{-5.0, 5.0}
@@ -403,6 +408,15 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
     // Reco subleading jet pT
     hReco2RefDijet->GetAxis(4)->SetRange( ptSubLeadLow.at(0), ptSubLeadHi.at(0) );
 
+    // Refine reco2ref with ref selection
+
+    // Reco dijet pT
+    hRefSelReco2RefDijet->GetAxis(0)->SetRange( ptDijetLow.at(0), ptDijetHi.at(0) );
+    // Reco leading jet pT
+    hRefSelReco2RefDijet->GetAxis(2)->SetRange( ptLeadLow.at(0), ptLeadHi.at(0) );
+    // Reco subleading jet pT
+    hRefSelReco2RefDijet->GetAxis(4)->SetRange( ptSubLeadLow.at(0), ptSubLeadHi.at(0) );
+
 
     // Refine gen distribution
 
@@ -424,12 +438,15 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
     // Reco and ref
     TH1D *hRecoDijetEta = (TH1D*)hReco2RefDijet->Projection(1);
     TH1D *hRefDijetEta = (TH1D*)hReco2RefDijet->Projection(7);
+    TH1D *hRefSelRefDijetEta = (TH1D*)hRefSelReco2RefDijet->Projection(7); // Test with ref selection
+
     TH2D *hRef2RecoDijetEta = (TH2D*)hReco2RefDijet->Projection(7, 1);
     // Gen
     TH1D *hGenDijetEta = (TH1D*)hGenDijet->Projection(1);
     TH1D *hUnfoldEta = new TH1D();
-    TString name = "TestEta_scale_1000000";
-    unfold1D(hRecoDijetEta, hRefDijetEta, hRef2RecoDijetEta, hGenDijetEta, hUnfoldEta, date, name, 4);
+    TString name = "TestEta_RefSel";
+    //unfold1D(hRecoDijetEta, hRefDijetEta, hRef2RecoDijetEta, hGenDijetEta, hUnfoldEta, date, name, 4);
+    unfold1D(hRecoDijetEta, hRefSelRefDijetEta, hRef2RecoDijetEta, hGenDijetEta, hUnfoldEta, date, name, 4);
 
     //
     // pT dijet
@@ -538,7 +555,7 @@ void unfoldDistributions(const Char_t *dateToday = "20240418") {
 
     TString date {dateToday};
     
-    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root";
+    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_new.root";
     TFile *inFile = TFile::Open(inFileName);
 
     Int_t ptHat = 50; // 50, 120, 370
