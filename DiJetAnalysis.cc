@@ -137,11 +137,11 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
         // Apply lab frame boost to CM for the pPb 
         if ( fIsPPb ) {
             if ( fIsPbGoingDir ) {
-                eta += fEtaShift;
-            }
-            else {
                 eta -= fEtaShift;
                 eta = -eta;
+            }
+            else {
+                eta += fEtaShift;
             }
         } // if ( fIsPPb ) 
         
@@ -230,29 +230,45 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             std::cout << "Reco jet #" << counter << " ";
             (*pfJetIter)->print();
         }
+        
+        GenJet *matchedJet{nullptr};
+        Double_t genPt{999.};
+        Double_t genEta{-999.};
+        Double_t genPhi{-999.};
 
         // On MC will work with matching jets only
         if ( fIsMc ) {
             if ( !(*pfJetIter)->hasMatching() ) continue;
+            matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
+            genPt = matchedJet->pt();
+            genEta = matchedJet->eta();
+            genPhi = matchedJet->phi();
         }
-
-        GenJet *matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
-        Double_t genPt = matchedJet->pt();
-        Double_t genEta = matchedJet->eta();
-        Double_t genPhi = matchedJet->phi();
 
         // Apply lab frame boost to CM for the pPb 
         if ( fIsPPb ) {
-            if ( fIsPbGoingDir ) {
-                eta += fEtaShift;
-                genEta += fEtaShift;
+            if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+                if ( fIsPbGoingDir ) {
+                    eta -= fEtaShift;
+                    eta = -eta;
+                    genEta -= fEtaShift;
+                    genEta = -genEta;
+                }
+                else {
+                    eta += fEtaShift;
+                    genEta += fEtaShift;
+                }
             }
-            else {
-                eta -= fEtaShift;
-                eta = -eta;
-                genEta -= fEtaShift;
-                genEta = -genEta;
+            else { // For data: p goes to negative, Pb goes to positive
+                if ( fIsPbGoingDir ) {
+                    eta += fEtaShift;
+                }
+                else {
+                    eta -= fEtaShift;
+                    eta = -eta;
+                }
             }
+
         } // if ( fIsPPb )
         
         if ( pt > ptRecoLead ) {
@@ -289,16 +305,18 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         // Fill inclusive jet information
         fHM->hRecoInclusiveJetPt->Fill(pt, ptHatW);
         fHM->hRecoMatchedPtEta->Fill(eta, pt, ptHatW);
-        fHM->hRefInclusiveJetPt->Fill(genPt, ptHatW);
-        fHM->hRefInclusiveJetPtEta->Fill(genEta, genPt, ptHatW);
+        if ( fIsMc ) {
+            fHM->hRefInclusiveJetPt->Fill(genPt, ptHatW);
+            fHM->hRefInclusiveJetPtEta->Fill(genEta, genPt, ptHatW);
 
-        Double_t correl[5] { pt, ptRaw, genPt, eta, genEta};
-        fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
-        fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl, ptHatW);
+            Double_t correl[5] { pt, ptRaw, genPt, eta, genEta};
+            fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
+            fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl, ptHatW);
 
-        Double_t res[5] { pt/genPt, genPt, eta, phi, event->ptHat() };
-        fHM->hJESInclusiveJetPtEtaPhiPtHat->Fill(res);
-        fHM->hJESInclusiveJetPtEtaPhiPtHatWeighted->Fill(res, ptHatW);
+            Double_t res[5] { pt/genPt, genPt, eta, phi, event->ptHat() };
+            fHM->hJESInclusiveJetPtEtaPhiPtHat->Fill(res);
+            fHM->hJESInclusiveJetPtEtaPhiPtHatWeighted->Fill(res, ptHatW);
+        }
 
         if ( fVerbose ) {
             std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d\n", 
@@ -324,19 +342,21 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     // Check the dijet selection on the MC level
     if ( !isGoodDijet(ptRecoLead, ptRecoSubLead, TMath::Abs(phiRecoLead - phiRecoSubLead)) ) return;
 
-    // Leading jet information
-    Double_t correl[5] { ptRecoLead, ptRawRecoLead, ptRefLead, etaRecoLead, etaRefLead };
-    fHM->hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
-    fHM->hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Fill(correl, ptHatW);
+    if ( fIsMs ) {
+        // Leading jet information
+        Double_t correl[5] { ptRecoLead, ptRawRecoLead, ptRefLead, etaRecoLead, etaRefLead };
+        fHM->hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
+        fHM->hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Fill(correl, ptHatW);
 
-    // Subleading jet information
-    correl[0] = ptRecoSubLead;
-    correl[1] = ptRawRecoSubLead;
-    correl[2] = ptRefSubLead;
-    correl[3] = etaRecoSubLead; 
-    correl[4] = etaRefSubLead;
-    fHM->hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
-    fHM->hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Fill(correl, ptHatW);
+        // Subleading jet information
+        correl[0] = ptRecoSubLead;
+        correl[1] = ptRawRecoSubLead;
+        correl[2] = ptRefSubLead;
+        correl[3] = etaRecoSubLead; 
+        correl[4] = etaRefSubLead;
+        fHM->hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
+        fHM->hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Fill(correl, ptHatW);
+    }
 
     // Correlation between leading and subleading
     fHM->hRecoPtLeadPtSublead->Fill(ptRecoLead, ptRecoSubLead, ptHatW);
@@ -346,9 +366,16 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     Double_t dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
     Double_t dijetRecoEta = 0.5 * (etaRecoLead + etaRecoSubLead);
     Double_t dijetRecoDphi = TMath::Abs(phiRecoLead - phiRecoSubLead); // Should abs be used here
-    Double_t dijetRefPt = 0.5 * (ptRefLead + ptRefSubLead);
-    Double_t dijetRefEta = 0.5 * (etaRefLead + etaRefSubLead);
-    Double_t dijetRefDphi = TMath::Abs(phiRefLead - phiRefSubLead);
+
+    Double_t dijetRefPt{-999.};
+    Double_t dijetRefEta{-999.};
+    Double_t dijetRefDphi {-999.};
+
+    if ( fIsMc ) {
+        dijetRefPt = 0.5 * (ptRefLead + ptRefSubLead);
+        dijetRefEta = 0.5 * (etaRefLead + etaRefSubLead);
+        dijetRefDphi = TMath::Abs(phiRefLead - phiRefSubLead);
+    }
 
     Double_t dijetRecoInfo[9] { dijetRecoPt, dijetRecoEta, dijetRecoDphi,
                                 ptRecoLead, etaRecoLead, phiRecoLead,
@@ -364,10 +391,12 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                                      dijetRefPt, dijetRefEta,
                                      ptRefLead, etaRefLead,
                                      ptRefSubLead, etaRefSubLead };
-    fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Fill(dijetRecoUnfold);
-    fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
-    fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );
-    fHM->hRefDijetEtaVsRecoDijetEta->Fill( dijetRecoEta, dijetRefEta, ptHatW );
+    if ( fIsMc ) {
+        fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Fill(dijetRecoUnfold);
+        fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
+        fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );
+        fHM->hRefDijetEtaVsRecoDijetEta->Fill( dijetRecoEta, dijetRefEta, ptHatW );
+    }
 
     if ( fVerbose ) {
         std::cout << "Reporting from DiJetAnalysis::processRecoJets - [DONE]" << std::endl;
@@ -416,16 +445,31 @@ void DiJetAnalysis::processEvent(const Event* event) {
             }
             return;
         }
+
+        // For MC we need to flip the direction of Pb-going to properly reweight distributions
+        if ( fIsPbGoingDir ) {
+            vz = -vz;
+        }
         ptHatW = eventWeight(fIsMc, fIsPPb, ptHat, vz);
     }
 
     // Check collision system and account for the lab frame rapidity
     if ( fIsPPb ) {
-        if ( fIsPbGoingDir) {
-            fEtaShift = {0.4654094531};
+        if ( fIsMc ) { // For MC Pb is going to negative eta
+            if ( fIsPbGoingDir) {
+                fEtaShift = {-0.4654094531};
+            }
+            else { // For MC p is going to positive eta
+                fEtaShift = {0.4654094531};
+            }
         }
         else {
-            fEtaShift = {-0.4654094531};
+            if ( fIsPbGoingDir) { // For data Pb is going to positive eta
+                fEtaShift = {0.4654094531};
+            }
+            else { // For data p is going to negative eta
+                fEtaShift = {-0.4654094531};
+            }
         }
     }
     else {

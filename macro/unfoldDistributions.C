@@ -20,7 +20,7 @@
 void setPadStyle() {
     gPad->SetTopMargin(0.05);
     gPad->SetBottomMargin(0.15);
-    gPad->SetRightMargin(0.10);
+    gPad->SetRightMargin(0.13);
     gPad->SetLeftMargin(0.15);
 }
 
@@ -70,7 +70,7 @@ void set1DStyle(TH1 *h, Int_t type = 0) {
     h->GetYaxis()->SetNdivisions(208);    
     h->GetYaxis()->SetTitleOffset(1.0);
 
-    h->Scale( 1./h->Integral());
+    h->Scale( 1./h->Integral() );
 }
 
 //________________
@@ -82,6 +82,8 @@ void set2DStyle(TH2* h) {
     h->GetXaxis()->SetNdivisions(208);
     h->GetYaxis()->SetNdivisions(208);    
     h->GetYaxis()->SetTitleOffset(1.0);
+
+    h->Scale( 1./( 1000000 * h->Integral() ) );
 }
 
 //________________
@@ -91,6 +93,14 @@ void unfold1D(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullptr, TH
     Int_t refType{1};
     Int_t unfoldType{2};
     Int_t genType{3};
+
+    set1DStyle(hReco, recoType);
+    set1DStyle(hRef, refType);
+    if ( hGen ) {
+        set1DStyle(hGen, genType);
+    }
+
+    set2DStyle(hResponse);
 
     // Create response
     RooUnfoldResponse response( hReco, hRef, hResponse, 
@@ -110,6 +120,10 @@ void unfold1D(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullptr, TH
     hUnfold = (TH1D*)unfold.Hunfold();
     hUnfold->SetNameTitle( Form("hUnfold_%s", name.Data()), 
                            Form("hUnfold_%s", name.Data()) );
+    set1DStyle(hUnfold, unfoldType);
+
+    std::cout << "ref: " << hRef->GetNbinsX() << " reco: " << hReco->GetNbinsX()
+    << " gen: " << hGen->GetNbinsX() << " unfold: " << hUnfold->GetNbinsX() << std::endl;
 
     // Create histograms for ratios to ref
     TH1D *hReco2RefRatio = new TH1D( Form("hReco2RefRatio_%s", name.Data()), 
@@ -132,12 +146,24 @@ void unfold1D(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullptr, TH
                                     hGen->GetXaxis()->GetBinUpEdge( hGen->GetNbinsX() ) );
     hGen2RefRatio->Sumw2();
 
-    // Fill ratios
-    hReco2RefRatio->Divide(hReco, hRef, 1., 1.);
-    hUnfold2RefRatio->Divide(hUnfold, hRef, 1., 1.);
+    set1DStyle(hReco2RefRatio, recoType);
+    set1DStyle(hUnfold2RefRatio, unfoldType);
     if ( hGen ) {
-        hGen2RefRatio->Divide(hGen, hRef, 1., 1.);
+        set1DStyle(hGen2RefRatio, genType);
     }
+
+    // Fill ratios
+    hReco2RefRatio->Divide(hReco, hRef, 1., 1., "b");
+    hUnfold2RefRatio->Divide(hUnfold, hRef, 1., 1., "b");
+    if ( hGen ) {
+        hGen2RefRatio->Divide(hGen, hRef, 1., 1., "b");
+    }
+
+    // hReco2RefRatio->Divide(hReco, hRef, 1., 1.);
+    // hUnfold2RefRatio->Divide(hUnfold, hRef, 1., 1.);
+    // if ( hGen ) {
+    //     hGen2RefRatio->Divide(hGen, hRef, 1., 1.);
+    // }
 
     // Create canvas for plotting
     TCanvas *canv = new TCanvas( Form("pPb8160_%s", name.Data()), 
@@ -148,19 +174,19 @@ void unfold1D(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullptr, TH
     // Plot distributions
     canv->cd(1);
     setPadStyle();
-    set1DStyle(hReco, recoType);
-    set1DStyle(hRef, refType);
-    set1DStyle(hUnfold, unfoldType);
-    if (hGen) {
-        set1DStyle(hGen, genType);
-    }
+    // set1DStyle(hReco, recoType);
+    // set1DStyle(hRef, refType);
+    // set1DStyle(hUnfold, unfoldType);
+    // if (hGen) {
+    //     set1DStyle(hGen, genType);
+    // }
     hReco->Draw();
     hRef->Draw("same");
     hUnfold->Draw("same");
     if ( hGen ) {
         hGen->Draw("same");
     }
-    hReco->GetYaxis()->SetRangeUser(0., 0.0005);
+    //hReco->GetYaxis()->SetRangeUser(0., 0.0005);
 
     TLegend *leg = new TLegend(0.75, 0.7, 0.85, 0.9);
     leg->SetLineWidth(0);
@@ -176,11 +202,6 @@ void unfold1D(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullptr, TH
     // Plot ratios to ref
     canv->cd(2);
     setPadStyle();
-    set1DStyle(hReco2RefRatio, recoType);
-    set1DStyle(hUnfold2RefRatio, unfoldType);
-    if ( hGen ) {
-        set1DStyle(hGen2RefRatio, genType);
-    }
     hReco2RefRatio->Draw();
     hUnfold2RefRatio->Draw("same");
     if ( hGen ) {
@@ -219,6 +240,8 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
         set1DStyle(hGen, genType);
     }
 
+    set2DStyle(hResponse);
+
     // Create response
     RooUnfoldResponse response( hReco, hRef, hResponse, 
                                 Form("%s", name.Data()), Form("%s", name.Data()) );
@@ -266,10 +289,10 @@ void unfold1DPtHat(TH1D* hReco, TH1D *hRef, TH2D* hResponse, TH1D* hGen = nullpt
     }
 
     // Fill ratios
-    hReco2RefRatio->Divide(hReco, hRef, 1., 1.);
-    hUnfold2RefRatio->Divide(hUnfold, hRef, 1., 1.);
+    hReco2RefRatio->Divide(hReco, hRef, 1., 1., "b");
+    hUnfold2RefRatio->Divide(hUnfold, hRef, 1., 1., "b");
     if ( hGen ) {
-        hGen2RefRatio->Divide(hGen, hRef, 1., 1.);
+        hGen2RefRatio->Divide(hGen, hRef, 1., 1., "b");
     }
 
     TLatex t;
@@ -383,6 +406,8 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
 
     // Refine gen distribution
 
+    // Gen dijet pT
+    hGenDijet->GetAxis(0)->SetRange( ptDijetLow.at(0), ptDijetHi.at(0) );
     // Gen leading jet pT
     hGenDijet->GetAxis(3)->SetRange( ptLeadLow.at(0), ptLeadHi.at(0) );
     // Gen subleading jet pT
@@ -403,114 +428,25 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
     // Gen
     TH1D *hGenDijetEta = (TH1D*)hGenDijet->Projection(1);
     TH1D *hUnfoldEta = new TH1D();
-    TString name = "TestEta";
+    TString name = "TestEta_scale_1000000";
     unfold1D(hRecoDijetEta, hRefDijetEta, hRef2RecoDijetEta, hGenDijetEta, hUnfoldEta, date, name, 4);
 
     //
     // pT dijet
     //
 
-    // Reco and ref
-    TH1D *hRecoDijetPt = (TH1D*)hReco2RefDijet->Projection(0);
-    TH1D *hRefDijetPt = (TH1D*)hReco2RefDijet->Projection(6);
-    TH2D *hRef2RecoDijetPt = (TH2D*)hReco2RefDijet->Projection(6, 0);
-    // Gen
-    TH1D *hGenDijetPt = (TH1D*)hGenDijet->Projection(0);
-    TH1D *hUnfoldPt = new TH1D();
-    name = "TestPt";
-    unfold1D(hRecoDijetPt, hRefDijetPt, hRef2RecoDijetPt, hGenDijetPt, hUnfoldPt, date, name, 4);
-}
+    // // Reco dijet pT (important. It is extremely hardcoded!!!)
+    // hReco2RefDijet->GetAxis(0)->SetRange( 1, 121 );
 
-//________________
-void performUnfolding(TFile *inFile, TString date) {
-
-    Int_t recoType{0};
-    Int_t refType{1};
-    Int_t unfoldType{2};
-    Int_t genType{3};
-
-    // Ref
-    TH1D *hRefDijetEta = (TH1D*)inFile->Get("hRefDijetEta");
-    // Reco
-    TH1D *hRecoDijetEta = (TH1D*)inFile->Get("hRecoDijetEta");
-    // Response matrix
-    TH2D *hDijetEtaRefVsReco = (TH2D*)inFile->Get("hRefDijetEtaVsRecoDijetEta");
-    hDijetEtaRefVsReco->SetName("hDijetEtaRefVsReco");
-
-    // Gen
-    THnSparse *hGen = (THnSparseD*)inFile->Get("hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted");
-    TH1D* hGenDijetEta = (TH1D*)hGen->Projection(1);
-    // Miss = Gen - Ref
-    TH1D* hMiss = new TH1D("hMiss","hMiss;Miss #eta^{dijet}",
-                           hDijetEtaRefVsReco->GetNbinsX(), 
-                           hDijetEtaRefVsReco->GetXaxis()->GetBinLowEdge(1),
-                           hDijetEtaRefVsReco->GetXaxis()->GetBinUpEdge( hDijetEtaRefVsReco->GetNbinsX() ) );
-    hMiss->Sumw2();
-    hMiss->Add(hGenDijetEta, hRefDijetEta, 1., -1.);
-
-    TH1D* hReco2RefRatio = new TH1D("hReco2RefRatio","Reco / Ref; #eta^{dijet}; Ratio to Ref",
-                                    hDijetEtaRefVsReco->GetNbinsX(), 
-                                    hDijetEtaRefVsReco->GetXaxis()->GetBinLowEdge(1),
-                                    hDijetEtaRefVsReco->GetXaxis()->GetBinUpEdge( hDijetEtaRefVsReco->GetNbinsX() ) );
-    hReco2RefRatio->Sumw2();
-    TH1D* hUnfold2RefRatio = new TH1D("hUnfold2RefRatio","Unfold / Ref; #eta^{dijet}; Ratio to Ref",
-                                    hDijetEtaRefVsReco->GetNbinsX(), 
-                                    hDijetEtaRefVsReco->GetXaxis()->GetBinLowEdge(1),
-                                    hDijetEtaRefVsReco->GetXaxis()->GetBinUpEdge( hDijetEtaRefVsReco->GetNbinsX() ) );
-    hUnfold2RefRatio->Sumw2();
-
-    // Create response matrix
-    //RooUnfoldResponse response( hRecoDijetEta, hMiss, hDijetEtaRefVsReco, "response", "Response matrix");
-    RooUnfoldResponse response( hRecoDijetEta, hGenDijetEta, hDijetEtaRefVsReco, "response", "Response matrix");
-
-    // Create unfolding procedure 
-    // (const RooUnfoldResponseT< Hist, Hist2D > *res, const Hist *meas, Int_t niter=4, 
-    //  Bool_t smoothit=false, Bool_t handleFakes=fales, const char *name=0, const char *title=0)
-    RooUnfoldBayes unfold( &response, hRecoDijetEta, 4);
-
-    // Create unfolded histogram
-    TH1D* hUnfold = (TH1D*)unfold.Hunfold();
-    hUnfold->SetNameTitle("hUnfold","Unfolded distribution;Unfolded #eta^{dijet}");
-
-
-    // Create canvas to present results
-    TCanvas *cUndold = new TCanvas("cUnfold", "Unfolding", 800, 800);
-    cUndold->Divide(1, 2);
-
-    cUndold->cd(1);
-    setPadStyle();
-    set1DStyle(hRecoDijetEta, recoType);
-    set1DStyle(hRefDijetEta, refType);
-    set1DStyle(hUnfold, unfoldType);
-
-    hRecoDijetEta->Draw();
-    hRecoDijetEta->GetXaxis()->SetTitle("#eta^{dijet}");
-    hRecoDijetEta->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
-    hRefDijetEta->Draw("same");
-    hUnfold->Draw("same");
-
-    TLegend *leg = new TLegend(0.75, 0.7, 0.85, 0.9);
-    leg->SetLineWidth(0);
-    leg->AddEntry(hRecoDijetEta,Form("Reco"), "p");
-    leg->AddEntry(hRefDijetEta,Form("Ref"), "p");
-    leg->AddEntry(hUnfold,Form("Unfold"), "p");
-    leg->SetTextSize(0.05);
-    leg->Draw();
-
-    cUndold->cd(2);
-    setPadStyle();
-    hReco2RefRatio->Divide(hRecoDijetEta, hRefDijetEta);
-    set1DStyle(hReco2RefRatio, recoType);
-    hUnfold2RefRatio->Divide(hUnfold, hRefDijetEta);
-    set1DStyle(hUnfold2RefRatio, unfoldType);
-
-    hReco2RefRatio->Draw();
-    hUnfold2RefRatio->Draw("same");
-    hReco2RefRatio->GetYaxis()->SetRangeUser(0.8, 1.2);
-
-    unfold.PrintTable(std::cout, hRefDijetEta);
-
-    cUndold->SaveAs(Form("%s/pPb8160_etaDijet_1D_unfolding.pdf", date.Data()));
+    // // Reco and ref
+    // TH1D *hRecoDijetPt = (TH1D*)hReco2RefDijet->Projection(0);
+    // TH1D *hRefDijetPt = (TH1D*)hReco2RefDijet->Projection(6);
+    // TH2D *hRef2RecoDijetPt = (TH2D*)hReco2RefDijet->Projection(6, 0);
+    // // Gen
+    // TH1D *hGenDijetPt = (TH1D*)hGenDijet->Projection(0);
+    // TH1D *hUnfoldPt = new TH1D();
+    // name = "TestPt";
+    // unfold1D(hRecoDijetPt, hRefDijetPt, hRef2RecoDijetPt, hGenDijetPt, hUnfoldPt, date, name, 4);
 }
 
 //________________
@@ -588,7 +524,7 @@ void unfoldDifferentPtHat(TFile *inFile, TFile *inFilePtHat, Int_t ptHat, TStrin
     // Gen
     TH1D *hGenDijetPtHatEta = (TH1D*)hGenDijetPtHat->Projection(1);
     TH1D *hUnfoldEta = new TH1D();
-    TString name = Form("TestEtaPtHat%d",ptHat);
+    TString name = Form("TestEtaPtHatBinomial%d",ptHat);
     unfold1DPtHat(hRecoDijetPtHatEta, hRefDijetPtHatEta, hRef2RecoDijetEta, 
                   hGenDijetPtHatEta, hUnfoldEta, date, name, 4, ptHat, hRefDijetEta);
 }
@@ -605,7 +541,7 @@ void unfoldDistributions(const Char_t *dateToday = "20240418") {
     const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root";
     TFile *inFile = TFile::Open(inFileName);
 
-    Int_t ptHat = 50;
+    Int_t ptHat = 50; // 50, 120, 370
     const Char_t *inFileNameWithPtHat = Form("../build/oEmbedding_pPb8160_Pbgoing_%d.root", ptHat);
     TFile *inFileWithPtHat = TFile::Open(inFileNameWithPtHat);
 
@@ -613,9 +549,9 @@ void unfoldDistributions(const Char_t *dateToday = "20240418") {
     //performUnfolding(inFile, date);
 
     // Run 1D unfolding with semi-automated regime
-    //unfoldDijetEta1D(inFile, date);
+    unfoldDijetEta1D(inFile, date);
 
     // Run 1D unfolding for ptHat distributions with the response matrix
     // for total ptHat
-    unfoldDifferentPtHat(inFile, inFileWithPtHat, ptHat, date);
+    //unfoldDifferentPtHat(inFile, inFileWithPtHat, ptHat, date);
 }
