@@ -166,17 +166,19 @@ void plotEfficiency(TFile *inFile, TString date) {
     cEfficiency->SaveAs(Form("%s/pPb8160_pt_vs_eta_efficiency.pdf", date.Data()));
 
 
-    Int_t fPtBins{50}; 
+    Int_t fPtBins{50};
     Double_t fPtRange[2] {20., 520.};
     Int_t fEtaBins{50}; 
     Double_t fEtaRange[2] {-5.0, 5.0};
+    Double_t ptStep = (fPtRange[1]-fPtRange[0]) / fPtBins;
+    Double_t etaStep = (fEtaRange[1]-fEtaRange[0]) / fEtaBins;
 
     TH1D *hEtaEfficiency[fPtBins];
     TH1D *hPtEfficiency[fEtaBins];
 
     TLatex t;
     t.SetTextFont(42);
-    t.SetTextSize(0.05);
+    t.SetTextSize(0.06);
 
     TCanvas *cEtaEfficiency = new TCanvas("cEtaEfficiency", "cEtaEfficiency", 1600, 800);
     cEtaEfficiency->Divide(10, 5);
@@ -186,7 +188,7 @@ void plotEfficiency(TFile *inFile, TString date) {
 
     // Make projections bin-by-bin
     for (Int_t i{1}; i<=fPtBins; i++) {
-        // Project eta
+        // Project on eta
         hEtaEfficiency[i] = (TH1D*)hEfficiency->ProjectionX(Form("hEtaEfficiency_%d", i), i, i);
         hEtaEfficiency[i]->SetNameTitle(Form("hEtaEfficiency_%d", i), ";#eta;Efficiency");
         set1DStyle(hEtaEfficiency[i], 2);
@@ -198,11 +200,26 @@ void plotEfficiency(TFile *inFile, TString date) {
             hEtaEfficiency[i]->GetYaxis()->SetRangeUser(0.35, 0.85);
         }
         else {
-            hEtaEfficiency[i]->GetYaxis()->SetRangeUser(0.8, 1.1);
+            hEtaEfficiency[i]->GetYaxis()->SetRangeUser(0.9, 1.05);
         }
-        //t.DrawLatexNDC(0.2, 0.9, Form("%", ptHat));
-        
-    }
+        t.DrawLatexNDC(0.2, 0.9, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
+                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep) );
+
+        // Project on pT
+        hPtEfficiency[i] = (TH1D*)hEfficiency->ProjectionY(Form("hPtEfficiency_%d", i), i, i);
+        hPtEfficiency[i]->SetNameTitle(Form("hPtEfficiency_%d", i), ";p_{T} (GeV/c);Efficiency");
+        set1DStyle(hPtEfficiency[i], 2);
+        hPtEfficiency[i]->SetMarkerSize(0.7);
+        cPtEfficiency->cd(i);
+        setPadStyle();
+        hPtEfficiency[i]->Draw();
+        hPtEfficiency[i]->GetYaxis()->SetRangeUser(0.9, 1.02);
+        t.DrawLatexNDC(0.2, 0.9, Form("%2.1f < #eta < %2.1f", 
+                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
+    } // for (Int_t i{1}; i<=fPtBins; i++)
+
+    cEtaEfficiency->SaveAs( Form("%s/pPb8160_eta_efficiency_projections.pdf", date.Data()) );
+    cPtEfficiency->SaveAs( Form("%s/pPb8160_pt_efficiency_projections.pdf", date.Data()) );
 
 
     // // Reco inclusive jet pT
