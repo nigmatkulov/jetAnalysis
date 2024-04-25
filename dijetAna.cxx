@@ -33,7 +33,8 @@ int main(int argc, char const *argv[]) {
     Int_t   collEnergyGeV{8160};
     TString collSystem{"pPb"};
     Int_t   collYear{2016};
-    TString pfBranchName{"akCs4PFJetAnalyzer"};
+    //TString pfBranchName{"akCs4PFJetAnalyzer"};
+    TString pfBranchName{"ak4PFJetAnalyzer"};
     TString oFileName{};
     TString JECFileName;
     TString path2JEC = "../";

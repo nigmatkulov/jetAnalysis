@@ -309,7 +309,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             fHM->hRefInclusiveJetPt->Fill(genPt, ptHatW);
             fHM->hRefInclusiveJetPtEta->Fill(genEta, genPt, ptHatW);
 
-            Double_t correl[5] { pt, ptRaw, genPt, eta, genEta};
+            Double_t correl[5] { pt, ptRaw, genPt, eta, genEta };
             fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
             fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl, ptHatW);
 

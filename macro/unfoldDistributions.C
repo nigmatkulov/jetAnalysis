@@ -396,8 +396,8 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
     std::vector<Int_t> ptSubLeadHi{50};
 
     // Integrated (>20 GeV/c)
-    std::vector<Int_t> ptDijetLow{1};
-    std::vector<Int_t> ptDijetHi{50};
+    std::vector<Int_t> ptDijetLow{5};
+    std::vector<Int_t> ptDijetHi{7};
 
     // Refine reco2ref distribution
 
