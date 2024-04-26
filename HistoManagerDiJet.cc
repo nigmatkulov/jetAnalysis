@@ -48,6 +48,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hGenInclusiveJetPtEta{nullptr},
   hGenPtLeadPtSublead{nullptr},
   hGenEtaLeadEtaSublead{nullptr},
+  hGenDijetPtEtaDphi{nullptr},
 
   // Reco jets (single)
   hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen{nullptr},
@@ -66,6 +67,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRecoInclusiveJetPt{nullptr},
   hRecoPtLeadPtSublead{nullptr},
   hRecoEtaLeadEtaSublead{nullptr},
+  hRecoDijetPtEtaDphi{nullptr},
 
   // Dijets (MC)
   hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta{nullptr},
@@ -76,6 +78,9 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRecoDijetEta{nullptr},
   hRefDijetEta{nullptr},
   hRefDijetEtaVsRecoDijetEta{nullptr},
+  hRefDijetPtEtaDphi{nullptr},
+  hRefSelDijetPtEtaDphi{nullptr},
+
   hRefInclusiveJetPt{nullptr},
   hRefInclusiveJetPtEta{nullptr},
   hRefPtLeadPtSublead{nullptr},
@@ -107,6 +112,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
       if (hGenInclusiveJetPtEta) delete hGenInclusiveJetPtEta;
       if (hGenPtLeadPtSublead) delete hGenPtLeadPtSublead;
       if (hGenEtaLeadEtaSublead) delete hGenEtaLeadEtaSublead;
+      if (hGenDijetPtEtaDphi) delete hGenDijetPtEtaDphi;
 
 
       if (hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen) delete hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen;
@@ -129,6 +135,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoPtLeadPtSublead) delete hRecoPtLeadPtSublead;
     if (hRecoEtaLeadEtaSublead) delete hRecoEtaLeadEtaSublead;
     if (hRecoDijetEta) delete hRecoDijetEta;
+    if (hRecoDijetPtEtaDphi) delete hRecoDijetPtEtaDphi;
 
     //
     // Dijets exp vs mc
@@ -143,6 +150,9 @@ HistoManagerDiJet::~HistoManagerDiJet() {
       if (hRefInclusiveJetPtEta) delete hRefInclusiveJetPtEta;
       if (hRefPtLeadPtSublead) delete hRefPtLeadPtSublead;
       if (hRefEtaLeadEtaSublead) delete hRefEtaLeadEtaSublead;
+      if (hRefDijetPtEtaDphi) delete hRefDijetPtEtaDphi;
+      if (hRefSelDijetPtEtaDphi) delete hRefSelDijetPtEtaDphi;
+
       if (hRefDijetEta) delete hRefDijetEta;
       if (hRefDijetEtaVsRecoDijetEta) delete hRefDijetEtaVsRecoDijetEta;
 
@@ -286,6 +296,11 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                        fEtaBins, fEtaRange[0], fEtaRange[1],
                                        fEtaBins, fEtaRange[0], fEtaRange[1] );
       hGenEtaLeadEtaSublead->Sumw2();
+      hGenDijetPtEtaDphi = new TH3D("hGenDijetPtEtaDphi","Gen dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
+                                    fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                    fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                    fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
+      hGenDijetPtEtaDphi->Sumw2();
 
       //
       // Reco single jets
@@ -392,6 +407,16 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
       hRefDijetEtaVsRecoDijetEta->Sumw2();
+      hRefDijetPtEtaDphi = new TH3D("hRefDijetPtEtaDphi","Ref dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
+                                    fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                    fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                    fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
+      hRefDijetPtEtaDphi->Sumw2();
+      hRefSelDijetPtEtaDphi = new TH3D("hRefSelDijetPtEtaDphi","RefSel dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
+                                       fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                       fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                       fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
+      hRefSelDijetPtEtaDphi->Sumw2();
     } // if (fIsMc)
 
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi = new THnSparseD("hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi",
@@ -423,6 +448,11 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     hRecoDijetEta = new TH1D("hRecoDijetEta","Reco dijet #eta;Reco #eta^{dijet};Entries",
                              fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
     hRecoDijetEta->Sumw2();
+    hRecoDijetPtEtaDphi = new TH3D("hRecoDijetPtEtaDphi","Reco dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
+                                   fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                   fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                   fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
+    hRecoDijetPtEtaDphi->Sumw2();
 }
 
 //________________
@@ -451,6 +481,7 @@ void HistoManagerDiJet::writeOutput() {
         hGenInclusiveJetPtEta->Write();
         hGenPtLeadPtSublead->Write();
         hGenEtaLeadEtaSublead->Write();
+        hGenDijetPtEtaDphi->Write();
 
         hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Write();
         hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Write();
@@ -467,6 +498,8 @@ void HistoManagerDiJet::writeOutput() {
         hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Write();
         hRefDijetEta->Write();
         hRefDijetEtaVsRecoDijetEta->Write();
+        hRefDijetPtEtaDphi->Write();
+        hRefSelDijetPtEtaDphi->Write();
         hRefInclusiveJetPt->Write();
         hRefInclusiveJetPtEta->Write();
         hRefPtLeadPtSublead->Write();
@@ -479,4 +512,5 @@ void HistoManagerDiJet::writeOutput() {
     hRecoPtLeadPtSublead->Write();
     hRecoEtaLeadEtaSublead->Write();
     hRecoDijetEta->Write();
+    hRecoDijetPtEtaDphi->Write();
 }

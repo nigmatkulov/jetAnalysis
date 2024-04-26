@@ -193,6 +193,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
                                      ptSubLead, etaSubLead, phiSubLead };
     fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(genDijetLeadSublead);
     fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(genDijetLeadSublead, ptHatW);
+    fHM->hGenDijetPtEtaDphi->Fill(dijetPt, dijetEta, dijetDphi, ptHatW);
 
     if ( fVerbose ) {
         std::cout << "Reporting from DiJetAnalysis::processGenJets - [DONE]" << std::endl;
@@ -383,6 +384,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(dijetRecoInfo);
     fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(dijetRecoInfo, ptHatW);
     fHM->hRecoDijetEta->Fill( dijetRecoEta, ptHatW );
+    fHM->hRecoDijetPtEtaDphi->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, ptHatW );
 
     // Dijet reco vs ref for unfolding
     Double_t dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
@@ -396,6 +398,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
         fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );
         fHM->hRefDijetEtaVsRecoDijetEta->Fill( dijetRecoEta, dijetRefEta, ptHatW );
+        fHM->hRefDijetPtEtaDphi->Fill( dijetRefPt, dijetRefEta,  dijetRefDphi, ptHatW );
     }
 
     if ( fVerbose ) {
@@ -545,6 +548,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
                                      ptRefSubLead, etaRefSubLead };    
 
     fHM->hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
+    fHM->hRefSelDijetPtEtaDphi->Fill(dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW);
 
     if ( fVerbose ) {
         std::cout << "Reporting from DiJetAnalysis::processRefJets - [DONE]" << std::endl;
@@ -554,8 +558,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
 //________________
 Bool_t DiJetAnalysis::isGoodDijet(const Double_t& ptLead, const Double_t& ptSublead, const Double_t& dphi) {
     Bool_t isGood = ( ptLead > fLeadJetPtLow &&
-                      ptSublead > fSubleadJetPtLow &&
-                      dphi > fDijetPhiCut );
+                      ptSublead > fSubleadJetPtLow /* && dphi > fDijetPhiCut */ );
     if ( fVerbose ) {
         std::cout << "DiJetAnalysis::isGoodDijet " << isGood << " ";
         std::cout << Form("pTlead: %5.2f pTsub: %5.2f dphi: %4.2f\n", ptLead, ptSublead, dphi);
