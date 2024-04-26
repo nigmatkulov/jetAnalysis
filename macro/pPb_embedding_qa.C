@@ -366,7 +366,7 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     TFile *inFile = TFile::Open(inFileName);
 
     // Compare inclusive reco, ref and gen transverse momentum spectra
-    //compareInclusiveJetPtSpectra(inFile, date);
+    compareInclusiveJetPtSpectra(inFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
     plotEfficiency(inFile, date);
