@@ -40,7 +40,7 @@ queue
 log        = condor/log/pthat170_emb_Pbgoing_nocut.log
 output     = condor/log/pthat170_emb_Pbgoing_nocut.out
 error      = condor/log/pthat170_emb_Pbgoing_nocut.err
-arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/Pbgoing/HiForestSkim_pPb_MC_pthat170_Pbgoing_embedded.root 1 1 170 220
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/Pbgoing/HiForestSkim_pPb_MC_pthat170_Pbgoing_embedded.root oEmbedding_pPb8160_Pbgoing_170.root 1 1 170 220
 queue
 
 log        = condor/log/pthat220_emb_Pbgoing_nocut.log
@@ -70,5 +70,5 @@ queue
 log        = condor/log/pthat540_emb_Pbgoing_nocut.log
 output     = condor/log/pthat540_emb_Pbgoing_nocut.out
 error      = condor/log/pthat540_emb_Pbgoing_nocut.err
-arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/Pbgoing/HiForestSkim_pPb_MC_pthat540_Pbgoing_embedded.root 1 1 540 8160
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/Pbgoing/HiForestSkim_pPb_MC_pthat540_Pbgoing_embedded.root oEmbedding_pPb8160_Pbgoing_540.root 1 1 540 8160
 queue
