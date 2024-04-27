@@ -74,16 +74,18 @@ class DiJetAnalysis : public BaseAnalysis {
 
   private:
 
-    // Calculate event weight
+    /// Calculate event weight
     Double_t eventWeight(const Bool_t& isMc, const Bool_t& isPPb, const Double_t& ptHat, const Double_t& vz);
-    // Process gen jets
+    /// Process gen jets
     void processGenJets(const Event* event, Double_t ptHatW);
-    // Process reco jets
+    /// Process reco jets
     void processRecoJets(const Event* event, Double_t ptHatW);
-    // Process ref jets
+    /// Process ref jets
     void processRefJets(const Event* event, Double_t ptHatW);
-    // Dijet selection
+    /// Dijet selection
     Bool_t isGoodDijet(const Double_t& ptLead, const Double_t& ptSublead, const Double_t& dphi);
+    /// Calculate delta phi between two jets in the range [-pi, pi]
+    Double_t deltaPhi(const Double_t& phi1, const Double_t phi2);
 
     /// @brief Print debug information
     Bool_t   fDebug;

@@ -109,6 +109,14 @@ Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb,
 }
 
 //________________
+Double_t DiJetAnalysis::deltaPhi(const Double_t& phi1, const Double_t phi2) {
+    Double_t dphi = phi1 - phi2;
+    if ( dphi > TMath::Pi() ) dphi -= TMath::TwoPi();
+    if ( dphi < -TMath::Pi() ) dphi += TMath::TwoPi();
+    return dphi;
+}
+
+//________________
 void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
     if ( fVerbose ) {
@@ -179,14 +187,14 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
     if ( !isDijetFound ) return;
 
     // Check the dijet selection on the MC level
-    if ( !isGoodDijet(ptLead, ptSubLead, TMath::Abs(phiLead - phiSubLead)) ) return;
+    if ( !isGoodDijet(ptLead, ptSubLead, TMath::Abs( deltaPhi(phiLead, phiSubLead) ) ) ) return;
 
     fHM->hGenPtLeadPtSublead->Fill(ptLead, ptSubLead, ptHatW);
     fHM->hGenEtaLeadEtaSublead->Fill(etaLead, etaSubLead, ptHatW);
 
     Double_t dijetPt = 0.5 * (ptLead + ptSubLead);
     Double_t dijetEta = 0.5 * (etaLead + etaSubLead);
-    Double_t dijetDphi = TMath::Abs(phiLead - phiSubLead); // Should abs be used here
+    Double_t dijetDphi = deltaPhi(phiLead, phiSubLead); // Should abs be used here
 
     Double_t genDijetLeadSublead[9] {dijetPt, dijetEta, dijetDphi, 
                                      ptLead, etaLead, phiLead, 
@@ -341,7 +349,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     if ( !isDijetFound ) return;
 
     // Check the dijet selection on the MC level
-    if ( !isGoodDijet(ptRecoLead, ptRecoSubLead, TMath::Abs(phiRecoLead - phiRecoSubLead)) ) return;
+    if ( !isGoodDijet(ptRecoLead, ptRecoSubLead, TMath::Abs( deltaPhi(phiRecoLead, phiRecoSubLead) ) ) ) return;
 
     if ( fIsMc ) {
         // Leading jet information
@@ -366,7 +374,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     // Dijet analysis
     Double_t dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
     Double_t dijetRecoEta = 0.5 * (etaRecoLead + etaRecoSubLead);
-    Double_t dijetRecoDphi = TMath::Abs(phiRecoLead - phiRecoSubLead); // Should abs be used here?
+    Double_t dijetRecoDphi = deltaPhi(phiRecoLead, phiRecoSubLead); // Should abs be used here?
 
     Double_t dijetRefPt{-999.};
     Double_t dijetRefEta{-999.};
@@ -375,7 +383,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     if ( fIsMc ) {
         dijetRefPt = 0.5 * (ptRefLead + ptRefSubLead);
         dijetRefEta = 0.5 * (etaRefLead + etaRefSubLead);
-        dijetRefDphi = TMath::Abs(phiRefLead - phiRefSubLead);
+        dijetRefDphi = deltaPhi(phiRefLead, phiRefSubLead);
     }
 
     Double_t dijetRecoInfo[9] { dijetRecoPt, dijetRecoEta, dijetRecoDphi,
@@ -528,16 +536,16 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
     if ( !isDijetFound ) return;
 
     // Check the dijet selection on the MC level
-    if ( !isGoodDijet(ptRefLead, ptRefSubLead, TMath::Abs(phiRefLead - phiRefSubLead)) ) return;
+    if ( !isGoodDijet(ptRefLead, ptRefSubLead, TMath::Abs( deltaPhi(phiRefLead, phiRefSubLead) ) ) ) return;
 
     // Dijet analysis
     Double_t dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
     Double_t dijetRecoEta = 0.5 * (etaRecoLead + etaRecoSubLead);
-    Double_t dijetRecoDphi = TMath::Abs(phiRecoLead - phiRecoSubLead); // Should abs be used here?
+    Double_t dijetRecoDphi = deltaPhi(phiRecoLead, phiRecoSubLead);
 
     Double_t dijetRefPt = 0.5 * (ptRefLead + ptRefSubLead);
     Double_t dijetRefEta = 0.5 * (etaRefLead + etaRefSubLead);
-    Double_t dijetRefDphi = TMath::Abs(phiRefLead - phiRefSubLead);
+    Double_t dijetRefDphi = deltaPhi(phiRefLead, phiRefSubLead);
 
     // Dijet reco vs ref for unfolding
     Double_t dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
