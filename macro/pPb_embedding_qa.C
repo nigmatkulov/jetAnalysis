@@ -356,13 +356,13 @@ void compareInclusiveJetPtSpectra(TFile *inFile, TString date) {
 }
 
 //________________
-void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_new.root") {
+void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root") {
 
     gStyle->SetOptStat(0);
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    TString date {"20240424"};
+    TString date {"20240426"};
     TFile *inFile = TFile::Open(inFileName);
 
     // Compare inclusive reco, ref and gen transverse momentum spectra
@@ -370,6 +370,9 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
     plotEfficiency(inFile, date);
+
+    // Plot various dijet distributions
+    //plotDijetDistributions(inFile, date);
 
     // Plot correlation between ref and reco dijet eta
     //plotEtaDijetCorrelation(inFile, date);

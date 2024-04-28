@@ -397,7 +397,7 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
 
     // Integrated (>20 GeV/c)
     std::vector<Int_t> ptDijetLow{1};
-    std::vector<Int_t> ptDijetHi{7};
+    std::vector<Int_t> ptDijetHi{50};
 
     // Refine reco2ref distribution
 
@@ -444,9 +444,9 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
     // Gen
     TH1D *hGenDijetEta = (TH1D*)hGenDijet->Projection(1);
     TH1D *hUnfoldEta = new TH1D();
-    TString name = "TestEta_RefSel";
+    TString name = "TestEta";
     //unfold1D(hRecoDijetEta, hRefDijetEta, hRef2RecoDijetEta, hGenDijetEta, hUnfoldEta, date, name, 4);
-    unfold1D(hRecoDijetEta, hRefSelRefDijetEta, hRef2RecoDijetEta, hGenDijetEta, hUnfoldEta, date, name, 4);
+    unfold1D(hRecoDijetEta, hRefDijetEta, hRef2RecoDijetEta, hGenDijetEta, hUnfoldEta, date, name, 4);
 
     //
     // pT dijet
@@ -555,7 +555,7 @@ void unfoldDistributions(const Char_t *dateToday = "20240418") {
 
     TString date {dateToday};
     
-    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_new.root";
+    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root";
     TFile *inFile = TFile::Open(inFileName);
 
     Int_t ptHat = 50; // 50, 120, 370
