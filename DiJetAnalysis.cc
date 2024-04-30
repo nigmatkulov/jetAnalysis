@@ -117,6 +117,57 @@ Double_t DiJetAnalysis::deltaPhi(const Double_t& phi1, const Double_t phi2) {
 }
 
 //________________
+Bool_t DiJetAnalysis::isGoodGenJet(const GenJet* jet) {
+    Bool_t goodJet{kFALSE};
+    if ( jet->pt() > 20. && TMath::Abs( jet->eta() )< 5.1 ) {
+        goodJet = {kTRUE};
+    }
+    
+    if ( fVerbose ) {
+        std::cout << Form("Gen jet cut %s\n", goodJet ? "\t[passed]" : "\t[failed]" );
+    }
+
+    return goodJet;
+}
+    
+//________________
+Bool_t DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
+    Bool_t goodKine{kFALSE};
+    Bool_t hasMatching{kFALSE};
+    Bool_t goodTrackMax{kTRUE};
+
+    if ( jet->ptJECCorr() > 20 && TMath::Abs( jet->eta() )< 5.1 ) {
+        goodKine = {kTRUE};
+    }
+
+    if ( jet->hasMatching() ) {
+        hasMatching = {kTRUE};
+    }
+
+    Double_t rawPt = jet->rawPt();
+    Double_t trackMaxPt = jet->trackMaxPt();
+    if ( TMath::Abs( jet->eta() ) < 2.4 && 
+         ( trackMaxPt/rawPt < 0.01 ||
+           trackMaxPt/rawPt > 0.98) ) {
+        goodTrackMax = {kFALSE};
+    }
+
+    Bool_t goodJet = goodKine && hasMatching && goodTrackMax;
+
+    if ( fVerbose ) {
+        std::cout << Form("Gen jet cut %s", goodJet ? "\t[passed]" : "\t[failed]"); 
+        if ( goodJet ) {
+            std::cout << std::endl;
+        }
+        else {
+            std::cout << Form("\t goodKine: %d hasMatching: %d chargeFrac: %d\n", goodKine, hasMatching, goodTrackMax);
+        }
+    } // if ( fVerbose )
+
+    return goodJet;
+}
+
+//________________
 void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
     if ( fVerbose ) {
@@ -130,6 +181,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
     GenJetIterator genJetIter;
     Int_t counter{0};
+
     // Loop over generated jets
     for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ ) {
 
@@ -142,6 +194,9 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             (*genJetIter)->print();
         }
 
+        // Apply single-jet selection to gen jets
+        if ( !isGoodGenJet( *genJetIter ) ) continue;
+
         // Apply lab frame boost to CM for the pPb 
         if ( fIsPPb ) {
             if ( fIsPbGoingDir ) {
@@ -151,7 +206,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             else {
                 eta += fEtaShift;
             }
-        } // if ( fIsPPb ) 
+        } // if ( fIsPPb )
         
         if ( pt > ptLead ) {
             ptSubLead = ptLead;
@@ -236,19 +291,13 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         Double_t phi = (*pfJetIter)->phi();
         Double_t ptRaw = (*pfJetIter)->pt();
 
-        Double_t rawPt = (*pfJetIter)->rawPt();
-        Double_t trackMaxPt = (*pfJetIter)->trackMaxPt();
-        if ( TMath::Abs( eta ) < 2.4 && 
-            ( trackMaxPt/rawPt < 0.01 ||
-              trackMaxPt/rawPt > 0.98 ) ) {
-            // Remove charge component at midrapidity
-            continue;
-        }
-
         if ( fVerbose ) {
             std::cout << "Reco jet #" << counter << " ";
             (*pfJetIter)->print();
         }
+
+        // Apply single-jet selection to reco jets
+        if ( !isGoodRecoJet( (*pfJetIter) ) ) continue;
         
         GenJet *matchedJet{nullptr};
         Double_t genPt{999.};
@@ -461,6 +510,9 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
         genPt = matchedJet->pt();
         genEta = matchedJet->eta();
         genPhi = matchedJet->phi();
+
+        // Apply single-jet selection to ref jets
+        if ( !isGoodGenJet( matchedJet ) ) continue;
 
         if ( fVerbose ) {
             std::cout << "Reco jet #" << counter << " ";

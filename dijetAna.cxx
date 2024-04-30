@@ -138,7 +138,7 @@ int main(int argc, char const *argv[]) {
     reader->setCollidingEnergy( collEnergyGeV ) ;
     reader->setYearOfDataTaking( collYear );
     reader->setEventCut(eventCut);
-    reader->setJetCut(jetCut);
+    //reader->setJetCut(jetCut);
     reader->fixJetArrays();
 
     // Set path to jet analysis (then will automatically add path to aux_files)
