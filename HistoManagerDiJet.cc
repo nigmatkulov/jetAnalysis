@@ -492,6 +492,7 @@ void HistoManagerDiJet::writeOutput() {
         hGenPtLeadPtSublead->Write();
         hGenEtaLeadEtaSublead->Write();
         hGenDijetPtEtaDphi->Write();
+        hGenDijetEta->Write();
 
         hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Write();
         hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Write();
@@ -510,6 +511,7 @@ void HistoManagerDiJet::writeOutput() {
         hRefDijetEtaVsRecoDijetEta->Write();
         hRefDijetPtEtaDphi->Write();
         hRefSelDijetPtEtaDphi->Write();
+        hRefSelDijetEta->Write();
         hRefInclusiveJetPt->Write();
         hRefInclusiveJetPtEta->Write();
         hRefPtLeadPtSublead->Write();
