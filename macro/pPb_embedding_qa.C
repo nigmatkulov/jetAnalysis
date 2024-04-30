@@ -278,6 +278,53 @@ void plotEtaDijetCorrelation(TFile *inFile, TString date) {
     cDijetEtaRefVsReco->SaveAs(Form("%s/pPb8160_ref_vs_reco_responce.pdf", date.Data()));
 }
 
+
+//________________
+void plotDijetDistributions(TFile *inFile, TString date) {
+    
+    Int_t recoType{0};
+    Int_t refType{1};
+    Int_t genType{3};
+    Bool_t doRenorm{kFALSE};
+
+    TH1D *hRecoDijetEta = (TH1D*)inFile->Get("hRecoDijetEta");
+    TH1D *hRefDijetEta = (TH1D*)inFile->Get("hRefDijetEta");
+    TH1D *hGenDijetEta = (TH1D*)inFile->Get("hGenDijetEta");
+
+    set1DStyle(hRecoDijetEta, recoType, doRenorm);
+    set1DStyle(hRefDijetEta,  refType, doRenorm);
+    set1DStyle(hGenDijetEta,  genType, doRenorm);
+
+    TH1D *hReco2Gen = new TH1D("hReco2Gen", "hReco2Gen;#eta_{dijet};#frac{reco}{gen}",
+                                hRecoDijetEta->GetNbinsX(), 
+                                hRecoDijetEta->GetXaxis()->GetBinLowEdge(1),
+                                hRecoDijetEta->GetXaxis()->GetBinUpEdge( hRecoDijetEta->GetNbinsX() ) );
+    set1DStyle(hReco2Gen, recoType);
+    TH1D *hRef2Gen = new TH1D("hRef2Gen", "hRef2Gen;#eta_{dijet};#frac{ref}{gen}",
+                                hRefDijetEta->GetNbinsX(), 
+                                hRefDijetEta->GetXaxis()->GetBinLowEdge(1),
+                                hRefDijetEta->GetXaxis()->GetBinUpEdge( hRefDijetEta->GetNbinsX() ) );
+    set1DStyle(hRef2Gen, refType);
+
+    hReco2Gen->Divide(hRecoDijetEta, hGenDijetEta, 1., 1., "b");
+    hRef2Gen->Divide(hRefDijetEta, hGenDijetEta, 1., 1., "b");
+
+    TCanvas *c1DEta = new TCanvas("c1DEta", "c1DEta", 500, 1000);
+    c1DEta->Divide(1, 2);
+
+    c1DEta->cd(1);
+    setPadStyle();
+    hGenDijetEta->Draw();
+    hRecoDijetEta->Draw("same");
+    hRefDijetEta->Draw("same");
+
+    c1DEta->cd(2);
+    setPadStyle();
+    hReco2Gen->Draw();
+    hRef2Gen->Draw("same");
+    hReco2Gen->GetYaxis()->SetRangeUser(0.8, 1.2);
+}
+
 //________________
 void compareInclusiveJetPtSpectra(TFile *inFile, TString date) {
 
@@ -362,14 +409,17 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    TString date {"20240426"};
+    TString date {"20240430"};
     TFile *inFile = TFile::Open(inFileName);
 
     // Compare inclusive reco, ref and gen transverse momentum spectra
-    compareInclusiveJetPtSpectra(inFile, date);
+    //compareInclusiveJetPtSpectra(inFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
-    plotEfficiency(inFile, date);
+    //plotEfficiency(inFile, date);
+
+    // Plot dijet distributions
+    plotDijetDistributions(inFile, date);
 
     // Plot various dijet distributions
     //plotDijetDistributions(inFile, date);
