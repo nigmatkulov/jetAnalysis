@@ -511,6 +511,11 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
         genEta = matchedJet->eta();
         genPhi = matchedJet->phi();
 
+        if ( fVerbose ) {
+            std::cout << "Ref jet info for reco jet #" << counter;
+            matchedJet->print();
+        }
+
         // Apply single-jet selection to ref jets
         if ( !isGoodGenJet( matchedJet ) ) continue;
 
