@@ -86,18 +86,18 @@ Bool_t JetCut::pass(const RecoJet* jet) {
     }
 
     Bool_t goodChargeComponent{kTRUE};
-    Float_t rawPt = jet->rawPt();
-    Float_t trackMaxPt = jet->trackMaxPt();
-    if ( TMath::Abs( jet->eta() ) < 2.4 && 
-         ( trackMaxPt/rawPt < fTrackMaxPtOverRawPt[0] ||
-           trackMaxPt/rawPt > fTrackMaxPtOverRawPt[1]) ) {
-        goodChargeComponent = {kFALSE};
-    }
+    // Float_t rawPt = jet->rawPt();
+    // Float_t trackMaxPt = jet->trackMaxPt();
+    // if ( TMath::Abs( jet->eta() ) < 2.4 && 
+    //      ( trackMaxPt/rawPt < fTrackMaxPtOverRawPt[0] ||
+    //        trackMaxPt/rawPt > fTrackMaxPtOverRawPt[1]) ) {
+    //     goodChargeComponent = {kFALSE};
+    // }
 
-    if (fVerbose) {
-        std::cout << Form("rawPt: %5.2f trackMaxPt: %5.2f ptMax/rawPt: %3.2f lowCut: %3.2f highCut: %3.2f\n",
-                          rawPt, trackMaxPt, trackMaxPt/rawPt, fTrackMaxPtOverRawPt[0], fTrackMaxPtOverRawPt[1] );
-    }
+    // if (fVerbose) {
+    //     std::cout << Form("rawPt: %5.2f trackMaxPt: %5.2f ptMax/rawPt: %3.2f lowCut: %3.2f highCut: %3.2f\n",
+    //                       rawPt, trackMaxPt, trackMaxPt/rawPt, fTrackMaxPtOverRawPt[0], fTrackMaxPtOverRawPt[1] );
+    // }
 
     // if ( goodMatching )
     // Bool_t goodRefPt = (fRefPt[0] <= jet->refJetPt() &&

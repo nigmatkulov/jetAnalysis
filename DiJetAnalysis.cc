@@ -236,6 +236,15 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         Double_t phi = (*pfJetIter)->phi();
         Double_t ptRaw = (*pfJetIter)->pt();
 
+        Double_t rawPt = (*pfJetIter)->rawPt();
+        Double_t trackMaxPt = (*pfJetIter)->trackMaxPt();
+        if ( TMath::Abs( eta ) < 2.4 && 
+            ( trackMaxPt/rawPt < 0.01 ||
+              trackMaxPt/rawPt > 0.98 ) ) {
+            // Remove charge component at midrapidity
+            continue;
+        }
+
         if ( fVerbose ) {
             std::cout << "Reco jet #" << counter << " ";
             (*pfJetIter)->print();

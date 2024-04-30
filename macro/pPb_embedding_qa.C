@@ -12,6 +12,7 @@
 #include "TAxis.h"
 #include "TLegend.h"
 #include "TEfficiency.h"
+#include "TLine.h"
 
 // C++ headers
 #include <iostream>
@@ -292,6 +293,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     Int_t recoType{0};
     Int_t refType{1};
     Int_t genType{3};
+    Int_t refSelType{2};
     Bool_t doRenorm{kFALSE};
 
     TH1D *hRecoDijetEta = (TH1D*)inFile->Get("hRecoDijetEta");
@@ -306,10 +308,15 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     if ( !hGenDijetEta ) {
         std::cout << "[WARNING] plotDijetDistributions - No genDijetEta found\n";
     }
+    TH1D *hRefSelDijetEta = (TH1D*)inFile->Get("hRefSelDijetEta");
+    if ( !hRefSelDijetEta ) {
+        std::cout << "[WARNING] plotDijetDistributions - No refSelDijetEta found\n";
+    }
 
-    set1DStyle(hRecoDijetEta, recoType, doRenorm);
-    set1DStyle(hRefDijetEta,  refType, doRenorm);
-    set1DStyle(hGenDijetEta,  genType, doRenorm);
+    set1DStyle(hRecoDijetEta,   recoType, doRenorm);
+    set1DStyle(hRefDijetEta,    refType, doRenorm);
+    set1DStyle(hGenDijetEta,    genType, doRenorm);
+    set1DStyle(hRefSelDijetEta, refSelType, doRenorm);
 
     TH1D *hReco2Gen = new TH1D("hReco2Gen", "hReco2Gen;#eta_{dijet};#frac{reco}{gen}",
                                 hRecoDijetEta->GetNbinsX(), 
@@ -323,11 +330,22 @@ void plotDijetDistributions(TFile *inFile, TString date) {
                                 hRefDijetEta->GetXaxis()->GetBinUpEdge( hRefDijetEta->GetNbinsX() ) );
     hRef2Gen->Sumw2();
     set1DStyle(hRef2Gen, refType);
+    TH1D *hRefSel2Gen = new TH1D("hRefSel2Gen", "hRefSel2Gen;#eta_{dijet};#frac{ref sel}{gen}",
+                                hRefDijetEta->GetNbinsX(), 
+                                hRefDijetEta->GetXaxis()->GetBinLowEdge(1),
+                                hRefDijetEta->GetXaxis()->GetBinUpEdge( hRefDijetEta->GetNbinsX() ) );
+    hRefSel2Gen->Sumw2();
+    set1DStyle(hRefSel2Gen, refSelType);
 
     hReco2Gen->Divide(hRecoDijetEta, hGenDijetEta, 1., 1., "b");
     hRef2Gen->Divide(hRefDijetEta, hGenDijetEta, 1., 1., "b");
+    hRefSel2Gen->Divide(hRefSelDijetEta, hGenDijetEta, 1., 1., "b");
 
-    TCanvas *c1DEta = new TCanvas("c1DEta", "c1DEta", 500, 1000);
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    TCanvas *c1DEta = new TCanvas("c1DEta", "c1DEta", 1000, 1000);
     c1DEta->Divide(1, 2);
 
     c1DEta->cd(1);
@@ -335,12 +353,39 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     hGenDijetEta->Draw();
     hRecoDijetEta->Draw("same");
     hRefDijetEta->Draw("same");
+    hRefSelDijetEta->Draw("same");
+    hGenDijetEta->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+    TLegend *leg = new TLegend(0.65, 0.68, 0.8, 0.92);
+    leg->SetLineWidth(0);
+    leg->AddEntry(hGenDijetEta,Form("Gen"), "p");
+    leg->AddEntry(hRefDijetEta,Form("Ref"), "p");
+    leg->AddEntry(hRecoDijetEta,Form("Reco"), "p");
+    leg->AddEntry(hRefSelDijetEta,Form("Ref Sel"), "p");
+    leg->SetTextSize(0.06);
+    leg->Draw();
 
     c1DEta->cd(2);
     setPadStyle();
     hReco2Gen->Draw();
     hRef2Gen->Draw("same");
+    hRefSel2Gen->Draw("same");
+    TLegend *leg2 = new TLegend(0.65, 0.68, 0.8, 0.92);
+    leg2->SetLineWidth(0);
+    leg2->AddEntry(hRef2Gen,Form("Ref/Gen"), "p");
+    leg2->AddEntry(hReco2Gen,Form("Reco/Gen"), "p");
+    leg2->AddEntry(hRefSel2Gen,Form("RefSel/Gen"), "p");
+    leg2->SetTextSize(0.06);
+    leg2->Draw();
     hReco2Gen->GetYaxis()->SetRangeUser(0.8, 1.2);
+    hReco2Gen->GetYaxis()->SetTitle("Ratio to Gen");
+    TLine *l = new TLine(hReco2Gen->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hReco2Gen->GetXaxis()->GetBinUpEdge(hReco2Gen->GetNbinsX()), 1.);
+    l->SetLineColor(kMagenta);
+    l->SetLineWidth(3);
+    l->SetLineStyle(3);
+    l->Draw();
+
+    c1DEta->SaveAs( Form("%s/pPb8160_eta_dijet_comparison.pdf", date.Data()) );
 }
 
 //________________
@@ -445,10 +490,10 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //plotEfficiency(inFile, date);
 
     // Plot dijet distributions
-    plotDijetDistributions(inFile, date);
+    //plotDijetDistributions(inFile, date);
 
     // Plot various dijet distributions
-    //plotDijetDistributions(inFile, date);
+    plotDijetDistributions(inFile, date);
 
     // Plot correlation between ref and reco dijet eta
     //plotEtaDijetCorrelation(inFile, date);
