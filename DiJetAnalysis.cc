@@ -155,7 +155,7 @@ Bool_t DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
     Bool_t goodJet = goodKine && hasMatching && goodTrackMax;
 
     if ( fVerbose ) {
-        std::cout << Form("Gen jet cut %s", goodJet ? "\t[passed]" : "\t[failed]"); 
+        std::cout << Form("Reco jet cut %s", goodJet ? "\t[passed]" : "\t[failed]"); 
         if ( goodJet ) {
             std::cout << std::endl;
         }
