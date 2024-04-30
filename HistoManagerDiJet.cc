@@ -48,6 +48,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hGenInclusiveJetPtEta{nullptr},
   hGenPtLeadPtSublead{nullptr},
   hGenEtaLeadEtaSublead{nullptr},
+  hGenDijetEta{nullptr},
   hGenDijetPtEtaDphi{nullptr},
 
   // Reco jets (single)
@@ -79,6 +80,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRefDijetEta{nullptr},
   hRefDijetEtaVsRecoDijetEta{nullptr},
   hRefDijetPtEtaDphi{nullptr},
+  hRefSelDijetEta{nullptr},
   hRefSelDijetPtEtaDphi{nullptr},
 
   hRefInclusiveJetPt{nullptr},
@@ -112,6 +114,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
       if (hGenInclusiveJetPtEta) delete hGenInclusiveJetPtEta;
       if (hGenPtLeadPtSublead) delete hGenPtLeadPtSublead;
       if (hGenEtaLeadEtaSublead) delete hGenEtaLeadEtaSublead;
+      if (hGenDijetEta) delete hGenDijetEta;
       if (hGenDijetPtEtaDphi) delete hGenDijetPtEtaDphi;
 
 
@@ -151,6 +154,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
       if (hRefPtLeadPtSublead) delete hRefPtLeadPtSublead;
       if (hRefEtaLeadEtaSublead) delete hRefEtaLeadEtaSublead;
       if (hRefDijetPtEtaDphi) delete hRefDijetPtEtaDphi;
+      if (hRefSelDijetEta) delete hRefSelDijetEta;
       if (hRefSelDijetPtEtaDphi) delete hRefSelDijetPtEtaDphi;
 
       if (hRefDijetEta) delete hRefDijetEta;
@@ -301,6 +305,9 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                     fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                     fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
       hGenDijetPtEtaDphi->Sumw2();
+      hGenDijetEta = new TH1D("hGenDijetEta", "Gen dijet #eta;#eta^{dijet}",
+                              fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+      hGenDijetEta->Sumw2();
 
       //
       // Reco single jets
@@ -385,6 +392,9 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
             xmin12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta,
             xmax12D_dijet_PtEtPtEtaPtEtaPtEtaPtEtaPtEta);
       hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Sumw2();
+      hRefSelDijetEta = new TH1D("hRefSelDijetEta","Ref selected dijets;#eta^{dijet}",
+                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+      hRefSelDijetEta->Sumw2();
 
       hRefInclusiveJetPt = new TH1D("hRefInclusiveJetPt","Ref jet p_{T};Ref p_{T} (GeV/c);Entries",
                                     fPtBins, fPtRange[0], fPtRange[1]);

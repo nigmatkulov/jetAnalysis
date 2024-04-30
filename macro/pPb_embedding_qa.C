@@ -1,3 +1,4 @@
+// ROOT headers
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TH1.h"
@@ -11,6 +12,9 @@
 #include "TAxis.h"
 #include "TLegend.h"
 #include "TEfficiency.h"
+
+// C++ headers
+#include <iostream>
 
 //________________
 void setStyle() {
@@ -45,6 +49,9 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Double_t markerSize = 1.2;
     Int_t lineWidth = 2;
     Int_t color = 2;
+    if ( !h ) {
+        std::cout << "[ERROR] set1DStyle - No histogram passed\n";
+    }
     if (type == 0) {
         color = 2;
         markerStyle = 20;
@@ -70,8 +77,8 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
         markerStyle = 30;
     }
 
-    h->SetLineWidth( lineWidth );
     h->SetLineColor( color );
+    h->SetLineWidth( lineWidth );
     
     h->SetMarkerStyle( markerStyle );
     h->SetMarkerColor( color );
@@ -281,15 +288,24 @@ void plotEtaDijetCorrelation(TFile *inFile, TString date) {
 
 //________________
 void plotDijetDistributions(TFile *inFile, TString date) {
-    
+
     Int_t recoType{0};
     Int_t refType{1};
     Int_t genType{3};
     Bool_t doRenorm{kFALSE};
 
     TH1D *hRecoDijetEta = (TH1D*)inFile->Get("hRecoDijetEta");
+    if ( !hRecoDijetEta ) {
+        std::cout << "[WARNING] plotDijetDistributions - No recoDijetEta found\n";
+    }
     TH1D *hRefDijetEta = (TH1D*)inFile->Get("hRefDijetEta");
+    if ( !hRefDijetEta ) {
+        std::cout << "[WARNING] plotDijetDistributions - No refDijetEta found\n";
+    }
     TH1D *hGenDijetEta = (TH1D*)inFile->Get("hGenDijetEta");
+    if ( !hGenDijetEta ) {
+        std::cout << "[WARNING] plotDijetDistributions - No genDijetEta found\n";
+    }
 
     set1DStyle(hRecoDijetEta, recoType, doRenorm);
     set1DStyle(hRefDijetEta,  refType, doRenorm);
@@ -299,11 +315,13 @@ void plotDijetDistributions(TFile *inFile, TString date) {
                                 hRecoDijetEta->GetNbinsX(), 
                                 hRecoDijetEta->GetXaxis()->GetBinLowEdge(1),
                                 hRecoDijetEta->GetXaxis()->GetBinUpEdge( hRecoDijetEta->GetNbinsX() ) );
+    hReco2Gen->Sumw2();
     set1DStyle(hReco2Gen, recoType);
     TH1D *hRef2Gen = new TH1D("hRef2Gen", "hRef2Gen;#eta_{dijet};#frac{ref}{gen}",
                                 hRefDijetEta->GetNbinsX(), 
                                 hRefDijetEta->GetXaxis()->GetBinLowEdge(1),
                                 hRefDijetEta->GetXaxis()->GetBinUpEdge( hRefDijetEta->GetNbinsX() ) );
+    hRef2Gen->Sumw2();
     set1DStyle(hRef2Gen, refType);
 
     hReco2Gen->Divide(hRecoDijetEta, hGenDijetEta, 1., 1., "b");
@@ -411,6 +429,14 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
 
     TString date {"20240430"};
     TFile *inFile = TFile::Open(inFileName);
+    if ( !inFile ) {
+        std::cout << "[ERROR] Input file does not exist\n";
+        return;
+    }
+    if ( inFile->IsZombie() ) {
+        std::cout << "[ERROR] Beware of zombies!!!!\n";
+        return;
+    }
 
     // Compare inclusive reco, ref and gen transverse momentum spectra
     //compareInclusiveJetPtSpectra(inFile, date);

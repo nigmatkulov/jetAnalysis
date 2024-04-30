@@ -92,6 +92,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenInclusiveJetPtEta;
     TH2D *hGenPtLeadPtSublead;
     TH2D *hGenEtaLeadEtaSublead;
+    TH1D *hGenDijetEta;
     TH3D *hGenDijetPtEtaDphi;
 
     //
@@ -179,6 +180,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRefDijetEta;
     TH2D *hRefDijetEtaVsRecoDijetEta;
     TH3D *hRefDijetPtEtaDphi;
+    TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaDphi;
 
     TH1D *hRefInclusiveJetPt;

@@ -201,6 +201,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
                                      ptSubLead, etaSubLead, phiSubLead };
     fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(genDijetLeadSublead);
     fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(genDijetLeadSublead, ptHatW);
+    fHM->hGenDijetEta->Fill(dijetEta, ptHatW);
     fHM->hGenDijetPtEtaDphi->Fill(dijetPt, dijetEta, dijetDphi, ptHatW);
 
     if ( fVerbose ) {
@@ -557,6 +558,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
 
     fHM->hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
     fHM->hRefSelDijetPtEtaDphi->Fill(dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW);
+    fHM->hRefSelDijetEta->Fill(dijetRefEta, ptHatW);
 
     if ( fVerbose ) {
         std::cout << "Reporting from DiJetAnalysis::processRefJets - [DONE]" << std::endl;
