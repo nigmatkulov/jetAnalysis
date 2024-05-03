@@ -143,6 +143,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoEtaLeadEtaSublead;
     TH3D *hRecoDijetPtEtaDphi;
 
+    TH2D *hRecoInclusiveAllJetPtVsEta;
+    TH2D *hRecoInclusiveMatchedJetPtVsEta;
+
     // MC
 
     // Reco dijet pt, dijet eta, 

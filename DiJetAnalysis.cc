@@ -296,6 +296,13 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             (*pfJetIter)->print();
         }
 
+        fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt);
+        if ( fIsMc ) {
+            if ( (*pfJetIter)->hasMatching() ) {
+                fHM->hRecoInclusiveMatchedJetPtVsEta->Fill(eta, pt);
+            }
+        }
+
         // Apply single-jet selection to reco jets
         if ( !isGoodRecoJet( (*pfJetIter) ) ) continue;
         

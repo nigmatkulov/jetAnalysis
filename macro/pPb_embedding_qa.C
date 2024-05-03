@@ -294,7 +294,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     Int_t refType{1};
     Int_t genType{3};
     Int_t refSelType{2};
-    Bool_t doRenorm{kFALSE};
+    Bool_t doRenorm{kTRUE};
 
     TH1D *hRecoDijetEta = (TH1D*)inFile->Get("hRecoDijetEta");
     if ( !hRecoDijetEta ) {
@@ -472,7 +472,7 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    TString date {"20240430"};
+    TString date {"20240503"};
     TFile *inFile = TFile::Open(inFileName);
     if ( !inFile ) {
         std::cout << "[ERROR] Input file does not exist\n";
