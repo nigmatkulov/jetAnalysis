@@ -467,7 +467,28 @@ void compareInclusiveJetPtSpectra(TFile *inFile, TString date) {
 
 //________________
 void plotRecoAndFakes(TFile *inFile, TString date) {
+    TH2D* hRecoInclusiveAllJetPtVsEta = (TH2D*)inFile->Get("hRecoInclusiveAllJetPtVsEta");
+    TH2D* hRecoInclusiveMatchedJetPtVsEta = (TH2D*)inFile->Get("hRecoInclusiveMatchedJetPtVsEta");
+    TH2D* hNumberOfFakes = new TH2D("hNumberOfFakes","Number of fakes (reco - recoMatched);#eta;p_{T} (GeV/c)",
+                                    hRecoInclusiveAllJetPtVsEta->GetNbinsX(), hRecoInclusiveAllJetPtVsEta->GetXaxis()->GetXbins()->GetArray(),
+                                    hRecoInclusiveAllJetPtVsEta->GetNbinsY(), hRecoInclusiveAllJetPtVsEta->GetYaxis()->GetXbins()->GetArray());
+    hNumberOfFakes->Sumw2();
+    hNumberOfFakes->Add(hRecoInclusiveAllJetPtVsEta, hRecoInclusiveMatchedJetPtVsEta, 1., -1.);
 
+    TCanvas *cFakes2D = new TCanvas("cFakes2D","cFakes2D", 1300, 400);
+    cFakes2D->Divide(3, 1);
+
+    cFakes2D->cd(1);
+    setPadStyle();
+    hRecoInclusiveAllJetPtVsEta->Draw("colz");
+
+    cFakes2D->cd(2);
+    setPadStyle();
+    hRecoInclusiveMatchedJetPtVsEta->Draw("colz");
+
+    cFakes2D->cd(3);
+    setPadStyle();
+    cFakes2D->Draw("colz");
 }
 
 //________________
@@ -498,7 +519,7 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //plotDijetDistributions(inFile, date);
 
     // Plot various dijet distributions
-    plotDijetDistributions(inFile, date);
+    //plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
     plotRecoAndFakes(inFile, date);
