@@ -605,7 +605,7 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
 }
 
 //________________
-void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root") {
+void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_akCs4.root") {
 
     gStyle->SetOptStat(0);
     gStyle->SetOptTitle(0);
@@ -639,10 +639,10 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //plotEfficiency(inFile, date);
 
     // Plot dijet distributions
-    plotDijetDistributions(inFile, date);
+    //plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
-    //plotRecoAndFakes(inFile, date);
+    plotRecoAndFakes(inFile, date);
 
     // Plot correlation between ref and reco dijet eta
     //plotEtaDijetCorrelation(inFile, date);

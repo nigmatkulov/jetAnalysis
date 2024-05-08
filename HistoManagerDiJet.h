@@ -145,6 +145,7 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     TH2D *hRecoInclusiveAllJetPtVsEta;
     TH2D *hRecoInclusiveMatchedJetPtVsEta;
+    TH2D *hRecoInclusiveUnmatchedJetPtVsEta;
 
     // MC
 
