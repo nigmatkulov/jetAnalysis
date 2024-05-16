@@ -30,7 +30,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   fPtBins{50}, fPtRange{20., 520.}, 
   fEtaBins{50}, fEtaRange{-5.0, 5.0},
   fPhiBins{16}, fPhiRange{-TMath::Pi(), TMath::Pi()},
-  fDijetPtBins{120}, fDijetPtRange{30., 1000.},
+  fDijetPtBins{194}, fDijetPtRange{30., 1000.},
   fDijetEtaBins{50}, fDijetEtaRange{-5.0, 5.0},
   fDijetDphiBins{16}, fDijetDphiRange{-TMath::Pi(), TMath::Pi()},
   fPtHatBins{60}, fPtHatRange{15., 615.},
@@ -496,45 +496,45 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                           140., 150.,  160., 180., 200., 
                                           240., 300., 1000.};
     // Modify bins of gen dijets
-    hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
+    //hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
     hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
-    hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
+    //hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
     hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
     hGenDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-    hGenDijetPtEtaDphi->GetXaxis()->Set(dijetPtBins, dijetPtVals);
+    //hGenDijetPtEtaDphi->GetXaxis()->Set(dijetPtBins, dijetPtVals);
     hGenDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
 
     // Modify bins of reco dijets
-    hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
+    //hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
-    hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
+    //hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-    hRecoDijetPtEtaDphi->GetXaxis()->Set(dijetPtBins, dijetPtVals);
+    //hRecoDijetPtEtaDphi->GetXaxis()->Set(dijetPtBins, dijetPtVals);
     hRecoDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
 
     // Modify bins of reco <-> ref dijets
-    hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
+    //hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
     hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
-    hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->GetAxis(6)->Set(dijetPtBins, dijetPtVals);
+    //hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->GetAxis(6)->Set(dijetPtBins, dijetPtVals);
     hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->GetAxis(7)->Set(dijetEtaBins, dijetEtaVals);
-    hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
+    //hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
     hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
-    hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(6)->Set(dijetPtBins, dijetPtVals);
+    //hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(6)->Set(dijetPtBins, dijetPtVals);
     hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(7)->Set(dijetEtaBins, dijetEtaVals);
 
-    hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
+    //hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(0)->Set(dijetPtBins, dijetPtVals);
     hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
-    hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(6)->Set(dijetPtBins, dijetPtVals);
+    //hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(6)->Set(dijetPtBins, dijetPtVals);
     hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->GetAxis(7)->Set(dijetEtaBins, dijetEtaVals);
 
     hRefDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRefDijetEtaVsRecoDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRefDijetEtaVsRecoDijetEta->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
-    hRefDijetPtEtaDphi->GetXaxis()->Set(dijetPtBins, dijetPtVals);
+    //hRefDijetPtEtaDphi->GetXaxis()->Set(dijetPtBins, dijetPtVals);
     hRefDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRefSelDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-    hRefSelDijetPtEtaDphi->GetXaxis()->Set(dijetPtBins, dijetPtVals);
+    //hRefSelDijetPtEtaDphi->GetXaxis()->Set(dijetPtBins, dijetPtVals);
     hRefSelDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
 }
 
