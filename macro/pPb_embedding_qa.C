@@ -134,6 +134,18 @@ void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
 }
 
 //________________
+void rescaleEta(TH1* h) {
+    for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++) {
+        Double_t val = h->GetBinContent( iBin );
+        Double_t valErr = h->GetBinError( iBin );
+        Double_t binWidth = h->GetBinWidth( iBin );
+        h->SetBinContent( iBin, val / binWidth );
+        h->SetBinError( iBin, valErr / binWidth );
+    }
+    h->Scale( 1. / h->Integral() );
+}
+
+//________________
 void plotEfficiency(TFile *inFile, TString date) {
 
     // Rebinning
@@ -315,7 +327,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     Int_t refType{1};
     Int_t genType{3};
     Int_t refSelType{2};
-    Bool_t doRenorm{kTRUE};
+    Bool_t doRenorm{kFALSE};
 
     TH1D *hRecoDijetEta = (TH1D*)inFile->Get("hRecoDijetEta");
     if ( !hRecoDijetEta ) {
@@ -338,6 +350,11 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     set1DStyle(hRefDijetEta,    refType, doRenorm);
     set1DStyle(hGenDijetEta,    genType, doRenorm);
     set1DStyle(hRefSelDijetEta, refSelType, doRenorm);
+
+    rescaleEta( hRecoDijetEta );
+    rescaleEta( hRefDijetEta );
+    rescaleEta( hGenDijetEta );
+    rescaleEta( hRefSelDijetEta );
 
     TH1D *hReco2Gen = new TH1D("hReco2Gen", "hReco2Gen;#eta_{dijet};#frac{reco}{gen}",
                                 hRecoDijetEta->GetNbinsX(), 
@@ -497,6 +514,8 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
     hNumberOfFakes->SetTitle("Number of fakes (reco - recoMatched);#eta;p_{T} (GeV/c)");
     hNumberOfFakes->Add(hRecoInclusiveMatchedJetPtVsEta, -1.);
 
+    TH2D* hRecoInclusiveUnmatchedJetPtVsEta = (TH2D*)inFile->Get("hRecoInclusiveUnmatchedJetPtVsEta");
+
     // z axis scaling
     Double_t zAxisRange[2] {0., hRecoInclusiveAllJetPtVsEta->GetMaximum()};
     TLatex t;
@@ -533,8 +552,10 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
 
     TH2D *hRecoMatchedJetFrac = (TH2D*)hRecoInclusiveMatchedJetPtVsEta->Clone("hRecoMatchedJetFrac");
     TH2D *hRecoFakeJetFrac = (TH2D*)hNumberOfFakes->Clone("hRecoFakeJetFrac");
+    TH2D *hRecoUnmatchedJetFrac = (TH2D*)hRecoInclusiveUnmatchedJetPtVsEta->Clone("RecoUnmatchedJetFrac");
     hRecoMatchedJetFrac->Divide(hRecoMatchedJetFrac, hRecoInclusiveAllJetPtVsEta, 1., 1., "b");
     hRecoFakeJetFrac->Divide(hRecoFakeJetFrac, hRecoInclusiveAllJetPtVsEta, 1., 1., "b");
+    hRecoUnmatchedJetFrac->Divide(hRecoUnmatchedJetFrac, hRecoInclusiveAllJetPtVsEta, 1., 1., "b");
 
     Int_t fPtBins = hNumberOfFakes->GetNbinsY();
     Double_t fPtRange[2] {hNumberOfFakes->GetYaxis()->GetBinLowEdge(1), 
@@ -549,6 +570,8 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
     TH1D *hPtFakes[fEtaBins];
     TH1D *hEtaMatched[fPtBins];
     TH1D *hPtMatched[fEtaBins];
+    TH1D *hEtaUnmatched[fPtBins];
+    TH1D *hPtUnmatched[fEtaBins];
 
     TCanvas *cEtaFakes = new TCanvas("cEtaFakes", "cEtaFakes", 1600, 800);
     cEtaFakes->Divide(5, ( (fPtBins % 5) == 0 ) ? (fPtBins / 5) : (fPtBins / 5 + 1) );
@@ -569,11 +592,17 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
         set1DStyle(hEtaMatched[i], 1);
         hEtaMatched[i]->SetMarkerSize(0.7);
 
+        hEtaUnmatched[i] = (TH1D*)hRecoUnmatchedJetFrac->ProjectionX(Form("hEtaUnmatched_%d", i), i, i);
+        hEtaUnmatched[i]->SetNameTitle(Form("hEtaUnmatched_%d", i), ";#eta;Efficiency");
+        set1DStyle(hEtaUnmatched[i], 4);
+        hEtaUnmatched[i]->SetMarkerSize(0.7);
+
         cEtaFakes->cd(i);
         setPadStyle();
         hEtaFakes[i]->Draw();
+        hEtaUnmatched[i]->Draw("same");
         hEtaMatched[i]->Draw("same");
-        hEtaFakes[i]->GetYaxis()->SetRangeUser(0., 1.01);
+        hEtaFakes[i]->GetYaxis()->SetRangeUser(0., 1.05);
         t.DrawLatexNDC(0.35, 0.95, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
                        fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep) );
     } // for (Int_t i{1}; i<=fPtBins; i++)
@@ -591,17 +620,25 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
         set1DStyle(hPtMatched[i], 1);
         hPtMatched[i]->SetMarkerSize(0.7);
 
+        hPtUnmatched[i] = (TH1D*)hRecoUnmatchedJetFrac->ProjectionY(Form("hPtUnmatched_%d", i), i, i);
+        hPtUnmatched[i]->SetNameTitle(Form("hPtUnmatched_%d", i), ";#eta;Efficiency");
+        set1DStyle(hPtUnmatched[i], 4);
+        hPtUnmatched[i]->SetMarkerSize(0.7);
+
         cPtFakes->cd(i);
         setPadStyle();
-        hPtFakes[i]->Draw();
+        hPtUnmatched[i]->Draw();
+        hPtFakes[i]->Draw("same");
+        //hPtUnmatched[i]->Draw("same");
         hPtMatched[i]->Draw("same");
-        hPtFakes[i]->GetYaxis()->SetRangeUser(0., 1.01);
+        hPtUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
+        //hPtFakes[i]->GetYaxis()->SetRangeUser(0., 1.05);
         t.DrawLatexNDC(0.35, 0.95, Form("%2.1f < #eta < %2.1f", 
                        fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
     }
 
     cEtaFakes->SaveAs( Form("%s/pPb8160_eta_fakes_projections.pdf", date.Data()) );
-    cPtFakes->SaveAs( Form("%s/pPb8160_pt_fakes_projections.pdf", date.Data()) );
+    cPtFakes->SaveAs( Form("%s/pPb8160Sure_pt_fakes_projections.pdf", date.Data()) );
 }
 
 //________________
@@ -636,13 +673,13 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //compareInclusiveJetPtSpectra(inFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
-    //plotEfficiency(inFile, date);
+    plotEfficiency(inFile, date);
 
     // Plot dijet distributions
     //plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
-    plotRecoAndFakes(inFile, date);
+    //plotRecoAndFakes(inFile, date);
 
     // Plot correlation between ref and reco dijet eta
     //plotEtaDijetCorrelation(inFile, date);

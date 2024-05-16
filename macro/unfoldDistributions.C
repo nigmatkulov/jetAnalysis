@@ -7,6 +7,8 @@
 #include "TLegend.h"
 #include "TStyle.h"
 #include "THnSparse.h"
+#include "TSystemDirectory.h"
+#include <sys/stat.h>
 
 // RooUnfold
 #include "RooUnfoldResponse.h"
@@ -15,6 +17,34 @@
 // C++ headers
 #include <iostream>
 #include <vector>
+
+//________________
+bool directoryExists(const char* directoryPath) {
+    TSystemFile file(directoryPath, "");
+    return file.IsDirectory();
+}
+
+//________________
+void createDirectory(const char* directoryPath) {
+    // Create the directory with read, write, and execute permissions for owner, group, and others
+    if (mkdir(directoryPath, S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
+        std::cout << "Directory created successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to create directory." << std::endl;
+    }
+}
+
+//________________
+void rescaleEta(TH1* h) {
+    for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++) {
+        Double_t val = h->GetBinContent( iBin );
+        Double_t valErr = h->GetBinError( iBin );
+        Double_t binWidth = h->GetBinWidth( iBin );
+        h->SetBinContent( iBin, val / binWidth );
+        h->SetBinError( iBin, valErr / binWidth );
+    }
+    h->Scale( 1. / h->Integral() );
+}
 
 //________________
 void setPadStyle() {
@@ -547,13 +577,26 @@ void unfoldDifferentPtHat(TFile *inFile, TFile *inFilePtHat, Int_t ptHat, TStrin
 }
 
 //________________
-void unfoldDistributions(const Char_t *dateToday = "20240418") {
+void plotDijetDistributions(TFile *inFile, TString date) {
+
+}
+
+//________________
+void unfoldDistributions() {
 
     gStyle->SetOptStat(0);
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    TString date {dateToday};
+    TDatime dt;
+    TString date { Form( "%d",dt.GetDate() ) };
+
+    if ( directoryExists( date.Data() ) ) {
+        //std::cout << "Directory exists." << std::endl;
+    } 
+    else {
+        createDirectory( date.Data() );
+    }
     
     const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root";
     TFile *inFile = TFile::Open(inFileName);

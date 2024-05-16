@@ -27,13 +27,13 @@ ClassImp(HistoManagerDiJet)
 HistoManagerDiJet::HistoManagerDiJet() :
   fIsMc{kFALSE}, 
 //   fCentBins{10}, fCentRange{-10., 90.},
-  fPtBins{50}, fPtRange{20., 520.}, 
-  fEtaBins{50}, fEtaRange{-5.0, 5.0},
+  fPtBins{150}, fPtRange{20., 1520.}, 
+  fEtaBins{52}, fEtaRange{-5.2, 5.2},
   fPhiBins{16}, fPhiRange{-TMath::Pi(), TMath::Pi()},
   fDijetPtBins{194}, fDijetPtRange{30., 1000.},
   fDijetEtaBins{50}, fDijetEtaRange{-5.0, 5.0},
   fDijetDphiBins{16}, fDijetDphiRange{-TMath::Pi(), TMath::Pi()},
-  fPtHatBins{60}, fPtHatRange{15., 615.},
+  fPtHatBins{100}, fPtHatRange{15., 1015.},
   
   hVz{nullptr}, hVzWeighted{nullptr}, hMult{nullptr},
   hHiBin{nullptr}, hHiBinWeighted{nullptr},
