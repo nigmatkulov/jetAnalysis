@@ -47,15 +47,30 @@ void rescaleEta(TH1* h) {
 }
 
 //________________
-void setPadStyle() {
-    gPad->SetTopMargin(0.05);
-    gPad->SetBottomMargin(0.15);
-    gPad->SetRightMargin(0.13);
-    gPad->SetLeftMargin(0.15);
+void rescaleEta(TH2* h) {
+    for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++) {
+        for (Int_t jBin=1; jBin<=h->GetNbinsY(); jBin++) {
+            Double_t val = h->GetBinContent( iBin, jBin );
+            Double_t valErr = h->GetBinError( iBin, jBin );
+            Double_t binWidthX = h->GetXaxis()->GetBinWidth( iBin );
+            Double_t binWidthY = h->GetYaxis()->GetBinWidth( jBin );
+            h->SetBinContent( iBin, jBin, val / (binWidthX * binWidthY) );
+            h->SetBinError( iBin, jBin, valErr / (binWidthX * binWidthY) );
+        } // for (Int_t jBin=1; jBin<=h->GetNbinsY(); jBin++)
+    }
+    h->Scale( 1. / h->Integral() );
 }
 
 //________________
-void set1DStyle(TH1 *h, Int_t type = 0) {
+void setPadStyle() {
+    gPad->SetTopMargin(0.05);
+    gPad->SetBottomMargin(0.15);
+    gPad->SetRightMargin(0.1);
+    gPad->SetLeftMargin(0.20);
+}
+
+//________________
+void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
     Double_t markerSize = 1.2;
     Int_t lineWidth = 2;
@@ -100,11 +115,13 @@ void set1DStyle(TH1 *h, Int_t type = 0) {
     h->GetYaxis()->SetNdivisions(208);    
     h->GetYaxis()->SetTitleOffset(1.0);
 
-    h->Scale( 1./h->Integral() );
+    if ( doRenorm ) {
+        h->Scale( 1./h->Integral() );
+    }
 }
 
 //________________
-void set2DStyle(TH2* h) {
+void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
     h->GetYaxis()->SetTitleSize(0.06);
     h->GetYaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetTitleSize(0.06);
@@ -113,7 +130,10 @@ void set2DStyle(TH2* h) {
     h->GetYaxis()->SetNdivisions(208);    
     h->GetYaxis()->SetTitleOffset(1.0);
 
-    h->Scale( 1./( 1 * h->Integral() ) );
+    if ( doRenorm ) {
+        h->Scale( 1./ h->Integral() );
+    }
+    
 }
 
 //________________
@@ -579,6 +599,134 @@ void unfoldDifferentPtHat(TFile *inFile, TFile *inFilePtHat, Int_t ptHat, TStrin
 //________________
 void plotDijetDistributions(TFile *inFile, TString date) {
 
+    // Retrieve THnSparse for reco 2 ref
+    THnSparseD *hReco2RefDijet = (THnSparseD*)inFile->Get("hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted");
+    hReco2RefDijet->SetName("hReco2RefDijet");
+    // Retrieve THnSparse for reco 2 ref with selection on ref
+    THnSparseD *hRefSelReco2RefDijet = (THnSparseD*)inFile->Get("hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted");
+    hRefSelReco2RefDijet->SetName("hRefSelReco2RefDijet");
+    // Retrieve THnSparse for gen
+    THnSparseD *hGenDijet = (THnSparseD*)inFile->Get("hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted");
+    hGenDijet->SetName("hGenDijet");
+
+    // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
+    //                                        90., 100.,  110., 120., 130.,
+    //                                       140., 150.,  160., 180., 200., 
+    //                                       240., 300., 1000.};
+    // fDijetPtBins{194}, fDijetPtRange{30., 1000.}
+
+
+    // Dijet pT selection
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+
+    // fPtBins{150}, fPtRange{20., 1520.}
+
+    // Leading jet pT selection (> 50 GeV/c)
+    std::vector<Int_t> ptLeadLow{4};  
+    std::vector<Int_t> ptLeadHi{150};
+
+    // SubLeading jet pT selection (> 30 GeV/c)
+    std::vector<Int_t> ptSubLeadLow{2};
+    std::vector<Int_t> ptSubLeadHi{150};
+
+    //
+    // Create canvases to fill
+    //
+
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 900);
+    TCanvas *cRefVsReco = new TCanvas("cRefVsReco", "cRefVsReco", 1600, 800);
+    cRefVsReco->Divide( 5, ( (ptDijetLow.size() % 5) == 0 ) ? (ptDijetLow.size() / 5) : (ptDijetLow.size() / 5 + 1) );
+    TCanvas *cEtaComp = new TCanvas("cEtaComp", "cEtaComp", 1600, 800);
+    cEtaComp->Divide( 5, ( (ptDijetLow.size() % 5) == 0 ) ? (ptDijetLow.size() / 5) : (ptDijetLow.size() / 5 + 1) );
+
+    //
+    // Apply leading and subleading jet pT selection
+    //
+
+    // Reco leading jet pT
+    hReco2RefDijet->GetAxis(2)->SetRange( ptLeadLow.at(0), ptLeadHi.at(0) );
+    // Reco subleading jet pT
+    hReco2RefDijet->GetAxis(4)->SetRange( ptSubLeadLow.at(0), ptSubLeadHi.at(0) );
+
+    // Reco leading jet pT
+    hRefSelReco2RefDijet->GetAxis(2)->SetRange( ptLeadLow.at(0), ptLeadHi.at(0) );
+    // Reco subleading jet pT
+    hRefSelReco2RefDijet->GetAxis(4)->SetRange( ptSubLeadLow.at(0), ptSubLeadHi.at(0) );
+
+    // Gen leading jet pT
+    hGenDijet->GetAxis(3)->SetRange( ptLeadLow.at(0), ptLeadHi.at(0) );
+    // Gen subleading jet pT
+    hGenDijet->GetAxis(6)->SetRange( ptSubLeadLow.at(0), ptSubLeadHi.at(0) );
+
+    //
+    // Create histograms with projection
+    //
+
+    TH1D *hRecoDijetEta[ ptDijetLow.size() ];
+    TH1D *hRefDijetEta[ ptDijetLow.size() ];
+    TH1D *hRefSelRefDijetEta[ ptDijetLow.size() ];
+    TH2D *hRef2RecoDijetEta[ ptDijetLow.size() ];
+    TH1D *hGenDijetEta[ ptDijetLow.size() ];
+
+    Int_t recoType{0};
+    Int_t refType{1};
+    Int_t genType{3};
+    Int_t refSelType{2};
+
+    // Loop over dijet pT bins
+    for (Int_t i=0; i<ptDijetLow.size(); i++) {
+
+        std::cout << "Working on bin: " << i << std::endl;
+        // Set dijet pT selection
+        
+        // Reco dijet pT
+        hReco2RefDijet->GetAxis(0)->SetRange( ptDijetLow.at(i), ptDijetHi.at(i) );
+        // Reco dijet pT
+        hRefSelReco2RefDijet->GetAxis(0)->SetRange( ptDijetLow.at(i), ptDijetHi.at(i) );
+        // Gen dijet pT
+        hGenDijet->GetAxis(0)->SetRange( ptDijetLow.at(i), ptDijetHi.at(i) );
+
+        // Make 1D and 2D projections
+
+        hRecoDijetEta[i] = (TH1D*)hReco2RefDijet->Projection(1);
+        hRecoDijetEta[i]->SetNameTitle( Form("hRecoDijetEta_%d", i), ";#eta^{dijet};1/N dN/d#eta^{dijet}");
+        hRefDijetEta[i] = (TH1D*)hReco2RefDijet->Projection(7);
+        hRefDijetEta[i]->SetNameTitle( Form("hRefDijetEta_%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
+        hRefSelRefDijetEta[i] = (TH1D*)hRefSelReco2RefDijet->Projection(7);
+        hRefSelRefDijetEta[i]->SetNameTitle( Form("hRefSelRefDijetEta_%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
+        hRef2RecoDijetEta[i] = (TH2D*)hReco2RefDijet->Projection(7, 1);
+        hRef2RecoDijetEta[i]->SetNameTitle( Form("hRef2RecoDijetEta_%d", i),";#eta^{dijet}_{reco};#eta^{dijet}_{ref}" );
+        hGenDijetEta[i] = (TH1D*)hGenDijet->Projection(1);
+        hGenDijetEta[i]->SetNameTitle( Form("hGenDijetEta%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
+
+        // Rescale eta distributions
+        rescaleEta( hRecoDijetEta[i] );
+        rescaleEta( hRefDijetEta[i] );
+        rescaleEta( hRefSelRefDijetEta[i] );
+        rescaleEta( hGenDijetEta[i] );
+
+        rescaleEta( hRef2RecoDijetEta[i] );
+
+        // Set style
+        set1DStyle( hRecoDijetEta[i], recoType );
+        set1DStyle( hRefDijetEta[i], refType );
+        set1DStyle( hRefSelRefDijetEta[i], refSelType );
+        set1DStyle( hGenDijetEta[i], genType );
+
+        set2DStyle( hRef2RecoDijetEta[i] );
+
+        canv->cd();
+        setPadStyle();
+        hRecoDijetEta[i]->Draw();
+        hRefDijetEta[i]->Draw("same");
+        hRefSelRefDijetEta[i]->Draw("same");
+        hGenDijetEta[i]->Draw("same");
+        //hRecoDijetEta[i]->GetYaxis()->SetRangeUser(0., 0.1);
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_%d.pdf", date.Data(), i) );
+    } // for (Int_t i=0; i<dijetPtLow.size(); i++)
 }
 
 //________________
@@ -598,7 +746,7 @@ void unfoldDistributions() {
         createDirectory( date.Data() );
     }
     
-    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing.root";
+    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_akCs4.root";
     TFile *inFile = TFile::Open(inFileName);
 
     Int_t ptHat = 50; // 50, 120, 370
@@ -609,7 +757,10 @@ void unfoldDistributions() {
     //performUnfolding(inFile, date);
 
     // Run 1D unfolding with semi-automated regime
-    unfoldDijetEta1D(inFile, date);
+    //unfoldDijetEta1D(inFile, date);
+
+    // Plot various dijet distributions
+    plotDijetDistributions(inFile, date);
 
     // Run 1D unfolding for ptHat distributions with the response matrix
     // for total ptHat
