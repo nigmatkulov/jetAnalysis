@@ -3,12 +3,15 @@
 #include "TCanvas.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TH3.h"
 #include "TString.h"
 #include "TLegend.h"
 #include "TStyle.h"
 #include "THnSparse.h"
 #include "TSystemDirectory.h"
 #include <sys/stat.h>
+#include "TLine.h"
+#include "TLatex.h"
 
 // RooUnfold
 #include "RooUnfoldResponse.h"
@@ -63,16 +66,16 @@ void rescaleEta(TH2* h) {
 
 //________________
 void setPadStyle() {
-    gPad->SetTopMargin(0.05);
+    gPad->SetTopMargin(0.1);
     gPad->SetBottomMargin(0.15);
     gPad->SetRightMargin(0.1);
-    gPad->SetLeftMargin(0.20);
+    gPad->SetLeftMargin(0.15);
 }
 
 //________________
 void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
-    Double_t markerSize = 1.2;
+    Double_t markerSize = 1.1;
     Int_t lineWidth = 2;
     Int_t color = 2;
     if (type == 0) {
@@ -113,7 +116,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     h->GetXaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetNdivisions(208);
     h->GetYaxis()->SetNdivisions(208);    
-    h->GetYaxis()->SetTitleOffset(1.0);
+    h->GetYaxis()->SetTitleOffset(1.1);
 
     if ( doRenorm ) {
         h->Scale( 1./h->Integral() );
@@ -128,7 +131,7 @@ void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
     h->GetXaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetNdivisions(208);
     h->GetYaxis()->SetNdivisions(208);    
-    h->GetYaxis()->SetTitleOffset(1.0);
+    h->GetYaxis()->SetTitleOffset(1.1);
 
     if ( doRenorm ) {
         h->Scale( 1./ h->Integral() );
@@ -488,7 +491,7 @@ void unfoldDijetEta1D(TFile *inFile, TString date) {
     // Reco and ref
     TH1D *hRecoDijetEta = (TH1D*)hReco2RefDijet->Projection(1);
     TH1D *hRefDijetEta = (TH1D*)hReco2RefDijet->Projection(7);
-    TH1D *hRefSelRefDijetEta = (TH1D*)hRefSelReco2RefDijet->Projection(7); // Test with ref selection
+    TH1D *hRefSelDijetEta = (TH1D*)hRefSelReco2RefDijet->Projection(7); // Test with ref selection
 
     TH2D *hRef2RecoDijetEta = (TH2D*)hReco2RefDijet->Projection(7, 1);
     // Gen
@@ -609,6 +612,11 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     THnSparseD *hGenDijet = (THnSparseD*)inFile->Get("hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted");
     hGenDijet->SetName("hGenDijet");
 
+    TH3D *hGenDijetPtEtaDphi = (TH3D*)inFile->Get("hGenDijetPtEtaDphi");
+    TH3D *hRecoDijetPtEtaDphi = (TH3D*)inFile->Get("hRecoDijetPtEtaDphi");
+    TH3D *hRefDijetPtEtaDphi = (TH3D*)inFile->Get("hRefDijetPtEtaDphi");
+    TH3D *hRefSelDijetPtEtaDphi = (TH3D*)inFile->Get("hRefSelDijetPtEtaDphi");
+
     // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
     //                                        90., 100.,  110., 120., 130.,
     //                                       140., 150.,  160., 180., 200., 
@@ -643,6 +651,8 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     cRefVsReco->Divide( 5, ( (ptDijetLow.size() % 5) == 0 ) ? (ptDijetLow.size() / 5) : (ptDijetLow.size() / 5 + 1) );
     TCanvas *cEtaComp = new TCanvas("cEtaComp", "cEtaComp", 1600, 800);
     cEtaComp->Divide( 5, ( (ptDijetLow.size() % 5) == 0 ) ? (ptDijetLow.size() / 5) : (ptDijetLow.size() / 5 + 1) );
+    TCanvas *cEtaRatComp = new TCanvas("cEtaRatComp", "cEtaRatComp", 1600, 800);
+    cEtaRatComp->Divide( 5, ( (ptDijetLow.size() % 5) == 0 ) ? (ptDijetLow.size() / 5) : (ptDijetLow.size() / 5 + 1) );
 
     //
     // Apply leading and subleading jet pT selection
@@ -669,18 +679,33 @@ void plotDijetDistributions(TFile *inFile, TString date) {
 
     TH1D *hRecoDijetEta[ ptDijetLow.size() ];
     TH1D *hRefDijetEta[ ptDijetLow.size() ];
-    TH1D *hRefSelRefDijetEta[ ptDijetLow.size() ];
+    TH1D *hRefSelDijetEta[ ptDijetLow.size() ];
     TH2D *hRef2RecoDijetEta[ ptDijetLow.size() ];
     TH1D *hGenDijetEta[ ptDijetLow.size() ];
+
+    TH1D *hRecoDijetEtaPure[ ptDijetLow.size() ];
+    TH1D *hRefDijetEtaPure[ ptDijetLow.size() ];
+    TH1D *hRefSelDijetEtaPure[ ptDijetLow.size() ];
+    TH1D *hGenDijetEtaPure[ ptDijetLow.size() ];
 
     TH1D *hReco2GenDijetEta[ ptDijetLow.size() ];
     TH1D *hRef2GenDijetEta[ ptDijetLow.size() ];
     TH1D *hRefSel2GenDijetEta[ ptDijetLow.size() ];
 
+    TLegend *leg[ ptDijetLow.size() ];
+    TLegend *leg2[ ptDijetLow.size() ];
+    TLegend *leg3[ ptDijetLow.size() ];
+    TLine   *line[ ptDijetLow.size() ];
+    TLine   *line2[ ptDijetLow.size() ];
+
     Int_t recoType{0};
     Int_t refType{1};
     Int_t genType{3};
     Int_t refSelType{2};
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
 
     // Loop over dijet pT bins
     for (Int_t i=0; i<ptDijetLow.size(); i++) {
@@ -701,37 +726,64 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRecoDijetEta[i]->SetNameTitle( Form("hRecoDijetEta_%d", i), ";#eta^{dijet};1/N dN/d#eta^{dijet}");
         hRefDijetEta[i] = (TH1D*)hReco2RefDijet->Projection(7);
         hRefDijetEta[i]->SetNameTitle( Form("hRefDijetEta_%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
-        hRefSelRefDijetEta[i] = (TH1D*)hRefSelReco2RefDijet->Projection(7);
-        hRefSelRefDijetEta[i]->SetNameTitle( Form("hRefSelRefDijetEta_%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
+        hRefSelDijetEta[i] = (TH1D*)hRefSelReco2RefDijet->Projection(7);
+        hRefSelDijetEta[i]->SetNameTitle( Form("hRefSelDijetEta_%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
         hRef2RecoDijetEta[i] = (TH2D*)hReco2RefDijet->Projection(7, 1);
         hRef2RecoDijetEta[i]->SetNameTitle( Form("hRef2RecoDijetEta_%d", i),";#eta^{dijet}_{reco};#eta^{dijet}_{ref}" );
         hGenDijetEta[i] = (TH1D*)hGenDijet->Projection(1);
         hGenDijetEta[i]->SetNameTitle( Form("hGenDijetEta%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
 
+        hRecoDijetEtaPure[i] = (TH1D*)hRecoDijetPtEtaDphi->ProjectionY( Form("hRecoDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        hRecoDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        hRefDijetEtaPure[i] = (TH1D*)hRefDijetPtEtaDphi->ProjectionY( Form("hRefDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        hRefDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        hRefSelDijetEtaPure[i] = (TH1D*)hRefSelDijetPtEtaDphi->ProjectionY( Form("hRefSelDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        hRefSelDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        hGenDijetEtaPure[i] = (TH1D*)hGenDijetPtEtaDphi->ProjectionY( Form("hGenDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        hGenDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+
         // Rescale eta distributions
         rescaleEta( hRecoDijetEta[i] );
         rescaleEta( hRefDijetEta[i] );
-        rescaleEta( hRefSelRefDijetEta[i] );
+        rescaleEta( hRefSelDijetEta[i] );
         rescaleEta( hGenDijetEta[i] );
+
+        rescaleEta( hRecoDijetEtaPure[i] );
+        rescaleEta( hRefDijetEtaPure[i] );
+        rescaleEta( hRefSelDijetEtaPure[i] );
+        rescaleEta( hGenDijetEtaPure[i] );
 
         rescaleEta( hRef2RecoDijetEta[i] );
 
         // Create ratios of reco, ref and refSel to gen
-        hReco2GenDijetEta[i] = (TH1D*)hRecoDijetEta[i]->Clone( Form("hReco2GenDijetEta_%d", i) );
-        hReco2GenDijetEta[i]->Sumw2();
-        hReco2GenDijetEta[i]->Divide(hRecoDijetEta[i], hGenDijetEta[i], 1., 1., "b");
-        hRef2GenDijetEta[i] = (TH1D*)hRefDijetEta[i]->Clone( Form("hRef2GenDijetEta_%d", i) );
-        hRef2GenDijetEta[i]->Sumw2();
-        hRef2GenDijetEta[i]->Divide(hRef2GenDijetEta[i], hGenDijetEta[i], 1., 1., "b");
-        hRefSel2GenDijetEta[i] = (TH1D*)hRefSelRefDijetEta[i]->Clone( Form("hRefSel2GenDijetEta_%d", i) );
-        hRefSel2GenDijetEta[i]->Sumw2();
-        hRefSel2GenDijetEta[i]->Divide( hRefSel2GenDijetEta[i], hGenDijetEta[i], 1., 1., "b");
+
+        // hReco2GenDijetEta[i] = (TH1D*)hRecoDijetEta[i]->Clone( Form("hReco2GenDijetEta_%d", i) );
+        // hReco2GenDijetEta[i]->Divide(hRecoDijetEta[i], hGenDijetEta[i], 1., 1., "b");
+        // hRef2GenDijetEta[i] = (TH1D*)hRefDijetEta[i]->Clone( Form("hRef2GenDijetEta_%d", i) );
+        // hRef2GenDijetEta[i]->Divide(hRef2GenDijetEta[i], hGenDijetEta[i], 1., 1., "b");
+        // hRefSel2GenDijetEta[i] = (TH1D*)hRefSelDijetEta[i]->Clone( Form("hRefSel2GenDijetEta_%d", i) );
+        // hRefSel2GenDijetEta[i]->Divide( hRefSel2GenDijetEta[i], hGenDijetEta[i], 1., 1., "b");
+
+        hReco2GenDijetEta[i] = (TH1D*)hRecoDijetEtaPure[i]->Clone( Form("hReco2GenDijetEta_%d", i) );
+        hReco2GenDijetEta[i]->Divide(hRecoDijetEta[i], hGenDijetEtaPure[i], 1., 1., "b");
+        hReco2GenDijetEta[i]->GetYaxis()->SetTitle("Ratio to Gen");
+        hRef2GenDijetEta[i] = (TH1D*)hRefDijetEtaPure[i]->Clone( Form("hRef2GenDijetEta_%d", i) );
+        hRef2GenDijetEta[i]->Divide(hRef2GenDijetEta[i], hGenDijetEtaPure[i], 1., 1., "b");
+        hRef2GenDijetEta[i]->GetYaxis()->SetTitle("Ratio to Gen");
+        hRefSel2GenDijetEta[i] = (TH1D*)hRefSelDijetEtaPure[i]->Clone( Form("hRefSel2GenDijetEta_%d", i) );
+        hRefSel2GenDijetEta[i]->Divide( hRefSel2GenDijetEta[i], hGenDijetEtaPure[i], 1., 1., "b");
+        hRefSel2GenDijetEta[i]->GetYaxis()->SetTitle("Ratio to Gen");
 
         // Set style
         set1DStyle( hRecoDijetEta[i], recoType );
         set1DStyle( hRefDijetEta[i], refType );
-        set1DStyle( hRefSelRefDijetEta[i], refSelType );
+        set1DStyle( hRefSelDijetEta[i], refSelType );
         set1DStyle( hGenDijetEta[i], genType );
+
+        set1DStyle( hRecoDijetEtaPure[i], recoType );
+        set1DStyle( hRefDijetEtaPure[i], refType );
+        set1DStyle( hRefSelDijetEtaPure[i], refSelType );
+        set1DStyle( hGenDijetEtaPure[i], genType );
 
         set1DStyle( hReco2GenDijetEta[i], recoType );
         set1DStyle( hRef2GenDijetEta[i], refType );
@@ -743,15 +795,34 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         canv->cd();
         setPadStyle();
         hRef2RecoDijetEta[i]->Draw("colz");
-        canv->SaveAs( Form("%s/pPb8160_eta_RefVsReco_%d.pdf", date.Data(), i) );
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        canv->SaveAs( Form("%s/pPb8160_eta_RefVsReco_pT_%d_%d.pdf", date.Data(), 
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
 
         // 1D projections
         canv2->cd(1);
         setPadStyle();
-        hRecoDijetEta[i]->Draw();
-        hRefDijetEta[i]->Draw("same");
-        hRefSelRefDijetEta[i]->Draw("same");
-        hGenDijetEta[i]->Draw("same");
+        // hRecoDijetEta[i]->Draw();
+        // hRefDijetEta[i]->Draw("same");
+        // hRefSelDijetEta[i]->Draw("same");
+        // hGenDijetEta[i]->Draw("same");
+
+        hRecoDijetEtaPure[i]->Draw();
+        hRefDijetEtaPure[i]->Draw("same");
+        hRefSelDijetEtaPure[i]->Draw("same");
+        hGenDijetEtaPure[i]->Draw("same");
+
+        leg[i] = new TLegend(0.75, 0.65, 0.83, 0.87);
+        leg[i]->SetLineWidth(0);
+        leg[i]->AddEntry(hRecoDijetEta[i],Form("Reco"), "p");
+        leg[i]->AddEntry(hRefDijetEta[i],Form("Ref"), "p");
+        leg[i]->AddEntry(hRefSelDijetEta[i],Form("RefSel"), "p");
+        leg[i]->AddEntry(hGenDijetEta[i],Form("Gen"), "p");
+        leg[i]->SetTextSize(0.05);
+        leg[i]->Draw();
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
 
         canv2->cd(2);
         setPadStyle();
@@ -759,8 +830,74 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRef2GenDijetEta[i]->Draw("same");
         hRefSel2GenDijetEta[i]->Draw("same");
         hReco2GenDijetEta[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
-        canv2->SaveAs( Form("%s/pPb8160_etaDijet_%d.pdf", date.Data(), i) );
+        leg2[i] = new TLegend(0.4, 0.65, 0.6, 0.87);
+        leg2[i]->SetLineWidth(0);
+        leg2[i]->AddEntry(hReco2GenDijetEta[i],Form("Reco/Gen"), "p");
+        leg2[i]->AddEntry(hRef2GenDijetEta[i],Form("Ref/Gen"), "p");
+        leg2[i]->AddEntry(hRefSel2GenDijetEta[i],Form("RefSel/Gen"), "p");
+        leg2[i]->SetTextSize(0.05);
+        leg2[i]->Draw();
+        line[i] = new TLine(hReco2GenDijetEta[i]->GetXaxis()->GetBinLowEdge(1), 1., 
+                            hReco2GenDijetEta[i]->GetXaxis()->GetBinUpEdge(hReco2GenDijetEta[i]->GetNbinsX()), 1.);
+        line[i]->SetLineColor(kMagenta);
+        line[i]->SetLineWidth(3);
+        line[i]->SetLineStyle(3);
+        line[i]->Draw();
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        canv2->SaveAs( Form("%s/pPb8160_etaDijet_pt_%d_%d.pdf", date.Data(), 
+                       ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+
+        // Fill all 2D distributions
+        cRefVsReco->cd(i+1);
+        setPadStyle();
+        hRef2RecoDijetEta[i]->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+
+        cEtaComp->cd(i+1);
+        setPadStyle();
+        hRecoDijetEta[i]->Draw();
+        hRefDijetEta[i]->Draw("same");
+        hRefSelDijetEta[i]->Draw("same");
+        hGenDijetEta[i]->Draw("same");
+        leg[i] = new TLegend(0.75, 0.65, 0.83, 0.87);
+        leg[i]->SetLineWidth(0);
+        leg[i]->AddEntry(hRecoDijetEta[i],Form("Reco"), "p");
+        leg[i]->AddEntry(hRefDijetEta[i],Form("Ref"), "p");
+        leg[i]->AddEntry(hRefSelDijetEta[i],Form("RefSel"), "p");
+        leg[i]->AddEntry(hGenDijetEta[i],Form("Gen"), "p");
+        leg[i]->SetTextSize(0.05);
+        leg[i]->Draw();
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+
+        cEtaRatComp->cd(i+1);
+        setPadStyle();
+        hReco2GenDijetEta[i]->Draw();
+        hRef2GenDijetEta[i]->Draw("same");
+        hRefSel2GenDijetEta[i]->Draw("same");
+        hReco2GenDijetEta[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
+        leg3[i] = new TLegend(0.4, 0.65, 0.6, 0.87);
+        leg3[i]->SetLineWidth(0);
+        leg3[i]->AddEntry(hReco2GenDijetEta[i],Form("Reco/Gen"), "p");
+        leg3[i]->AddEntry(hRef2GenDijetEta[i],Form("Ref/Gen"), "p");
+        leg3[i]->AddEntry(hRefSel2GenDijetEta[i],Form("RefSel/Gen"), "p");
+        leg3[i]->SetTextSize(0.05);
+        leg3[i]->Draw();
+        line2[i] = new TLine(hReco2GenDijetEta[i]->GetXaxis()->GetBinLowEdge(1), 1., 
+                            hReco2GenDijetEta[i]->GetXaxis()->GetBinUpEdge(hReco2GenDijetEta[i]->GetNbinsX()), 1.);
+        line2[i]->SetLineColor(kMagenta);
+        line2[i]->SetLineWidth(3);
+        line2[i]->SetLineStyle(3);
+        line2[i]->Draw();
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
     } // for (Int_t i=0; i<dijetPtLow.size(); i++)
+
+    cRefVsReco->SaveAs( Form("%s/pPb8160_eta_RefVsReco_all.pdf", date.Data()) );
+    cEtaComp->SaveAs( Form("%s/pPb8160_eta_all.pdf", date.Data()) );
+    cEtaRatComp->SaveAs( Form("%s/pPb8160_etaRatios_all.pdf", date.Data()) );
 }
 
 //________________

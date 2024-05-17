@@ -58,21 +58,18 @@ void setStyle() {
 
 //________________
 void setPadStyle() {
-    gPad->SetTopMargin(0.05);
+    gPad->SetTopMargin(0.1);
     gPad->SetBottomMargin(0.15);
-    gPad->SetRightMargin(0.13);
+    gPad->SetRightMargin(0.1);
     gPad->SetLeftMargin(0.15);
 }
 
 //________________
 void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
-    Double_t markerSize = 1.2;
+    Double_t markerSize = 1.1;
     Int_t lineWidth = 2;
     Int_t color = 2;
-    if ( !h ) {
-        std::cout << "[ERROR] set1DStyle - No histogram passed\n";
-    }
     if (type == 0) {
         color = 2;
         markerStyle = 20;
@@ -98,8 +95,8 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
         markerStyle = 30;
     }
 
-    h->SetLineColor( color );
     h->SetLineWidth( lineWidth );
+    h->SetLineColor( color );
     
     h->SetMarkerStyle( markerStyle );
     h->SetMarkerColor( color );
@@ -111,7 +108,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     h->GetXaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetNdivisions(208);
     h->GetYaxis()->SetNdivisions(208);    
-    h->GetYaxis()->SetTitleOffset(1.0);
+    h->GetYaxis()->SetTitleOffset(1.1);
 
     if ( doRenorm ) {
         h->Scale( 1./h->Integral() );
@@ -126,11 +123,12 @@ void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
     h->GetXaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetNdivisions(208);
     h->GetYaxis()->SetNdivisions(208);    
-    h->GetYaxis()->SetTitleOffset(1.0);
+    h->GetYaxis()->SetTitleOffset(1.1);
 
-    if (doRenorm) {
-        h->Scale( 1./h->Integral() );
+    if ( doRenorm ) {
+        h->Scale( 1./ h->Integral() );
     }
+    
 }
 
 //________________
@@ -142,6 +140,21 @@ void rescaleEta(TH1* h) {
         h->SetBinContent( iBin, val / binWidth );
         h->SetBinError( iBin, valErr / binWidth );
     }
+    h->Scale( 1. / h->Integral() );
+}
+
+//________________
+void rescaleEta(TH2* h) {
+    for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++) {
+        for (Int_t jBin=1; jBin<=h->GetNbinsY(); jBin++) {
+            Double_t val = h->GetBinContent( iBin, jBin );
+            Double_t valErr = h->GetBinError( iBin, jBin );
+            Double_t binWidthX = h->GetXaxis()->GetBinWidth( iBin );
+            Double_t binWidthY = h->GetYaxis()->GetBinWidth( jBin );
+            h->SetBinContent( iBin, jBin, val / (binWidthX * binWidthY) );
+            h->SetBinError( iBin, jBin, valErr / (binWidthX * binWidthY) );
+        } // for (Int_t jBin=1; jBin<=h->GetNbinsY(); jBin++)
+    } // for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++)
     h->Scale( 1. / h->Integral() );
 }
 
@@ -573,6 +586,8 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
     TH1D *hEtaUnmatched[fPtBins];
     TH1D *hPtUnmatched[fEtaBins];
 
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 900);
+
     TCanvas *cEtaFakes = new TCanvas("cEtaFakes", "cEtaFakes", 1600, 800);
     cEtaFakes->Divide(5, ( (fPtBins % 5) == 0 ) ? (fPtBins / 5) : (fPtBins / 5 + 1) );
 
@@ -594,17 +609,33 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
 
         hEtaUnmatched[i] = (TH1D*)hRecoUnmatchedJetFrac->ProjectionX(Form("hEtaUnmatched_%d", i), i, i);
         hEtaUnmatched[i]->SetNameTitle(Form("hEtaUnmatched_%d", i), ";#eta;Efficiency");
-        set1DStyle(hEtaUnmatched[i], 4);
+        set1DStyle(hEtaUnmatched[i], 2);
         hEtaUnmatched[i]->SetMarkerSize(0.7);
 
         cEtaFakes->cd(i);
         setPadStyle();
-        hEtaFakes[i]->Draw();
-        hEtaUnmatched[i]->Draw("same");
+        //hEtaFakes[i]->Draw();
+        hEtaUnmatched[i]->Draw();
         hEtaMatched[i]->Draw("same");
-        hEtaFakes[i]->GetYaxis()->SetRangeUser(0., 1.05);
-        t.DrawLatexNDC(0.35, 0.95, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
+        hEtaUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
+        t.DrawLatexNDC(0.35, 0.93, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
                        fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep) );
+
+        canv->cd();
+        setPadStyle();
+        hEtaUnmatched[i]->Draw();
+        hEtaMatched[i]->Draw("same");
+        hEtaUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
+        TLegend *leg = new TLegend(0.6, 0.7, 0.8, 0.85);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaUnmatched[i],Form("Fakes"), "p");
+        leg->AddEntry(hEtaMatched[i],Form("Matched"), "p");
+        leg->SetTextSize(0.05);
+        leg->Draw();
+        t.DrawLatexNDC(0.35, 0.93, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
+                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep) );
+        //gPad->SetLogy();
+        canv->SaveAs(Form("%s/pPb8160_eta_fakes_%d.pdf", date.Data(), i) );
     } // for (Int_t i{1}; i<=fPtBins; i++)
 
     // Make projections bin-by-bin on pT
@@ -613,32 +644,46 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
         hPtFakes[i] = (TH1D*)hRecoFakeJetFrac->ProjectionY(Form("hPtFakes_%d", i), i, i);
         hPtFakes[i]->SetNameTitle(Form("hPtFakes_%d", i), ";p_{T} (GeV/c);Efficiency");
         set1DStyle(hPtFakes[i], 2);
-        hPtFakes[i]->SetMarkerSize(0.7);
+        //hPtFakes[i]->SetMarkerSize(0.7);
 
         hPtMatched[i] = (TH1D*)hRecoMatchedJetFrac->ProjectionY(Form("hPtMatched_%d", i), i, i);
         hPtMatched[i]->SetNameTitle(Form("hPtMatched_%d", i), ";p_{T} (GeV/c);Efficiency");
         set1DStyle(hPtMatched[i], 1);
-        hPtMatched[i]->SetMarkerSize(0.7);
+        //hPtMatched[i]->SetMarkerSize(0.7);
 
         hPtUnmatched[i] = (TH1D*)hRecoUnmatchedJetFrac->ProjectionY(Form("hPtUnmatched_%d", i), i, i);
-        hPtUnmatched[i]->SetNameTitle(Form("hPtUnmatched_%d", i), ";#eta;Efficiency");
-        set1DStyle(hPtUnmatched[i], 4);
-        hPtUnmatched[i]->SetMarkerSize(0.7);
+        hPtUnmatched[i]->SetNameTitle(Form("hPtUnmatched_%d", i), ";p_{T} (GeV/c);Efficiency");
+        set1DStyle(hPtUnmatched[i], 2);
+        //hPtUnmatched[i]->SetMarkerSize(0.7);
 
         cPtFakes->cd(i);
         setPadStyle();
         hPtUnmatched[i]->Draw();
-        hPtFakes[i]->Draw("same");
-        //hPtUnmatched[i]->Draw("same");
+        //hPtFakes[i]->Draw("same");
         hPtMatched[i]->Draw("same");
         hPtUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
         //hPtFakes[i]->GetYaxis()->SetRangeUser(0., 1.05);
-        t.DrawLatexNDC(0.35, 0.95, Form("%2.1f < #eta < %2.1f", 
+        t.DrawLatexNDC(0.35, 0.93, Form("%2.1f < #eta < %2.1f", 
                        fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
+
+        canv->cd();
+        setPadStyle();
+        hPtUnmatched[i]->Draw();
+        hPtMatched[i]->Draw("same");
+        hPtUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
+        TLegend *leg = new TLegend(0.6, 0.7, 0.8, 0.85);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hPtUnmatched[i],Form("Fakes"), "p");
+        leg->AddEntry(hPtMatched[i],Form("Matched"), "p");
+        leg->SetTextSize(0.05);
+        leg->Draw();
+        t.DrawLatexNDC(0.35, 0.93, Form("%2.1f < #eta < %2.1f", 
+                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
+        canv->SaveAs(Form("%s/pPb8160_pt_fakes_%d.pdf", date.Data(), i) );
     }
 
     cEtaFakes->SaveAs( Form("%s/pPb8160_eta_fakes_projections.pdf", date.Data()) );
-    cPtFakes->SaveAs( Form("%s/pPb8160Sure_pt_fakes_projections.pdf", date.Data()) );
+    cPtFakes->SaveAs( Form("%s/pPb8160_pt_fakes_projections.pdf", date.Data()) );
 }
 
 //________________
@@ -673,13 +718,13 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //compareInclusiveJetPtSpectra(inFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
-    plotEfficiency(inFile, date);
+    //plotEfficiency(inFile, date);
 
     // Plot dijet distributions
     //plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
-    //plotRecoAndFakes(inFile, date);
+    plotRecoAndFakes(inFile, date);
 
     // Plot correlation between ref and reco dijet eta
     //plotEtaDijetCorrelation(inFile, date);
