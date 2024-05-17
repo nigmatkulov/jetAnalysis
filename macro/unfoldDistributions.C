@@ -42,7 +42,7 @@ void rescaleEta(TH1* h) {
         Double_t binWidth = h->GetBinWidth( iBin );
         h->SetBinContent( iBin, val / binWidth );
         h->SetBinError( iBin, valErr / binWidth );
-    }
+    } // for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++)
     h->Scale( 1. / h->Integral() );
 }
 
@@ -57,7 +57,7 @@ void rescaleEta(TH2* h) {
             h->SetBinContent( iBin, jBin, val / (binWidthX * binWidthY) );
             h->SetBinError( iBin, jBin, valErr / (binWidthX * binWidthY) );
         } // for (Int_t jBin=1; jBin<=h->GetNbinsY(); jBin++)
-    }
+    } // for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++)
     h->Scale( 1. / h->Integral() );
 }
 
@@ -637,6 +637,8 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     //
 
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 900);
+    TCanvas *canv2 = new TCanvas("canv2", "canv2", 600, 1200);
+    canv2->Divide(1, 2);
     TCanvas *cRefVsReco = new TCanvas("cRefVsReco", "cRefVsReco", 1600, 800);
     cRefVsReco->Divide( 5, ( (ptDijetLow.size() % 5) == 0 ) ? (ptDijetLow.size() / 5) : (ptDijetLow.size() / 5 + 1) );
     TCanvas *cEtaComp = new TCanvas("cEtaComp", "cEtaComp", 1600, 800);
@@ -670,6 +672,10 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     TH1D *hRefSelRefDijetEta[ ptDijetLow.size() ];
     TH2D *hRef2RecoDijetEta[ ptDijetLow.size() ];
     TH1D *hGenDijetEta[ ptDijetLow.size() ];
+
+    TH1D *hReco2GenDijetEta[ ptDijetLow.size() ];
+    TH1D *hRef2GenDijetEta[ ptDijetLow.size() ];
+    TH1D *hRefSel2GenDijetEta[ ptDijetLow.size() ];
 
     Int_t recoType{0};
     Int_t refType{1};
@@ -710,22 +716,50 @@ void plotDijetDistributions(TFile *inFile, TString date) {
 
         rescaleEta( hRef2RecoDijetEta[i] );
 
+        // Create ratios of reco, ref and refSel to gen
+        hReco2GenDijetEta[i] = (TH1D*)hRecoDijetEta[i]->Clone( Form("hReco2GenDijetEta_%d", i) );
+        hReco2GenDijetEta[i]->Sumw2();
+        hReco2GenDijetEta[i]->Divide(hRecoDijetEta[i], hGenDijetEta[i], 1., 1., "b");
+        hRef2GenDijetEta[i] = (TH1D*)hRefDijetEta[i]->Clone( Form("hRef2GenDijetEta_%d", i) );
+        hRef2GenDijetEta[i]->Sumw2();
+        hRef2GenDijetEta[i]->Divide(hRef2GenDijetEta[i], hGenDijetEta[i], 1., 1., "b");
+        hRefSel2GenDijetEta[i] = (TH1D*)hRefSelRefDijetEta[i]->Clone( Form("hRefSel2GenDijetEta_%d", i) );
+        hRefSel2GenDijetEta[i]->Sumw2();
+        hRefSel2GenDijetEta[i]->Divide( hRefSel2GenDijetEta[i], hGenDijetEta[i], 1., 1., "b");
+
         // Set style
         set1DStyle( hRecoDijetEta[i], recoType );
         set1DStyle( hRefDijetEta[i], refType );
         set1DStyle( hRefSelRefDijetEta[i], refSelType );
         set1DStyle( hGenDijetEta[i], genType );
 
+        set1DStyle( hReco2GenDijetEta[i], recoType );
+        set1DStyle( hRef2GenDijetEta[i], refType );
+        set1DStyle( hRefSel2GenDijetEta[i], refSelType );
+
         set2DStyle( hRef2RecoDijetEta[i] );
 
+        // 2D correlation
         canv->cd();
+        setPadStyle();
+        hRef2RecoDijetEta[i]->Draw("colz");
+        canv->SaveAs( Form("%s/pPb8160_eta_RefVsReco_%d.pdf", date.Data(), i) );
+
+        // 1D projections
+        canv2->cd(1);
         setPadStyle();
         hRecoDijetEta[i]->Draw();
         hRefDijetEta[i]->Draw("same");
         hRefSelRefDijetEta[i]->Draw("same");
         hGenDijetEta[i]->Draw("same");
-        //hRecoDijetEta[i]->GetYaxis()->SetRangeUser(0., 0.1);
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_%d.pdf", date.Data(), i) );
+
+        canv2->cd(2);
+        setPadStyle();
+        hReco2GenDijetEta[i]->Draw();
+        hRef2GenDijetEta[i]->Draw("same");
+        hRefSel2GenDijetEta[i]->Draw("same");
+        hReco2GenDijetEta[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
+        canv2->SaveAs( Form("%s/pPb8160_etaDijet_%d.pdf", date.Data(), i) );
     } // for (Int_t i=0; i<dijetPtLow.size(); i++)
 }
 
