@@ -241,7 +241,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TString  fJetType;
     Int_t    fFracBins;
     Double_t fFracRange[2];
-    Bool_t   fMultBins;
+    Int_t   fMultBins;
     Double_t fMultRange[2];
 
     ClassDef(HistoManagerDiJet, 0)
