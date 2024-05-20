@@ -147,11 +147,11 @@ Bool_t DiJetAnalysis::isGoodJetId(const RecoJet* jet) {
     float nef = jet->jtPfNEF();
     float muf = jet->jtPfMUF();
 
+    int chargedMult = chm + cem + mum;
+    int neutralMult = nhm + nem;
+    int numberOfConstituents = chargedMult + neutralMult;
+
     float eta = jet->eta();
-	
-	int chargedMult = chm + cem + mum;
-	int neutralMult = nhm + nem;
-	int numberOfConstituents = chargedMult + neutralMult;
 	
 	float chargedEmFracCut{1.}, neutFracCut{1.};
     if ( !fIsLooseJetIdCut ) {
@@ -393,6 +393,25 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 fHM->hRecoInclusiveUnmatchedJetPtVsEta->Fill(eta, pt);
             }
         }
+
+        int chargedMult = (*pfJetIter)->jtPfCHM() + (*pfJetIter)->jtPfCEM() + (*pfJetIter)->jtPfMUM();
+        int neutralMult = (*pfJetIter)->jtPfNHM() + (*pfJetIter)->jtPfNEM();
+        int numberOfConstituents = chargedMult + neutralMult;
+
+        Int_t dummyIter{0};
+        if ( TMath::Abs( eta ) <= 2.4 ) { dummyIter = {0}; }
+        else if ( TMath::Abs( eta ) <= 2.7 ) { dummyIter = {1}; }
+        else if ( TMath::Abs( eta ) <= 3.0 ) { dummyIter = {2}; }
+        else { dummyIter = {3}; }
+
+        fHM->hNHF[dummyIter]->Fill( (*pfJetIter)->jtPfNHF(), ptHatW );
+        fHM->hNEmF[dummyIter]->Fill( (*pfJetIter)->jtPfNEF(), ptHatW );
+        fHM->hNumOfConst[dummyIter]->Fill( numberOfConstituents, ptHatW );
+        fHM->hMUF[dummyIter]->Fill( (*pfJetIter)->jtPfMUF(), ptHatW );
+        fHM->hCHF[dummyIter]->Fill( (*pfJetIter)->jtPfCHF(), ptHatW );
+        fHM->hChargedMult[dummyIter]->Fill( chargedMult, ptHatW );
+        fHM->hCEmF[dummyIter]->Fill( (*pfJetIter)->jtPfCEF(), ptHatW );
+        fHM->hNumOfNeutPart[dummyIter]->Fill( neutralMult, ptHatW );
 
         // Apply single-jet selection to reco jets
         if ( !isGoodRecoJet( (*pfJetIter) ) ) continue;

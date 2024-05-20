@@ -78,6 +78,15 @@ class HistoManagerDiJet : public BaseHistoManager {
     THnSparseD *hVzPtHat;
     THnSparseD *hVzPtHatWeighted;
 
+    TH1D *hNHF[4];
+    TH1D *hNEmF[4];
+    TH1D *hNumOfConst[4];
+    TH1D *hMUF[4];
+    TH1D *hCHF[4];
+    TH1D *hChargedMult[4];
+    TH1D *hCEmF[4];
+    TH1D *hNumOfNeutPart[4];
+
     //
     // Gen jet histograms
     //
@@ -230,6 +239,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     Double_t fPtHatRange[2];
     /// @brief Jet type: PF or Calo
     TString  fJetType;
+    Int_t    fFracBins;
+    Double_t fFracRange[2];
+    Bool_t   fMultBins;
+    Double_t fMultRange[2];
 
     ClassDef(HistoManagerDiJet, 0)
 };

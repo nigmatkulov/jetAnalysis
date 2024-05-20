@@ -34,12 +34,17 @@ HistoManagerDiJet::HistoManagerDiJet() :
   fDijetEtaBins{50}, fDijetEtaRange{-5.0, 5.0},
   fDijetDphiBins{16}, fDijetDphiRange{-TMath::Pi(), TMath::Pi()},
   fPtHatBins{100}, fPtHatRange{15., 1015.},
+  fFracBins{100}, fFracRange{0., 1.},
+  fMultBins{32}, fMultRange{-0.5, 31.5},
   
   hVz{nullptr}, hVzWeighted{nullptr}, hMult{nullptr},
   hHiBin{nullptr}, hHiBinWeighted{nullptr},
   hPtHat{nullptr}, hPtHatWeighted{nullptr}, hPtHatWeight{nullptr},
 //   hCentrality{nullptr}, hCentralityWeighted{nullptr},
   hVzPtHat{nullptr}, hVzPtHatWeighted{nullptr},
+
+  hNHF{nullptr}, hNEmF{nullptr}, hNumOfConst{nullptr}, hMUF{nullptr},
+  hCHF{nullptr}, hChargedMult{nullptr}, hCEmF{nullptr}, hNumOfNeutPart{nullptr},
 
   // Gen jets
   hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi{nullptr},
@@ -108,6 +113,16 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     // if (hCentralityWeighted) delete hCentralityWeighted;
     if (hVzPtHat) delete hVzPtHat;
     if (hVzPtHatWeighted) delete hVzPtHatWeighted;
+    for (int i=0; i<4; i++) {
+      if (hNHF[i]) delete hNHF[i];
+      if (hNEmF[i]) delete hNEmF[i];
+      if (hNumOfConst[i]) delete hNumOfConst[i];
+      if (hMUF[i]) delete hMUF[i];
+      if (hCHF[i]) delete hCHF[i];
+      if (hChargedMult[i]) delete hChargedMult[i];
+      if (hCEmF[i]) delete hCEmF[i];
+      if (hNumOfNeutPart[i]) delete hNumOfNeutPart[i];
+    }
 
     if (fIsMc) {
       // Gen jets
@@ -267,6 +282,39 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     hVzPtHatWeighted = new THnSparseD( "hVzPtHatWeighted","Vertex and #hat{p_{T}} weighted;vz (cm);#hat{p_{T}} (GeV/c)",
                                        2, bins2D_ev_VzPtHat, xmin2D_ev_VzPtHat, xmax2D_ev_VzPtHat );
     hVzPtHatWeighted->Sumw2();
+
+    // For 4 eta ranges: <=2.4, <=2.7, <=3, >3
+    for (Int_t i{0}; i<4; i++) {
+        float low{0}, hi{0};
+        if      ( i == 0 ) { low = {-2.4f}; hi = {2.4f}; }
+        else if ( i == 1 ) { low = {2.4f}; hi = {2.7f}; }
+        else if ( i == 2 ) { low = {2.7f}; hi = {3.0f}; }
+        else if ( i == 3 ) { low = {3.f}; hi = {100.0f}; }
+        hNHF[i] = new TH1D(Form("hNHF_%d",i), Form("Neutral hadron fraction for %3.1f< #eta<=%3.1f;Neutral hadron fraction;1/N dN/dNHF", low, hi), 
+                           fFracBins, fFracRange[0], fFracRange[1]);
+        hNHF[i]->Sumw2();
+        hNEmF[i] = new TH1D(Form("hNEmF_%d",i), Form("Neutral EM fraction for %3.1f< #eta<=%3.1f;Neutral EM fraction;1/N dN/dNEF", low, hi), 
+                            fFracBins, fFracRange[0], fFracRange[1]);
+        hNEmF[i]->Sumw2();
+        hNumOfConst[i] = new TH1D(Form("hNumOfConst_%d",i), Form("Number of constituents for %3.1f< #eta<=%3.1f;Number of constituents;1/N dN/dNconst", low, hi), 
+                                  fMultBins, fMultRange[0], fMultRange[1]);
+        hNumOfConst[i]->Sumw2();
+        hMUF[i] = new TH1D(Form("hMUF_%d",i), Form("Muon fraction for %3.1f< #eta<=%3.1f;Muon fraction;1/N dN/dMUF", low, hi), 
+                           fFracBins, fFracRange[0], fFracRange[1]);
+        hMUF[i]->Sumw2();
+        hCHF[i] = new TH1D(Form("hCHF_%d",i), Form("Charged hadron fraction for %3.1f< #eta<=%3.1f;Charged hadron fraction;1/N dN/dCHF", low, hi), 
+                           fFracBins, fFracRange[0], fFracRange[1]);
+        hCHF[i]->Sumw2();
+        hChargedMult[i] = new TH1D(Form("hChargedMult_%d",i), Form("Charged particle multiplicity for %3.1f< #eta<=%3.1f;Charged multiplicity;1/N dN/dChMult", low, hi), 
+                                   fMultBins, fMultRange[0], fMultRange[1]);
+        hChargedMult[i]->Sumw2();
+        hCEmF[i] = new TH1D(Form("hCEmF_%d",i), Form("Charged EM fraction for %3.1f< #eta<=%3.1f;Charged EM fraction;1/N dN/dChEmF", low, hi), 
+                            fFracBins, fFracRange[0], fFracRange[1]);
+        hCEmF[i]->Sumw2();
+        hNumOfNeutPart[i] = new TH1D(Form("hNumOfNeutPart_%d",i), Form("Number of neutral particles for %3.1f< #eta<=%3.1f;Number of neutral particles;1/N dN/dNumOfNeutrals", low, hi), 
+                                     fMultBins, fMultRange[0], fMultRange[1]);
+        hNumOfNeutPart[i]->Sumw2();
+    } // for (Int_t i{0}; i<4; i++)
 
 
     //
@@ -553,6 +601,17 @@ void HistoManagerDiJet::writeOutput() {
     // hCentralityWeighted->Write();
     hVzPtHat->Write();
     hVzPtHatWeighted->Write();
+
+   for (int i=0; i<4; i++) {
+      hNHF[i]->Write();
+      hNEmF[i]->Write();
+      hNumOfConst[i]->Write();
+      hMUF[i]->Write();
+      hCHF[i]->Write();
+      hChargedMult[i]->Write();
+      hCEmF[i]->Write();
+      hNumOfNeutPart[i]->Write();
+    }
 
     // Reco jets
 
