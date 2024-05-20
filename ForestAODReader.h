@@ -210,7 +210,6 @@ class ForestAODReader : public BaseReader {
     /// @brief Switch MC track branch ON
     Bool_t fUseGenTrackBranch;
 
-
     /// @brief Chain conaining HLT information (used to friend other trees)
     TChain *fHltTree;
     /// @brief Chain containing skimming information
@@ -341,6 +340,17 @@ class ForestAODReader : public BaseReader {
     /// @brief Track with maximum pT in reconstructed jet
     Float_t fPFRecoJetTrackMax[100];
 
+    Float_t fPFRecoJtPfNHF[100];
+    Float_t fPFRecoJtPfNEF[100];
+    Float_t fPFRecoJtPfCHF[100];
+    Float_t fPFRecoJtPfMUF[100];
+    Float_t fPFRecoJtPfCEF[100];
+    Float_t fPFRecoJtPfCHM[100];
+    Float_t fPFRecoJtPfCEM[100];
+    Float_t fPFRecoJtPfNHM[100];
+    Float_t fPFRecoJtPfNEM[100];
+    Float_t fPFRecoJtPfMUM[100];
+
     /// @brief Transverse momentum of generated jet that was matched with reconstructed jet
     Float_t fPFRefJetPt[100];
     /// @brief /// @brief Pseudorapidity of generated jet that was matched with reconstructed jet
@@ -368,7 +378,6 @@ class ForestAODReader : public BaseReader {
     Float_t fPFGenJetWTAEta[100];
     /// @brief WTA phi of generated jet
     Float_t fPFGenJetWTAPhi[100];
-
 
     /// @brief Number of reconstructed jets
     Int_t   fNCaloRecoJets;

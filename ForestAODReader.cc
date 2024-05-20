@@ -734,6 +734,28 @@ void ForestAODReader::setupBranches() {
         fPartFlowJetTree->SetBranchAddress("WTAeta", &fPFRecoJetWTAEta);
         fPartFlowJetTree->SetBranchAddress("WTAphi", &fPFRecoJetWTAPhi);
 
+        fPartFlowJetTree->SetBranchStatus("jtPfNHF", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfNEF", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfCHF", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfMUF", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfCEF", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfCHM", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfCEM", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfNHM", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfNEM", 1);
+        fPartFlowJetTree->SetBranchStatus("jtPfMUM", 1);
+
+      	fPartFlowJetTree->SetBranchAddress("jtPfNHF", &fPFRecoJtPfNHF);    
+ 	    fPartFlowJetTree->SetBranchAddress("jtPfNEF", &fPFRecoJtPfNEF);
+      	fPartFlowJetTree->SetBranchAddress("jtPfCHF", &fPFRecoJtPfCHF);
+      	fPartFlowJetTree->SetBranchAddress("jtPfMUF", &fPFRecoJtPfMUF);
+      	fPartFlowJetTree->SetBranchAddress("jtPfCEF", &fPFRecoJtPfCEF);
+      	fPartFlowJetTree->SetBranchAddress("jtPfCHM", &fPFRecoJtPfCHM);
+      	fPartFlowJetTree->SetBranchAddress("jtPfCEM", &fPFRecoJtPfCEM);
+      	fPartFlowJetTree->SetBranchAddress("jtPfNHM", &fPFRecoJtPfNHM);
+      	fPartFlowJetTree->SetBranchAddress("jtPfNEM", &fPFRecoJtPfNEM);
+  	    fPartFlowJetTree->SetBranchAddress("jtPfMUM", &fPFRecoJtPfMUM);
+
         // Gen jet quantities
         if ( fIsMc ) {
             fPartFlowJetTree->SetBranchStatus("ngen", 1);
@@ -1212,6 +1234,16 @@ Event* ForestAODReader::returnEvent() {
             else { // If no JEC available
                 jet->setPtJECCorr( -999.f );
             }
+            jet->setJtPfNHF( fPFRecoJtPfNHF[iJet] );
+            jet->setJtPfNEF( fPFRecoJtPfNEF[iJet] );
+            jet->setJtPfCHF( fPFRecoJtPfCHF[iJet] );
+            jet->setJtPfMUF( fPFRecoJtPfMUF[iJet] );
+            jet->setJtPfCEF( fPFRecoJtPfCEF[iJet] );
+            jet->setJtPfCHM( fPFRecoJtPfCHM[iJet] );
+            jet->setJtPfCEM( fPFRecoJtPfCEM[iJet] );
+            jet->setJtPfNHM( fPFRecoJtPfNHM[iJet] );
+            jet->setJtPfNEM( fPFRecoJtPfNEM[iJet] );
+            jet->setJtPfMUM( fPFRecoJtPfMUM[iJet] );
 
             // jet->print();
 

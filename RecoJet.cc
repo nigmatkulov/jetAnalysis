@@ -21,13 +21,16 @@
 ClassImp(RecoJet)
 
 //________________
-RecoJet::RecoJet() : BaseJet{}, fPtJECCorr{0}, fGenJetId{-99} {
+RecoJet::RecoJet() : BaseJet{}, fPtJECCorr{0}, fGenJetId{-99}, 
+    fJtPfNHF{0}, fJtPfNEF{0}, fJtPfCHF{0}, fJtPfMUF{0}, fJtPfCEF{0}, 
+    fJtPfCHM{0}, fJtPfCEM{0}, fJtPfNHM{0}, fJtPfNEM{0}, fJtPfMUM{0} {
     /* Empty */
 }
 
 //________________
 void RecoJet::print() {
     std::cout << Form("--  Reconstructed jet info  --\n")
-              << Form("pT: %5.2f  eta: %3.2f  phi: %3.2f  pTcorr: %5.2f  WTAeta: %3.2f  WTAphi: %3.2f  GenJetId: %d\n",
-                      this->pt(), this->eta(), this->phi(), fPtJECCorr, this->WTAEta(), this->WTAPhi(), this->genJetId() );
+              << Form("pT: %5.2f  eta: %3.2f  phi: %3.2f  pTcorr: %5.2f  WTAeta: %3.2f  WTAphi: %3.2f  GenJetId: %d NHF: %3.2f  NEF: %3.2f  CHF: %3.2f  MUF: %3.2f  CEF: %3.2f  CHM: %3.2f  CEM: %3.f  NHM: %3.f  NEM: %3.f  MUM: %3.2f \n",
+                      this->pt(), this->eta(), this->phi(), fPtJECCorr, this->WTAEta(), this->WTAPhi(), this->genJetId(),
+                      fJtPfNHF, fJtPfNEF, fJtPfCHF, fJtPfMUF, fJtPfCEF, fJtPfCHM, fJtPfCEM, fJtPfNHM, fJtPfNEM, fJtPfMUM);
 }
