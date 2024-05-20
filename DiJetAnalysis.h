@@ -69,27 +69,31 @@ class DiJetAnalysis : public BaseAnalysis {
     void setVerbose()                        { fVerbose = {kTRUE}; }
     /// @brief Set number of events in the embedding sample (for the given ptHat)
     void setNEventsInSample(const Int_t& n)  { fNEventsInSample = n; }
+    /// @brief Set loose jetId cut
+    void setLooseJetIdCut()                  { fIsLooseJetIdCut = {kTRUE}; }
     /// @brief Print DiJetAnalysis setup
     void print();
 
   private:
 
-    /// Calculate event weight
+    /// @brief Calculate event weight
     Double_t eventWeight(const Bool_t& isMc, const Bool_t& isPPb, const Double_t& ptHat, const Double_t& vz);
-    /// Process gen jets
+    /// @brief Process gen jets
     void processGenJets(const Event* event, Double_t ptHatW);
-    /// Process reco jets
+    /// @brief Process reco jets
     void processRecoJets(const Event* event, Double_t ptHatW);
-    /// Process ref jets
+    /// @brief Process ref jets
     void processRefJets(const Event* event, Double_t ptHatW);
-    /// Dijet selection
+    /// @brief Dijet selection
     Bool_t isGoodDijet(const Double_t& ptLead, const Double_t& ptSublead, const Double_t& dphi);
-    /// Calculate delta phi between two jets in the range [-pi, pi]
+    /// @brief Calculate delta phi between two jets in the range [-pi, pi]
     Double_t deltaPhi(const Double_t& phi1, const Double_t phi2);
-    /// Single gen/ref jet selection criteria
+    /// @brief Single gen/ref jet selection criteria
     Bool_t isGoodGenJet(const GenJet* jet);
-    /// Single reco jet selection criteria
+    /// @brief Single reco jet selection criteria
     Bool_t isGoodRecoJet(const RecoJet* jet);
+    /// @brief Check if jet passes jetId requirements
+    Bool_t isGoodJetId(const RecoJet* jet);
 
     /// @brief Print debug information
     Bool_t   fDebug;
@@ -118,6 +122,8 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t   fVerbose;
     /// @brief Number of events in the embedding sample
     Int_t    fNEventsInSample;
+    /// @brief Is loose/tight jetId cut (default: false = tight)
+    Bool_t   fIsLooseJetIdCut;
 
   ClassDef(DiJetAnalysis, 0)
 };
