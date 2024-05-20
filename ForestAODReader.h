@@ -345,11 +345,11 @@ class ForestAODReader : public BaseReader {
     Float_t fPFRecoJtPfCHF[100];
     Float_t fPFRecoJtPfMUF[100];
     Float_t fPFRecoJtPfCEF[100];
-    Float_t fPFRecoJtPfCHM[100];
-    Float_t fPFRecoJtPfCEM[100];
-    Float_t fPFRecoJtPfNHM[100];
-    Float_t fPFRecoJtPfNEM[100];
-    Float_t fPFRecoJtPfMUM[100];
+    Int_t fPFRecoJtPfCHM[100];
+    Int_t fPFRecoJtPfCEM[100];
+    Int_t fPFRecoJtPfNHM[100];
+    Int_t fPFRecoJtPfNEM[100];
+    Int_t fPFRecoJtPfMUM[100];
 
     /// @brief Transverse momentum of generated jet that was matched with reconstructed jet
     Float_t fPFRefJetPt[100];

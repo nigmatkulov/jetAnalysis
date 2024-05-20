@@ -334,6 +334,94 @@ void plotEtaDijetCorrelation(TFile *inFile, TString date) {
 }
 
 //________________
+void plotJetIdHistos(TFile *inFile, TString date) {
+    // Retrieve histograms
+    TH1D *hNHF[4];
+    TH1D *hNEmF[4];
+    TH1D *hNumOfConst[4];
+    TH1D *hMUF[4];
+    TH1D *hCHF[4];
+    TH1D *hChargedMult[4];
+    TH1D *hCEmF[4];
+    TH1D *hNumOfNeutPart[4];
+
+    TCanvas *c[4];
+
+    // Loop over 4 eta bins
+    for (Int_t i{0}; i<4; i++) {
+
+        hNHF[i] = (TH1D*)inFile->Get(Form("hNHF_%d",i));
+        set1DStyle(hNHF[i], 0, kTRUE);
+
+        hNEmF[i] = (TH1D*)inFile->Get(Form("hNEmF_%d",i));
+        set1DStyle(hNEmF[i], 0, kTRUE);
+
+        hNumOfConst[i] = (TH1D*)inFile->Get(Form("hNumOfConst_%d",i));
+        set1DStyle(hNumOfConst[i], 0, kTRUE);
+
+        hMUF[i] = (TH1D*)inFile->Get(Form("hMUF_%d",i));
+        set1DStyle(hMUF[i], 0, kTRUE);
+
+        hCHF[i] = (TH1D*)inFile->Get(Form("hCHF_%d",i));
+        set1DStyle(hCHF[i], 0, kTRUE);
+
+        hChargedMult[i] = (TH1D*)inFile->Get(Form("hChargedMult_%d",i));
+        set1DStyle(hChargedMult[i], 0, kTRUE);
+
+        hCEmF[i] = (TH1D*)inFile->Get(Form("hCEmF_%d",i));
+        set1DStyle(hCEmF[i], 0, kTRUE);
+
+        hNumOfNeutPart[i] = (TH1D*)inFile->Get(Form("hNumOfNeutPart_%d",i));
+        set1DStyle(hNumOfNeutPart[i], 0, kTRUE);
+
+        c[i] = new TCanvas(Form("c%d",i), Form("c%d",i), 1200, 800);
+        c[i]->Divide(4, 2);
+
+        c[i]->cd(1);
+        setPadStyle();
+        hNEmF[i]->Draw();
+        gPad->SetLogy();
+
+        c[i]->cd(2);
+        setPadStyle();
+        hNHF[i]->Draw();
+        gPad->SetLogy();
+
+        c[i]->cd(3);
+        setPadStyle();
+        hNumOfConst[i]->Draw();
+        gPad->SetLogy();
+
+        c[i]->cd(4);
+        setPadStyle();
+        hMUF[i]->Draw();
+        gPad->SetLogy();
+
+        c[i]->cd(5);
+        setPadStyle();
+        hCHF[i]->Draw();
+        gPad->SetLogy();
+
+        c[i]->cd(6);
+        setPadStyle();
+        hChargedMult[i]->Draw();
+        gPad->SetLogy();
+
+        c[i]->cd(7);
+        setPadStyle();
+        hCEmF[i]->Draw();
+        gPad->SetLogy();
+
+        c[i]->cd(8);
+        setPadStyle();
+        hNumOfNeutPart[i]->Draw();
+        gPad->SetLogy();
+
+        c[i]->SaveAs(Form("%s/pPb8160_jetId_%d.pdf", date.Data(), i) );
+    }
+}
+
+//________________
 void plotDijetDistributions(TFile *inFile, TString date) {
 
     Int_t recoType{0};
@@ -724,8 +812,11 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
-    plotRecoAndFakes(inFile, date);
+    //plotRecoAndFakes(inFile, date);
 
     // Plot correlation between ref and reco dijet eta
     //plotEtaDijetCorrelation(inFile, date);
+
+    // Plot distributions for jetId
+    plotJetIdHistos(inFile, date);
 }

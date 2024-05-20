@@ -50,15 +50,15 @@ class RecoJet : public BaseJet {
     /// @brief Set charged ElectroMagnetic fraction
     void setJtPfCEF(const Float_t& x) { fJtPfCEF = x; }
     /// @brief Set charged hadron multiplicity
-    void setJtPfCHM(const Float_t& x) { fJtPfCHM = x; }
+    void setJtPfCHM(const Int_t& x) { fJtPfCHM = (UChar_t)x; }
     /// @brief Set charged EM multiplicity
-    void setJtPfCEM(const Float_t& x) { fJtPfCEM = x; }
+    void setJtPfCEM(const Int_t& x) { fJtPfCEM = (UChar_t)x; }
     /// @brief Set neutral hadron multiplicity
-    void setJtPfNHM(const Float_t& x) { fJtPfNHM = x; }
+    void setJtPfNHM(const Int_t& x) { fJtPfNHM = (UChar_t)x; }
     /// @brief Set neutral EM multiplicity
-    void setJtPfNEM(const Float_t& x) { fJtPfNEM = x; }
+    void setJtPfNEM(const Int_t& x) { fJtPfNEM = (UChar_t)x; }
     /// @brief Set muon multiplicity
-    void setJtPfMUM(const Float_t& x) { fJtPfMUM = x; }
+    void setJtPfMUM(const Int_t& x) { fJtPfMUM = (UChar_t)x; }
 
 
     /// @brief Print parameters of the given jet
@@ -94,15 +94,15 @@ class RecoJet : public BaseJet {
     /// @brief Return charged ElectroMagnetic fraction
     Float_t jtPfCEF() const { return fJtPfCEF; }
     /// @brief Return charged hadron multiplicity
-    Float_t jtPfCHM() const { return fJtPfCHM; }
+    Int_t jtPfCHM() const { return (Int_t)fJtPfCHM; }
     /// @brief Return charged EM multiplicity
-    Float_t jtPfCEM() const { return fJtPfCEM; }
+    Int_t jtPfCEM() const { return (Int_t)fJtPfCEM; }
     /// @brief Return neutral hadron multiplicity
-    Float_t jtPfNHM() const { return fJtPfNHM; }
+    Int_t jtPfNHM() const { return (Int_t)fJtPfNHM; }
     /// @brief Return neutral EM multiplicity
-    Float_t jtPfNEM() const { return fJtPfNEM; }
+    Int_t jtPfNEM() const { return (Int_t)fJtPfNEM; }
     /// @brief Return muon multiplicity
-    Float_t jtPfMUM() const { return fJtPfMUM; }
+    Int_t jtPfMUM() const { return (Int_t)fJtPfMUM; }
 
   private:
 
@@ -125,15 +125,15 @@ class RecoJet : public BaseJet {
     /// @brief Charged ElectroMagnetic fraction
     Float_t fJtPfCEF;
     /// @brief Charged hadron multiplicity
-    Float_t fJtPfCHM;
+    UChar_t fJtPfCHM;
     /// @brief Charged EM multiplicity
-    Float_t fJtPfCEM;
+    UChar_t fJtPfCEM;
     /// @brief Neutral hadron multiplicity
-    Float_t fJtPfNHM;
+    UChar_t fJtPfNHM;
     /// @brief Neutral EM multiplicity
-    Float_t fJtPfNEM;
+    UChar_t fJtPfNEM;
     /// @brief Muon multiplicity
-    Float_t fJtPfMUM;
+    UChar_t fJtPfMUM;
     
     ClassDef(RecoJet, 3)
 };
