@@ -18,7 +18,7 @@
 // ROOT headers
 #include "TObject.h"
 #include "TList.h"
-#include "TH1D.h"
+#include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
 #include "TProfile.h"
@@ -129,10 +129,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Subleading jet pt corr, pt raw, 
     // pt ref, eta corr, eta gen, weighted [5]
     THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-    // pt corr / pt gen, gen pt, reco eta, reco phi, ptHat [5]
-    THnSparseD *hJESInclusiveJetPtEtaPhiPtHat;
-    // pt corr / pt gen, gen pt, reco eta, reco phi, ptHat [5]
-    THnSparseD *hJESInclusiveJetPtEtaPhiPtHatWeighted;
+    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
+    THnSparseD *hJESInclusiveJetPtEtaPhi;
+    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
+    THnSparseD *hJESInclusiveJetPtEtaPhiWeighted;
     TH2D *hRecoMatchedPtEta;
 
     // Dijets
@@ -192,6 +192,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRecoDijetEta;
     TH1D *hRefDijetEta;
     TH2D *hRefDijetEtaVsRecoDijetEta;
+    TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt;
     TH3D *hRefDijetPtEtaDphi;
     TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaDphi;

@@ -37,6 +37,7 @@ int main(int argc, char const *argv[]) {
     //TString pfBranchName{"ak4PFJetAnalyzer"};
     TString oFileName{};
     TString JECFileName;
+    TString JECFileDataName;
     TString path2JEC = "../";
     Double_t ptHatCut[2] {15., 30.};
 
@@ -83,12 +84,13 @@ int main(int argc, char const *argv[]) {
     }
     else {
         if (isPbGoingDir) { // Remember to flip to p-going for data
-            // TODO: get the correct filename
-            JECFileName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt"; 
+            JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
+            
         }
         else {
-
+            JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
         }
+        JECFileDataName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt"; 
     } // else
 
     // Initialize package manager
@@ -133,6 +135,12 @@ int main(int argc, char const *argv[]) {
     reader->useSkimmingBranch();
     reader->usePartFlowJetBranch();
     reader->setPartFlowJetBranchName( pfBranchName.Data() );
+
+    if ( pfBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
+        std::cout << "Extra correction will be used for JEC" << std::endl;
+        reader->useExtraJECCorr();
+    }
+
     //reader->useCaloJetBranch();
     reader->setCollidingSystem( collSystem.Data() );
     reader->setCollidingEnergy( collEnergyGeV ) ;
@@ -144,6 +152,9 @@ int main(int argc, char const *argv[]) {
     // Set path to jet analysis (then will automatically add path to aux_files)
     reader->setPath2JetAnalysis( path2JEC.Data() );
     reader->setJECFileName( JECFileName.Data() );
+    if ( !isMc ) {
+        reader->setJECFileDataName( JECFileDataName.Data() );
+    }
 
     // Pass reader to the manager
     manager->setEventReader(reader);
@@ -159,8 +170,8 @@ int main(int argc, char const *argv[]) {
         analysis->setPbGoing();
     }
     analysis->setEtaShift( 0.4654094531 );
-    analysis->setLeadJetPtLow( 30. );
-    analysis->setSubLeadJetPtLow( 20. );
+    analysis->setLeadJetPtLow( 50. );
+    analysis->setSubLeadJetPtLow( 30. );
     analysis->setDijetPhiCut( TMath::TwoPi() / 3 );
     //analysis->setVerbose();
     

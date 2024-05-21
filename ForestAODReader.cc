@@ -35,7 +35,8 @@ ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEve
     fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
     fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
     fRecoPFJet2GenJetId{}, fGenJet2RecoPFJet{}, 
-    fRecoCaloJet2GenJetId{}, fGenJet2RecoCaloJet{} {
+    fRecoCaloJet2GenJetId{}, fGenJet2RecoCaloJet{},
+    fUseExtraJEC{kFALSE}, fJECScaleCorr{nullptr} {
     // Initialize many variables
     clearVariables();
 }
@@ -55,7 +56,8 @@ ForestAODReader::ForestAODReader(const Char_t* inputStream,
     fJEC{nullptr}, fJECFiles{}, fJEU{nullptr}, fJEUFiles{},
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
-    fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr} {
+    fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
+    fJECScaleCorr{nullptr} {
     // Initialize many variables
     clearVariables();
 }
@@ -74,6 +76,7 @@ ForestAODReader::~ForestAODReader() {
     if (fJEU) delete fJEU;
     if (fEventCut) delete fEventCut;
     if (fJetCut) delete fJetCut;
+    if (fJECScaleCorr) delete fJECScaleCorr;
 }
 
 //_________________
@@ -251,6 +254,7 @@ Int_t ForestAODReader::init() {
 
 //________________
 void ForestAODReader::setupJEC() {
+
     if ( fJECFiles.empty() ) {
         
         // If no path to the aux_file
@@ -264,14 +268,30 @@ void ForestAODReader::setupJEC() {
         if ( fJECInputFileName.Length() <= 0 ) {
             std::cout << "[WARNING] Default JEC file with parameters will be used" << std::endl;
             setJECFileName();
+            if ( !fIsMc ) setJECFileDataName();
         }
         fJECFiles.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
                                    fJECPath.Data(), fCollidingSystem.Data(),
                                    fCollidingEnergyGeV, fJECInputFileName.Data() ) );
+        if ( !fIsMc ) {
+            fJECFiles.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
+                                  fJECPath.Data(), fCollidingSystem.Data(),
+                                  fCollidingEnergyGeV, fJECInputFileDataName.Data() ) );
+        }
         std::cout << Form("Add JEC file: %s\n", fJECFiles.back().c_str());
     }
 	
 	fJEC = new JetCorrector( fJECFiles );
+
+    if ( fUseExtraJEC ) {
+        createExtraJECScaleCorrFunction();
+    }
+}
+
+//________________
+void ForestAODReader::createExtraJECScaleCorrFunction() {
+    fJECScaleCorr = new TF1("JetScaleCorrection","[3] + ([0]-[3]) / ( 1.0 + pow( x/[2],[1] ) )", 30, 800);
+    fJECScaleCorr->SetParameters(2.27008e+00, 9.18625e-01, 1.43067e+00, 1.00002e+00);
 }
 
 //________________
@@ -1226,9 +1246,17 @@ Event* ForestAODReader::returnEvent() {
                 fJEC->SetJetPT( fPFRecoJetPt[iJet] );
                 fJEC->SetJetEta( fPFRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fPFRecoJetPhi[iJet] );
-                // double pTcorr = fJEC->GetCorrectedPT();
+                double pTcorr = fJEC->GetCorrectedPT();
                 //std::cout << "pTCorr: " << pTcorr << std::endl; 
-                jet->setPtJECCorr( fJEC->GetCorrectedPT() );
+                if ( fUseExtraJEC ) {
+                    if ( fJECScaleCorr ){
+                        pTcorr *= fJECScaleCorr->Eval( pTcorr );
+                    }
+                    else {
+                        std::cerr << "No extra correction exists!" << std::endl;
+                    }
+                }
+                jet->setPtJECCorr( pTcorr );
                 //std::cout << "pTCorr: " << jet->recoJetPtJECCorr() << std::endl; 
             }
             else { // If no JEC available
@@ -1290,8 +1318,11 @@ Event* ForestAODReader::returnEvent() {
                 fJEC->SetJetEta( fCaloRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fCaloRecoJetPhi[iJet] );
                 double pTcorr = fJEC->GetCorrectedPT();
-                //std::cout << "pTCorr: " << pTcorr << std::endl; 
-                jet->setPtJECCorr( fJEC->GetCorrectedPT() );
+                //std::cout << "pTCorr: " << pTcorr << std::endl;
+                if ( fUseExtraJEC ) {
+                    pTcorr *= fJECScaleCorr->Eval( pTcorr );
+                }
+                jet->setPtJECCorr( pTcorr );
                 //std::cout << "pTCorr: " << jet->recoJetPtJECCorr() << std::endl; 
             }
             else { // If no JEC available

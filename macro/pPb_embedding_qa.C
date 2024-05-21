@@ -346,9 +346,19 @@ void plotJetIdHistos(TFile *inFile, TString date) {
     TH1D *hNumOfNeutPart[4];
 
     TCanvas *c[4];
+    TString text;
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
 
     // Loop over 4 eta bins
     for (Int_t i{0}; i<4; i++) {
+
+        if      ( i == 0 ) { text = "-2.4 #leq #eta #leq 2.4"; }
+        else if ( i == 1 ) { text = "2.4 < |#eta| #leq 2.7"; }
+        else if ( i == 2 ) { text = "2.7 < |#eta| #leq 3.0"; }
+        else               { text = "|#eta| > 3.0"; }
+
 
         hNHF[i] = (TH1D*)inFile->Get(Form("hNHF_%d",i));
         set1DStyle(hNHF[i], 0, kTRUE);
@@ -381,41 +391,49 @@ void plotJetIdHistos(TFile *inFile, TString date) {
         setPadStyle();
         hNEmF[i]->Draw();
         gPad->SetLogy();
+        t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
         c[i]->cd(2);
         setPadStyle();
         hNHF[i]->Draw();
         gPad->SetLogy();
+        t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
         c[i]->cd(3);
         setPadStyle();
         hNumOfConst[i]->Draw();
         gPad->SetLogy();
+        t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
         c[i]->cd(4);
         setPadStyle();
         hMUF[i]->Draw();
         gPad->SetLogy();
+        t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
         c[i]->cd(5);
         setPadStyle();
         hCHF[i]->Draw();
         gPad->SetLogy();
+        t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
         c[i]->cd(6);
         setPadStyle();
         hChargedMult[i]->Draw();
         gPad->SetLogy();
+        t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
         c[i]->cd(7);
         setPadStyle();
         hCEmF[i]->Draw();
         gPad->SetLogy();
+        t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
         c[i]->cd(8);
         setPadStyle();
         hNumOfNeutPart[i]->Draw();
         gPad->SetLogy();
+        t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
         c[i]->SaveAs(Form("%s/pPb8160_jetId_%d.pdf", date.Data(), i) );
     }
@@ -790,7 +808,6 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     else {
         createDirectory( date.Data() );
     }
-
 
     TFile *inFile = TFile::Open(inFileName);
     if ( !inFile ) {

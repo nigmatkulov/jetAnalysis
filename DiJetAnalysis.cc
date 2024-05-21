@@ -28,7 +28,7 @@ ClassImp(DiJetAnalysis)
 DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(), 
     fDebug{kFALSE}, fUseCentralityWeight{}, fHM{nullptr},
     fEtaShift{0}, fIsMc{kFALSE}, fIsPPb{kTRUE},
-    fLeadJetPtLow{30.}, fSubleadJetPtLow{20.},
+    fLeadJetPtLow{50.}, fSubleadJetPtLow{30.},
     fDijetPhiCut{TMath::TwoPi() / 3},
     fIsPbGoingDir{kFALSE}, fVerbose{kFALSE},
     fNEventsInSample{1000000} {
@@ -432,7 +432,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         // Apply lab frame boost to CM for the pPb 
         if ( fIsPPb ) {
-            if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            if ( fIsMc ) { // For embedding: Pb goes to positive, p goes to negative
                 if ( fIsPbGoingDir ) {
                     eta -= fEtaShift;
                     eta = -eta;
@@ -444,7 +444,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                     genEta += fEtaShift;
                 }
             }
-            else { // For data: p goes to negative, Pb goes to positive
+            else { // For data: p goes to positive, Pb goes to negative
                 if ( fIsPbGoingDir ) {
                     eta += fEtaShift;
                 }
@@ -498,9 +498,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
             fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl, ptHatW);
 
-            Double_t res[5] { pt/genPt, genPt, eta, phi, event->ptHat() };
-            fHM->hJESInclusiveJetPtEtaPhiPtHat->Fill(res);
-            fHM->hJESInclusiveJetPtEtaPhiPtHatWeighted->Fill(res, ptHatW);
+            Double_t res[4] { pt/genPt, genPt, eta, phi };
+            fHM->hJESInclusiveJetPtEtaPhi->Fill(res);
+            fHM->hJESInclusiveJetPtEtaPhiWeighted->Fill(res, ptHatW);
         }
 
         if ( fVerbose ) {
@@ -582,6 +582,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
         fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );
         fHM->hRefDijetEtaVsRecoDijetEta->Fill( dijetRecoEta, dijetRefEta, ptHatW );
+        fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->Fill( dijetRecoEta, dijetRefEta, dijetRecoPt, ptHatW);
         fHM->hRefDijetPtEtaDphi->Fill( dijetRefPt, dijetRefEta,  dijetRefDphi, ptHatW );
     }
 
@@ -751,7 +752,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
 //________________
 Bool_t DiJetAnalysis::isGoodDijet(const Double_t& ptLead, const Double_t& ptSublead, const Double_t& dphi) {
     Bool_t isGood = ( ptLead > fLeadJetPtLow &&
-                      ptSublead > fSubleadJetPtLow /* && dphi > fDijetPhiCut */ );
+                      ptSublead > fSubleadJetPtLow && dphi > fDijetPhiCut );
     if ( fVerbose ) {
         std::cout << "DiJetAnalysis::isGoodDijet " << isGood << " ";
         std::cout << Form("pTlead: %5.2f pTsub: %5.2f dphi: %4.2f\n", ptLead, ptSublead, dphi);

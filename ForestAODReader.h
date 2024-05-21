@@ -16,6 +16,7 @@
 #include "Rtypes.h"
 #include "TChain.h"
 #include "TString.h"
+#include "TF1.h"
 
 // JetAnalysis headers
 #include "BaseReader.h"
@@ -76,8 +77,10 @@ class ForestAODReader : public BaseReader {
     void setYearOfDataTaking(const Int_t& year = 2018)  { fYearOfDataTaking = {year}; }
     /// @brief Path to jetAnalysis directory (or any folder) that contains aux_files/... with JEC corrections
     void setPath2JetAnalysis(const Char_t *name = "/Users/gnigmat/work/cms/soft/jetAnalysis") { fJECPath = name; }
-    /// @brief Set input
+    /// @brief Set input JEC file name
     void setJECFileName(const Char_t *name = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt") { fJECInputFileName = name; }
+    /// @brief Set residual JEC file name (for experimental data)
+    void setJECFileDataName(const Char_t *name = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt") { fJECInputFileDataName = name; }
     /// @brief Apply jet pT-smearing
     void setJetPtSmearing(const Bool_t& smear = kFALSE) { fDoJetPtSmearing = {smear}; }
     /// @brief Set event cut
@@ -90,6 +93,8 @@ class ForestAODReader : public BaseReader {
     void setCorrectCentMC() { fCorrectCentMC = {kTRUE}; }
     /// @brief Fix jet arrays
     void fixJetArrays() { fFixJetArrays = {kTRUE}; }
+    /// @brief Use extra JEC correction (in pPb 8160 it is needed for ak4cs)
+    void useExtraJECCorr() { fUseExtraJEC = {kTRUE}; }
 
     /// @brief Return amount of events to read
     Long64_t nEventsTotal() const { return fEvents2Read; }
@@ -98,6 +103,8 @@ class ForestAODReader : public BaseReader {
 
     /// @brief Setup input stream (either single file or a list of files)
     void setInputStream(const Char_t *inputStream) { fInFileName = {inputStream}; }
+    /// @brief Instantiate extra JEC scale correction factor (for pPb 2016 for ak4cs)
+    void createExtraJECScaleCorrFunction();
 
     /// Setup input all input
     void setupInput(TString input, TChain *hltChain, TChain *eveChain, TChain *partFlowChain, 
@@ -488,8 +495,11 @@ class ForestAODReader : public BaseReader {
     std::vector< std::string > fJECFiles;
     /// @brief Path to jetAnalysis directory
     TString fJECPath;
-    /// @brief 
+    /// @brief Input file with JEC corrections
     TString fJECInputFileName;
+    /// @brief Input file for residual corrections (first apply fJECInputFileName and 
+    ///        the residual (for experimental data only))
+    TString fJECInputFileDataName;
     /// @brief Jet Energy Uncertainty instance
     JetUncertainty *fJEU;
     /// @brief List of files with JEU
@@ -525,6 +535,10 @@ class ForestAODReader : public BaseReader {
     /// @brief Vector that contains indices of the reconstructed calorimeter jets that 
     /// macthed to generated jet
     std::vector<Int_t> fGenJet2RecoCaloJet;
+    /// @brief Use extra correction for JEC (for 8160 pPb year 2016 ak4pf is default. extra needed for ak4cs)
+    Bool_t  fUseExtraJEC;
+    /// @brief JEC extra correction
+    TF1    *fJECScaleCorr;
 
     ClassDef(ForestAODReader, 1)
 };
