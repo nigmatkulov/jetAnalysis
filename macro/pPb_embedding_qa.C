@@ -132,7 +132,7 @@ void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
 }
 
 //________________
-void rescaleEta(TH1* h) {
+void rescaleEta(TH1* h, Bool_t doRenorm = kTRUE) {
     for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++) {
         Double_t val = h->GetBinContent( iBin );
         Double_t valErr = h->GetBinError( iBin );
@@ -140,7 +140,9 @@ void rescaleEta(TH1* h) {
         h->SetBinContent( iBin, val / binWidth );
         h->SetBinError( iBin, valErr / binWidth );
     }
-    h->Scale( 1. / h->Integral() );
+    if ( doRenorm ) {
+        h->Scale( 1. / h->Integral() );
+    }
 }
 
 //________________
@@ -161,6 +163,18 @@ void rescaleEta(TH2* h) {
 //________________
 void plotEfficiency(TFile *inFile, TString date) {
 
+    TString inputFileName( inFile->GetName() );
+    TString direction;
+    if ( inputFileName.Contains("Pbgoing") ) {
+        direction = "Pbgoing";
+    }
+    else if ( inputFileName.Contains("pgoing") ) {
+        direction = "pgoing";
+    }
+    else {
+        direction = "unknownDir";
+    }
+
     // Rebinning
     Int_t rebinX{1}, rebinY{1};
 
@@ -175,7 +189,7 @@ void plotEfficiency(TFile *inFile, TString date) {
     set1DStyle(hPtHat, 2);
     hPtHat->Draw();
     gPad->SetLogy(1);
-    cPtHat->SaveAs(Form("%s/pPb8160_ptHat.pdf", date.Data()));
+    cPtHat->SaveAs(Form("%s/pPb8160_%s_ptHat.pdf", date.Data(), direction.Data()));
 
 
     //
@@ -216,7 +230,7 @@ void plotEfficiency(TFile *inFile, TString date) {
     hEfficiency->Draw("colz");
     //gPad->SetLogz(1);
 
-    cEfficiency->SaveAs(Form("%s/pPb8160_pt_vs_eta_efficiency.pdf", date.Data()));
+    cEfficiency->SaveAs(Form("%s/pPb8160_%s_pt_vs_eta_efficiency.pdf", date.Data(), direction.Data()));
 
 
     Int_t fPtBins{50};
@@ -273,8 +287,8 @@ void plotEfficiency(TFile *inFile, TString date) {
                        fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
     } // for (Int_t i{1}; i<=fEtaBins; i++)
 
-    cEtaEfficiency->SaveAs( Form("%s/pPb8160_eta_efficiency_projections.pdf", date.Data()) );
-    cPtEfficiency->SaveAs( Form("%s/pPb8160_pt_efficiency_projections.pdf", date.Data()) );
+    cEtaEfficiency->SaveAs( Form("%s/pPb8160_%s_eta_efficiency_projections.pdf", date.Data(), direction.Data()) );
+    cPtEfficiency->SaveAs( Form("%s/pPb8160_%s_pt_efficiency_projections.pdf", date.Data(), direction.Data()) );
 
 
     // // Reco inclusive jet pT
@@ -335,6 +349,19 @@ void plotEtaDijetCorrelation(TFile *inFile, TString date) {
 
 //________________
 void plotJetIdHistos(TFile *inFile, TString date) {
+
+    TString inputFileName( inFile->GetName() );
+    TString direction;
+    if ( inputFileName.Contains("Pbgoing") ) {
+        direction = "Pbgoing";
+    }
+    else if ( inputFileName.Contains("pgoing") ) {
+        direction = "pgoing";
+    }
+    else {
+        direction = "unknownDir";
+    }
+
     // Retrieve histograms
     TH1D *hNHF[4];
     TH1D *hNEmF[4];
@@ -435,12 +462,231 @@ void plotJetIdHistos(TFile *inFile, TString date) {
         gPad->SetLogy();
         t.DrawLatexNDC(0.4, 0.93, text.Data() );
 
-        c[i]->SaveAs(Form("%s/pPb8160_jetId_%d.pdf", date.Data(), i) );
+        c[i]->SaveAs(Form("%s/pPb8160_%s_jetId_%d.pdf", date.Data(), direction.Data(), i) );
     }
 }
 
 //________________
+// jetBranch: 0 - akCs4PF, 1 - ak4PF
+void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
+
+    TString inputFileName( inFile->GetName() );
+    TString direction;
+    if ( inputFileName.Contains("Pbgoing") ) {
+        direction = "Pbgoing";
+    }
+    else if ( inputFileName.Contains("pgoing") ) {
+        direction = "pgoing";
+    }
+    else {
+        direction = "unknownDir";
+    }
+
+    Int_t rebinX{1}, rebinY{1};
+
+    // Retrieve JES histogram
+    THnSparseD *hJESPtEtaPhi = (THnSparseD*)inFile->Get("hJESInclusiveJetPtEtaPhiWeighted");
+    hJESPtEtaPhi->SetName("hJESPtEtaPhi");
+
+    TString branchName;
+    if ( jetBranch == 0 ) {
+        branchName = "akCs4";
+    }
+    else {
+        branchName = "ak4";
+    }
+
+    // Get JES vs ref pT
+    hJESPtEtaPhi->GetAxis(2)->SetRange(20, 32); // -1.2 < eta < 1.2
+    TH2D* hJESvsPt = (TH2D*)hJESPtEtaPhi->Projection(0, 1);
+    hJESvsPt->SetName("hJESvsPt");
+    hJESvsPt->RebinX( rebinX );
+    hJESvsPt->RebinY( rebinY );
+    set2DStyle( hJESvsPt );
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // Create canvas
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    setPadStyle();
+    hJESvsPt->Draw("colz");
+    t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    canv->SaveAs( Form("%s/pPb8160_%s_jes_2d_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
+
+    // Create histograms for JES and JER
+    TH1D *hJESMean;
+    TH1D *hJESSigma;
+
+    // Fit 2D with gaussian
+    hJESvsPt->FitSlicesY();
+    // Obtain JES
+    hJESMean = (TH1D*)gDirectory->Get("hJESvsPt_1");
+    hJESMean->SetName("hJESMean");
+    set1DStyle( hJESMean, 2 );
+    // Obtain JER
+    hJESSigma = (TH1D*)gDirectory->Get("hJESvsPt_2");
+    hJESSigma->SetName("hJESSigma");
+    set1DStyle( hJESSigma, 2 );
+
+    hJESMean->Draw();
+    t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    hJESMean->GetYaxis()->SetRangeUser(0.95, 1.1);
+    hJESMean->GetYaxis()->SetTitle("JES");
+    hJESMean->GetXaxis()->SetRangeUser(20, 200);
+    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    canv->SaveAs( Form("%s/pPb8160_%s_jes_mu_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
+
+    hJESSigma->Draw();
+    hJESSigma->GetXaxis()->SetRangeUser(20, 800);
+    hJESSigma->GetYaxis()->SetTitle("JER");
+    t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    canv->SaveAs( Form("%s/pPb8160_%s_jes_sigma_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
+
+    // Return eta to original area
+    hJESPtEtaPhi->GetAxis(2)->SetRange(1, 52);
+
+    // Plot 2D, mu and sigma on a single canvas
+    TCanvas *canv2 = new TCanvas("canv2", "canv2", 1200, 400);
+    canv2->Divide(3, 1);
+
+    canv2->cd(1);
+    setPadStyle();
+    hJESvsPt->Draw("colz");
+    gPad->SetLogz();
+    t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+
+    canv2->cd(2);
+    setPadStyle();
+    hJESMean->Draw();
+    t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+
+    canv2->cd(3);
+    setPadStyle();
+    hJESSigma->Draw();
+    t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    
+    canv2->SaveAs( Form("%s/pPb8160_%s_jes_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
+
+    // Make JES and JER as a function of eta for few pT bins
+    Int_t ptStep{10};
+    Int_t ptFirst{20};
+    std::vector<Int_t> ptLow {2, 10, 20};
+    std::vector<Int_t> ptHi  {6, 14, 27};
+    TH2D *hJESvsEta[ ptLow.size() ];
+    TH1D *hJESvsEtaMean[ ptLow.size() ];
+    TH1D *hJESvsEtaSigma[ ptLow.size() ];
+    TCanvas *canv3[3];
+    // Loop over pT bins
+    for (Int_t i=0; i<ptLow.size(); i++) {
+
+        // Create canvas for the given pT bin
+        canv3[i] = new TCanvas(Form("canv3_%d",i), Form("canv3_%d",i), 1200, 400);
+        canv3[i]->Divide(3, 1);
+
+        // Set pT range
+        hJESPtEtaPhi->GetAxis(1)->SetRange( ptLow.at(i), ptHi.at(i) );
+        hJESvsEta[i] = (TH2D*)hJESPtEtaPhi->Projection(0, 2);
+        hJESvsEta[i]->SetName( Form("hJESvsEta_%d",i) );
+        hJESvsEta[i]->GetXaxis()->SetTitle("#eta");
+        hJESvsEta[i]->RebinX(2);
+        hJESvsEta[i]->RebinY(2);
+        set2DStyle( hJESvsEta[i] );
+
+        // Fit slices
+        hJESvsEta[i]->FitSlicesY();
+        hJESvsEtaMean[i] = (TH1D*)gDirectory->Get( Form("hJESvsEta_%d_1", i) );
+        hJESvsEtaMean[i]->SetName( Form("hJESvsEtaMean_%d", i) );
+        hJESvsEtaMean[i]->GetYaxis()->SetTitle("JES");
+        set1DStyle(hJESvsEtaMean[i], 2);
+        hJESvsEtaSigma[i] = (TH1D*)gDirectory->Get( Form("hJESvsEta_%d_2", i) );
+        hJESvsEtaSigma[i]->SetName( Form("hJESvsEtaSigma_%d", i) );
+        hJESvsEtaSigma[i]->GetYaxis()->SetTitle("JER");
+        set1DStyle(hJESvsEtaSigma[i],2);
+
+        canv->cd();
+        setPadStyle();
+        hJESvsEta[i]->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
+        canv->SaveAs( Form("%s/pPb8160_%s_jes_vs_eta_pt_%d_%d_%s.pdf", 
+                           date.Data(),  direction.Data(), ptFirst + (ptLow.at(i)-1) * ptStep, 
+                           ptFirst + ptHi.at(i) * ptStep, branchName.Data()) );
+
+        canv->cd();
+        setPadStyle();
+        hJESvsEtaMean[i]->Draw();
+        hJESvsEtaMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
+        canv->SaveAs( Form("%s/pPb8160_%s_jes_vs_eta_mu_pt_%d_%d_%s.pdf", 
+                           date.Data(),  direction.Data(), ptFirst + (ptLow.at(i)-1) * ptStep, 
+                           ptFirst + ptHi.at(i) * ptStep, branchName.Data()) );
+
+        canv->cd();
+        setPadStyle();
+        hJESvsEtaSigma[i]->Draw();
+        hJESvsEtaSigma[i]->GetYaxis()->SetRangeUser(0., 0.2);
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
+        canv->SaveAs( Form("%s/pPb8160_%s_jes_vs_eta_mu_pt_%d_%d_%s.pdf", 
+                           date.Data(), direction.Data(), ptFirst + (ptLow.at(i)-1) * ptStep, 
+                           ptFirst + ptHi.at(i) * ptStep, branchName.Data()) );
+
+        canv3[i]->cd(1);
+        setPadStyle();
+        hJESvsEta[i]->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
+
+        canv3[i]->cd(2);
+        setPadStyle();
+        hJESvsEtaMean[i]->Draw();
+        hJESvsEtaMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
+
+        canv3[i]->cd(3);
+        setPadStyle();
+        hJESvsEtaSigma[i]->Draw();
+        hJESvsEtaSigma[i]->GetYaxis()->SetRangeUser(0., 0.2);
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
+
+        canv3[i]->SaveAs( Form("%s/pPb8160_%s_jes_vs_eta_all_pt_%d_%d_%s.pdf", 
+                               date.Data(), direction.Data(), ptFirst + (ptLow.at(i)-1) * ptStep, 
+                               ptFirst + ptHi.at(i) * ptStep, branchName.Data()) );
+    }
+
+}
+
+//________________
 void plotDijetDistributions(TFile *inFile, TString date) {
+
+    TString inputFileName( inFile->GetName() );
+    TString direction;
+    if ( inputFileName.Contains("Pbgoing") ) {
+        direction = "Pbgoing";
+    }
+    else if ( inputFileName.Contains("pgoing") ) {
+        direction = "pgoing";
+    }
+    else {
+        direction = "unknownDir";
+    }
 
     Int_t recoType{0};
     Int_t refType{1};
@@ -542,7 +788,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     l->SetLineStyle(3);
     l->Draw();
 
-    c1DEta->SaveAs( Form("%s/pPb8160_eta_dijet_comparison.pdf", date.Data()) );
+    c1DEta->SaveAs( Form("%s/pPb8160_%s_eta_dijet_comparison.pdf", date.Data(), direction.Data()) );
 }
 
 //________________
@@ -624,6 +870,19 @@ void compareInclusiveJetPtSpectra(TFile *inFile, TString date) {
 
 //________________
 void plotRecoAndFakes(TFile *inFile, TString date) {
+
+    TString inputFileName( inFile->GetName() );
+    TString direction;
+    if ( inputFileName.Contains("Pbgoing") ) {
+        direction = "Pbgoing";
+    }
+    else if ( inputFileName.Contains("pgoing") ) {
+        direction = "pgoing";
+    }
+    else {
+        direction = "unknownDir";
+    }
+
     // Retrieve reco
     TH2D* hRecoInclusiveAllJetPtVsEta = (TH2D*)inFile->Get("hRecoInclusiveAllJetPtVsEta");
     // Retrieve reco that matched gen
@@ -741,7 +1000,7 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
         t.DrawLatexNDC(0.35, 0.93, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
                        fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep) );
         //gPad->SetLogy();
-        canv->SaveAs(Form("%s/pPb8160_eta_fakes_%d.pdf", date.Data(), i) );
+        canv->SaveAs(Form("%s/pPb8160_%s_eta_fakes_%d.pdf", date.Data(), direction.Data(), i) );
     } // for (Int_t i{1}; i<=fPtBins; i++)
 
     // Make projections bin-by-bin on pT
@@ -785,15 +1044,15 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
         leg->Draw();
         t.DrawLatexNDC(0.35, 0.93, Form("%2.1f < #eta < %2.1f", 
                        fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
-        canv->SaveAs(Form("%s/pPb8160_pt_fakes_%d.pdf", date.Data(), i) );
+        canv->SaveAs(Form("%s/pPb8160_%s_pt_fakes_%d.pdf", date.Data(), direction.Data(), i) );
     }
 
-    cEtaFakes->SaveAs( Form("%s/pPb8160_eta_fakes_projections.pdf", date.Data()) );
-    cPtFakes->SaveAs( Form("%s/pPb8160_pt_fakes_projections.pdf", date.Data()) );
+    cEtaFakes->SaveAs( Form("%s/pPb8160_%s_eta_fakes_projections.pdf", date.Data(), direction.Data()) );
+    cPtFakes->SaveAs( Form("%s/pPb8160_%s_pt_fakes_projections.pdf", date.Data(), direction.Data()) );
 }
 
 //________________
-void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_akCs4.root") {
+void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_akCs4_trkMax.root") {
 
     gStyle->SetOptStat(0);
     gStyle->SetOptTitle(0);
@@ -801,6 +1060,7 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
 
     TDatime dt;
     TString date { Form( "%d",dt.GetDate() ) };
+    TString inputFileName(inFileName);
 
     if ( directoryExists( date.Data() ) ) {
         //std::cout << "Directory exists." << std::endl;
@@ -835,5 +1095,15 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //plotEtaDijetCorrelation(inFile, date);
 
     // Plot distributions for jetId
-    plotJetIdHistos(inFile, date);
+    //plotJetIdHistos(inFile, date);
+
+    // Plot JES and JER
+    Int_t branchId{0};
+    if ( inputFileName.Contains("akCs4") ) {
+        branchId = {0};
+    }
+    else {
+        branchId = {1};
+    }
+    plotJESandJER(inFile, date, branchId);
 }

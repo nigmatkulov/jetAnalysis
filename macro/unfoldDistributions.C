@@ -616,6 +616,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     TH3D *hRecoDijetPtEtaDphi = (TH3D*)inFile->Get("hRecoDijetPtEtaDphi");
     TH3D *hRefDijetPtEtaDphi = (TH3D*)inFile->Get("hRefDijetPtEtaDphi");
     TH3D *hRefSelDijetPtEtaDphi = (TH3D*)inFile->Get("hRefSelDijetPtEtaDphi");
+    TH3D *hRecoDijetEtaRefDijetEtaRecoDijetPt = (TH3D*)inFile->Get("hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt");
 
     // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
     //                                        90., 100.,  110., 120., 130.,
@@ -722,17 +723,19 @@ void plotDijetDistributions(TFile *inFile, TString date) {
 
         // Make 1D and 2D projections
 
+        // From THnSparseD
         hRecoDijetEta[i] = (TH1D*)hReco2RefDijet->Projection(1);
         hRecoDijetEta[i]->SetNameTitle( Form("hRecoDijetEta_%d", i), ";#eta^{dijet};1/N dN/d#eta^{dijet}");
         hRefDijetEta[i] = (TH1D*)hReco2RefDijet->Projection(7);
         hRefDijetEta[i]->SetNameTitle( Form("hRefDijetEta_%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
         hRefSelDijetEta[i] = (TH1D*)hRefSelReco2RefDijet->Projection(7);
         hRefSelDijetEta[i]->SetNameTitle( Form("hRefSelDijetEta_%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
-        hRef2RecoDijetEta[i] = (TH2D*)hReco2RefDijet->Projection(7, 1);
-        hRef2RecoDijetEta[i]->SetNameTitle( Form("hRef2RecoDijetEta_%d", i),";#eta^{dijet}_{reco};#eta^{dijet}_{ref}" );
+        //hRef2RecoDijetEta[i] = (TH2D*)hReco2RefDijet->Projection(7, 1);
+        //hRef2RecoDijetEta[i]->SetNameTitle( Form("hRef2RecoDijetEta_%d", i),";#eta^{dijet}_{reco};#eta^{dijet}_{ref}" );
         hGenDijetEta[i] = (TH1D*)hGenDijet->Projection(1);
         hGenDijetEta[i]->SetNameTitle( Form("hGenDijetEta%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
 
+        // From 3D
         hRecoDijetEtaPure[i] = (TH1D*)hRecoDijetPtEtaDphi->ProjectionY( Form("hRecoDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
         hRecoDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
         hRefDijetEtaPure[i] = (TH1D*)hRefDijetPtEtaDphi->ProjectionY( Form("hRefDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
@@ -741,6 +744,10 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRefSelDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
         hGenDijetEtaPure[i] = (TH1D*)hGenDijetPtEtaDphi->ProjectionY( Form("hGenDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
         hGenDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        // 2D from 3D
+        hRecoDijetEtaRefDijetEtaRecoDijetPt->GetZaxis()->SetRange(ptDijetLow.at(i), ptDijetHi.at(i));
+        hRef2RecoDijetEta[i] = (TH2D*)hRecoDijetEtaRefDijetEtaRecoDijetPt->Project3D("yx");
+        hRef2RecoDijetEta[i]->SetNameTitle( Form("hRef2RecoDijetEta_%d", i),";#eta^{dijet}_{reco};#eta^{dijet}_{ref}" );
 
         // Rescale eta distributions
         rescaleEta( hRecoDijetEta[i] );
@@ -917,7 +924,7 @@ void unfoldDistributions() {
         createDirectory( date.Data() );
     }
     
-    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_akCs4.root";
+    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_akCs4_jetId.root";
     TFile *inFile = TFile::Open(inFileName);
 
     Int_t ptHat = 50; // 50, 120, 370
