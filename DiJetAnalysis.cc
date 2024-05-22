@@ -31,7 +31,7 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fLeadJetPtLow{50.}, fSubleadJetPtLow{30.},
     fDijetPhiCut{TMath::TwoPi() / 3},
     fIsPbGoingDir{kFALSE}, fVerbose{kFALSE},
-    fNEventsInSample{1000000} {
+    fNEventsInSample{1000000}, fUseEtaShiftAndSignSwap{kFALSE} {
     fPtHatRange[0] = {15.};
     fPtHatRange[1] = {30.};
 }
@@ -54,16 +54,17 @@ void DiJetAnalysis::init() {
 void DiJetAnalysis::print() {
     std::cout << "----------------------------------------\n";
     std::cout << "DiJetAnalysis parameters:\n";
-    std::cout << "Use centrality weight   : " << fUseCentralityWeight << std::endl
-              << "Histogram manager       : " << fHM << std::endl
-              << "Is MC                   : " << fIsMc << std::endl
-              << "Is pPb                  : " << fIsPPb << std::endl
-              << "Is Pb-going direction   : " << fIsPbGoingDir << std::endl
-              << "eta shift               : " << fEtaShift << std::endl
-              << "ptHat range             : " << fPtHatRange[0] << "-" << fPtHatRange[1] << std::endl
-              << "Leading jet pT          : " << fLeadJetPtLow << std::endl
-              << "SubLeading jet pT       : " << fSubleadJetPtLow << std::endl
-              << "Dijet phi cut           : " << fDijetPhiCut << std::endl;
+    std::cout << "Use centrality weight       : " << fUseCentralityWeight << std::endl
+              << "Histogram manager           : " << fHM << std::endl
+              << "Is MC                       : " << fIsMc << std::endl
+              << "Is pPb                      : " << fIsPPb << std::endl
+              << "Is Pb-going direction       : " << fIsPbGoingDir << std::endl
+              << "eta shift                   : " << fEtaShift << std::endl
+              << "Use eta shift and sign swap : " << fUseEtaShiftAndSignSwap << std::endl
+              << "ptHat range                 : " << fPtHatRange[0] << "-" << fPtHatRange[1] << std::endl
+              << "Leading jet pT              : " << fLeadJetPtLow << std::endl
+              << "SubLeading jet pT           : " << fSubleadJetPtLow << std::endl
+              << "Dijet phi cut               : " << fDijetPhiCut << std::endl;
     std::cout << "----------------------------------------\n";
 }
 
@@ -119,7 +120,7 @@ Double_t DiJetAnalysis::deltaPhi(const Double_t& phi1, const Double_t phi2) {
 //________________
 Bool_t DiJetAnalysis::isGoodGenJet(const GenJet* jet) {
     Bool_t goodJet{kFALSE};
-    if ( jet->pt() > 20. && TMath::Abs( jet->eta() )< 5.1 ) {
+    if ( jet->pt() > 20. && TMath::Abs( jet->eta() ) < 5.1 ) {
         goodJet = {kTRUE};
     }
     
@@ -128,6 +129,26 @@ Bool_t DiJetAnalysis::isGoodGenJet(const GenJet* jet) {
     }
 
     return goodJet;
+}
+
+//________________
+Bool_t DiJetAnalysis::isGoodTrkMax(const RecoJet* jet) {
+    Bool_t goodTrackMax = {kTRUE};
+    Double_t rawPt = jet->rawPt();
+    Double_t trackMaxPt = jet->trackMaxPt();
+    if ( TMath::Abs( jet->eta() ) < 2.4 && 
+         ( trackMaxPt/rawPt < 0.01 ||
+           trackMaxPt/rawPt > 0.98) ) {
+        goodTrackMax = {kFALSE};
+    }
+
+    if ( fVerbose ) {
+        std::cout << "TrackMaxPt/rawPt: " << trackMaxPt/rawPt << ( (goodTrackMax) ? "[passed]" : "[failed]" ) 
+                  << ( (trackMaxPt/rawPt < 0.01) ? " too low value " : "" ) << ( (trackMaxPt/rawPt < 0.01) ? " too large value " : "" )
+                  << std::endl;
+    }
+
+    return goodTrackMax;
 }
 
 //_________________
@@ -217,30 +238,31 @@ Bool_t DiJetAnalysis::isGoodJetId(const RecoJet* jet) {
     
 //________________
 Bool_t DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
+    Bool_t goodJet{kFALSE};
     Bool_t goodKine{kFALSE};
     Bool_t hasMatching{kFALSE};
     Bool_t goodTrackMax{kTRUE};
-    Bool_t goodJetId{kFALSE};
+    Bool_t goodJetId{kTRUE};
 
-    if ( jet->ptJECCorr() > 20 && TMath::Abs( jet->eta() )< 5.1 ) {
+    if ( jet->ptJECCorr() > 20 && TMath::Abs( jet->eta() ) < 5.1 ) {
         goodKine = {kTRUE};
     }
 
-    if ( jet->hasMatching() ) {
+    if ( fIsMc ) {
+        if ( jet->hasMatching() ) {
+            hasMatching = {kTRUE};
+        }
+    }
+    else {
         hasMatching = {kTRUE};
     }
 
-    // Double_t rawPt = jet->rawPt();
-    // Double_t trackMaxPt = jet->trackMaxPt();
-    // if ( TMath::Abs( jet->eta() ) < 2.4 && 
-    //      ( trackMaxPt/rawPt < 0.01 ||
-    //        trackMaxPt/rawPt > 0.98) ) {
-    //     goodTrackMax = {kFALSE};
-    // }
+    // Track max cut
+    goodTrackMax = isGoodTrkMax( jet );
+    // JetId cut
+    // goodJetId = isGoodJetId( jet );
 
-    goodJetId = isGoodJetId( jet );
-
-    Bool_t goodJet = goodKine && hasMatching && goodTrackMax && goodJetId;
+    goodJet = goodKine && hasMatching && goodTrackMax && goodJetId;
 
     if ( fVerbose ) {
         std::cout << Form("Reco jet cut %s", goodJet ? "\t[passed]" : "\t[failed]"); 
@@ -248,7 +270,8 @@ Bool_t DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
             std::cout << std::endl;
         }
         else {
-            std::cout << Form("\t goodKine: %d hasMatching: %d chargeFrac: %d\n", goodKine, hasMatching, goodTrackMax);
+            std::cout << Form("\t goodKine: %d hasMatching: %d chargeFrac: %d jetId: %d\n", 
+                              goodKine, hasMatching, goodTrackMax, goodJetId);
         }
     } // if ( fVerbose )
 
@@ -286,7 +309,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
         if ( !isGoodGenJet( *genJetIter ) ) continue;
 
         // Apply lab frame boost to CM for the pPb 
-        if ( fIsPPb ) {
+        if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
             if ( fIsPbGoingDir ) {
                 eta -= fEtaShift;
                 eta = -eta;
@@ -294,7 +317,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             else {
                 eta += fEtaShift;
             }
-        } // if ( fIsPPb )
+        } // if ( fUseEtaShiftAndSignSwap && fIsPPb )
         
         if ( pt > ptLead ) {
             ptSubLead = ptLead;
@@ -384,16 +407,6 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             (*pfJetIter)->print();
         }
 
-        fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt);
-        if ( fIsMc ) {
-            if ( (*pfJetIter)->hasMatching() ) {
-                fHM->hRecoInclusiveMatchedJetPtVsEta->Fill(eta, pt);
-            }
-            else {
-                fHM->hRecoInclusiveUnmatchedJetPtVsEta->Fill(eta, pt);
-            }
-        }
-
         int chargedMult = (*pfJetIter)->jtPfCHM() + (*pfJetIter)->jtPfCEM() + (*pfJetIter)->jtPfMUM();
         int neutralMult = (*pfJetIter)->jtPfNHM() + (*pfJetIter)->jtPfNEM();
         int numberOfConstituents = chargedMult + neutralMult;
@@ -413,6 +426,49 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         fHM->hCEmF[dummyIter]->Fill( (*pfJetIter)->jtPfCEF(), ptHatW );
         fHM->hNumOfNeutPart[dummyIter]->Fill( neutralMult, ptHatW );
 
+        // For cross checks with various selection criteria
+        if ( (pt < 20) || (TMath::Abs( eta ) > 5.1) ) continue;
+
+        fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt);
+
+        if ( fIsMc ) {
+            if ( !(*pfJetIter)->hasMatching() ) {
+                fHM->hRecoInclusiveUnmatchedJetPtVsEta->Fill(eta, pt);
+            }
+            else {
+
+                Bool_t passTrkMax{kFALSE};
+                Bool_t passJetId{kFALSE};
+
+                fHM->hRecoInclusiveMatchedJetPtVsEta->Fill(eta, pt);
+                fHM->hRecoInclusiveJetPtVsEtaKineCut->Fill(eta, pt);
+
+                passTrkMax = isGoodTrkMax( (*pfJetIter) );
+                passJetId = isGoodJetId( (*pfJetIter) );
+
+                GenJet *matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
+                Double_t genPt = matchedJet->pt();
+                Double_t genEta = matchedJet->eta();
+                Double_t genPhi = matchedJet->phi();
+
+                Double_t JES = pt/genPt;
+                Double_t dEta = eta - genEta;
+                Double_t dPhi = phi - genPhi;
+                Double_t res[4] { JES, genPt, genEta, genPhi };
+
+                if ( passTrkMax ) {
+                    fHM->hRecoInclusiveJetPtVsEtaTrkMaxCut->Fill(eta, pt);
+
+                }
+
+                if ( passJetId ) {
+                    fHM->hRecoInclusiveJetPtVsEtaJetIdCut->Fill(eta, pt);
+                }
+            } // else   // if has matching to gen
+        } // if ( fIsMc )
+
+
+
         // Apply single-jet selection to reco jets
         if ( !isGoodRecoJet( (*pfJetIter) ) ) continue;
         
@@ -431,7 +487,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         }
 
         // Apply lab frame boost to CM for the pPb 
-        if ( fIsPPb ) {
+        if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
             if ( fIsMc ) { // For embedding: Pb goes to positive, p goes to negative
                 if ( fIsPbGoingDir ) {
                     eta -= fEtaShift;
@@ -643,7 +699,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
         }
 
         // Apply lab frame boost to CM for the pPb 
-        if ( fIsPPb ) {
+        if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
             if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
                 if ( fIsPbGoingDir ) {
                     eta -= fEtaShift;
@@ -799,7 +855,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
     }
 
     // Check collision system and account for the lab frame rapidity
-    if ( fIsPPb ) {
+    if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
         if ( fIsMc ) { // For MC Pb is going to negative eta
             if ( fIsPbGoingDir) {
                 fEtaShift = {-0.4654094531};

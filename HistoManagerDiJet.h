@@ -156,6 +156,24 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoInclusiveMatchedJetPtVsEta;
     TH2D *hRecoInclusiveUnmatchedJetPtVsEta;
 
+    // Jet selection algo check
+    TH2D       *hRecoInclusiveJetPtVsEtaKineCut;
+    THnSparseD *hRecoInclusiveJetJESPtEtaPhiKineCut;
+    TH3D       *hRecoInclusiveJetDEtaPtEtaKineCut;
+
+    TH2D       *hRecoInclusiveJetPtVsEtaTrkMaxCut;
+    THnSparseD *hRecoInclusiveJetJESPtEtaPhiTrkMaxCut;
+    TH3D       *hRecoInclusiveJetDEtaPtEtaTrkMaxCut;
+    TH2D       *hRecoInclusiveUnmatchedJetPtVsEta;
+
+    TH2D       *hRecoInclusiveJetPtVsEtaJetIdCut;
+    THnSparseD *hRecoInclusiveJetJESPtEtaPhiJetIdCut;
+    TH3D       *hRecoInclusiveJetDEtaPtEtaJetIdCut;
+    TH2D       *hRecoInclusiveUnmatchedJetPtVsEta;
+
+    
+    
+
     // MC
 
     // Reco dijet pt, dijet eta, 

@@ -71,6 +71,8 @@ class DiJetAnalysis : public BaseAnalysis {
     void setNEventsInSample(const Int_t& n)  { fNEventsInSample = n; }
     /// @brief Set loose jetId cut
     void setLooseJetIdCut()                  { fIsLooseJetIdCut = {kTRUE}; }
+    /// @brief Use eta shift and sign swap
+    void useEtaShiftAndSignSwap() { fUseEtaShiftAndSignSwap = {kTRUE}; }
     /// @brief Print DiJetAnalysis setup
     void print();
 
@@ -94,6 +96,8 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t isGoodRecoJet(const RecoJet* jet);
     /// @brief Check if jet passes jetId requirements
     Bool_t isGoodJetId(const RecoJet* jet);
+    /// @brief Check if good track max cut
+    Bool_t isGoodTrkMax(const RecoJet* jet);
 
     /// @brief Print debug information
     Bool_t   fDebug;
@@ -124,6 +128,8 @@ class DiJetAnalysis : public BaseAnalysis {
     Int_t    fNEventsInSample;
     /// @brief Is loose/tight jetId cut (default: false = tight)
     Bool_t   fIsLooseJetIdCut;
+    /// @brief Use/not use eta shift and sign swap (default: not use)
+    Bool_t   fUseEtaShiftAndSignSwap;
 
   ClassDef(DiJetAnalysis, 0)
 };

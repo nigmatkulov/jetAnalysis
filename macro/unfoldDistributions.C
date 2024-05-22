@@ -601,6 +601,18 @@ void unfoldDifferentPtHat(TFile *inFile, TFile *inFilePtHat, Int_t ptHat, TStrin
 
 //________________
 void plotDijetDistributions(TFile *inFile, TString date) {
+    
+    TString inputFileName( inFile->GetName() );
+    TString direction;
+    if ( inputFileName.Contains("Pbgoing") ) {
+        direction = "Pbgoing";
+    }
+    else if ( inputFileName.Contains("pgoing") ) {
+        direction = "pgoing";
+    }
+    else {
+        direction = "unknownDir";
+    }
 
     // Retrieve THnSparse for reco 2 ref
     THnSparseD *hReco2RefDijet = (THnSparseD*)inFile->Get("hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted");
@@ -804,7 +816,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRef2RecoDijetEta[i]->Draw("colz");
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
-        canv->SaveAs( Form("%s/pPb8160_eta_RefVsReco_pT_%d_%d.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/pPb8160_%s_eta_RefVsReco_pT_%d_%d.pdf", date.Data(), direction.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
 
         // 1D projections
@@ -852,7 +864,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         line[i]->Draw();
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
-        canv2->SaveAs( Form("%s/pPb8160_etaDijet_pt_%d_%d.pdf", date.Data(), 
+        canv2->SaveAs( Form("%s/pPb8160_%s_etaDijet_pt_%d_%d.pdf", date.Data(), direction.Data(),
                        ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
 
         // Fill all 2D distributions
@@ -902,9 +914,9 @@ void plotDijetDistributions(TFile *inFile, TString date) {
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
     } // for (Int_t i=0; i<dijetPtLow.size(); i++)
 
-    cRefVsReco->SaveAs( Form("%s/pPb8160_eta_RefVsReco_all.pdf", date.Data()) );
-    cEtaComp->SaveAs( Form("%s/pPb8160_eta_all.pdf", date.Data()) );
-    cEtaRatComp->SaveAs( Form("%s/pPb8160_etaRatios_all.pdf", date.Data()) );
+    cRefVsReco->SaveAs( Form("%s/pPb8160_%s_eta_RefVsReco_all.pdf", date.Data(), direction.Data()) );
+    cEtaComp->SaveAs( Form("%s/pPb8160_%s_eta_all.pdf", date.Data(), direction.Data()) );
+    cEtaRatComp->SaveAs( Form("%s/pPb8160_%s_etaRatios_all.pdf", date.Data(), direction.Data()) );
 }
 
 //________________
@@ -924,7 +936,7 @@ void unfoldDistributions() {
         createDirectory( date.Data() );
     }
     
-    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_akCs4_jetId.root";
+    const Char_t *inFileName = "../build/oEmbedding_pPb8160_pgoing_ak4_trkMax.root";
     TFile *inFile = TFile::Open(inFileName);
 
     Int_t ptHat = 50; // 50, 120, 370
