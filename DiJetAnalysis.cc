@@ -431,21 +431,38 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt);
 
+        Bool_t passTrkMax{kFALSE};
+        Bool_t passJetId{kFALSE};
+        passTrkMax = isGoodTrkMax( (*pfJetIter) );
+        passJetId = isGoodJetId( (*pfJetIter) );
+
+        fHM->hRecoInclusiveJetPtVsEtaKineCut->Fill(eta, pt, ptHatW);
+        if ( passTrkMax ) {
+            fHM->hRecoInclusiveJetPtVsEtaTrkMaxCut->Fill(eta, pt, ptHatW);
+        }
+        if ( passJetId ) {
+            fHM->hRecoInclusiveJetPtVsEtaJetIdCut->Fill(eta, pt, ptHatW);
+        }
+
         if ( fIsMc ) {
+
             if ( !(*pfJetIter)->hasMatching() ) {
-                fHM->hRecoInclusiveUnmatchedJetPtVsEta->Fill(eta, pt);
+
+                fHM->hRecoInclusiveUnmatchedJetPtVsEta->Fill(eta, pt, ptHatW);
+                fHM->hRecoInclusiveUnmatchedJetPtVsEtaKineCut->Fill(eta, pt, ptHatW);
+
+                if ( passTrkMax ) {
+                    fHM->hRecoInclusiveJetPtVsEtaTrkMaxCut->Fill(eta, pt, ptHatW);
+                    fHM->hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut->Fill(eta, pt, ptHatW);
+                }
+
+                if ( passJetId ) {
+                    fHM->hRecoInclusiveJetPtVsEtaJetIdCut->Fill(eta, pt, ptHatW);
+                    fHM->hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut->Fill(eta, pt, ptHatW);
+                }
             }
             else {
-
-                Bool_t passTrkMax{kFALSE};
-                Bool_t passJetId{kFALSE};
-
-                fHM->hRecoInclusiveMatchedJetPtVsEta->Fill(eta, pt);
-                fHM->hRecoInclusiveJetPtVsEtaKineCut->Fill(eta, pt);
-
-                passTrkMax = isGoodTrkMax( (*pfJetIter) );
-                passJetId = isGoodJetId( (*pfJetIter) );
-
+                
                 GenJet *matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
                 Double_t genPt = matchedJet->pt();
                 Double_t genEta = matchedJet->eta();
@@ -456,17 +473,30 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 Double_t dPhi = phi - genPhi;
                 Double_t res[4] { JES, genPt, genEta, genPhi };
 
-                if ( passTrkMax ) {
-                    fHM->hRecoInclusiveJetPtVsEtaTrkMaxCut->Fill(eta, pt);
+                fHM->hRecoInclusiveMatchedJetPtVsEta->Fill(eta, pt, ptHatW);
 
+                fHM->hRecoInclusiveMatchedJetPtVsEtaKineCut->Fill(eta, pt, ptHatW);
+                fHM->hRecoInclusiveJetRefPtVsEtaKineCut->Fill(genEta, genPt, ptHatW);
+                fHM->hRecoInclusiveJetJESPtEtaPhiKineCut->Fill(res, ptHatW);
+                fHM->hRecoInclusiveJetDEtaPtEtaKineCut->Fill(dEta, genPt, genEta, ptHatW);
+
+                if ( passTrkMax ) {
+                    fHM->hRecoInclusiveJetPtVsEtaTrkMaxCut->Fill(eta, pt, ptHatW);
+                    fHM->hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut->Fill(eta, pt, ptHatW);
+                    fHM->hRecoInclusiveJetRefPtVsEtaTrkMaxCut->Fill(genEta, genPt, ptHatW);
+                    fHM->hRecoInclusiveJetJESPtEtaPhiTrkMaxCut->Fill(res, ptHatW);
+                    fHM->hRecoInclusiveJetDEtaPtEtaTrkMaxCut->Fill(dEta, genPt, genEta, ptHatW);
                 }
 
                 if ( passJetId ) {
-                    fHM->hRecoInclusiveJetPtVsEtaJetIdCut->Fill(eta, pt);
+                    fHM->hRecoInclusiveJetPtVsEtaJetIdCut->Fill(eta, pt, ptHatW);
+                    fHM->hRecoInclusiveMatchedJetPtVsEtaJetIdCut->Fill(eta, pt, ptHatW);
+                    fHM->hRecoInclusiveJetRefPtVsEtaJetIdCut->Fill(genEta, genPt, ptHatW);
+                    fHM->hRecoInclusiveJetJESPtEtaPhiJetIdCut->Fill(res, ptHatW);
+                    fHM->hRecoInclusiveJetDEtaPtEtaJetIdCut->Fill(dEta, genPt, genEta, ptHatW);
                 }
             } // else   // if has matching to gen
         } // if ( fIsMc )
-
 
 
         // Apply single-jet selection to reco jets
@@ -545,10 +575,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     
         // Fill inclusive jet information
         fHM->hRecoInclusiveJetPt->Fill(pt, ptHatW);
-        fHM->hRecoMatchedPtEta->Fill(eta, pt, ptHatW);
         if ( fIsMc ) {
             fHM->hRefInclusiveJetPt->Fill(genPt, ptHatW);
             fHM->hRefInclusiveJetPtEta->Fill(genEta, genPt, ptHatW);
+            fHM->hRecoMatchedPtEta->Fill(eta, pt, ptHatW);
 
             Double_t correl[5] { pt, ptRaw, genPt, eta, genEta };
             fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl);
@@ -627,19 +657,20 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     fHM->hRecoDijetPtEtaDphi->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, ptHatW );
 
     // Dijet reco vs ref for unfolding
-    Double_t dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
-                                     ptRecoLead, etaRecoLead,
-                                     ptRecoSubLead, etaRecoSubLead,
-                                     dijetRefPt, dijetRefEta,
-                                     ptRefLead, etaRefLead,
-                                     ptRefSubLead, etaRefSubLead };
     if ( fIsMc ) {
+        Double_t dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
+                                         ptRecoLead, etaRecoLead,
+                                         ptRecoSubLead, etaRecoSubLead,
+                                         dijetRefPt, dijetRefEta,
+                                         ptRefLead, etaRefLead,
+                                         ptRefSubLead, etaRefSubLead };
+
         fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Fill(dijetRecoUnfold);
         fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
         fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );
         fHM->hRefDijetEtaVsRecoDijetEta->Fill( dijetRecoEta, dijetRefEta, ptHatW );
         fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->Fill( dijetRecoEta, dijetRefEta, dijetRecoPt, ptHatW);
-        fHM->hRefDijetPtEtaDphi->Fill( dijetRefPt, dijetRefEta,  dijetRefDphi, ptHatW );
+        fHM->hRefDijetPtEtaDphi->Fill( dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW );
     }
 
     if ( fVerbose ) {

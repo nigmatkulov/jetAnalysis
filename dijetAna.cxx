@@ -173,6 +173,7 @@ int main(int argc, char const *argv[]) {
     analysis->setLeadJetPtLow( 50. );
     analysis->setSubLeadJetPtLow( 30. );
     analysis->setDijetPhiCut( TMath::TwoPi() / 3 );
+    //analysis->useEtaShiftAndSignSwap();
     //analysis->setVerbose();
     
     // Initialize histogram manager

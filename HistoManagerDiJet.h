@@ -160,20 +160,25 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D       *hRecoInclusiveJetPtVsEtaKineCut;
     THnSparseD *hRecoInclusiveJetJESPtEtaPhiKineCut;
     TH3D       *hRecoInclusiveJetDEtaPtEtaKineCut;
+    TH2D       *hRecoInclusiveMatchedJetPtVsEtaKineCut;
+    TH2D       *hRecoInclusiveUnmatchedJetPtVsEtaKineCut;
+    TH2D       *hRecoInclusiveJetRefPtVsEtaKineCut;
 
     TH2D       *hRecoInclusiveJetPtVsEtaTrkMaxCut;
     THnSparseD *hRecoInclusiveJetJESPtEtaPhiTrkMaxCut;
     TH3D       *hRecoInclusiveJetDEtaPtEtaTrkMaxCut;
-    TH2D       *hRecoInclusiveUnmatchedJetPtVsEta;
+    TH2D       *hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut;
+    TH2D       *hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut;
+    TH2D       *hRecoInclusiveJetRefPtVsEtaTrkMaxCut;
 
     TH2D       *hRecoInclusiveJetPtVsEtaJetIdCut;
     THnSparseD *hRecoInclusiveJetJESPtEtaPhiJetIdCut;
     TH3D       *hRecoInclusiveJetDEtaPtEtaJetIdCut;
-    TH2D       *hRecoInclusiveUnmatchedJetPtVsEta;
+    TH2D       *hRecoInclusiveMatchedJetPtVsEtaJetIdCut;
+    TH2D       *hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut;
+    TH2D       *hRecoInclusiveJetRefPtVsEtaJetIdCut;
 
     
-    
-
     // MC
 
     // Reco dijet pt, dijet eta, 
