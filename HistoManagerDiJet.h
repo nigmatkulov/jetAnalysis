@@ -152,6 +152,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoEtaLeadEtaSublead;
     TH3D *hRecoDijetPtEtaDphi;
 
+    TH3D *hRecoDijetPtEtaDphiJetId;
+
     TH2D *hRecoInclusiveAllJetPtVsEta;
     TH2D *hRecoInclusiveMatchedJetPtVsEta;
     TH2D *hRecoInclusiveUnmatchedJetPtVsEta;
@@ -178,6 +180,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D       *hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut;
     TH2D       *hRecoInclusiveJetRefPtVsEtaJetIdCut;
 
+    TH1D       *hRecoTrkMaxToJetIdDijetMatching;
     
     // MC
 
@@ -204,13 +207,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Ref lead pt, lead eta,
     // Ref sublead pt, sublead eta weighted [12]
     THnSparseD *hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
-    
-    // Reco dijet pt / gen dijet pt, reco dijet eta / gen dijet eta, reco dijet dphi / gen dijet dphi,
-    // gen dijet pt, dijet eta, dijet delta phi, ptHat
-    //THnSparseD *hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat;
-    // Reco dijet pt / gen dijet pt, reco dijet eta / gen dijet eta, reco dijet dphi / gen dijet dphi,
-    // gen dijet pt, dijet eta, dijet delta phi, ptHat, weighted
-    //THnSparseD *hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted;
+
 
     TH1D *hRecoDijetEta;
     TH1D *hRefDijetEta;
@@ -219,6 +216,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRefDijetPtEtaDphi;
     TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaDphi;
+
+    TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId;
+    TH3D *hRefDijetPtEtaDphiJetId;
 
     TH1D *hRefInclusiveJetPt;
     TH2D *hRefInclusiveJetPtEta;

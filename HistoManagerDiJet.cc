@@ -74,6 +74,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRecoPtLeadPtSublead{nullptr},
   hRecoEtaLeadEtaSublead{nullptr},
   hRecoDijetPtEtaDphi{nullptr},
+  hRecoDijetPtEtaDphiJetId{nullptr},
   hRecoInclusiveAllJetPtVsEta{nullptr},
   hRecoInclusiveMatchedJetPtVsEta{nullptr},
   hRecoInclusiveUnmatchedJetPtVsEta{nullptr},
@@ -100,6 +101,8 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut{nullptr},
   hRecoInclusiveJetRefPtVsEtaJetIdCut{nullptr},
 
+  hRecoTrkMaxToJetIdDijetMatching{nullptr},
+
   // Dijets (MC)
   hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta{nullptr},
   hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted{nullptr},
@@ -113,6 +116,9 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRefDijetPtEtaDphi{nullptr},
   hRefSelDijetEta{nullptr},
   hRefSelDijetPtEtaDphi{nullptr},
+
+  hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId{nullptr},
+  hRefDijetPtEtaDphiJetId{nullptr},
 
   hRefInclusiveJetPt{nullptr},
   hRefInclusiveJetPtEta{nullptr},
@@ -206,27 +212,32 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoEtaLeadEtaSublead) delete hRecoEtaLeadEtaSublead;
     if (hRecoDijetEta) delete hRecoDijetEta;
     if (hRecoDijetPtEtaDphi) delete hRecoDijetPtEtaDphi;
+    if (hRecoDijetPtEtaDphiJetId) delete hRecoDijetPtEtaDphiJetId;
+
+    if (hRecoTrkMaxToJetIdDijetMatching) delete hRecoTrkMaxToJetIdDijetMatching;
 
     //
     // Dijets exp vs mc
     //
     if ( fIsMc ) {
-      if (hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta) delete hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta;
-      if (hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted) delete hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
-      if (hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted) delete hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
-      // if (hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat) delete hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat;
-      // if (hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted) delete hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted;
-      if (hRefInclusiveJetPt) delete hRefInclusiveJetPt;
-      if (hRefInclusiveJetPtEta) delete hRefInclusiveJetPtEta;
-      if (hRefPtLeadPtSublead) delete hRefPtLeadPtSublead;
-      if (hRefEtaLeadEtaSublead) delete hRefEtaLeadEtaSublead;
-      if (hRefDijetPtEtaDphi) delete hRefDijetPtEtaDphi;
-      if (hRefSelDijetEta) delete hRefSelDijetEta;
-      if (hRefSelDijetPtEtaDphi) delete hRefSelDijetPtEtaDphi;
+        if (hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta) delete hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta;
+        if (hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted) delete hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
+        if (hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted) delete hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
+    
+        if (hRefInclusiveJetPt) delete hRefInclusiveJetPt;
+        if (hRefInclusiveJetPtEta) delete hRefInclusiveJetPtEta;
+        if (hRefPtLeadPtSublead) delete hRefPtLeadPtSublead;
+        if (hRefEtaLeadEtaSublead) delete hRefEtaLeadEtaSublead;
+        if (hRefDijetPtEtaDphi) delete hRefDijetPtEtaDphi;
+        if (hRefSelDijetEta) delete hRefSelDijetEta;
+        if (hRefSelDijetPtEtaDphi) delete hRefSelDijetPtEtaDphi;
 
-      if (hRefDijetEta) delete hRefDijetEta;
-      if (hRefDijetEtaVsRecoDijetEta) delete hRefDijetEtaVsRecoDijetEta;
-      if (hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt) delete hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt;
+        if (hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId) delete hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId;
+        if (hRefDijetPtEtaDphiJetId) delete hRefDijetPtEtaDphiJetId;
+
+        if (hRefDijetEta) delete hRefDijetEta;
+        if (hRefDijetEtaVsRecoDijetEta) delete hRefDijetEtaVsRecoDijetEta;
+        if (hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt) delete hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt;
 
     } // if ( fIsMc )
 }
@@ -647,11 +658,24 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                                             fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1] );
+        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->Sumw2();
         hRefDijetPtEtaDphi = new TH3D("hRefDijetPtEtaDphi","Ref dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                         fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
         hRefDijetPtEtaDphi->Sumw2();
+
+
+        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId = new TH3D("hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId", "Reco dijet #eta vs ref dijet #eta vs reco dijet p_{T} jetId cut;Reco #eta^{dijet};Ref #eta^{dijet}; Reco p_{T}^{dijet} (GeV/c)",
+                                                            fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                                            fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1] );
+        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->Sumw2();
+        hRefDijetPtEtaDphiJetId = new TH3D("hRefDijetPtEtaDphiJetId","Ref dijet info jetId;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                        fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
+        hRefDijetPtEtaDphiJetId->Sumw2();
 
 
         //
@@ -668,9 +692,15 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRefDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEta->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
+        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefSelDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefSelDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
+
+        hRefDijetPtEtaDphiJetId->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
+        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
 
         //
         // Modify bins of gen dijets
@@ -746,6 +776,22 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                    fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
     hRecoDijetPtEtaDphi->Sumw2();
 
+    hRecoDijetPtEtaDphiJetId  = new TH3D("hRecoDijetPtEtaDphiJetId","Reco dijet info jetId cut;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
+                                   fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                   fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                   fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
+    hRecoDijetPtEtaDphiJetId->Sumw2();
+
+
+    hRecoTrkMaxToJetIdDijetMatching = new TH1D("hRecoTrkMaxToJetIdDijetMatching", "Matching of dijets between trkMax and jetId selection;;Entries", 
+                                               6, -0.5, 5.5);
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(0, "");
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(1, "Both match");
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(2, "Lead match");
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(3, "Sublead match");
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(4, "None match");
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(5, "");
+
     //
     // Modify bins of reco dijets
     //
@@ -753,8 +799,7 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
-
-
+    hRecoDijetPtEtaDphiJetId->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
 }
 
 //________________
@@ -834,6 +879,10 @@ void HistoManagerDiJet::writeOutput() {
         hRefDijetEtaVsRecoDijetEta->Write();
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->Write();
         hRefDijetPtEtaDphi->Write();
+
+        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->Write();
+        hRefDijetPtEtaDphiJetId->Write();
+
         hRefSelDijetPtEtaDphi->Write();
         hRefSelDijetEta->Write();
         hRefInclusiveJetPt->Write();
@@ -849,6 +898,8 @@ void HistoManagerDiJet::writeOutput() {
     hRecoEtaLeadEtaSublead->Write();
     hRecoDijetEta->Write();
     hRecoDijetPtEtaDphi->Write();
+    hRecoDijetPtEtaDphiJetId->Write();
+    hRecoTrkMaxToJetIdDijetMatching->Write();
 
     hRecoInclusiveAllJetPtVsEta->Write();
     hRecoInclusiveJetPtVsEtaKineCut->Write();

@@ -130,6 +130,10 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t   fIsLooseJetIdCut;
     /// @brief Use/not use eta shift and sign swap (default: not use)
     Bool_t   fUseEtaShiftAndSignSwap;
+    /// @brief Check if dijet passed trkMax cut is found
+    Bool_t   fIsDijetFound;
+    /// @brief Check if dijet passed jetId cut is found
+    Bool_t   fIsDijetJetIdFound;
 
   ClassDef(DiJetAnalysis, 0)
 };
