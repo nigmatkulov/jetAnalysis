@@ -1052,7 +1052,7 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
 }
 
 //________________
-void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_ak4_jetId.root") {
+void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_ak4.root") {
 
     gStyle->SetOptStat(0);
     gStyle->SetOptTitle(0);
