@@ -101,6 +101,20 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut{nullptr},
   hRecoInclusiveJetRefPtVsEtaJetIdCut{nullptr},
 
+  hRecoLeadJetAllPtVsEta{nullptr},
+  hRecoLeadJetMatchedPtVsEta{nullptr},
+  hRecoLeadJetUnmatchedPtVsEta{nullptr},
+  hRecoSubLeadJetAllPtVsEta{nullptr},
+  hRecoSubLeadJetMatchedPtVsEta{nullptr},
+  hRecoSubLeadJetUnmatchedPtVsEta{nullptr},
+
+  hRecoLeadJetAllPtVsEtaJetIdCut{nullptr},
+  hRecoLeadJetMatchedPtVsEtaJetIdCut{nullptr},
+  hRecoLeadJetUnmatchedPtVsEtaJetIdCut{nullptr},
+  hRecoSubLeadJetAllPtVsEtaJetIdCut{nullptr},
+  hRecoSubLeadJetMatchedPtVsEtaJetIdCut{nullptr},
+  hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut{nullptr},
+
   hRecoTrkMaxToJetIdDijetMatching{nullptr},
 
   // Dijets (MC)
@@ -143,14 +157,14 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hVzPtHat) delete hVzPtHat;
     if (hVzPtHatWeighted) delete hVzPtHatWeighted;
     for (int i=0; i<4; i++) {
-      if (hNHF[i]) delete hNHF[i];
-      if (hNEmF[i]) delete hNEmF[i];
-      if (hNumOfConst[i]) delete hNumOfConst[i];
-      if (hMUF[i]) delete hMUF[i];
-      if (hCHF[i]) delete hCHF[i];
-      if (hChargedMult[i]) delete hChargedMult[i];
-      if (hCEmF[i]) delete hCEmF[i];
-      if (hNumOfNeutPart[i]) delete hNumOfNeutPart[i];
+        if (hNHF[i]) delete hNHF[i];
+        if (hNEmF[i]) delete hNEmF[i];
+        if (hNumOfConst[i]) delete hNumOfConst[i];
+        if (hMUF[i]) delete hMUF[i];
+        if (hCHF[i]) delete hCHF[i];
+        if (hChargedMult[i]) delete hChargedMult[i];
+        if (hCEmF[i]) delete hCEmF[i];
+        if (hNumOfNeutPart[i]) delete hNumOfNeutPart[i];
     }
 
     if (hRecoInclusiveAllJetPtVsEta) delete hRecoInclusiveAllJetPtVsEta;
@@ -159,47 +173,61 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoInclusiveJetPtVsEtaJetIdCut) delete hRecoInclusiveJetPtVsEtaJetIdCut;
 
     if (fIsMc) {
-      // Gen jets
-      if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
-      if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
-      if (hGenInclusiveJetPt) delete hGenInclusiveJetPt;
-      if (hGenInclusiveJetPtEta) delete hGenInclusiveJetPtEta;
-      if (hGenPtLeadPtSublead) delete hGenPtLeadPtSublead;
-      if (hGenEtaLeadEtaSublead) delete hGenEtaLeadEtaSublead;
-      if (hGenDijetEta) delete hGenDijetEta;
-      if (hGenDijetPtEtaDphi) delete hGenDijetPtEtaDphi;
+        // Gen jets
+        if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
+        if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
+        if (hGenInclusiveJetPt) delete hGenInclusiveJetPt;
+        if (hGenInclusiveJetPtEta) delete hGenInclusiveJetPtEta;
+        if (hGenPtLeadPtSublead) delete hGenPtLeadPtSublead;
+        if (hGenEtaLeadEtaSublead) delete hGenEtaLeadEtaSublead;
+        if (hGenDijetEta) delete hGenDijetEta;
+        if (hGenDijetPtEtaDphi) delete hGenDijetPtEtaDphi;
 
 
-      if (hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen) delete hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen;
-      if (hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted) delete hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-      if (hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen) delete hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
-      if (hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted) delete hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-      if (hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen) delete hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
-      if (hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted) delete hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-      if (hJESInclusiveJetPtEtaPhi) delete hJESInclusiveJetPtEtaPhi;
-      if (hJESInclusiveJetPtEtaPhiWeighted) delete hJESInclusiveJetPtEtaPhiWeighted;
-      if (hRecoMatchedPtEta) delete hRecoMatchedPtEta;
-      if (hRecoInclusiveMatchedJetPtVsEta) delete hRecoInclusiveMatchedJetPtVsEta;
-      if (hRecoInclusiveUnmatchedJetPtVsEta) delete hRecoInclusiveUnmatchedJetPtVsEta;
+        if (hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen) delete hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen;
+        if (hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted) delete hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+        if (hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen) delete hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
+        if (hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted) delete hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+        if (hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen) delete hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
+        if (hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted) delete hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+        if (hJESInclusiveJetPtEtaPhi) delete hJESInclusiveJetPtEtaPhi;
+        if (hJESInclusiveJetPtEtaPhiWeighted) delete hJESInclusiveJetPtEtaPhiWeighted;
+        if (hRecoMatchedPtEta) delete hRecoMatchedPtEta;
+        if (hRecoInclusiveMatchedJetPtVsEta) delete hRecoInclusiveMatchedJetPtVsEta;
+        if (hRecoInclusiveUnmatchedJetPtVsEta) delete hRecoInclusiveUnmatchedJetPtVsEta;
 
-      
-      if (hRecoInclusiveJetJESPtEtaPhiKineCut) delete hRecoInclusiveJetJESPtEtaPhiKineCut;
-      if (hRecoInclusiveJetDEtaPtEtaKineCut) delete hRecoInclusiveJetDEtaPtEtaKineCut;
-      if (hRecoInclusiveMatchedJetPtVsEtaKineCut) delete hRecoInclusiveMatchedJetPtVsEtaKineCut;
-      if (hRecoInclusiveUnmatchedJetPtVsEtaKineCut) delete hRecoInclusiveUnmatchedJetPtVsEtaKineCut;
-      if (hRecoInclusiveJetRefPtVsEtaKineCut) delete hRecoInclusiveJetRefPtVsEtaKineCut;
+        if (hRecoLeadJetAllPtVsEta) delete hRecoLeadJetAllPtVsEta;
+        if (hRecoLeadJetMatchedPtVsEta) delete hRecoLeadJetMatchedPtVsEta;
+        if (hRecoLeadJetUnmatchedPtVsEta) delete hRecoLeadJetUnmatchedPtVsEta;
+        if (hRecoSubLeadJetAllPtVsEta) delete hRecoSubLeadJetAllPtVsEta;
+        if (hRecoSubLeadJetMatchedPtVsEta) delete hRecoSubLeadJetMatchedPtVsEta;
+        if (hRecoSubLeadJetUnmatchedPtVsEta) delete hRecoSubLeadJetUnmatchedPtVsEta;
 
-      if (hRecoInclusiveJetJESPtEtaPhiTrkMaxCut) delete hRecoInclusiveJetJESPtEtaPhiTrkMaxCut;
-      if (hRecoInclusiveJetDEtaPtEtaTrkMaxCut) delete hRecoInclusiveJetDEtaPtEtaTrkMaxCut;
-      if (hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut) delete hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut;
-      if (hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut) delete hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut;
-      if (hRecoInclusiveJetRefPtVsEtaTrkMaxCut) delete hRecoInclusiveJetRefPtVsEtaTrkMaxCut;
+        if (hRecoLeadJetAllPtVsEtaJetIdCut) delete hRecoLeadJetAllPtVsEtaJetIdCut;
+        if (hRecoLeadJetMatchedPtVsEtaJetIdCut) delete hRecoLeadJetMatchedPtVsEtaJetIdCut;
+        if (hRecoLeadJetUnmatchedPtVsEtaJetIdCut) delete hRecoLeadJetUnmatchedPtVsEtaJetIdCut;
+        if (hRecoSubLeadJetAllPtVsEtaJetIdCut) delete hRecoSubLeadJetAllPtVsEtaJetIdCut;
+        if (hRecoSubLeadJetMatchedPtVsEtaJetIdCut) delete hRecoSubLeadJetMatchedPtVsEtaJetIdCut;
+        if (hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut) delete hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut;
 
-      if (hRecoInclusiveJetJESPtEtaPhiJetIdCut) delete hRecoInclusiveJetJESPtEtaPhiJetIdCut;
-      if (hRecoInclusiveJetDEtaPtEtaJetIdCut) delete hRecoInclusiveJetDEtaPtEtaJetIdCut;
-      if (hRecoInclusiveMatchedJetPtVsEtaJetIdCut) delete hRecoInclusiveMatchedJetPtVsEtaJetIdCut;
-      if (hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut) delete hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut;
-      if (hRecoInclusiveJetRefPtVsEtaJetIdCut) delete hRecoInclusiveJetRefPtVsEtaJetIdCut;
+        
+        if (hRecoInclusiveJetJESPtEtaPhiKineCut) delete hRecoInclusiveJetJESPtEtaPhiKineCut;
+        if (hRecoInclusiveJetDEtaPtEtaKineCut) delete hRecoInclusiveJetDEtaPtEtaKineCut;
+        if (hRecoInclusiveMatchedJetPtVsEtaKineCut) delete hRecoInclusiveMatchedJetPtVsEtaKineCut;
+        if (hRecoInclusiveUnmatchedJetPtVsEtaKineCut) delete hRecoInclusiveUnmatchedJetPtVsEtaKineCut;
+        if (hRecoInclusiveJetRefPtVsEtaKineCut) delete hRecoInclusiveJetRefPtVsEtaKineCut;
+
+        if (hRecoInclusiveJetJESPtEtaPhiTrkMaxCut) delete hRecoInclusiveJetJESPtEtaPhiTrkMaxCut;
+        if (hRecoInclusiveJetDEtaPtEtaTrkMaxCut) delete hRecoInclusiveJetDEtaPtEtaTrkMaxCut;
+        if (hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut) delete hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut;
+        if (hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut) delete hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut;
+        if (hRecoInclusiveJetRefPtVsEtaTrkMaxCut) delete hRecoInclusiveJetRefPtVsEtaTrkMaxCut;
+
+        if (hRecoInclusiveJetJESPtEtaPhiJetIdCut) delete hRecoInclusiveJetJESPtEtaPhiJetIdCut;
+        if (hRecoInclusiveJetDEtaPtEtaJetIdCut) delete hRecoInclusiveJetDEtaPtEtaJetIdCut;
+        if (hRecoInclusiveMatchedJetPtVsEtaJetIdCut) delete hRecoInclusiveMatchedJetPtVsEtaJetIdCut;
+        if (hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut) delete hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut;
+        if (hRecoInclusiveJetRefPtVsEtaJetIdCut) delete hRecoInclusiveJetRefPtVsEtaJetIdCut;
     } // if (fIsMc)
 
     //
@@ -510,6 +538,58 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
         hRecoInclusiveMatchedJetPtVsEta->Sumw2();
+
+
+        hRecoLeadJetAllPtVsEta = new TH2D("hRecoLeadJetAllPtVsEta","Leading jet all p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
+                                          fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                          ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoLeadJetAllPtVsEta->Sumw2();
+        hRecoLeadJetMatchedPtVsEta = new TH2D("hRecoLeadJetMatchedPtVsEta","Leading jet matched p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
+                                              fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                              ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoLeadJetMatchedPtVsEta->Sumw2();
+        hRecoLeadJetUnmatchedPtVsEta = new TH2D("hRecoLeadJetUnmatchedPtVsEta","Leading jet unmatched p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
+                                                fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoLeadJetUnmatchedPtVsEta->Sumw2();
+        hRecoSubLeadJetAllPtVsEta = new TH2D("hRecoSubLeadJetAllPtVsEta","Subleading jet all p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
+                                             fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                             ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoSubLeadJetAllPtVsEta->Sumw2();
+        hRecoSubLeadJetMatchedPtVsEta = new TH2D("hRecoSubLeadJetMatchedPtVsEta","Subleading jet matched p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
+                                                 fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                 ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoSubLeadJetMatchedPtVsEta->Sumw2();
+        hRecoSubLeadJetUnmatchedPtVsEta = new TH2D("hRecoSubLeadJetUnmatchedPtVsEta","Subleading jet unmatched p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
+                                                   fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                   ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoSubLeadJetUnmatchedPtVsEta->Sumw2();
+
+
+        hRecoLeadJetAllPtVsEtaJetIdCut = new TH2D("hRecoLeadJetAllPtVsEtaJetIdCut","Leading jet all p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
+                                                  fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                  ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoLeadJetAllPtVsEtaJetIdCut->Sumw2();
+        hRecoLeadJetMatchedPtVsEtaJetIdCut = new TH2D("hRecoLeadJetMatchedPtVsEtaJetIdCut","Leading jet matched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
+                                                      fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                      ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoLeadJetMatchedPtVsEtaJetIdCut->Sumw2();
+        hRecoLeadJetUnmatchedPtVsEtaJetIdCut = new TH2D("hRecoLeadJetUnmatchedPtVsEtaJetIdCut","Leading jet unmatched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                        ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoLeadJetUnmatchedPtVsEtaJetIdCut->Sumw2();
+        hRecoSubLeadJetAllPtVsEtaJetIdCut = new TH2D("hRecoSubLeadJetAllPtVsEtaJetIdCut","Subleading jet all p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
+                                                     fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoSubLeadJetAllPtVsEtaJetIdCut->Sumw2();
+        hRecoSubLeadJetMatchedPtVsEtaJetIdCut = new TH2D("hRecoSubLeadJetMatchedPtVsEtaJetIdCut","Subleading jet matched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
+                                                         fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                         ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoSubLeadJetMatchedPtVsEtaJetIdCut->Sumw2();
+        hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut = new TH2D("hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut","Subleading jet unmatched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
+                                                           fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                           ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut->Sumw2();
 
         //
         // Reco jets selection algo
@@ -853,6 +933,21 @@ void HistoManagerDiJet::writeOutput() {
         hRecoMatchedPtEta->Write();
         hRecoInclusiveMatchedJetPtVsEta->Write();
         hRecoInclusiveUnmatchedJetPtVsEta->Write();
+
+        hRecoLeadJetAllPtVsEta->Write();
+        hRecoLeadJetMatchedPtVsEta->Write();
+        hRecoLeadJetUnmatchedPtVsEta->Write();
+        hRecoSubLeadJetAllPtVsEta->Write();
+        hRecoSubLeadJetMatchedPtVsEta->Write();
+        hRecoSubLeadJetUnmatchedPtVsEta->Write();
+
+        hRecoLeadJetAllPtVsEtaJetIdCut->Write();
+        hRecoLeadJetMatchedPtVsEtaJetIdCut->Write();
+        hRecoLeadJetUnmatchedPtVsEtaJetIdCut->Write();
+        hRecoSubLeadJetAllPtVsEtaJetIdCut->Write();
+        hRecoSubLeadJetMatchedPtVsEtaJetIdCut->Write();
+        hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut->Write();
+
 
         hRecoInclusiveJetJESPtEtaPhiKineCut->Write();
         hRecoInclusiveJetDEtaPtEtaKineCut->Write();

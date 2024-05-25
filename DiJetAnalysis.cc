@@ -643,6 +643,27 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
     if ( idRecoLead>=0 && idRecoSubLead>=0 ) {
 
+        fHM->hRecoLeadJetAllPtVsEta->Fill(etaRecoLead, ptRecoLead, ptHatW);
+        fHM->hRecoSubLeadJetAllPtVsEta->Fill(etaRecoSubLead, ptRecoSubLead, ptHatW);   
+
+        if ( fIsMc ) {
+            // Check leading jet matching to gen
+            if ( event->pfJetCollection()->at( idRecoLead )->hasMatching() ) {
+                fHM->hRecoLeadJetMatchedPtVsEta->Fill(etaRecoLead, ptRecoLead, ptHatW);
+            }
+            else {
+                fHM->hRecoLeadJetUnmatchedPtVsEta->Fill(etaRecoLead, ptRecoLead, ptHatW);
+            }
+
+            // Check subleading jet matching to gen
+            if ( event->pfJetCollection()->at( idRecoSubLead )->hasMatching() ) {
+                fHM->hRecoSubLeadJetMatchedPtVsEta->Fill(etaRecoSubLead, ptRecoSubLead, ptHatW);
+            }
+            else {
+                fHM->hRecoSubLeadJetUnmatchedPtVsEta->Fill(etaRecoSubLead, ptRecoSubLead, ptHatW);
+            }
+        } // if ( fIsMc )
+
         Bool_t goodLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoLead ) );
         Bool_t goodSubLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoSubLead ) );
         Bool_t goodDijet = isGoodDijet( ptRecoLead, ptRecoSubLead, TMath::Abs( deltaPhi(phiRecoLead, phiRecoSubLead) ) );
@@ -714,6 +735,27 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     fIsDijetJetIdFound = {kFALSE};
 
     if ( idRecoLeadJetId>=0 && idRecoSubLeadJetId>=0 ) {
+
+        fHM->hRecoLeadJetAllPtVsEtaJetIdCut->Fill(etaRecoLeadJetId, ptRecoLeadJetId, ptHatW);
+        fHM->hRecoSubLeadJetAllPtVsEtaJetIdCut->Fill(etaRecoSubLeadJetId, ptRecoSubLeadJetId, ptHatW);   
+
+        if ( fIsMc ) {
+            // Check leading jet matching to gen
+            if ( event->pfJetCollection()->at( idRecoLead )->hasMatching() ) {
+                fHM->hRecoLeadJetMatchedPtVsEtaJetIdCut->Fill(etaRecoLeadJetId, ptRecoLeadJetId, ptHatW);
+            }
+            else {
+                fHM->hRecoLeadJetUnmatchedPtVsEtaJetIdCut->Fill(etaRecoLeadJetId, ptRecoLeadJetId, ptHatW);
+            }
+
+            // Check subleading jet matching to gen
+            if ( event->pfJetCollection()->at( idRecoSubLead )->hasMatching() ) {
+                fHM->hRecoSubLeadJetMatchedPtVsEtaJetIdCut->Fill(etaRecoSubLeadJetId, ptRecoSubLeadJetId, ptHatW);
+            }
+            else {
+                fHM->hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut->Fill(etaRecoSubLeadJetId, ptRecoSubLeadJetId, ptHatW);
+            }
+        } // if ( fIsMc )
         
         Bool_t goodLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoLeadJetId ) );
         Bool_t goodSubLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoSubLeadJetId ) );
