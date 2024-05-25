@@ -886,9 +886,15 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
                               event->pfJetCollection()->at( idRecoLead )->genJetId(), 
                               event->pfJetCollection()->at( idRecoSubLead )->genJetId() );
         }
-        Bool_t goodLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoLead )->genJetId() ) );
-        Bool_t goodSubLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoSubLead )->genJetId() ) );
-        Bool_t goodDijet = isGoodDijet( ptRefLead, ptRefSubLead, TMath::Abs( deltaPhi(phiRefLead, phiRefSubLead) ) );
+        Bool_t goodLeadJet{kFALSE};
+        Bool_t goodSubLeadJet{kFALSE};
+        Bool_t goodDijet{kFALSE};
+        if ( event->pfJetCollection()->at( idRecoLead )->genJetId() >=0 && 
+             event->pfJetCollection()->at( idRecoSubLead )->genJetId() >= 0 ) {
+            goodLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoLead )->genJetId() ) );
+            goodSubLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoSubLead )->genJetId() ) );
+            goodDijet = isGoodDijet( ptRefLead, ptRefSubLead, TMath::Abs( deltaPhi(phiRefLead, phiRefSubLead) ) );
+        }
         isDijetFound = goodLeadJet && goodSubLeadJet && goodDijet;
 
         // Analyze trkMax dijets
