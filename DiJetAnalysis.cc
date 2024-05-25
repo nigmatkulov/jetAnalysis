@@ -145,7 +145,7 @@ Bool_t DiJetAnalysis::isGoodTrkMax(const RecoJet* jet) {
 
     if ( fVerbose ) {
         std::cout << "TrackMaxPt/rawPt: " << trackMaxPt/rawPt << ( (goodTrackMax) ? "[passed]" : "[failed]" ) 
-                  << ( (trackMaxPt/rawPt < 0.01) ? " too low value " : "" ) << ( (trackMaxPt/rawPt < 0.01) ? " too large value " : "" )
+                  << ( (trackMaxPt/rawPt < 0.01) ? " too low value " : "" ) << ( (trackMaxPt/rawPt > 0.98) ? " too large value " : "" )
                   << std::endl;
     }
 

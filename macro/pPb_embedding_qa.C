@@ -161,7 +161,7 @@ void rescaleEta(TH2* h) {
 }
 
 //________________
-void plotEfficiency(TFile *inFile, TString date) {
+void plotPtHat(TFile *inFile, TString date, Int_t jetBranch = 0) {
 
     TString inputFileName( inFile->GetName() );
     TString direction;
@@ -175,8 +175,13 @@ void plotEfficiency(TFile *inFile, TString date) {
         direction = "unknownDir";
     }
 
-    // Rebinning
-    Int_t rebinX{1}, rebinY{1};
+    TString branchName;
+    if ( jetBranch == 0 ) {
+        branchName = "akCs4";
+    }
+    else {
+        branchName = "ak4";
+    }
 
     //
     // Plot ptHat distribution
@@ -189,7 +194,37 @@ void plotEfficiency(TFile *inFile, TString date) {
     set1DStyle(hPtHat, 2);
     hPtHat->Draw();
     gPad->SetLogy(1);
-    cPtHat->SaveAs(Form("%s/pPb8160_%s_ptHat.pdf", date.Data(), direction.Data()));
+    cPtHat->SaveAs( Form("%s/pPb8160_%s_ptHat_%s.pdf", 
+                         date.Data(), direction.Data(), branchName.Data()));
+}
+
+//________________
+void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
+
+    TString inputFileName( inFile->GetName() );
+    TString direction;
+    if ( inputFileName.Contains("Pbgoing") ) {
+        direction = "Pbgoing";
+    }
+    else if ( inputFileName.Contains("pgoing") ) {
+        direction = "pgoing";
+    }
+    else {
+        direction = "unknownDir";
+    }
+
+    TString branchName;
+    if ( jetBranch == 0 ) {
+        branchName = "akCs4";
+    }
+    else {
+        branchName = "ak4";
+    }
+
+    // Rebinning
+    Int_t rebinX{1}, rebinY{1};
+
+
 
 
     //
@@ -1079,6 +1114,17 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
         return;
     }
 
+    Int_t branchId{0};
+    if ( inputFileName.Contains("akCs4") ) {
+        branchId = {0};
+    }
+    else {
+        branchId = {1};
+    }
+
+    // Plot ptHat distribution
+    //plotPtHat(inFile, date, branchId);
+
     // Compare inclusive reco, ref and gen transverse momentum spectra
     //compareInclusiveJetPtSpectra(inFile, date);
 
@@ -1098,12 +1144,6 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //plotJetIdHistos(inFile, date);
 
     // Plot JES and JER
-    Int_t branchId{0};
-    if ( inputFileName.Contains("akCs4") ) {
-        branchId = {0};
-    }
-    else {
-        branchId = {1};
-    }
+
     plotJESandJER(inFile, date, branchId);
 }
