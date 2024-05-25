@@ -868,8 +868,8 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
         }
 
         if ( fVerbose ) {
-            std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d\n", 
-                              ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead);
+            std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d genId: %d \n", 
+                              ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead, (*pfJetIter)->genJetId());
         }
 
         // Increment counter
@@ -880,6 +880,12 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
     // Check if leading and subleading jets were found
     //
     if (idRecoLead>=0 && idRecoSubLead>=0) {
+        if ( fVerbose ) {
+            std::cout << Form("Checking dijet Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d Lead genId: %d SubLead genId: %d\n", 
+                              ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead, 
+                              event->pfJetCollection()->at( idRecoLead )->genJetId(), 
+                              event->pfJetCollection()->at( idRecoSubLead )->genJetId() );
+        }
         Bool_t goodLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoLead )->genJetId() ) );
         Bool_t goodSubLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoSubLead )->genJetId() ) );
         Bool_t goodDijet = isGoodDijet( ptRefLead, ptRefSubLead, TMath::Abs( deltaPhi(phiRefLead, phiRefSubLead) ) );
