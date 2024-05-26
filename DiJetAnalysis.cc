@@ -776,7 +776,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         if ( fIsMc ) {
             // Check leading jet matching to gen
-            if ( event->pfJetCollection()->at( idRecoLead )->hasMatching() ) {
+            if ( event->pfJetCollection()->at( idRecoLeadJetId )->hasMatching() ) {
                 fHM->hRecoLeadJetMatchedPtVsEtaJetIdCut->Fill(etaRecoLeadJetId, ptRecoLeadJetId, ptHatW);
             }
             else {
@@ -784,7 +784,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             }
 
             // Check subleading jet matching to gen
-            if ( event->pfJetCollection()->at( idRecoSubLead )->hasMatching() ) {
+            if ( event->pfJetCollection()->at( idRecoSubLeadJetId )->hasMatching() ) {
                 fHM->hRecoSubLeadJetMatchedPtVsEtaJetIdCut->Fill(etaRecoSubLeadJetId, ptRecoSubLeadJetId, ptHatW);
             }
             else {
@@ -976,8 +976,8 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
         Bool_t goodLeadJet{kFALSE};
         Bool_t goodSubLeadJet{kFALSE};
         Bool_t goodDijet{kFALSE};
-        if ( event->pfJetCollection()->at( idRecoLead )->genJetId() >=0 && 
-             event->pfJetCollection()->at( idRecoSubLead )->genJetId() >= 0 ) {
+        if ( event->pfJetCollection()->at( idRecoLead )->hasMatching() && 
+             event->pfJetCollection()->at( idRecoSubLead )->hasMatching() ) {
             goodLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoLead )->genJetId() ) );
             goodSubLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoSubLead )->genJetId() ) );
             goodDijet = isGoodDijet( ptRefLead, ptRefSubLead, TMath::Abs( deltaPhi(phiRefLead, phiRefSubLead) ) );
