@@ -1042,7 +1042,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
     if ( fEventCounter >= 10000 ) {
         fCycleCounter++;
         std::cout << Form("DiJetAnalysis::processEvent [INFO] Events processed: %d Sample fraction: %3.2f\%\n", 
-                          fCycleCounter * 10000, (fCycleCounter * 10000) / fNEventsInSample );
+                          fCycleCounter * 10000, (Double_t)(fCycleCounter * 10000) / fNEventsInSample );
         fEventCounter = {0};
     }
 
@@ -1151,7 +1151,7 @@ void DiJetAnalysis::finish() {
     fCycleCounter++;
     std::cout << Form("DiJetAnalysis::processEvent [INFO] Total events processed: %d Sample fraction: %3.2f\%\n", 
                       (fCycleCounter * 10000) + fEventCounter, 
-                      (fCycleCounter * 10000 + fEventCounter) / fNEventsInSample );
+                      (Double_t)(fCycleCounter * 10000 + fEventCounter) / fNEventsInSample );
     std::cout << "DiJetAnalysis::finish" << std::endl;
 }
 
