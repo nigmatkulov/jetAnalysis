@@ -135,6 +135,9 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Check if dijet passed jetId cut is found
     Bool_t   fIsDijetJetIdFound;
 
+    Int_t    fEventCounter;
+    Int_t    fCycleCounter;
+
   ClassDef(DiJetAnalysis, 0)
 };
 

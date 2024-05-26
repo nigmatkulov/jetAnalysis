@@ -329,17 +329,15 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
     TLegend *hEtaLegend[fPtBins];
     TLegend *hPtLegend[fEtaBins];
 
-
-
-
     TCanvas *cEtaEfficiency = new TCanvas("cEtaEfficiency", "cEtaEfficiency", 1600, 800);
     cEtaEfficiency->Divide(5, ( (fPtBins % 5) == 0 ) ? (fPtBins / 5) : (fPtBins / 5 + 1) );
 
     TCanvas *cPtEfficiency = new TCanvas("cPtEfficiency", "cPtEfficiency", 1600, 800);
     cPtEfficiency->Divide(5, ( (fEtaBins % 5) == 0 ) ? (fEtaBins / 5) : (fEtaBins / 5 + 1) );
 
-
+    //
     // Make projections on eta
+    //
     for (Int_t i{1}; i<=fPtBins; i++) {
 
         // TrkMax
@@ -454,9 +452,79 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
     cEtaEfficiency->SaveAs( Form("%s/pPb8160_%s_eta_efficiency_projections_%s.pdf", 
                                  date.Data(), direction.Data(), branchName.Data()) );
 
-
-    // TODO: continue here
+    //
+    // Projections on pT axis
+    //
     for (Int_t i{1}; i<=fEtaBins; i++) {
+
+        // TrkMax
+        hPtEfficiencyTrkMaxCut[i] = (TH1D*)hRefPtVsEtaTrkMaxCut->ProjectionY(Form("hPtEfficiencyTrkMaxCut_%d", i), i, i);
+        hPtEfficiencyTrkMaxCut[i]->SetNameTitle(Form("hPtEfficiencyTrkMaxCut_%d", i), ";p_{T} (GeV/c);Efficiency");
+        set1DStyle(hPtEfficiencyTrkMaxCut[i], 2);
+        hPtEfficiencyTrkMaxCut[i]->SetMarkerSize(0.7);
+
+        // Kine
+        if ( plotKineCut ) {
+            hPtEfficiencyKineCut[i] = (TH1D*)hRefPtVsEtaKineCut->ProjectionY(Form("hPtEfficiencyKineCut_%d", i), i, i);
+            hPtEfficiencyKineCut[i]->SetNameTitle(Form("hEtaEfficiencyKineCut_%d", i), ";p_{T} (GeV/c);Efficiency");
+            set1DStyle(hPtEfficiencyKineCut[i], 0);
+            hPtEfficiencyKineCut[i]->SetMarkerSize(0.7);
+
+            hPtEfficiencyRatioKineCut[i] = hPtEfficiencyKineCut[i]->Clone(Form("hPtEfficiencyRatioKineCut_%d",i));
+            hPtEfficiencyRatioKineCut[i]->Divide( hPtEfficiencyRatioKineCut[i], hPtEfficiencyTrkMaxCut[i], 1., 1., "b");
+            hPtEfficiencyRatioKineCut[i]->GetYaxis()->SetTitle("Ratio to trkMax");
+        }
+
+        // JetId
+        if ( plotJetIdCut ) {
+            hPtEfficiencyJetIdCut[i] = (TH1D*)hRefPtVsEtaJetIdCut->ProjectionX(Form("hPtEfficiencyJetIdCut_%d", i), i, i);
+            hPtEfficiencyJetIdCut[i]->SetNameTitle(Form("hPtEfficiencyJetIdCut_%d", i), ";#eta;Efficiency");
+            set1DStyle(hPtEfficiencyJetIdCut[i], 1);
+            hPtEfficiencyJetIdCut[i]->SetMarkerSize(0.7);
+
+            hPtEfficiencyRatioJetIdCut[i] = hPtEfficiencyJetIdCut[i]->Clone(Form("hPtEfficiencyRatioJetIdCut_%d",i));
+            hPtEfficiencyRatioJetIdCut[i]->Divide( hPtEfficiencyRatioJetIdCut[i], hPtEfficiencyTrkMaxCut[i], 1., 1., "b");
+            hPtEfficiencyRatioJetIdCut[i]->GetYaxis()->SetTitle("Ratio to trkMax");
+        }
+
+        // Plot individual distributions
+        c->cd();
+        setPadStyle();
+        hPtEfficiencyTrkMaxCut[i]->Draw();
+        hPtEfficiencyTrkMaxCut[i]->GetYaxis()->SetRangeUser(0., 1.05);
+        if ( plotKineCut ) {
+            hPtEfficiencyKineCut[i]->Draw("same");
+        }
+        if ( plotJetIdCut ) {
+            hPtEfficiencyJetIdCut[i]->Draw("same");
+        }
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%2.1f<#eta<%2.1f", 
+                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep ) );
+
+        hPtLegend[i] = new TLegend(0.35, 0.35, 0.65, 0.55);
+        hPtLegend[i]->SetTextSize(0.05);
+        hPtLegend[i]->SetLineWidth(0);
+        hPtLegend[i]->AddEntry(hPtEfficiencyTrkMaxCut[i], Form("TrkMax"), "p");
+        if ( plotKineCut ) {
+            hPtLegend[i]->AddEntry(hPtEfficiencyKineCut[i], Form("KineOnly"), "p");
+        }
+        if ( plotJetIdCut ) {
+            hPtLegend[i]->AddEntry(hPtEfficiencyJetIdCut[i], Form("JetId"), "p");
+        }
+        hPtLegend[i]->Draw();
+        c->SaveAs( Form("%s/pPb8160_%s_pt_efficiency_eta_%d_%d_%s.pdf", 
+                        date.Data(), direction.Data(), 
+                        (Int_t)(fEtaRange[0] + (i-1) * etaStep)*10,
+                        (Int_t)(fEtaRange[0] + i * etaStep)*10,
+                        branchName.Data()) );
+
+
+
+
+
+
         // Project on pT
         hPtEfficiency[i] = (TH1D*)hEfficiency->ProjectionY(Form("hPtEfficiency_%d", i), i, i);
         hPtEfficiency[i]->SetNameTitle(Form("hPtEfficiency_%d", i), ";p_{T} (GeV/c);Efficiency");

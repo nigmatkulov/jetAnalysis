@@ -32,7 +32,8 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fDijetPhiCut{TMath::TwoPi() / 3},
     fIsPbGoingDir{kFALSE}, fVerbose{kFALSE},
     fNEventsInSample{1000000}, fUseEtaShiftAndSignSwap{kFALSE},
-    fIsDijetFound{kFALSE}, fIsDijetJetIdFound{kFALSE} {
+    fIsDijetFound{kFALSE}, fIsDijetJetIdFound{kFALSE},
+    fEventCounter{0}, fCycleCounter{0} {
     fPtHatRange[0] = {15.};
     fPtHatRange[1] = {30.};
 }
@@ -844,7 +845,6 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(0., ptHatW);
     }
 
-
     if ( fVerbose ) {
         std::cout << "TrkMax dijet found: " << ( (fIsDijetFound) ? "[true]" : "[false]" ) << std::endl;
         std::cout << "JetId  dijet found: " << ( (fIsDijetJetIdFound) ? "[true]" : "[false]" ) << std::endl;
@@ -1033,7 +1033,17 @@ void DiJetAnalysis::processEvent(const Event* event) {
     // Perform the analysis
     if ( fVerbose ) {
         std::cout << "++++++++++++++++++++++++++++++++++++++++" << std::endl;
+        std::cout << "++++++++++++++++++++++++++++++++++++++++" << std::endl;
+        std::cout << "++++++++++++++++++++++++++++++++++++++++" << std::endl;
         std::cout << "DiJetAnalysis::processEvent" << std::endl;
+    }
+
+    fEventCounter++;
+    if ( fEventCounter >= 10000 ) {
+        fCycleCounter++;
+        std::cout << Form("DiJetAnalysis::processEvent [INFO] Events processed: %d Sample fraction: %3.2f\%\n", 
+                          fCycleCounter * 10000, (fCycleCounter * 10000) / fNEventsInSample );
+        fEventCounter = {0};
     }
 
     if ( !fHM ) {
@@ -1138,6 +1148,10 @@ void DiJetAnalysis::processEvent(const Event* event) {
 //________________
 void DiJetAnalysis::finish() {
     // Save data and close files
+    fCycleCounter++;
+    std::cout << Form("DiJetAnalysis::processEvent [INFO] Total events processed: %d Sample fraction: %3.2f\%\n", 
+                      (fCycleCounter * 10000) + fEventCounter, 
+                      (fCycleCounter * 10000 + fEventCounter) / fNEventsInSample );
     std::cout << "DiJetAnalysis::finish" << std::endl;
 }
 
