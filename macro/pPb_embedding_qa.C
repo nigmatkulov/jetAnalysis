@@ -224,90 +224,238 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
     // Rebinning
     Int_t rebinX{1}, rebinY{1};
 
+    // Plotting options
+    Bool_t plotKineCut{kTRUE};
+    Bool_t plotJetIdCut{kTRUE};
 
-
+    // Make latex
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
 
     //
     // Efficiency over the acceptance
     //
 
-    // Read gen jet acceptance
+    // Retrieve gen jet acceptance
     TH2D *hGenPtVsEta = (TH2D*)inFile->Get("hGenInclusiveJetPtEta");
     hGenPtVsEta->SetName("hGenPtVsEta");
-    // Read reco that matched gen acceptance
-    TH2D *hRefPtVsEta = (TH2D*)inFile->Get("hRefInclusiveJetPtEta");
-    //TH2D *hRefPtVsEta = (TH2D*)inFile->Get("hRecoMatchedPtEta");
-    TH2D *hRecoPtVsEta = (TH2D*)inFile->Get("hRecoMatchedPtEta");
-    hRefPtVsEta->SetName("hRefPtVsEta");
+
+    // Retrieve ref jet acceptance (for reco passed kinematic cuts only)
+    TH2D *hRefPtVsEtaKineCut = (TH2D*)inFile->Get("hRecoInclusiveJetRefPtVsEtaKineCut");
+    hRefPtVsEtaKineCut->SetName("hRefPtVsEtaKineCut");
+
+    // Retrieve ref jet acceptance (for reco passed kinematic+trkMax cuts)
+    TH2D *hRefPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoInclusiveJetRefPtVsEtaTrkMaxCut");
+    hRefPtVsEtaTrkMaxCut->SetName("hRefPtVsEtaTrkMaxCut");
+
+    // Retrieve ref jet acceptance (for reco passed kinematic+jetId cuts)
+    TH2D *hRefPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoInclusiveJetRefPtVsEtaJetIdCut");
+    hRefPtVsEtaJetIdCut->SetName("hRefPtVsEtaJetIdCut");
 
     // Perform rebinning
     hGenPtVsEta->RebinX( rebinX );
     hGenPtVsEta->RebinY( rebinY );
+    hRefPtVsEtaKineCut->RebinX( rebinX );
+    hRefPtVsEtaKineCut->RebinY( rebinY );
+    hRefPtVsEtaTrkMaxCut->RebinX( rebinX );
+    hRefPtVsEtaTrkMaxCut->RebinY( rebinY );
+    hRefPtVsEtaJetIdCut->RebinX( rebinX );
+    hRefPtVsEtaJetIdCut->RebinY( rebinY );
 
-    hRefPtVsEta->RebinX( rebinX );
-    hRefPtVsEta->RebinY( rebinY );
+    // Apply 2D style
+    set2DStyle(hGenPtVsEta);
+    set2DStyle(hRefPtVsEtaKineCut);
+    set2DStyle(hRefPtVsEtaTrkMaxCut);
+    set2DStyle(hRefPtVsEtaJetIdCut);
 
-    // Create plot for efficiency
-    TH2D *hEfficiency = new TH2D("hEfficiency","Inclusive ref(reco matched)/gen;#eta;p_{T} (GeV/c)",
-                                 hGenPtVsEta->GetNbinsX(), 
-                                 hGenPtVsEta->GetXaxis()->GetBinLowEdge(1),
-                                 hGenPtVsEta->GetXaxis()->GetBinUpEdge( hGenPtVsEta->GetNbinsX() ),
-                                 hGenPtVsEta->GetNbinsY(), 
-                                 hGenPtVsEta->GetYaxis()->GetBinLowEdge(1),
-                                 hGenPtVsEta->GetYaxis()->GetBinUpEdge( hGenPtVsEta->GetNbinsX() ) );
-    hEfficiency->Sumw2();
-    hEfficiency->Divide(hRefPtVsEta, hGenPtVsEta, 1., 1., "b");
-    set2DStyle( hEfficiency );
+    // Calculate efficiencies
+    hRefPtVsEtaKineCut->Divide(hRefPtVsEtaKineCut, hGenPtVsEta, 1., 1., "b");
+    hRefPtVsEtaTrkMaxCut->Divide(hRefPtVsEtaTrkMaxCut, hGenPtVsEta, 1., 1., "b");
+    hRefPtVsEtaJetIdCut->Divide(hRefPtVsEtaJetIdCut, hGenPtVsEta, 1., 1., "b");
 
-    // Plot efficiency
-    TCanvas *cEfficiency = new TCanvas("cEfficiency","cEfficiency", 1200, 800);
+    // Create canvas to store 1D distributions
+    TCanvas *c = new TCanvas("c", "c", 1200, 800);
+
+    // Plot and save 2D efficiencies
+    if ( plotKineCut ) {
+        c->cd();
+        setPadStyle();
+        hRefPtVsEtaKineCut->Draw("colz");
+        c->SaveAs( Form("%s/pPb8160_%s_2D_efficiency_kineCut_%s.pdf", 
+                        date.Data(), direction.Data(), branchName.Data()) );
+    }
+
+    c->cd();
     setPadStyle();
-    hEfficiency->Draw("colz");
-    //gPad->SetLogz(1);
+    hRefPtVsEtaTrkMaxCut->Draw("colz");
+    c->SaveAs( Form("%s/pPb8160_%s_2D_efficiency_trkMaxCut_%s.pdf", 
+                    date.Data(), direction.Data(), branchName.Data()) );
 
-    cEfficiency->SaveAs(Form("%s/pPb8160_%s_pt_vs_eta_efficiency.pdf", date.Data(), direction.Data()));
+    if ( plotJetIdCut ) {
+        c->cd();
+        setPadStyle();
+        hRefPtVsEtaJetIdCut->Draw("colz");
+        c->SaveAs( Form("%s/pPb8160_%s_2D_efficiency_jetIdCut_%s.pdf", 
+                        date.Data(), direction.Data(), branchName.Data()) );
+    }
 
 
-    Int_t fPtBins{50};
-    Double_t fPtRange[2] {20., 520.};
-    Int_t fEtaBins{50}; 
-    Double_t fEtaRange[2] {-5.0, 5.0};
+    // Retrieve 1D binning
+    Int_t fPtBins = hRefPtVsEtaKineCut->GetNbinsY();
+    Double_t fPtRange[2] {hRefPtVsEtaKineCut->GetYaxis()->GetBinLowEdge(1), 
+                          hRefPtVsEtaKineCut->GetYaxis()->GetBinUpEdge(fPtBins) };
+    Int_t fEtaBins = hRefPtVsEtaKineCut->GetNbinsX();
+    Double_t fEtaRange[2] { hRefPtVsEtaKineCut->GetXaxis()->GetBinLowEdge(1),
+                            hRefPtVsEtaKineCut->GetXaxis()->GetBinUpEdge(fEtaBins)};
     Double_t ptStep = (fPtRange[1]-fPtRange[0]) / fPtBins;
     Double_t etaStep = (fEtaRange[1]-fEtaRange[0]) / fEtaBins;
 
-    TH1D *hEtaEfficiency[fPtBins];
-    TH1D *hPtEfficiency[fEtaBins];
+    // Prepare histograms with 1D efficiency projections and its ratios 
+    // to trkMaxCut (because trkMaxCut is default)
+    TH1D *hEtaEfficiencyKineCut[fPtBins];
+    TH1D *hPtEfficiencyKineCut[fEtaBins];
+    TH1D *hEtaEfficiencyTrkMaxCut[fPtBins];
+    TH1D *hPtEfficiencyTrkMaxCut[fEtaBins];
+    TH1D *hEtaEfficiencyJetIdCut[fPtBins];
+    TH1D *hPtEfficiencyJetIdCut[fEtaBins];
 
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.06);
+    TH1D *hEtaEfficiencyRatioKineCut[fPtBins];
+    TH1D *hPtEfficiencyRatioKineCut[fEtaBins];
+    TH1D *hEtaEfficiencyRatioJetIdCut[fPtBins];
+    TH1D *hPtEfficiencyRatioJetIdCut[fEtaBins];
+
+    // Create legends
+    TLegend *hEtaLegend[fPtBins];
+    TLegend *hPtLegend[fEtaBins];
+
+
+
 
     TCanvas *cEtaEfficiency = new TCanvas("cEtaEfficiency", "cEtaEfficiency", 1600, 800);
-    cEtaEfficiency->Divide(10, 5);
+    cEtaEfficiency->Divide(5, ( (fPtBins % 5) == 0 ) ? (fPtBins / 5) : (fPtBins / 5 + 1) );
 
     TCanvas *cPtEfficiency = new TCanvas("cPtEfficiency", "cPtEfficiency", 1600, 800);
-    cPtEfficiency->Divide(10, 5);
+    cPtEfficiency->Divide(5, ( (fEtaBins % 5) == 0 ) ? (fEtaBins / 5) : (fEtaBins / 5 + 1) );
 
-    // Make projections bin-by-bin
+
+    // Make projections on eta
     for (Int_t i{1}; i<=fPtBins; i++) {
-        // Project on eta
-        hEtaEfficiency[i] = (TH1D*)hEfficiency->ProjectionX(Form("hEtaEfficiency_%d", i), i, i);
-        hEtaEfficiency[i]->SetNameTitle(Form("hEtaEfficiency_%d", i), ";#eta;Efficiency");
-        set1DStyle(hEtaEfficiency[i], 2);
-        hEtaEfficiency[i]->SetMarkerSize(0.7);
+
+        // TrkMax
+        hEtaEfficiencyTrkMaxCut[i] = (TH1D*)hRefPtVsEtaTrkMaxCut->ProjectionX(Form("hEtaEfficiencyTrkMaxCut_%d", i), i, i);
+        hEtaEfficiencyTrkMaxCut[i]->SetNameTitle(Form("hEtaEfficiencyTrkMaxCut_%d", i), ";#eta;Efficiency");
+        set1DStyle(hEtaEfficiencyTrkMaxCut[i], 2);
+        hEtaEfficiencyTrkMaxCut[i]->SetMarkerSize(0.7);
+
+        // Kine
+        if ( plotKineCut ) {
+            hEtaEfficiencyKineCut[i] = (TH1D*)hRefPtVsEtaKineCut->ProjectionX(Form("hEtaEfficiencyKineCut_%d", i), i, i);
+            hEtaEfficiencyKineCut[i]->SetNameTitle(Form("hEtaEfficiencyKineCut_%d", i), ";#eta;Efficiency");
+            set1DStyle(hEtaEfficiencyKineCut[i], 0);
+            hEtaEfficiencyKineCut[i]->SetMarkerSize(0.7);
+
+            hEtaEfficiencyRatioKineCut[i] = hEtaEfficiencyKineCut[i]->Clone(Form("hEtaEfficiencyRatioKineCut_%d",i));
+            hEtaEfficiencyRatioKineCut[i]->Divide( hEtaEfficiencyRatioKineCut[i], hEtaEfficiencyTrkMaxCut[i], 1., 1., "b");
+            hEtaEfficiencyRatioKineCut[i]->GetYaxis()->SetTitle("Ratio to trkMax");
+        }
+
+        // JetId
+        if ( plotJetIdCut ) {
+            hEtaEfficiencyJetIdCut[i] = (TH1D*)hRefPtVsEtaJetIdCut->ProjectionX(Form("hEtaEfficiencyJetIdCut_%d", i), i, i);
+            hEtaEfficiencyJetIdCut[i]->SetNameTitle(Form("hEtaEfficiencyJetIdCut_%d", i), ";#eta;Efficiency");
+            set1DStyle(hEtaEfficiencyJetIdCut[i], 1);
+            hEtaEfficiencyJetIdCut[i]->SetMarkerSize(0.7);
+
+            hEtaEfficiencyRatioJetIdCut[i] = hEtaEfficiencyJetIdCut[i]->Clone(Form("hEtaEfficiencyRatioJetIdCut_%d",i));
+            hEtaEfficiencyRatioJetIdCut[i]->Divide( hEtaEfficiencyRatioJetIdCut[i], hEtaEfficiencyTrkMaxCut[i], 1., 1., "b");
+            hEtaEfficiencyRatioJetIdCut[i]->GetYaxis()->SetTitle("Ratio to trkMax");
+        }
+
+        // Plot individual distributions
+        c->cd();
+        setPadStyle();
+        hEtaEfficiencyTrkMaxCut[i]->Draw();
+        hEtaEfficiencyTrkMaxCut[i]->GetYaxis()->SetRangeUser(0., 1.05);
+        if ( plotKineCut ) {
+            hEtaEfficiencyKineCut[i]->Draw("same");
+        }
+        if ( plotJetIdCut ) {
+            hEtaEfficiencyJetIdCut[i]->Draw("same");
+        }
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%3.0f<p_{T} (GeV/c)<%3.0f", 
+                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep ) );
+
+        hEtaLegend[i] = new TLegend(0.35, 0.35, 0.65, 0.55);
+        hEtaLegend[i]->SetTextSize(0.05);
+        hEtaLegend[i]->SetLineWidth(0);
+        hEtaLegend[i]->AddEntry(hEtaEfficiencyTrkMaxCut[i], Form("TrkMax"), "p");
+        if ( plotKineCut ) {
+            hEtaLegend[i]->AddEntry(hEtaEfficiencyKineCut[i], Form("KineOnly"), "p");
+        }
+        if ( plotJetIdCut ) {
+            hEtaLegend[i]->AddEntry(hEtaEfficiencyJetIdCut[i], Form("JetId"), "p");
+        }
+        hEtaLegend[i]->Draw();
+        c->SaveAs( Form("%s/pPb8160_%s_eta_efficiency_pt_%d_%d_%s.pdf", 
+                        date.Data(), direction.Data(), 
+                        (Int_t)(fPtRange[0] + (i-1) * ptStep),
+                        (Int_t)(fPtRange[0] + i * ptStep),
+                        branchName.Data()) );
+
+        // Plot ratios
+        if ( plotKineCut || plotJetIdCut ) {
+            c->cd();
+            setPadStyle();
+            if ( plotKineCut ) {
+                hEtaEfficiencyRatioKineCut[i]->Draw();
+                hEtaEfficiencyRatioKineCut[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
+            }
+            if ( plotJetIdCut ) {
+                if ( plotKineCut ) {
+                    hEtaEfficiencyRatioJetIdCut[i]->Draw("same");
+                }
+                else {
+                    hEtaEfficiencyRatioJetIdCut[i]->Draw();
+                    hEtaEfficiencyRatioJetIdCut[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
+                }
+            }
+            t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+            t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+            t.DrawLatexNDC(0.3, 0.2, Form("%3.0f<p_{T} (GeV/c)<%3.0f", 
+                        fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep ) );
+            hEtaLegend[i]->Draw();
+            c->SaveAs( Form("%s/pPb8160_%s_eta_efficiency_rat2trkMax_pt_%d_%d_%s.pdf", 
+                            date.Data(), direction.Data(), 
+                            (Int_t)(fPtRange[0] + (i-1) * ptStep),
+                            (Int_t)(fPtRange[0] + i * ptStep),
+                            branchName.Data()) );
+        } // if ( plotKineCut || plotJetIdCut )
+
+        // Plot all in one canvas
         cEtaEfficiency->cd(i);
         setPadStyle();
-        hEtaEfficiency[i]->Draw();
-        if (i==1) {
-            hEtaEfficiency[i]->GetYaxis()->SetRangeUser(0.35, 0.85);
+        hEtaEfficiencyTrkMaxCut[i]->Draw();
+        hEtaEfficiencyTrkMaxCut[i]->GetYaxis()->SetRangeUser(0., 1.05);
+        if ( plotKineCut ) {
+            hEtaEfficiencyKineCut[i]->Draw("same");
         }
-        else {
-            hEtaEfficiency[i]->GetYaxis()->SetRangeUser(0.9, 1.05);
+        if ( plotJetIdCut ) {
+            hEtaEfficiencyJetIdCut[i]->Draw("same");
         }
-        t.DrawLatexNDC(0.2, 0.9, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
-                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep) );
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%3.0f<p_{T} (GeV/c)<%3.0f", 
+                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep ) );
+        hEtaLegend[i]->Draw();
     } // for (Int_t i{1}; i<=fPtBins; i++)
+    cEtaEfficiency->SaveAs( Form("%s/pPb8160_%s_eta_efficiency_projections_%s.pdf", 
+                                 date.Data(), direction.Data(), branchName.Data()) );
 
+
+    // TODO: continue here
     for (Int_t i{1}; i<=fEtaBins; i++) {
         // Project on pT
         hPtEfficiency[i] = (TH1D*)hEfficiency->ProjectionY(Form("hPtEfficiency_%d", i), i, i);

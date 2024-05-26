@@ -864,13 +864,14 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
 
 
     hRecoTrkMaxToJetIdDijetMatching = new TH1D("hRecoTrkMaxToJetIdDijetMatching", "Matching of dijets between trkMax and jetId selection;;Entries", 
-                                               6, -0.5, 5.5);
-    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(0, "");
+                                               7, -0.5, 6.5);
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(0, "Neither was found");
     hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(1, "Both match");
     hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(2, "Lead match");
     hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(3, "Sublead match");
     hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(4, "None match");
-    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(5, "");
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(5, "TrkMax && !JetId");
+    hRecoTrkMaxToJetIdDijetMatching->GetXaxis()->SetBinLabel(6, "!TrkMax && JetId");
 
     //
     // Modify bins of reco dijets

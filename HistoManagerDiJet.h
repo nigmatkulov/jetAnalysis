@@ -224,6 +224,7 @@ class HistoManagerDiJet : public BaseHistoManager {
 
 
     TH1D *hRecoDijetEta;
+    
     TH1D *hRefDijetEta;
     TH2D *hRefDijetEtaVsRecoDijetEta;
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt;

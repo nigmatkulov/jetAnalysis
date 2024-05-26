@@ -537,14 +537,24 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 phiRecoLead = phi;
                 idRecoLead = counter;
 
-                if ( fIsMc && hasMatching ) {
-                    ptRefSubLeadJetId = ptRefLeadJetId;
-                    etaRefSubLeadJetId = etaRefLeadJetId;
-                    phiRefSubLeadJetId = phiRefLeadJetId;
-                    ptRefLeadJetId = genPt;
-                    etaRefLeadJetId = genEta;
-                    phiRefLeadJetId = genPhi;
-                }
+                if ( fIsMc ) {
+                    if ( hasMatching ) {
+                        ptRefSubLead = ptRefLead;
+                        etaRefSubLead = etaRefLead;
+                        phiRefSubLead = phiRefLead;
+                        ptRefLead = genPt;
+                        etaRefLead = genEta;
+                        phiRefLead = genPhi;
+                    }
+                    else {
+                        ptRefSubLead = ptRefLead;
+                        etaRefSubLead = etaRefLead;
+                        phiRefSubLead = phiRefLead;
+                        ptRefLead = {-999.};
+                        etaRefLead = {-999.};
+                        phiRefLead = {-999.};
+                    }
+                } // if ( fIsMc )
             } // if ( pt > ptRecoLead )
             else if ( pt > ptRecoSubLead ) {
                 ptRecoSubLead = pt;
@@ -553,11 +563,18 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 phiRecoSubLead = phi;
                 idRecoSubLead = counter;
 
-                if ( fIsMc && hasMatching ) {
-                    ptRefSubLeadJetId = genPt;
-                    etaRefSubLeadJetId = genEta;
-                    phiRefSubLeadJetId = genPhi;
-                }
+                if ( fIsMc ) {
+                    if ( hasMatching ) {
+                        ptRefSubLead = genPt;
+                        etaRefSubLead = genEta;
+                        phiRefSubLead = genPhi;
+                    }
+                    else {
+                        ptRefSubLead = {-999.};
+                        etaRefSubLead = {-999.};
+                        phiRefSubLead = {-999.};
+                    }
+                } // if ( fIsMc )
             } // else if ( pt > ptRecoSubLead )
         } // if ( passTrkMax )
 
@@ -600,14 +617,24 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 phiRecoLeadJetId = phi;
                 idRecoLeadJetId = counter;
 
-                if ( fIsMc && hasMatching ) {
-                    ptRefSubLeadJetId = ptRefLeadJetId;
-                    etaRefSubLeadJetId = etaRefLeadJetId;
-                    phiRefSubLeadJetId = phiRefLeadJetId;
-                    ptRefLeadJetId = genPt;
-                    etaRefLeadJetId = genEta;
-                    phiRefLeadJetId = genPhi;
-                } // if ( fIsMc && hasMatching )
+                if ( fIsMc ) { 
+                    if (hasMatching ) {
+                        ptRefSubLeadJetId = ptRefLeadJetId;
+                        etaRefSubLeadJetId = etaRefLeadJetId;
+                        phiRefSubLeadJetId = phiRefLeadJetId;
+                        ptRefLeadJetId = genPt;
+                        etaRefLeadJetId = genEta;
+                        phiRefLeadJetId = genPhi;
+                    }
+                    else {
+                        ptRefSubLeadJetId = ptRefLeadJetId;
+                        etaRefSubLeadJetId = etaRefLeadJetId;
+                        phiRefSubLeadJetId = phiRefLeadJetId;
+                        ptRefLeadJetId = {-999.};
+                        etaRefLeadJetId = {-999.};
+                        phiRefLeadJetId = {-999.};                       
+                    }
+                } // if ( fIsMc )
             } // if ( pt > ptRecoLeadJetId )
             else if ( pt > ptRecoSubLeadJetId ) {
                 ptRecoSubLeadJetId = pt;
@@ -615,11 +642,18 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 phiRecoSubLeadJetId = phi;
                 idRecoSubLeadJetId = counter;
 
-                if ( fIsMc && hasMatching ) {
-                    ptRefSubLeadJetId = genPt;
-                    etaRefSubLeadJetId = genEta;
-                    phiRefSubLeadJetId = genPhi;
-                } // if ( fIsMc && hasMatching )
+                if ( fIsMc ) {
+                    if ( hasMatching ) {
+                        ptRefSubLeadJetId = genPt;
+                        etaRefSubLeadJetId = genEta;
+                        phiRefSubLeadJetId = genPhi;
+                    }
+                    else {
+                        ptRefLeadJetId = {-999.};
+                        etaRefLeadJetId = {-999.};
+                        phiRefLeadJetId = {-999.}; 
+                    }
+                } // if ( fIsMc )
             } // else if ( pt > ptRecoSubLeadJetId )
         }
 
@@ -786,17 +820,28 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     } // if ( idRecoLeadJetId>=0 && idRecoSubLeadJetId>=0 )
 
     // Fill matching between the histograms
-    if ( (idRecoLead == idRecoLeadJetId) && (idRecoSubLead == idRecoSubLeadJetId) ) {
-        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(1, ptHatW);
+    if ( fIsDijetFound && fIsDijetJetIdFound ) {
+        if ( (idRecoLead == idRecoLeadJetId) && (idRecoSubLead == idRecoSubLeadJetId) ) {
+            fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(1., ptHatW);
+        }
+        else if ( (idRecoLead == idRecoLeadJetId) && (idRecoSubLead != idRecoSubLeadJetId) ) {
+            fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(2., ptHatW);
+        }
+        else if ( (idRecoLead != idRecoLeadJetId) && (idRecoSubLead == idRecoSubLeadJetId) ) {
+            fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(3., ptHatW);
+        }
+        else if ( (idRecoLead != idRecoLeadJetId) && (idRecoSubLead != idRecoSubLeadJetId) ) {
+            fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(4., ptHatW);
+        }
     }
-    else if ( (idRecoLead == idRecoLeadJetId) && (idRecoSubLead != idRecoSubLeadJetId) ) {
-        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(2, ptHatW);
+    else if ( fIsDijetFound && !fIsDijetJetIdFound ) {
+        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(5., ptHatW);
     }
-    else if ( (idRecoLead != idRecoLeadJetId) && (idRecoSubLead == idRecoSubLeadJetId) ) {
-        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(3, ptHatW);
+    else if ( !fIsDijetFound && fIsDijetJetIdFound ) {
+        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(6., ptHatW);   
     }
-    else if ( (idRecoLead != idRecoLeadJetId) && (idRecoSubLead != idRecoSubLeadJetId) ) {
-        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(4, ptHatW);
+    else if ( !fIsDijetFound && !fIsDijetJetIdFound ) {
+        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(0., ptHatW);
     }
 
 
@@ -962,7 +1007,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
             fHM->hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
             fHM->hRefSelDijetPtEtaDphi->Fill(dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW);
             fHM->hRefSelDijetEta->Fill(dijetRefEta, ptHatW);
-        }
+        } // if ( isDijetFound )
     } // if (idRecoLead>=0 && idRecoSubLead>=0)
 
     if ( fVerbose ) {
