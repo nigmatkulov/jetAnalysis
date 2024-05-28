@@ -76,19 +76,23 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     }
     else if (type == 1) {
         color = 4;
-        markerStyle = 24;
+        markerStyle = 21;
     }
     else if (type == 2) {
         color = 1;
         markerStyle = 22;
     }
     else if (type == 3) {
-        color = 6;
-        markerStyle = 26;
+        color = 2;
+        markerStyle = 24;
     }
     else if (type == 4) {
-        color = 3;
-        markerStyle = 29;
+        color = 4;
+        markerStyle = 25;
+    }
+    else if (type == 5) {
+        color = 1;
+        markerStyle = 26;
     }
     else {
         color = 9;
@@ -353,7 +357,7 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
             set1DStyle(hEtaEfficiencyKineCut[i], 0);
             hEtaEfficiencyKineCut[i]->SetMarkerSize(0.7);
 
-            hEtaEfficiencyRatioKineCut[i] = hEtaEfficiencyKineCut[i]->Clone(Form("hEtaEfficiencyRatioKineCut_%d",i));
+            hEtaEfficiencyRatioKineCut[i] = (TH1D*)hEtaEfficiencyKineCut[i]->Clone(Form("hEtaEfficiencyRatioKineCut_%d",i));
             hEtaEfficiencyRatioKineCut[i]->Divide( hEtaEfficiencyRatioKineCut[i], hEtaEfficiencyTrkMaxCut[i], 1., 1., "b");
             hEtaEfficiencyRatioKineCut[i]->GetYaxis()->SetTitle("Ratio to trkMax");
         }
@@ -365,7 +369,7 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
             set1DStyle(hEtaEfficiencyJetIdCut[i], 1);
             hEtaEfficiencyJetIdCut[i]->SetMarkerSize(0.7);
 
-            hEtaEfficiencyRatioJetIdCut[i] = hEtaEfficiencyJetIdCut[i]->Clone(Form("hEtaEfficiencyRatioJetIdCut_%d",i));
+            hEtaEfficiencyRatioJetIdCut[i] = (TH1D*)hEtaEfficiencyJetIdCut[i]->Clone(Form("hEtaEfficiencyRatioJetIdCut_%d",i));
             hEtaEfficiencyRatioJetIdCut[i]->Divide( hEtaEfficiencyRatioJetIdCut[i], hEtaEfficiencyTrkMaxCut[i], 1., 1., "b");
             hEtaEfficiencyRatioJetIdCut[i]->GetYaxis()->SetTitle("Ratio to trkMax");
         }
@@ -466,23 +470,23 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
         // Kine
         if ( plotKineCut ) {
             hPtEfficiencyKineCut[i] = (TH1D*)hRefPtVsEtaKineCut->ProjectionY(Form("hPtEfficiencyKineCut_%d", i), i, i);
-            hPtEfficiencyKineCut[i]->SetNameTitle(Form("hEtaEfficiencyKineCut_%d", i), ";p_{T} (GeV/c);Efficiency");
+            hPtEfficiencyKineCut[i]->SetNameTitle(Form("hPtEfficiencyKineCut_%d", i), ";p_{T} (GeV/c);Efficiency");
             set1DStyle(hPtEfficiencyKineCut[i], 0);
             hPtEfficiencyKineCut[i]->SetMarkerSize(0.7);
 
-            hPtEfficiencyRatioKineCut[i] = hPtEfficiencyKineCut[i]->Clone(Form("hPtEfficiencyRatioKineCut_%d",i));
+            hPtEfficiencyRatioKineCut[i] = (TH1D*)hPtEfficiencyKineCut[i]->Clone(Form("hPtEfficiencyRatioKineCut_%d",i));
             hPtEfficiencyRatioKineCut[i]->Divide( hPtEfficiencyRatioKineCut[i], hPtEfficiencyTrkMaxCut[i], 1., 1., "b");
             hPtEfficiencyRatioKineCut[i]->GetYaxis()->SetTitle("Ratio to trkMax");
         }
 
         // JetId
         if ( plotJetIdCut ) {
-            hPtEfficiencyJetIdCut[i] = (TH1D*)hRefPtVsEtaJetIdCut->ProjectionX(Form("hPtEfficiencyJetIdCut_%d", i), i, i);
-            hPtEfficiencyJetIdCut[i]->SetNameTitle(Form("hPtEfficiencyJetIdCut_%d", i), ";#eta;Efficiency");
+            hPtEfficiencyJetIdCut[i] = (TH1D*)hRefPtVsEtaJetIdCut->ProjectionY(Form("hPtEfficiencyJetIdCut_%d", i), i, i);
+            hPtEfficiencyJetIdCut[i]->SetNameTitle(Form("hPtEfficiencyJetIdCut_%d", i), ";p_{T} (GeV/c);Efficiency");
             set1DStyle(hPtEfficiencyJetIdCut[i], 1);
             hPtEfficiencyJetIdCut[i]->SetMarkerSize(0.7);
 
-            hPtEfficiencyRatioJetIdCut[i] = hPtEfficiencyJetIdCut[i]->Clone(Form("hPtEfficiencyRatioJetIdCut_%d",i));
+            hPtEfficiencyRatioJetIdCut[i] = (TH1D*)hPtEfficiencyJetIdCut[i]->Clone(Form("hPtEfficiencyRatioJetIdCut_%d",i));
             hPtEfficiencyRatioJetIdCut[i]->Divide( hPtEfficiencyRatioJetIdCut[i], hPtEfficiencyTrkMaxCut[i], 1., 1., "b");
             hPtEfficiencyRatioJetIdCut[i]->GetYaxis()->SetTitle("Ratio to trkMax");
         }
@@ -516,71 +520,58 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
         hPtLegend[i]->Draw();
         c->SaveAs( Form("%s/pPb8160_%s_pt_efficiency_eta_%d_%d_%s.pdf", 
                         date.Data(), direction.Data(), 
-                        (Int_t)(fEtaRange[0] + (i-1) * etaStep)*10,
-                        (Int_t)(fEtaRange[0] + i * etaStep)*10,
+                        (Int_t)( (fEtaRange[0] + (i-1) * etaStep) * 10 ),
+                        (Int_t)( (fEtaRange[0] + i * etaStep) * 10),
                         branchName.Data()) );
 
+        // Plot ratios
+        if ( plotKineCut || plotJetIdCut ) {
+            c->cd();
+            setPadStyle();
+            if ( plotKineCut ) {
+                hPtEfficiencyRatioKineCut[i]->Draw();
+                hPtEfficiencyRatioKineCut[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
+            }
+            if ( plotJetIdCut ) {
+                if ( plotKineCut ) {
+                    hPtEfficiencyRatioJetIdCut[i]->Draw("same");
+                }
+                else {
+                    hPtEfficiencyRatioJetIdCut[i]->Draw();
+                    hPtEfficiencyRatioJetIdCut[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
+                }
+            }
+            t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+            t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+            t.DrawLatexNDC(0.3, 0.2, Form("%2.1f<#eta<%2.1f", 
+                           fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep ) );
+            hPtLegend[i]->Draw();
+            c->SaveAs( Form("%s/pPb8160_%s_pt_efficiency_rat2trkMax_eta_%d_%d_%s.pdf", 
+                            date.Data(), direction.Data(), 
+                            (Int_t)( (fEtaRange[0] + (i-1) * etaStep) * 10),
+                            (Int_t)( (fEtaRange[0] + i * etaStep) * 10),
+                            branchName.Data()) );
+        } // if ( plotKineCut || plotJetIdCut )
 
-
-
-
-
-        // Project on pT
-        hPtEfficiency[i] = (TH1D*)hEfficiency->ProjectionY(Form("hPtEfficiency_%d", i), i, i);
-        hPtEfficiency[i]->SetNameTitle(Form("hPtEfficiency_%d", i), ";p_{T} (GeV/c);Efficiency");
-        set1DStyle(hPtEfficiency[i], 2);
-        hPtEfficiency[i]->SetMarkerSize(0.7);
+        // Plot all in one canvas
         cPtEfficiency->cd(i);
         setPadStyle();
-        hPtEfficiency[i]->Draw();
-        hPtEfficiency[i]->GetYaxis()->SetRangeUser(0.9, 1.02);
-        t.DrawLatexNDC(0.2, 0.9, Form("%2.1f < #eta < %2.1f", 
-                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
+        hPtEfficiencyTrkMaxCut[i]->Draw();
+        hPtEfficiencyTrkMaxCut[i]->GetYaxis()->SetRangeUser(0., 1.05);
+        if ( plotKineCut ) {
+            hPtEfficiencyKineCut[i]->Draw("same");
+        }
+        if ( plotJetIdCut ) {
+            hPtEfficiencyJetIdCut[i]->Draw("same");
+        }
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%2.1f<#eta<%2.1f", 
+                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep ) );
+        hPtLegend[i]->Draw();
     } // for (Int_t i{1}; i<=fEtaBins; i++)
-
-    cEtaEfficiency->SaveAs( Form("%s/pPb8160_%s_eta_efficiency_projections.pdf", date.Data(), direction.Data()) );
-    cPtEfficiency->SaveAs( Form("%s/pPb8160_%s_pt_efficiency_projections.pdf", date.Data(), direction.Data()) );
-
-
-    // // Reco inclusive jet pT
-    // TH1D *hReco = (TH1D*)inFile->Get("hRecoInclusiveJetPt");
-    // // Reco inclusive jet pT
-    // TH1D *hRef = (TH1D*)inFile->Get("hRefInclusiveJetPt");
-    // // Reco inclusive jet pT
-    // TH1D *hGen = (TH1D*)inFile->Get("hGenInclusiveJetPt");
-
-    // TH1D *hGenPtProj = (TH1D*)hGenPtVsEta->ProjectionY();
-    // TH1D *hRefPtProj = (TH1D*)hRefPtVsEta->ProjectionY();
-    // TH1D *hRecoPtProj = (TH1D*)hRecoPtVsEta->ProjectionY();
-
-    // TCanvas *cInclPt = new TCanvas("cInclPt", "cInclPt", 1200, 800);
-    // cInclPt->Divide(3, 1);
-
-    // cInclPt->cd(1);
-    // setPadStyle();
-    // set1DStyle(hGen, 0);
-    // set1DStyle(hGenPtProj, 1);
-    // hGen->Draw();
-    // set1DStyle(hGen, 0);
-    // hGenPtProj->Draw("same");
-    // gPad->SetLogy(1);
-
-    // cInclPt->cd(2);
-    // setPadStyle();
-    // set1DStyle(hRef, 0);
-    // set1DStyle(hRefPtProj, 1);
-    // hRef->Draw();
-    // hRefPtProj->Draw("same");
-    // gPad->SetLogy(1);
-
-    // cInclPt->cd(3);
-    // setPadStyle();
-    // set1DStyle(hReco, 0);
-    // set1DStyle(hRecoPtProj, 1);
-    // hReco->Draw();
-    // hRecoPtProj->Draw("same");
-    // gPad->SetLogy(1);
-
+    cPtEfficiency->SaveAs( Form("%s/pPb8160_%s_pt_efficiency_projections_%s.pdf", 
+                                date.Data(), direction.Data(), branchName.Data()) );
 }
 
 //________________
@@ -1120,7 +1111,45 @@ void compareInclusiveJetPtSpectra(TFile *inFile, TString date) {
 }
 
 //________________
-void plotRecoAndFakes(TFile *inFile, TString date) {
+void makeProjectionsFrom2D(TH2D *h2D, TH1D *hProjX[], TH1D *hProjY[], 
+                           Int_t nBinsX = 1, Int_t nBinsY = 1, 
+                           const Char_t *hNameX = "hProjX", const Char_t *hNameY = "hProjY",
+                           Int_t style = 1) {
+
+    std::cout << "nBinsX: " << nBinsX << " nBinsY: " << nBinsY << std::endl;
+    // Make projections on X axis
+    for (Int_t i{0}; i<nBinsY; i++) {
+        hProjX[i] = dynamic_cast<TH1D*>( h2D->ProjectionX( Form("%s_%d", hNameX, i), i+1, i+1) );
+        hProjX[i]->SetNameTitle( Form("%s_%d", hNameX, i), ";#eta");
+        set1DStyle( hProjX[i], style );
+        hProjX[i]->SetMarkerSize(0.7);
+    } // for (Int_t i{1}; i<=nBinsX; i++)
+
+    // Make projections on Y axis
+    for (Int_t i{0}; i<nBinsX; i++) {
+        hProjY[i] = dynamic_cast<TH1D*>( h2D->ProjectionY( Form("%s_%d", hNameY, i), i+1, i+1) );
+        hProjY[i]->SetNameTitle( Form("%s_%d", hNameY, i), ";p_{T} (GeV/c)");
+        set1DStyle( hProjY[i], style );
+        hProjY[i]->SetMarkerSize(0.7);
+        std::cout << " hProjY: " << hProjY[i]->GetName() << std::endl;
+    } // for (Int_t i{1}; i<=nBinsY; i++)
+}
+
+//________________
+void make1DRatio(TH1D *hRat, TH1D *hDen, const Char_t *ratioName = "Ratio to TrkMax", Int_t style = 0) {
+
+    if ( !hDen ) {
+        std::cout << "Denominator does not exist" << std::endl;
+    }
+
+    hRat->Divide( hRat, hDen, 1., 1., "b" );
+    hRat->GetYaxis()->SetTitle( ratioName );
+    hRat->GetYaxis()->SetRangeUser(0.85, 1.15);
+    set1DStyle(hRat, style);
+}
+
+//________________
+void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
 
     TString inputFileName( inFile->GetName() );
     TString direction;
@@ -1134,172 +1163,563 @@ void plotRecoAndFakes(TFile *inFile, TString date) {
         direction = "unknownDir";
     }
 
-    // Retrieve reco
-    TH2D* hRecoInclusiveAllJetPtVsEta = (TH2D*)inFile->Get("hRecoInclusiveAllJetPtVsEta");
-    // Retrieve reco that matched gen
-    TH2D* hRecoInclusiveMatchedJetPtVsEta = (TH2D*)inFile->Get("hRecoInclusiveMatchedJetPtVsEta");
-    // Create a histogram to calculate fakes
-    TH2D* hNumberOfFakes = (TH2D*)hRecoInclusiveAllJetPtVsEta->Clone("hNumberOfFakes");
-    hNumberOfFakes->SetTitle("Number of fakes (reco - recoMatched);#eta;p_{T} (GeV/c)");
-    hNumberOfFakes->Add(hRecoInclusiveMatchedJetPtVsEta, -1.);
+    TString branchName;
+    if ( jetBranch == 0 ) {
+        branchName = "akCs4";
+    }
+    else {
+        branchName = "ak4";
+    }
 
-    TH2D* hRecoInclusiveUnmatchedJetPtVsEta = (TH2D*)inFile->Get("hRecoInclusiveUnmatchedJetPtVsEta");
+    // Rebinning
+    Int_t rebinX{1}, rebinY{1};
 
-    // z axis scaling
-    Double_t zAxisRange[2] {0., hRecoInclusiveAllJetPtVsEta->GetMaximum()};
+    // Plotting options
+    Bool_t plotKineCut{kTRUE};
+    Bool_t plotJetIdCut{kTRUE};
+
+    // Make latex
     TLatex t;
     t.SetTextFont(42);
     t.SetTextSize(0.06);
 
-    // Create canvas to plot 2D distributions
-    TCanvas *cFakes2D = new TCanvas("cFakes2D","cFakes2D", 1300, 400);
-    cFakes2D->Divide(3, 1);
-
-    // Plot 2D reco
-    cFakes2D->cd(1);
-    setPadStyle();
-    hRecoInclusiveAllJetPtVsEta->Draw("colz");
-    t.DrawLatexNDC(0.46, 0.96, Form("Reco") );
-
-    // Plot 2D reco that matched gen
-    cFakes2D->cd(2);
-    setPadStyle();
-    hRecoInclusiveMatchedJetPtVsEta->Draw("colz");
-    hRecoInclusiveMatchedJetPtVsEta->GetZaxis()->SetRangeUser(zAxisRange[0], zAxisRange[1]);
-    t.DrawLatexNDC(0.4, 0.96, Form("Reco matched") );
-
-    // Plot 2D fakes
-    cFakes2D->cd(3);
-    setPadStyle();
-    hNumberOfFakes->Draw("colz");
-    hNumberOfFakes->GetZaxis()->SetRangeUser(zAxisRange[0], zAxisRange[1]);
-    t.DrawLatexNDC(0.46, 0.96, Form("Fakes") );
+    // Color style
+    Int_t kineStyle{0};
+    Int_t trkMaxStyle{2};
+    Int_t jetIdStyle{1};
 
     //
-    // Plot projections of fakes as a function of eta and pT
+    // Retrieve kine selection histograms
     //
+    TH2D *hJetPtVsEtaKineCut = (TH2D*)inFile->Get("hRecoInclusiveJetPtVsEtaKineCut");
+    TH2D *hJetPtVsEtaMatchedKineCut = (TH2D*)inFile->Get("hRecoInclusiveMatchedJetPtVsEtaKineCut");
+    TH2D *hJetPtVsEtaUnmatchedKineCut = (TH2D*)inFile->Get("hRecoInclusiveUnmatchedJetPtVsEtaKineCut");
+    // Rebin 2D histograms
+    hJetPtVsEtaKineCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaMatchedKineCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaUnmatchedKineCut->Rebin2D( rebinX, rebinY );
+    // Divide 2D histograms
+    hJetPtVsEtaMatchedKineCut->Divide(hJetPtVsEtaMatchedKineCut, hJetPtVsEtaKineCut, 1., 1., "b");
+    hJetPtVsEtaUnmatchedKineCut->Divide(hJetPtVsEtaUnmatchedKineCut, hJetPtVsEtaKineCut, 1., 1., "b");
+    // Set style
+    set2DStyle(hJetPtVsEtaMatchedKineCut);
+    set2DStyle(hJetPtVsEtaUnmatchedKineCut);
 
-    TH2D *hRecoMatchedJetFrac = (TH2D*)hRecoInclusiveMatchedJetPtVsEta->Clone("hRecoMatchedJetFrac");
-    TH2D *hRecoFakeJetFrac = (TH2D*)hNumberOfFakes->Clone("hRecoFakeJetFrac");
-    TH2D *hRecoUnmatchedJetFrac = (TH2D*)hRecoInclusiveUnmatchedJetPtVsEta->Clone("RecoUnmatchedJetFrac");
-    hRecoMatchedJetFrac->Divide(hRecoMatchedJetFrac, hRecoInclusiveAllJetPtVsEta, 1., 1., "b");
-    hRecoFakeJetFrac->Divide(hRecoFakeJetFrac, hRecoInclusiveAllJetPtVsEta, 1., 1., "b");
-    hRecoUnmatchedJetFrac->Divide(hRecoUnmatchedJetFrac, hRecoInclusiveAllJetPtVsEta, 1., 1., "b");
+    //
+    // Retrieve trkMax selection histograms
+    //
+    TH2D *hJetPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoInclusiveJetPtVsEtaTrkMaxCut");
+    TH2D *hJetPtVsEtaMatchedTrkMaxCut = (TH2D*)inFile->Get("hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut");
+    TH2D *hJetPtVsEtaUnmatchedTrkMaxCut = (TH2D*)inFile->Get("hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut");
+    // Rebin 2D histograms
+    hJetPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaMatchedTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaUnmatchedTrkMaxCut->Rebin2D( rebinX, rebinY );
+    // Divide 2D histograms
+    hJetPtVsEtaMatchedTrkMaxCut->Divide(hJetPtVsEtaMatchedTrkMaxCut, hJetPtVsEtaTrkMaxCut, 1., 1., "b");
+    hJetPtVsEtaUnmatchedTrkMaxCut->Divide(hJetPtVsEtaUnmatchedTrkMaxCut, hJetPtVsEtaTrkMaxCut, 1., 1., "b");
+    // Set style
+    set2DStyle(hJetPtVsEtaMatchedTrkMaxCut);
+    set2DStyle(hJetPtVsEtaUnmatchedTrkMaxCut);
 
-    Int_t fPtBins = hNumberOfFakes->GetNbinsY();
-    Double_t fPtRange[2] {hNumberOfFakes->GetYaxis()->GetBinLowEdge(1), 
-                          hNumberOfFakes->GetYaxis()->GetBinUpEdge(fPtBins)};
-    Int_t fEtaBins = hNumberOfFakes->GetNbinsX();
-    Double_t fEtaRange[2] {hNumberOfFakes->GetXaxis()->GetBinLowEdge(1), 
-                           hNumberOfFakes->GetXaxis()->GetBinUpEdge(fEtaBins)};
+    TH2D *hLeadJetAllPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoLeadJetAllPtVsEta");
+    TH2D *hLeadJetMatchedPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoLeadJetMatchedPtVsEta");
+    TH2D *hLeadJetUnmatchedPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoLeadJetUnmatchedPtVsEta");
+    TH2D *hSubLeadJetAllPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoSubLeadJetAllPtVsEta");
+    TH2D *hSubLeadJetMatchedPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoSubLeadJetMatchedPtVsEta");
+    TH2D *hSubLeadJetUnmatchedPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoSubLeadJetUnmatchedPtVsEta");
+    // Rebin 2D histograms
+    hLeadJetAllPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hLeadJetMatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hLeadJetUnmatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    // Divide 2D histograms
+    hLeadJetMatchedPtVsEtaTrkMaxCut->Divide(hLeadJetMatchedPtVsEtaTrkMaxCut, hLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
+    hLeadJetUnmatchedPtVsEtaTrkMaxCut->Divide(hLeadJetUnmatchedPtVsEtaTrkMaxCut, hLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
+    // Set style
+    set2DStyle(hLeadJetMatchedPtVsEtaTrkMaxCut);
+    set2DStyle(hLeadJetUnmatchedPtVsEtaTrkMaxCut);
+    // Rebin 2D histograms
+    hSubLeadJetAllPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hSubLeadJetMatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hSubLeadJetUnmatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    // Divide 2D histograms
+    hSubLeadJetMatchedPtVsEtaTrkMaxCut->Divide(hSubLeadJetMatchedPtVsEtaTrkMaxCut, hSubLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
+    hSubLeadJetUnmatchedPtVsEtaTrkMaxCut->Divide(hSubLeadJetUnmatchedPtVsEtaTrkMaxCut, hSubLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
+    // Set style
+    set2DStyle(hSubLeadJetMatchedPtVsEtaTrkMaxCut);
+    set2DStyle(hSubLeadJetUnmatchedPtVsEtaTrkMaxCut);
+
+
+    //
+    // Retrieve JetId selection histograms
+    //
+    TH2D *hJetPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoInclusiveJetPtVsEtaJetIdCut");
+    TH2D *hJetPtVsEtaMatchedJetIdCut = (TH2D*)inFile->Get("hRecoInclusiveMatchedJetPtVsEtaJetIdCut");
+    TH2D *hJetPtVsEtaUnmatchedJetIdCut = (TH2D*)inFile->Get("hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut");
+    // Rebin 2D histograms
+    hJetPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaMatchedJetIdCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaUnmatchedJetIdCut->Rebin2D( rebinX, rebinY );
+    // Divide 2D histograms
+    hJetPtVsEtaMatchedJetIdCut->Divide(hJetPtVsEtaMatchedJetIdCut, hJetPtVsEtaJetIdCut, 1., 1., "b");
+    hJetPtVsEtaUnmatchedJetIdCut->Divide(hJetPtVsEtaUnmatchedJetIdCut, hJetPtVsEtaJetIdCut, 1., 1., "b");
+    // Set style
+    set2DStyle(hJetPtVsEtaMatchedJetIdCut);
+    set2DStyle(hJetPtVsEtaUnmatchedJetIdCut);
+
+    TH2D *hLeadJetAllPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoLeadJetAllPtVsEtaJetIdCut");
+    TH2D *hLeadJetMatchedPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoLeadJetMatchedPtVsEtaJetIdCut");
+    TH2D *hLeadJetUnmatchedPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoLeadJetUnmatchedPtVsEtaJetIdCut");
+    TH2D *hSubLeadJetAllPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoSubLeadJetAllPtVsEtaJetIdCut");
+    TH2D *hSubLeadJetMatchedPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoSubLeadJetMatchedPtVsEtaJetIdCut");
+    TH2D *hSubLeadJetUnmatchedPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut");
+    // Rebin 2D histograms
+    hLeadJetAllPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+    hLeadJetMatchedPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+    hLeadJetUnmatchedPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+    // Divide 2D histograms
+    hLeadJetMatchedPtVsEtaJetIdCut->Divide(hLeadJetMatchedPtVsEtaJetIdCut, hLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
+    hLeadJetUnmatchedPtVsEtaJetIdCut->Divide(hLeadJetUnmatchedPtVsEtaJetIdCut, hLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
+    // Set style
+    set2DStyle(hLeadJetMatchedPtVsEtaJetIdCut);
+    set2DStyle(hLeadJetUnmatchedPtVsEtaJetIdCut);
+    // Rebin 2D histograms
+    hSubLeadJetAllPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+    hSubLeadJetMatchedPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+    hSubLeadJetUnmatchedPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+    // Divide 2D histograms
+    hSubLeadJetMatchedPtVsEtaJetIdCut->Divide(hSubLeadJetMatchedPtVsEtaJetIdCut, hSubLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
+    hSubLeadJetUnmatchedPtVsEtaJetIdCut->Divide(hSubLeadJetUnmatchedPtVsEtaJetIdCut, hSubLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
+    // Set style
+    set2DStyle(hSubLeadJetMatchedPtVsEtaJetIdCut);
+    set2DStyle(hSubLeadJetUnmatchedPtVsEtaJetIdCut);
+
+
+    // Retrieve 1D binning
+    Int_t fPtBins = hJetPtVsEtaTrkMaxCut->GetNbinsY();
+    Double_t fPtRange[2] {hJetPtVsEtaTrkMaxCut->GetYaxis()->GetBinLowEdge(1), 
+                          hJetPtVsEtaTrkMaxCut->GetYaxis()->GetBinUpEdge(fPtBins) };
+    Int_t fEtaBins = hJetPtVsEtaTrkMaxCut->GetNbinsX();
+    Double_t fEtaRange[2] { hJetPtVsEtaTrkMaxCut->GetXaxis()->GetBinLowEdge(1),
+                            hJetPtVsEtaTrkMaxCut->GetXaxis()->GetBinUpEdge(fEtaBins)};
     Double_t ptStep = (fPtRange[1]-fPtRange[0]) / fPtBins;
     Double_t etaStep = (fEtaRange[1]-fEtaRange[0]) / fEtaBins;
 
-    TH1D *hEtaFakes[fPtBins];
-    TH1D *hPtFakes[fEtaBins];
-    TH1D *hEtaMatched[fPtBins];
-    TH1D *hPtMatched[fEtaBins];
-    TH1D *hEtaUnmatched[fPtBins];
-    TH1D *hPtUnmatched[fEtaBins];
+    std::cout << "fPtBins:  " << fPtBins << std::endl;
+    std::cout << "fEtaBins: " << fEtaBins << std::endl;
 
-    TCanvas *canv = new TCanvas("canv", "canv", 1200, 900);
+    // Reserve histograms for projections
 
-    TCanvas *cEtaFakes = new TCanvas("cEtaFakes", "cEtaFakes", 1600, 800);
-    cEtaFakes->Divide(5, ( (fPtBins % 5) == 0 ) ? (fPtBins / 5) : (fPtBins / 5 + 1) );
+    // Kine selection
+    TH1D *hJetMatchedPtKineCut[ fEtaBins ];
+    TH1D *hJetMatchedEtaKineCut[ fPtBins ];
+    TH1D *hJetUnmatchedPtKineCut[ fEtaBins ];
+    TH1D *hJetUnmatchedEtaKineCut[ fPtBins ];
 
-    TCanvas *cPtFakes = new TCanvas("cPtFakes", "cPtFakes", 1600, 800);
-    cPtFakes->Divide(10, 5);
+    TH1D *hJetMatchedPtRatioKineCut[ fEtaBins ];
+    TH1D *hJetMatchedEtaRatioKineCut[ fPtBins ];
+    TH1D *hJetUnmatchedPtRatioKineCut[ fEtaBins ];
+    TH1D *hJetUnmatchedEtaRatioKineCut[ fPtBins ];
 
-    // Make projections bin-by-bin on eta
+    // TrkMax selection
+    TH1D *hJetMatchedPtTrkMaxCut[ fEtaBins ];
+    TH1D *hJetMatchedEtaTrkMaxCut[ fPtBins ];
+    TH1D *hJetUnmatchedPtTrkMaxCut[ fEtaBins ];
+    TH1D *hJetUnmatchedEtaTrkMaxCut[ fPtBins ];
+
+    TH1D *hLeadJetMatchedPtTrkMaxCut[ fEtaBins ];
+    TH1D *hLeadJetMatchedEtaTrkMaxCut[ fPtBins ];
+    TH1D *hLeadJetUnmatchedPtTrkMaxCut[ fEtaBins ];
+    TH1D *hLeadJetUnmatchedEtaTrkMaxCut[ fPtBins ];
+
+    TH1D *hSubLeadJetMatchedPtTrkMaxCut[ fEtaBins ];
+    TH1D *hSubLeadJetMatchedEtaTrkMaxCut[ fPtBins ];
+    TH1D *hSubLeadJetUnmatchedPtTrkMaxCut[ fEtaBins ];
+    TH1D *hSubLeadJetUnmatchedEtaTrkMaxCut[ fPtBins ];
+
+    // JetId selection
+    TH1D *hJetMatchedPtJetIdCut[ fEtaBins ];
+    TH1D *hJetMatchedEtaJetIdCut[ fPtBins ];
+    TH1D *hJetUnmatchedPtJetIdCut[ fEtaBins ];
+    TH1D *hJetUnmatchedEtaJetIdCut[ fPtBins ];
+
+    TH1D *hJetMatchedPtRatioJetIdCut[ fEtaBins ];
+    TH1D *hJetMatchedEtaRatioJetIdCut[ fPtBins ];
+    TH1D *hJetUnmatchedPtRatioJetIdCut[ fEtaBins ];
+    TH1D *hJetUnmatchedEtaRatioJetIdCut[ fPtBins ];
+
+    TH1D *hLeadJetMatchedPtJetIdCut[ fEtaBins ];
+    TH1D *hLeadJetMatchedEtaJetIdCut[ fPtBins ];
+    TH1D *hLeadJetUnmatchedPtJetIdCut[ fEtaBins ];
+    TH1D *hLeadJetUnmatchedEtaJetIdCut[ fPtBins ];
+
+    TH1D *hSubLeadJetMatchedPtJetIdCut[ fEtaBins ];
+    TH1D *hSubLeadJetMatchedEtaJetIdCut[ fPtBins ];
+    TH1D *hSubLeadJetUnmatchedPtJetIdCut[ fEtaBins ];
+    TH1D *hSubLeadJetUnmatchedEtaJetIdCut[ fPtBins ];
+
+
+    //
+    // Make projections
+    //
+
+    // Kine selection
+    if ( plotKineCut ) {
+        makeProjectionsFrom2D(hJetPtVsEtaMatchedKineCut, hJetMatchedEtaKineCut, hJetMatchedPtKineCut, fEtaBins, fPtBins, "hJetMatchedEtaKineCut", "hJetMatchedPtKineCut", kineStyle);
+        makeProjectionsFrom2D(hJetPtVsEtaUnmatchedKineCut, hJetUnmatchedEtaKineCut, hJetUnmatchedPtKineCut, fEtaBins, fPtBins, "hJetUnmatchedEtaKineCut", "hJetUnmatchedPtKineCut", kineStyle+3);
+    } // if ( plotKineCut )
+
+    // TrkMax selection
+    makeProjectionsFrom2D(hJetPtVsEtaMatchedTrkMaxCut, hJetMatchedEtaTrkMaxCut, hJetMatchedPtTrkMaxCut, fEtaBins, fPtBins, "hJetMatchedEtaTrkMaxCut", "hJetMatchedPtTrkMaxCut", trkMaxStyle);
+    makeProjectionsFrom2D(hJetPtVsEtaUnmatchedTrkMaxCut, hJetUnmatchedEtaTrkMaxCut, hJetUnmatchedPtTrkMaxCut, fEtaBins, fPtBins, "hJetUnmatchedEtaTrkMaxCut", "hJetUnmatchedPtTrkMaxCut", trkMaxStyle+3);
+
+    makeProjectionsFrom2D(hLeadJetMatchedPtVsEtaTrkMaxCut, hLeadJetMatchedEtaTrkMaxCut, hLeadJetMatchedPtTrkMaxCut, fEtaBins, fPtBins, "hLeadJetMatchedEtaTrkMaxCut", "hLeadJetMatchedPtTrkMaxCut", trkMaxStyle);
+    makeProjectionsFrom2D(hLeadJetUnmatchedPtVsEtaTrkMaxCut, hLeadJetUnmatchedEtaTrkMaxCut, hLeadJetUnmatchedPtTrkMaxCut, fEtaBins, fPtBins, "hLeadJetUnmatchedEtaTrkMaxCut", "hLeadJetUnmatchedPtTrkMaxCut", trkMaxStyle+3);
+
+    makeProjectionsFrom2D(hSubLeadJetMatchedPtVsEtaTrkMaxCut, hSubLeadJetMatchedEtaTrkMaxCut, hSubLeadJetMatchedPtTrkMaxCut, fEtaBins, fPtBins, "hSubLeadJetMatchedEtaTrkMaxCut", "hSubLeadJetMatchedPtTrkMaxCut", trkMaxStyle);
+    makeProjectionsFrom2D(hSubLeadJetUnmatchedPtVsEtaTrkMaxCut, hSubLeadJetUnmatchedEtaTrkMaxCut, hSubLeadJetUnmatchedPtTrkMaxCut, fEtaBins, fPtBins, "hSubLeadJetUnmatchedEtaTrkMaxCut", "hSubLeadJetUnmatchedPtTrkMaxCut", trkMaxStyle+3);
+
+    // JetId selection
+    if ( plotJetIdCut ) {
+        makeProjectionsFrom2D(hJetPtVsEtaMatchedJetIdCut, hJetMatchedEtaJetIdCut, hJetMatchedPtJetIdCut, fEtaBins, fPtBins, "hJetMatchedEtaJetIdCut", "hJetMatchedPtJetIdCut", jetIdStyle);
+        makeProjectionsFrom2D(hJetPtVsEtaUnmatchedJetIdCut, hJetUnmatchedEtaJetIdCut, hJetUnmatchedPtJetIdCut, fEtaBins, fPtBins, "hJetUnmatchedEtaJetIdCut", "hJetUnmatchedPtJetIdCut", jetIdStyle+3);
+
+        makeProjectionsFrom2D(hLeadJetMatchedPtVsEtaJetIdCut, hLeadJetMatchedEtaJetIdCut, hLeadJetMatchedPtJetIdCut, fEtaBins, fPtBins, "hLeadJetMatchedEtaJetIdCut", "hLeadJetMatchedPtJetIdCut", jetIdStyle);
+        makeProjectionsFrom2D(hLeadJetUnmatchedPtVsEtaJetIdCut, hLeadJetUnmatchedEtaJetIdCut, hLeadJetUnmatchedPtJetIdCut, fEtaBins, fPtBins, "hLeadJetUnmatchedEtaJetIdCut", "hLeadJetUnmatchedPtJetIdCut", jetIdStyle+3);
+
+        makeProjectionsFrom2D(hSubLeadJetMatchedPtVsEtaJetIdCut, hSubLeadJetMatchedEtaJetIdCut, hSubLeadJetMatchedPtJetIdCut, fEtaBins, fPtBins, "hSubLeadJetMatchedEtaJetIdCut", "hSubLeadJetMatchedPtJetIdCut", jetIdStyle);
+        makeProjectionsFrom2D(hSubLeadJetUnmatchedPtVsEtaJetIdCut, hSubLeadJetUnmatchedEtaJetIdCut, hSubLeadJetUnmatchedPtJetIdCut, fEtaBins, fPtBins, "hSubLeadJetUnmatchedEtaJetIdCut", "hSubLeadJetUnmatchedPtJetIdCut", jetIdStyle+3);
+    } // if ( plotJetIdCut )
+
+
+    //
+    // Make canvases
+    //
+
+    TCanvas *c = new TCanvas("c", "c", 1200, 800);
+
+    TCanvas *cEtaProj = new TCanvas("cEtaProj", "cEtaProj", 1200, 800);
+    cEtaProj->Divide(5, ( (fPtBins % 5) == 0 ) ? (fPtBins / 5) : (fPtBins / 5 + 1) );
+
+    TCanvas *cPtProj = new TCanvas("cPtProj", "cPtProj", 1200, 800);
+    cPtProj->Divide(5, ( (fEtaBins % 5) == 0 ) ? (fEtaBins / 5) : (fEtaBins / 5 + 1) );
+
+    TCanvas *cEtaProjRat = new TCanvas("cEtaProjRat", "cEtaProjRat", 1200, 800);
+    cEtaProjRat->Divide(5, ( (fPtBins % 5) == 0 ) ? (fPtBins / 5) : (fPtBins / 5 + 1) );
+
+    TCanvas *cPtProjRat = new TCanvas("cPtProjRat", "cPtProjRat", 1200, 800);
+    cPtProjRat->Divide(5, ( (fEtaBins % 5) == 0 ) ? (fEtaBins / 5) : (fEtaBins / 5 + 1) );
+
+    // Create legends
+    TLegend *hEtaLegend[fPtBins];
+    TLegend *hPtLegend[fEtaBins];
+
+    //
+    // Plotting eta distributions
+    //
     for (Int_t i{1}; i<=fPtBins; i++) {
-        // Project on eta
-        hEtaFakes[i] = (TH1D*)hRecoFakeJetFrac->ProjectionX(Form("hEtaFakes_%d", i), i, i);
-        hEtaFakes[i]->SetNameTitle(Form("hEtaFakes_%d", i), ";#eta;Efficiency");
-        set1DStyle(hEtaFakes[i], 2);
-        hEtaFakes[i]->SetMarkerSize(0.7);
 
-        hEtaMatched[i] = (TH1D*)hRecoMatchedJetFrac->ProjectionX(Form("hEtaMatched_%d", i), i, i);
-        hEtaMatched[i]->SetNameTitle(Form("hEtaMatched_%d", i), ";#eta;Efficiency");
-        set1DStyle(hEtaMatched[i], 1);
-        hEtaMatched[i]->SetMarkerSize(0.7);
+        // Make ratios for the kine selection to trkMax one
+        if ( plotKineCut ) {
+            hJetMatchedEtaRatioKineCut[i-1] = dynamic_cast<TH1D*>( hJetMatchedEtaKineCut[i-1]->Clone( Form("hJetMatchedEtaRatioKineCut_%d", i-1) ) );
+            make1DRatio(hJetMatchedEtaRatioKineCut[i-1], hJetMatchedEtaTrkMaxCut[i-1], "Ratio to TrkMax", kineStyle);
+            hJetUnmatchedEtaRatioKineCut[i-1] = dynamic_cast<TH1D*>( hJetUnmatchedEtaKineCut[i-1]->Clone( Form("hJetUnmatchedEtaRatioKineCut_%d", i-1) ) );
+            make1DRatio(hJetUnmatchedEtaRatioKineCut[i-1], hJetUnmatchedEtaTrkMaxCut[i-1], "Ratio to TrkMax", kineStyle+3);
+        }
 
-        hEtaUnmatched[i] = (TH1D*)hRecoUnmatchedJetFrac->ProjectionX(Form("hEtaUnmatched_%d", i), i, i);
-        hEtaUnmatched[i]->SetNameTitle(Form("hEtaUnmatched_%d", i), ";#eta;Efficiency");
-        set1DStyle(hEtaUnmatched[i], 2);
-        hEtaUnmatched[i]->SetMarkerSize(0.7);
+        // Make ratios for the jetId selection to trkMax one
+        if ( plotJetIdCut ) {
+            hJetMatchedEtaRatioJetIdCut[i-1] = dynamic_cast<TH1D*>( hJetMatchedEtaJetIdCut[i-1]->Clone( Form("hJetMatchedEtaRatioJetIdCut_%d", i-1) ) );
+            make1DRatio(hJetMatchedEtaRatioJetIdCut[i-1], hJetMatchedEtaTrkMaxCut[i-1], "Ratio to TrkMax", jetIdStyle);
+            hJetUnmatchedEtaRatioJetIdCut[i-1] = dynamic_cast<TH1D*>( hJetUnmatchedEtaJetIdCut[i-1]->Clone( Form("hJetUnmatchedEtaRatioJetIdCut_%d", i-1) ) );
+            make1DRatio(hJetUnmatchedEtaRatioJetIdCut[i-1], hJetUnmatchedEtaTrkMaxCut[i-1], "Ratio to TrkMax", jetIdStyle+3);
+        }
 
-        cEtaFakes->cd(i);
+        // Plot individual distributions
+
+        // Plot fakes and matched
+        c->cd();
         setPadStyle();
-        //hEtaFakes[i]->Draw();
-        hEtaUnmatched[i]->Draw();
-        hEtaMatched[i]->Draw("same");
-        hEtaUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
-        t.DrawLatexNDC(0.35, 0.93, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
-                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep) );
+        hJetMatchedEtaTrkMaxCut[i-1]->Draw();
+        hJetMatchedEtaTrkMaxCut[i-1]->GetYaxis()->SetRangeUser(0., 1.05);
+        if ( plotJetIdCut ) {
+            hJetMatchedEtaJetIdCut[i-1]->Draw("same");
+        }
+        if ( plotKineCut ) {
+            hJetMatchedEtaKineCut[i-1]->Draw("same");
+        }
+        hJetUnmatchedEtaTrkMaxCut[i-1]->Draw("same");
+        if ( plotJetIdCut ) {
+            hJetUnmatchedEtaJetIdCut[i-1]->Draw("same");
+        }
+        if ( plotKineCut ) {
+            hJetUnmatchedEtaKineCut[i-1]->Draw("same");
+        }
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%3.0f<p_{T} (GeV/c)<%3.0f", 
+                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep ) );
 
-        canv->cd();
+        hEtaLegend[i-1] = new TLegend(0.65, 0.35, 0.75, 0.55);
+        hEtaLegend[i-1]->SetTextSize(0.04);
+        hEtaLegend[i-1]->SetLineWidth(0);
+        hEtaLegend[i-1]->AddEntry(hJetMatchedEtaTrkMaxCut[i-1], Form("TrkMax M"), "p");
+        if ( plotKineCut ) {
+            hEtaLegend[i-1]->AddEntry(hJetMatchedEtaKineCut[i-1], Form("KineOnly M"), "p");
+        }
+        if ( plotJetIdCut ) {
+            hEtaLegend[i-1]->AddEntry(hJetMatchedEtaJetIdCut[i-1], Form("JetId M"), "p");
+        }
+        hEtaLegend[i-1]->AddEntry(hJetUnmatchedEtaTrkMaxCut[i-1], Form("TrkMax Un"), "p");
+        if ( plotKineCut ) {
+            hEtaLegend[i-1]->AddEntry(hJetUnmatchedEtaKineCut[i-1], Form("KineOnly Un"), "p");
+        }
+        if ( plotJetIdCut ) {
+            hEtaLegend[i-1]->AddEntry(hJetUnmatchedEtaJetIdCut[i-1], Form("JetId Un"), "p");
+        }
+        hEtaLegend[i-1]->Draw();
+        c->SaveAs( Form("%s/pPb8160_%s_eta_fakes_pt_%d_%d_%s.pdf", 
+                        date.Data(), direction.Data(), 
+                        (Int_t)(fPtRange[0] + (i-1) * ptStep),
+                        (Int_t)(fPtRange[0] + i * ptStep),
+                        branchName.Data()) );
+
+        // All projections
+        cEtaProj->cd(i);
         setPadStyle();
-        hEtaUnmatched[i]->Draw();
-        hEtaMatched[i]->Draw("same");
-        hEtaUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
-        TLegend *leg = new TLegend(0.6, 0.7, 0.8, 0.85);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaUnmatched[i],Form("Fakes"), "p");
-        leg->AddEntry(hEtaMatched[i],Form("Matched"), "p");
-        leg->SetTextSize(0.05);
-        leg->Draw();
-        t.DrawLatexNDC(0.35, 0.93, Form("%4.1f < p_{T} (GeV/c) < %4.1f", 
-                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep) );
-        //gPad->SetLogy();
-        canv->SaveAs(Form("%s/pPb8160_%s_eta_fakes_%d.pdf", date.Data(), direction.Data(), i) );
-    } // for (Int_t i{1}; i<=fPtBins; i++)
+        hJetMatchedEtaTrkMaxCut[i-1]->Draw();
+        hJetMatchedEtaTrkMaxCut[i-1]->GetYaxis()->SetRangeUser(0., 1.05);
+        if ( plotJetIdCut ) {
+            hJetMatchedEtaJetIdCut[i-1]->Draw("same");
+        }
+        if ( plotKineCut ) {
+            hJetMatchedEtaKineCut[i-1]->Draw("same");
+        }
+        hJetUnmatchedEtaTrkMaxCut[i-1]->Draw("same");
+        if ( plotJetIdCut ) {
+            hJetUnmatchedEtaJetIdCut[i-1]->Draw("same");
+        }
+        if ( plotKineCut ) {
+            hJetUnmatchedEtaKineCut[i-1]->Draw("same");
+        }
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%3.0f<p_{T} (GeV/c)<%3.0f", 
+                       fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep ) );
+        hEtaLegend[i-1]->Draw();
 
-    // Make projections bin-by-bin on pT
+
+        // Plot ratios
+        if ( plotJetIdCut ) {
+            // Individual
+            c->cd();
+            setPadStyle();
+            hJetMatchedEtaRatioJetIdCut[i-1]->Draw();
+            hJetMatchedEtaRatioJetIdCut[i-1]->GetYaxis()->SetRangeUser(0.75, 1.25);
+            if ( plotKineCut ) {
+                hJetMatchedEtaRatioKineCut[i-1]->Draw("same");
+            }
+            hJetUnmatchedEtaRatioJetIdCut[i-1]->Draw("same");
+            if ( plotKineCut ) {
+                hJetUnmatchedEtaRatioKineCut[i-1]->Draw("same");
+            }
+            t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+            t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+            t.DrawLatexNDC(0.3, 0.2, Form("%3.0f<p_{T} (GeV/c)<%3.0f", 
+                           fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep ) );
+            hEtaLegend[i-1]->Draw();
+            c->SaveAs( Form("%s/pPb8160_%s_eta_fakes_ratio2trkMax_pt_%d_%d_%s.pdf", 
+                       date.Data(), direction.Data(), 
+                       (Int_t)(fPtRange[0] + (i-1) * ptStep),
+                       (Int_t)(fPtRange[0] + i * ptStep),
+                       branchName.Data()) );
+
+            //  All projections
+            cEtaProjRat->cd(i);
+            setPadStyle();
+            hJetMatchedEtaRatioJetIdCut[i-1]->Draw();
+            hJetMatchedEtaRatioJetIdCut[i-1]->GetYaxis()->SetRangeUser(0.75, 1.25);
+            if ( plotKineCut ) {
+                hJetMatchedEtaRatioKineCut[i-1]->Draw("same");
+            }
+            hJetUnmatchedEtaRatioJetIdCut[i-1]->Draw("same");
+            if ( plotKineCut ) {
+                hJetUnmatchedEtaRatioKineCut[i-1]->Draw("same");
+            }
+            t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+            t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+            t.DrawLatexNDC(0.3, 0.2, Form("%3.0f<p_{T} (GeV/c)<%3.0f", 
+                           fPtRange[0] + (i-1) * ptStep, fPtRange[0] + i * ptStep ) );
+            hEtaLegend[i-1]->Draw();            
+        } // if ( plotJetIdCut )
+
+    } // for (Int_t i{1}; i<fPtBins; i++)
+
+
+    //
+    // Plotting pt distributions
+    //
+    std::cout << "Eta bins: " << fEtaBins << std::endl;
     for (Int_t i{1}; i<=fEtaBins; i++) {
-        // Project on pT
-        hPtFakes[i] = (TH1D*)hRecoFakeJetFrac->ProjectionY(Form("hPtFakes_%d", i), i, i);
-        hPtFakes[i]->SetNameTitle(Form("hPtFakes_%d", i), ";p_{T} (GeV/c);Efficiency");
-        set1DStyle(hPtFakes[i], 2);
-        //hPtFakes[i]->SetMarkerSize(0.7);
+        std::cout << "Loop starts" << std::endl;
 
-        hPtMatched[i] = (TH1D*)hRecoMatchedJetFrac->ProjectionY(Form("hPtMatched_%d", i), i, i);
-        hPtMatched[i]->SetNameTitle(Form("hPtMatched_%d", i), ";p_{T} (GeV/c);Efficiency");
-        set1DStyle(hPtMatched[i], 1);
-        //hPtMatched[i]->SetMarkerSize(0.7);
+        // Make ratios for the kine selection to trkMax one
+        if ( plotKineCut ) {
+            std::cout << "Kine i: " << i << " ";
+            hJetMatchedPtRatioKineCut[i-1] = dynamic_cast<TH1D*>( hJetMatchedPtKineCut[i-1]->Clone( Form("hJetMatchedPtRatioKineCut_%d", i-1) ) );
+            std::cout << hJetMatchedPtRatioKineCut[i-1]->GetName();
+            make1DRatio(hJetMatchedPtRatioKineCut[i-1], hJetMatchedPtTrkMaxCut[i-1], "Ratio to TrkMax", kineStyle);
+            std::cout << " " << hJetMatchedPtRatioKineCut[i-1]->Integral() << std::endl;
+            hJetUnmatchedPtRatioKineCut[i-1] = dynamic_cast<TH1D*>( hJetUnmatchedPtKineCut[i-1]->Clone( Form("hJetUnmatchedPtRatioKineCut_%d", i-1) ) );
+            std::cout << hJetUnmatchedPtRatioKineCut[i-1]->GetName();
+            make1DRatio(hJetUnmatchedPtRatioKineCut[i-1], hJetUnmatchedPtTrkMaxCut[i-1], "Ratio to TrkMax", kineStyle+3);
+            std::cout << " " << hJetUnmatchedPtRatioKineCut[i-1]->Integral() << std::endl;
+        }
 
-        hPtUnmatched[i] = (TH1D*)hRecoUnmatchedJetFrac->ProjectionY(Form("hPtUnmatched_%d", i), i, i);
-        hPtUnmatched[i]->SetNameTitle(Form("hPtUnmatched_%d", i), ";p_{T} (GeV/c);Efficiency");
-        set1DStyle(hPtUnmatched[i], 2);
-        //hPtUnmatched[i]->SetMarkerSize(0.7);
+        // Make ratios for the jetId selection to trkMax one
+        if ( plotJetIdCut ) {
+            std::cout << "JetId i: " << i << " ";
+            hJetMatchedPtRatioJetIdCut[i-1] = dynamic_cast<TH1D*>( hJetMatchedPtJetIdCut[i-1]->Clone( Form("hJetMatchedPtRatioJetIdCut_%d", i-1) ) );
+            std::cout << hJetMatchedPtRatioJetIdCut[i-1]->GetName();
+            make1DRatio(hJetMatchedPtRatioJetIdCut[i-1], hJetMatchedPtTrkMaxCut[i-1], "Ratio to TrkMax", jetIdStyle);
+            std::cout << " " << hJetMatchedPtRatioJetIdCut[i-1]->Integral() << std::endl;
+            hJetUnmatchedPtRatioJetIdCut[i-1] = dynamic_cast<TH1D*>( hJetUnmatchedPtJetIdCut[i-1]->Clone( Form("hJetUnmatchedPtRatioJetIdCut_%d", i-1) ) );
+            make1DRatio(hJetUnmatchedPtRatioJetIdCut[i-1], hJetUnmatchedPtTrkMaxCut[i-1], "Ratio to TrkMax", jetIdStyle+3);
+        }
 
-        cPtFakes->cd(i);
+        // Plot individual distributions
+
+        // Plot fakes and matched
+        c->cd();
         setPadStyle();
-        hPtUnmatched[i]->Draw();
-        //hPtFakes[i]->Draw("same");
-        hPtMatched[i]->Draw("same");
-        hPtUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
-        //hPtFakes[i]->GetYaxis()->SetRangeUser(0., 1.05);
-        t.DrawLatexNDC(0.35, 0.93, Form("%2.1f < #eta < %2.1f", 
-                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
+        hJetMatchedPtTrkMaxCut[i-1]->Draw();
+        hJetMatchedPtTrkMaxCut[i-1]->GetYaxis()->SetRangeUser(0., 1.05);
+        if ( plotJetIdCut ) {
+            hJetMatchedPtJetIdCut[i-1]->Draw("same");
+        }
+        if ( plotKineCut ) {
+            hJetMatchedPtKineCut[i-1]->Draw("same");
+        }
+        hJetUnmatchedPtTrkMaxCut[i-1]->Draw("same");
+        if ( plotJetIdCut ) {
+            hJetUnmatchedPtJetIdCut[i-1]->Draw("same");
+        }
+        if ( plotKineCut ) {
+            hJetUnmatchedPtKineCut[i-1]->Draw("same");
+        }
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%2.1f<#eta<%2.1f", 
+                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep ) );
 
-        canv->cd();
+        hPtLegend[i-1] = new TLegend(0.65, 0.35, 0.75, 0.55);
+        hPtLegend[i-1]->SetTextSize(0.04);
+        hPtLegend[i-1]->SetLineWidth(0);
+        hPtLegend[i-1]->AddEntry(hJetMatchedPtTrkMaxCut[i-1], Form("TrkMax M"), "p");
+        if ( plotKineCut ) {
+            hPtLegend[i-1]->AddEntry(hJetMatchedPtKineCut[i-1], Form("KineOnly M"), "p");
+        }
+        if ( plotJetIdCut ) {
+            hPtLegend[i-1]->AddEntry(hJetMatchedPtJetIdCut[i-1], Form("JetId M"), "p");
+        }
+        hPtLegend[i-1]->AddEntry(hJetUnmatchedPtTrkMaxCut[i-1], Form("TrkMax Un"), "p");
+        if ( plotKineCut ) {
+            hPtLegend[i-1]->AddEntry(hJetUnmatchedPtKineCut[i-1], Form("KineOnly Un"), "p");
+        }
+        if ( plotJetIdCut ) {
+            hPtLegend[i-1]->AddEntry(hJetUnmatchedPtJetIdCut[i-1], Form("JetId Un"), "p");
+        }
+        hPtLegend[i-1]->Draw();
+        c->SaveAs( Form("%s/pPb8160_%s_pt_fakes_eta_%d_%d_%s.pdf", 
+                        date.Data(), direction.Data(), 
+                        (Int_t)( (fEtaRange[0] + (i-1) * etaStep) * 10),
+                        (Int_t)( (fEtaRange[0] + i * etaStep) * 10 ),
+                        branchName.Data()) );
+
+        // All projections
+        cPtProj->cd(i);
         setPadStyle();
-        hPtUnmatched[i]->Draw();
-        hPtMatched[i]->Draw("same");
-        hPtUnmatched[i]->GetYaxis()->SetRangeUser(0., 1.05);
-        TLegend *leg = new TLegend(0.6, 0.7, 0.8, 0.85);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hPtUnmatched[i],Form("Fakes"), "p");
-        leg->AddEntry(hPtMatched[i],Form("Matched"), "p");
-        leg->SetTextSize(0.05);
-        leg->Draw();
-        t.DrawLatexNDC(0.35, 0.93, Form("%2.1f < #eta < %2.1f", 
-                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep) );
-        canv->SaveAs(Form("%s/pPb8160_%s_pt_fakes_%d.pdf", date.Data(), direction.Data(), i) );
-    }
+        hJetMatchedPtTrkMaxCut[i-1]->Draw();
+        hJetMatchedPtTrkMaxCut[i-1]->GetYaxis()->SetRangeUser(0., 1.05);
+        if ( plotJetIdCut ) {
+            hJetMatchedPtJetIdCut[i-1]->Draw("same");
+        }
+        if ( plotKineCut ) {
+            hJetMatchedPtKineCut[i-1]->Draw("same");
+        }
+        hJetUnmatchedPtTrkMaxCut[i-1]->Draw("same");
+        if ( plotJetIdCut ) {
+            hJetUnmatchedPtJetIdCut[i-1]->Draw("same");
+        }
+        if ( plotKineCut ) {
+            hJetUnmatchedPtKineCut[i-1]->Draw("same");
+        }
+        t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+        t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.3, 0.2, Form("%2.1f<#eta<%2.1f", 
+                       fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep ) );
+        hPtLegend[i-1]->Draw();
 
-    cEtaFakes->SaveAs( Form("%s/pPb8160_%s_eta_fakes_projections.pdf", date.Data(), direction.Data()) );
-    cPtFakes->SaveAs( Form("%s/pPb8160_%s_pt_fakes_projections.pdf", date.Data(), direction.Data()) );
+
+        // Plot ratios
+        if ( plotJetIdCut ) {
+            // Individual
+            c->cd();
+            setPadStyle();
+            hJetMatchedPtRatioJetIdCut[i-1]->Draw();
+            hJetMatchedPtRatioJetIdCut[i-1]->GetYaxis()->SetRangeUser(0.75, 1.25);
+            if ( plotKineCut ) {
+                hJetMatchedPtRatioKineCut[i-1]->Draw("same");
+            }
+            hJetUnmatchedPtRatioJetIdCut[i-1]->Draw("same");
+            if ( plotKineCut ) {
+                hJetUnmatchedPtRatioKineCut[i-1]->Draw("same");
+            }
+            t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+            t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+            t.DrawLatexNDC(0.3, 0.2, Form("%2.1f<#eta<%2.1f", 
+                           fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep ) );
+            hPtLegend[i-1]->Draw();
+            c->SaveAs( Form("%s/pPb8160_%s_pt_fakes_ratio2trkMax_eta_%d_%d_%s.pdf", 
+                       date.Data(), direction.Data(), 
+                       (Int_t)( (fEtaRange[0] + (i-1) * etaStep) * 10),
+                       (Int_t)( (fEtaRange[0] + i * etaStep) * 10),
+                       branchName.Data()) );
+
+            //  All projections
+            cPtProjRat->cd(i);
+            setPadStyle();
+            hJetMatchedPtRatioJetIdCut[i-1]->Draw();
+            hJetMatchedPtRatioJetIdCut[i-1]->GetYaxis()->SetRangeUser(0.75, 1.25);
+            if ( plotKineCut ) {
+                hJetMatchedPtRatioKineCut[i-1]->Draw("same");
+            }
+            hJetUnmatchedPtRatioJetIdCut[i-1]->Draw("same");
+            if ( plotKineCut ) {
+                hJetUnmatchedPtRatioKineCut[i-1]->Draw("same");
+            }
+            t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+            t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+            t.DrawLatexNDC(0.3, 0.2, Form("%2.1f<#eta<%2.1f", 
+                           fEtaRange[0] + (i-1) * etaStep, fEtaRange[0] + i * etaStep ) );
+            hPtLegend[i-1]->Draw();
+
+            std::cout << "Loop end" << std::endl;
+        } // if ( plotJetIdCut )
+
+    } // for (Int_t i{1}; i<fEtaBins; i++)
+
+
+
+    cEtaProj->SaveAs( Form("%s/pPb8160_%s_eta_fake_projections_all_%s.pdf", 
+                           date.Data(), direction.Data(), branchName.Data()) );
+    cEtaProjRat->SaveAs( Form("%s/pPb8160_%s_eta_fake_ratios_all_%s.pdf", 
+                              date.Data(), direction.Data(), branchName.Data()) );
+    cPtProj->SaveAs( Form("%s/pPb8160_%s_pt_fake_projections_all_%s.pdf", 
+                           date.Data(), direction.Data(), branchName.Data()) );
+    cPtProjRat->SaveAs( Form("%s/pPb8160_%s_pt_fake_ratios_all_%s.pdf", 
+                              date.Data(), direction.Data(), branchName.Data()) );
+
 }
 
 //________________
@@ -1345,13 +1765,13 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //compareInclusiveJetPtSpectra(inFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
-    //plotEfficiency(inFile, date);
+    // plotEfficiency(inFile, date, branchId);
 
     // Plot dijet distributions
     //plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
-    //plotRecoAndFakes(inFile, date);
+    plotRecoAndFakes(inFile, date, branchId);
 
     // Plot correlation between ref and reco dijet eta
     //plotEtaDijetCorrelation(inFile, date);
@@ -1360,6 +1780,5 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //plotJetIdHistos(inFile, date);
 
     // Plot JES and JER
-
-    plotJESandJER(inFile, date, branchId);
+    //plotJESandJER(inFile, date, branchId);
 }
