@@ -600,7 +600,7 @@ void unfoldDifferentPtHat(TFile *inFile, TFile *inFilePtHat, Int_t ptHat, TStrin
 }
 
 //________________
-void plotDijetDistributions(TFile *inFile, TString date) {
+void plotDijetDistributions(TFile *inFile, TString date, Int_t jetBranch = 0) {
     
     TString inputFileName( inFile->GetName() );
     TString direction;
@@ -612,6 +612,14 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     }
     else {
         direction = "unknownDir";
+    }
+
+    TString branchName;
+    if ( jetBranch == 0 ) {
+        branchName = "akCs4";
+    }
+    else {
+        branchName = "ak4";
     }
 
     // Retrieve THnSparse for reco 2 ref
@@ -629,6 +637,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     TH3D *hRefDijetPtEtaDphi = (TH3D*)inFile->Get("hRefDijetPtEtaDphi");
     TH3D *hRefSelDijetPtEtaDphi = (TH3D*)inFile->Get("hRefSelDijetPtEtaDphi");
     TH3D *hRecoDijetEtaRefDijetEtaRecoDijetPt = (TH3D*)inFile->Get("hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt");
+    TH3D* hRecoDijetPtEtaDphiJetId = (TH3D*)inFile->Get("hRecoDijetPtEtaDphiJetId");
 
     // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
     //                                        90., 100.,  110., 120., 130.,
@@ -701,9 +710,13 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     TH1D *hRefSelDijetEtaPure[ ptDijetLow.size() ];
     TH1D *hGenDijetEtaPure[ ptDijetLow.size() ];
 
+    // jetId
+    TH1D *hRecoDijetEtaPureJetId[ ptDijetLow.size() ];
+
     TH1D *hReco2GenDijetEta[ ptDijetLow.size() ];
     TH1D *hRef2GenDijetEta[ ptDijetLow.size() ];
     TH1D *hRefSel2GenDijetEta[ ptDijetLow.size() ];
+    TH1D *hReco2GenDijetEtaJetId[ ptDijetLow.size() ];
 
     TLegend *leg[ ptDijetLow.size() ];
     TLegend *leg2[ ptDijetLow.size() ];
@@ -715,6 +728,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
     Int_t refType{1};
     Int_t genType{3};
     Int_t refSelType{2};
+    Int_t jetIdType{5};
 
     TLatex t;
     t.SetTextFont(42);
@@ -745,7 +759,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         //hRef2RecoDijetEta[i] = (TH2D*)hReco2RefDijet->Projection(7, 1);
         //hRef2RecoDijetEta[i]->SetNameTitle( Form("hRef2RecoDijetEta_%d", i),";#eta^{dijet}_{reco};#eta^{dijet}_{ref}" );
         hGenDijetEta[i] = (TH1D*)hGenDijet->Projection(1);
-        hGenDijetEta[i]->SetNameTitle( Form("hGenDijetEta%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
+        hGenDijetEta[i]->SetNameTitle( Form("hGenDijetEta_%d", i),";#eta^{dijet};1/N dN/d#eta^{dijet}" );
 
         // From 3D
         hRecoDijetEtaPure[i] = (TH1D*)hRecoDijetPtEtaDphi->ProjectionY( Form("hRecoDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
@@ -756,6 +770,11 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRefSelDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
         hGenDijetEtaPure[i] = (TH1D*)hGenDijetPtEtaDphi->ProjectionY( Form("hGenDijetEtaPure_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
         hGenDijetEtaPure[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+
+        // JetId
+        hRecoDijetEtaPureJetId[i] = (TH1D*)hRecoDijetPtEtaDphiJetId->ProjectionY( Form("hRecoDijetEtaPureJetId_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        hRecoDijetEtaPureJetId[i]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+
         // 2D from 3D
         hRecoDijetEtaRefDijetEtaRecoDijetPt->GetZaxis()->SetRange(ptDijetLow.at(i), ptDijetHi.at(i));
         hRef2RecoDijetEta[i] = (TH2D*)hRecoDijetEtaRefDijetEtaRecoDijetPt->Project3D("yx");
@@ -772,6 +791,9 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         rescaleEta( hRefSelDijetEtaPure[i] );
         rescaleEta( hGenDijetEtaPure[i] );
 
+        // jetId
+        rescaleEta( hRecoDijetEtaPureJetId[i] );
+
         rescaleEta( hRef2RecoDijetEta[i] );
 
         // Create ratios of reco, ref and refSel to gen
@@ -784,7 +806,7 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         // hRefSel2GenDijetEta[i]->Divide( hRefSel2GenDijetEta[i], hGenDijetEta[i], 1., 1., "b");
 
         hReco2GenDijetEta[i] = (TH1D*)hRecoDijetEtaPure[i]->Clone( Form("hReco2GenDijetEta_%d", i) );
-        hReco2GenDijetEta[i]->Divide(hRecoDijetEta[i], hGenDijetEtaPure[i], 1., 1., "b");
+        hReco2GenDijetEta[i]->Divide(hReco2GenDijetEta[i], hGenDijetEtaPure[i], 1., 1., "b");
         hReco2GenDijetEta[i]->GetYaxis()->SetTitle("Ratio to Gen");
         hRef2GenDijetEta[i] = (TH1D*)hRefDijetEtaPure[i]->Clone( Form("hRef2GenDijetEta_%d", i) );
         hRef2GenDijetEta[i]->Divide(hRef2GenDijetEta[i], hGenDijetEtaPure[i], 1., 1., "b");
@@ -792,6 +814,11 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRefSel2GenDijetEta[i] = (TH1D*)hRefSelDijetEtaPure[i]->Clone( Form("hRefSel2GenDijetEta_%d", i) );
         hRefSel2GenDijetEta[i]->Divide( hRefSel2GenDijetEta[i], hGenDijetEtaPure[i], 1., 1., "b");
         hRefSel2GenDijetEta[i]->GetYaxis()->SetTitle("Ratio to Gen");
+        
+        // JetId
+        hReco2GenDijetEtaJetId[i] = (TH1D*)hRecoDijetEtaPureJetId[i]->Clone( Form("hReco2GenDijetEtaJetId_%d", i) );
+        hReco2GenDijetEtaJetId[i]->Divide( hReco2GenDijetEtaJetId[i], hGenDijetEtaPure[i], 1., 1., "b" );
+        hReco2GenDijetEtaJetId[i]->GetYaxis()->SetTitle("Ratio to Gen");
 
         // Set style
         set1DStyle( hRecoDijetEta[i], recoType );
@@ -803,10 +830,15 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         set1DStyle( hRefDijetEtaPure[i], refType );
         set1DStyle( hRefSelDijetEtaPure[i], refSelType );
         set1DStyle( hGenDijetEtaPure[i], genType );
+        // JetId
+        set1DStyle( hRecoDijetEtaPureJetId[i], jetIdType );
 
         set1DStyle( hReco2GenDijetEta[i], recoType );
         set1DStyle( hRef2GenDijetEta[i], refType );
         set1DStyle( hRefSel2GenDijetEta[i], refSelType );
+
+        // JetId
+        set1DStyle( hReco2GenDijetEtaJetId[i], jetIdType );
 
         set2DStyle( hRef2RecoDijetEta[i] );
 
@@ -816,8 +848,8 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRef2RecoDijetEta[i]->Draw("colz");
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
-        canv->SaveAs( Form("%s/pPb8160_%s_eta_RefVsReco_pT_%d_%d.pdf", date.Data(), direction.Data(),
-                      ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        canv->SaveAs( Form("%s/pPb8160_%s_eta_RefVsReco_pT_%d_%d_%s.pdf", date.Data(), direction.Data(),
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep, branchName.Data()) );
 
         // 1D projections
         canv2->cd(1);
@@ -831,13 +863,15 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRefDijetEtaPure[i]->Draw("same");
         hRefSelDijetEtaPure[i]->Draw("same");
         hGenDijetEtaPure[i]->Draw("same");
+        hRecoDijetEtaPureJetId[i]->Draw("same");
 
         leg[i] = new TLegend(0.75, 0.65, 0.83, 0.87);
         leg[i]->SetLineWidth(0);
-        leg[i]->AddEntry(hRecoDijetEta[i],Form("Reco"), "p");
-        leg[i]->AddEntry(hRefDijetEta[i],Form("Ref"), "p");
-        leg[i]->AddEntry(hRefSelDijetEta[i],Form("RefSel"), "p");
-        leg[i]->AddEntry(hGenDijetEta[i],Form("Gen"), "p");
+        leg[i]->AddEntry(hRecoDijetEtaPure[i],Form("Reco trkMax"), "p");
+        leg[i]->AddEntry(hRefDijetEtaPure[i],Form("Ref"), "p");
+        leg[i]->AddEntry(hRefSelDijetEtaPure[i],Form("RefSel"), "p");
+        leg[i]->AddEntry(hGenDijetEtaPure[i],Form("Gen"), "p");
+        leg[i]->AddEntry(hRecoDijetEtaPureJetId[i],Form("Reco jetId"), "p");
         leg[i]->SetTextSize(0.05);
         leg[i]->Draw();
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
@@ -848,12 +882,14 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hReco2GenDijetEta[i]->Draw();
         hRef2GenDijetEta[i]->Draw("same");
         hRefSel2GenDijetEta[i]->Draw("same");
+        hReco2GenDijetEtaJetId[i]->Draw("same");
         hReco2GenDijetEta[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
         leg2[i] = new TLegend(0.4, 0.65, 0.6, 0.87);
         leg2[i]->SetLineWidth(0);
         leg2[i]->AddEntry(hReco2GenDijetEta[i],Form("Reco/Gen"), "p");
         leg2[i]->AddEntry(hRef2GenDijetEta[i],Form("Ref/Gen"), "p");
         leg2[i]->AddEntry(hRefSel2GenDijetEta[i],Form("RefSel/Gen"), "p");
+        leg2[i]->AddEntry(hReco2GenDijetEtaJetId[i],Form("Reco/Gen jetId"), "p");
         leg2[i]->SetTextSize(0.05);
         leg2[i]->Draw();
         line[i] = new TLine(hReco2GenDijetEta[i]->GetXaxis()->GetBinLowEdge(1), 1., 
@@ -864,8 +900,8 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         line[i]->Draw();
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
-        canv2->SaveAs( Form("%s/pPb8160_%s_etaDijet_pt_%d_%d.pdf", date.Data(), direction.Data(),
-                       ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        canv2->SaveAs( Form("%s/pPb8160_%s_etaDijet_pt_%d_%d_%s.pdf", date.Data(), direction.Data(),
+                       ptLow + (ptDijetLow.at(i)-1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep, branchName.Data()) );
 
         // Fill all 2D distributions
         cRefVsReco->cd(i+1);
@@ -880,12 +916,14 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hRefDijetEta[i]->Draw("same");
         hRefSelDijetEta[i]->Draw("same");
         hGenDijetEta[i]->Draw("same");
+        hRecoDijetEtaPureJetId[i]->Draw("same");
         leg[i] = new TLegend(0.75, 0.65, 0.83, 0.87);
         leg[i]->SetLineWidth(0);
         leg[i]->AddEntry(hRecoDijetEta[i],Form("Reco"), "p");
         leg[i]->AddEntry(hRefDijetEta[i],Form("Ref"), "p");
         leg[i]->AddEntry(hRefSelDijetEta[i],Form("RefSel"), "p");
         leg[i]->AddEntry(hGenDijetEta[i],Form("Gen"), "p");
+        leg[i]->AddEntry(hRecoDijetEtaPureJetId[i],Form("Reco jetId"), "p");
         leg[i]->SetTextSize(0.05);
         leg[i]->Draw();
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
@@ -896,12 +934,14 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         hReco2GenDijetEta[i]->Draw();
         hRef2GenDijetEta[i]->Draw("same");
         hRefSel2GenDijetEta[i]->Draw("same");
+        hReco2GenDijetEtaJetId[i]->Draw("same");
         hReco2GenDijetEta[i]->GetYaxis()->SetRangeUser(0.85, 1.15);
         leg3[i] = new TLegend(0.4, 0.65, 0.6, 0.87);
         leg3[i]->SetLineWidth(0);
         leg3[i]->AddEntry(hReco2GenDijetEta[i],Form("Reco/Gen"), "p");
         leg3[i]->AddEntry(hRef2GenDijetEta[i],Form("Ref/Gen"), "p");
         leg3[i]->AddEntry(hRefSel2GenDijetEta[i],Form("RefSel/Gen"), "p");
+        leg3[i]->AddEntry(hReco2GenDijetEtaJetId[i],Form("Reco/Gen jetId"), "p");
         leg3[i]->SetTextSize(0.05);
         leg3[i]->Draw();
         line2[i] = new TLine(hReco2GenDijetEta[i]->GetXaxis()->GetBinLowEdge(1), 1., 
@@ -914,9 +954,9 @@ void plotDijetDistributions(TFile *inFile, TString date) {
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
     } // for (Int_t i=0; i<dijetPtLow.size(); i++)
 
-    cRefVsReco->SaveAs( Form("%s/pPb8160_%s_eta_RefVsReco_all.pdf", date.Data(), direction.Data()) );
-    cEtaComp->SaveAs( Form("%s/pPb8160_%s_eta_all.pdf", date.Data(), direction.Data()) );
-    cEtaRatComp->SaveAs( Form("%s/pPb8160_%s_etaRatios_all.pdf", date.Data(), direction.Data()) );
+    cRefVsReco->SaveAs( Form("%s/pPb8160_%s_eta_RefVsReco_all_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
+    cEtaComp->SaveAs( Form("%s/pPb8160_%s_eta_all_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
+    cEtaRatComp->SaveAs( Form("%s/pPb8160_%s_etaRatios_all_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
 }
 
 //________________
@@ -926,8 +966,12 @@ void unfoldDistributions() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
+    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_ak4.root";
+    TFile *inFile = TFile::Open(inFileName);
+
     TDatime dt;
     TString date { Form( "%d",dt.GetDate() ) };
+    TString inputFileName(inFileName);
 
     if ( directoryExists( date.Data() ) ) {
         //std::cout << "Directory exists." << std::endl;
@@ -935,9 +979,14 @@ void unfoldDistributions() {
     else {
         createDirectory( date.Data() );
     }
-    
-    const Char_t *inFileName = "../build/oEmbedding_pPb8160_pgoing_ak4_trkMax.root";
-    TFile *inFile = TFile::Open(inFileName);
+
+    Int_t branchId{0};
+    if ( inputFileName.Contains("akCs4") ) {
+        branchId = {0};
+    }
+    else {
+        branchId = {1};
+    }
 
     Int_t ptHat = 50; // 50, 120, 370
     const Char_t *inFileNameWithPtHat = Form("../build/oEmbedding_pPb8160_Pbgoing_%d.root", ptHat);
@@ -950,7 +999,7 @@ void unfoldDistributions() {
     //unfoldDijetEta1D(inFile, date);
 
     // Plot various dijet distributions
-    plotDijetDistributions(inFile, date);
+    plotDijetDistributions(inFile, date, branchId);
 
     // Run 1D unfolding for ptHat distributions with the response matrix
     // for total ptHat
