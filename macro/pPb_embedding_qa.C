@@ -1192,16 +1192,6 @@ void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
     TH2D *hJetPtVsEtaKineCut = (TH2D*)inFile->Get("hRecoInclusiveJetPtVsEtaKineCut");
     TH2D *hJetPtVsEtaMatchedKineCut = (TH2D*)inFile->Get("hRecoInclusiveMatchedJetPtVsEtaKineCut");
     TH2D *hJetPtVsEtaUnmatchedKineCut = (TH2D*)inFile->Get("hRecoInclusiveUnmatchedJetPtVsEtaKineCut");
-    // Rebin 2D histograms
-    hJetPtVsEtaKineCut->Rebin2D( rebinX, rebinY );
-    hJetPtVsEtaMatchedKineCut->Rebin2D( rebinX, rebinY );
-    hJetPtVsEtaUnmatchedKineCut->Rebin2D( rebinX, rebinY );
-    // Divide 2D histograms
-    hJetPtVsEtaMatchedKineCut->Divide(hJetPtVsEtaMatchedKineCut, hJetPtVsEtaKineCut, 1., 1., "b");
-    hJetPtVsEtaUnmatchedKineCut->Divide(hJetPtVsEtaUnmatchedKineCut, hJetPtVsEtaKineCut, 1., 1., "b");
-    // Set style
-    set2DStyle(hJetPtVsEtaMatchedKineCut);
-    set2DStyle(hJetPtVsEtaUnmatchedKineCut);
 
     //
     // Retrieve trkMax selection histograms
@@ -1209,44 +1199,12 @@ void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
     TH2D *hJetPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoInclusiveJetPtVsEtaTrkMaxCut");
     TH2D *hJetPtVsEtaMatchedTrkMaxCut = (TH2D*)inFile->Get("hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut");
     TH2D *hJetPtVsEtaUnmatchedTrkMaxCut = (TH2D*)inFile->Get("hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut");
-    // Rebin 2D histograms
-    hJetPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
-    hJetPtVsEtaMatchedTrkMaxCut->Rebin2D( rebinX, rebinY );
-    hJetPtVsEtaUnmatchedTrkMaxCut->Rebin2D( rebinX, rebinY );
-    // Divide 2D histograms
-    hJetPtVsEtaMatchedTrkMaxCut->Divide(hJetPtVsEtaMatchedTrkMaxCut, hJetPtVsEtaTrkMaxCut, 1., 1., "b");
-    hJetPtVsEtaUnmatchedTrkMaxCut->Divide(hJetPtVsEtaUnmatchedTrkMaxCut, hJetPtVsEtaTrkMaxCut, 1., 1., "b");
-    // Set style
-    set2DStyle(hJetPtVsEtaMatchedTrkMaxCut);
-    set2DStyle(hJetPtVsEtaUnmatchedTrkMaxCut);
-
     TH2D *hLeadJetAllPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoLeadJetAllPtVsEta");
     TH2D *hLeadJetMatchedPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoLeadJetMatchedPtVsEta");
     TH2D *hLeadJetUnmatchedPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoLeadJetUnmatchedPtVsEta");
     TH2D *hSubLeadJetAllPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoSubLeadJetAllPtVsEta");
     TH2D *hSubLeadJetMatchedPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoSubLeadJetMatchedPtVsEta");
     TH2D *hSubLeadJetUnmatchedPtVsEtaTrkMaxCut = (TH2D*)inFile->Get("hRecoSubLeadJetUnmatchedPtVsEta");
-    // Rebin 2D histograms
-    hLeadJetAllPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
-    hLeadJetMatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
-    hLeadJetUnmatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
-    // Divide 2D histograms
-    hLeadJetMatchedPtVsEtaTrkMaxCut->Divide(hLeadJetMatchedPtVsEtaTrkMaxCut, hLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
-    hLeadJetUnmatchedPtVsEtaTrkMaxCut->Divide(hLeadJetUnmatchedPtVsEtaTrkMaxCut, hLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
-    // Set style
-    set2DStyle(hLeadJetMatchedPtVsEtaTrkMaxCut);
-    set2DStyle(hLeadJetUnmatchedPtVsEtaTrkMaxCut);
-    // Rebin 2D histograms
-    hSubLeadJetAllPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
-    hSubLeadJetMatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
-    hSubLeadJetUnmatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
-    // Divide 2D histograms
-    hSubLeadJetMatchedPtVsEtaTrkMaxCut->Divide(hSubLeadJetMatchedPtVsEtaTrkMaxCut, hSubLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
-    hSubLeadJetUnmatchedPtVsEtaTrkMaxCut->Divide(hSubLeadJetUnmatchedPtVsEtaTrkMaxCut, hSubLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
-    // Set style
-    set2DStyle(hSubLeadJetMatchedPtVsEtaTrkMaxCut);
-    set2DStyle(hSubLeadJetUnmatchedPtVsEtaTrkMaxCut);
-
 
     //
     // Retrieve JetId selection histograms
@@ -1254,46 +1212,94 @@ void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
     TH2D *hJetPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoInclusiveJetPtVsEtaJetIdCut");
     TH2D *hJetPtVsEtaMatchedJetIdCut = (TH2D*)inFile->Get("hRecoInclusiveMatchedJetPtVsEtaJetIdCut");
     TH2D *hJetPtVsEtaUnmatchedJetIdCut = (TH2D*)inFile->Get("hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut");
-    // Rebin 2D histograms
-    hJetPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
-    hJetPtVsEtaMatchedJetIdCut->Rebin2D( rebinX, rebinY );
-    hJetPtVsEtaUnmatchedJetIdCut->Rebin2D( rebinX, rebinY );
-    // Divide 2D histograms
-    hJetPtVsEtaMatchedJetIdCut->Divide(hJetPtVsEtaMatchedJetIdCut, hJetPtVsEtaJetIdCut, 1., 1., "b");
-    hJetPtVsEtaUnmatchedJetIdCut->Divide(hJetPtVsEtaUnmatchedJetIdCut, hJetPtVsEtaJetIdCut, 1., 1., "b");
-    // Set style
-    set2DStyle(hJetPtVsEtaMatchedJetIdCut);
-    set2DStyle(hJetPtVsEtaUnmatchedJetIdCut);
-
     TH2D *hLeadJetAllPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoLeadJetAllPtVsEtaJetIdCut");
     TH2D *hLeadJetMatchedPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoLeadJetMatchedPtVsEtaJetIdCut");
     TH2D *hLeadJetUnmatchedPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoLeadJetUnmatchedPtVsEtaJetIdCut");
     TH2D *hSubLeadJetAllPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoSubLeadJetAllPtVsEtaJetIdCut");
     TH2D *hSubLeadJetMatchedPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoSubLeadJetMatchedPtVsEtaJetIdCut");
     TH2D *hSubLeadJetUnmatchedPtVsEtaJetIdCut = (TH2D*)inFile->Get("hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut");
+
+    //
     // Rebin 2D histograms
+    //
+    hJetPtVsEtaKineCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaMatchedKineCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaUnmatchedKineCut->Rebin2D( rebinX, rebinY );
+
+    hJetPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaMatchedTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaUnmatchedTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hLeadJetAllPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hLeadJetMatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hLeadJetUnmatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hSubLeadJetAllPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hSubLeadJetMatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+    hSubLeadJetUnmatchedPtVsEtaTrkMaxCut->Rebin2D( rebinX, rebinY );
+
+    hJetPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaMatchedJetIdCut->Rebin2D( rebinX, rebinY );
+    hJetPtVsEtaUnmatchedJetIdCut->Rebin2D( rebinX, rebinY );
     hLeadJetAllPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
     hLeadJetMatchedPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
     hLeadJetUnmatchedPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
-    // Divide 2D histograms
-    hLeadJetMatchedPtVsEtaJetIdCut->Divide(hLeadJetMatchedPtVsEtaJetIdCut, hLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
-    hLeadJetUnmatchedPtVsEtaJetIdCut->Divide(hLeadJetUnmatchedPtVsEtaJetIdCut, hLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
-    // Set style
-    set2DStyle(hLeadJetMatchedPtVsEtaJetIdCut);
-    set2DStyle(hLeadJetUnmatchedPtVsEtaJetIdCut);
-    // Rebin 2D histograms
     hSubLeadJetAllPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
     hSubLeadJetMatchedPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
     hSubLeadJetUnmatchedPtVsEtaJetIdCut->Rebin2D( rebinX, rebinY );
+
+    //
+    // Make 1D eta distributions to compare
+    //
+    TH1D *hJetEtaKineCut = dynamic_cast<TH1D*>(hJetPtVsEtaKineCut->ProjectionX( Form("hJetEtaKineCut") ) );
+    TH1D *hJetEtaTrkMaxCut = dynamic_cast<TH1D*>(hJetPtVsEtaTrkMaxCut->ProjectionX( Form("hJetEtaTrkMaxCut") ) );
+    TH1D *hJetEtaJetIdCut = dynamic_cast<TH1D*>(hJetPtVsEtaJetIdCut->ProjectionX( Form("hJetEtaJetIdCut") ) );
+
+    set1DStyle(hJetEtaKineCut, kineStyle, kTRUE);
+    set1DStyle(hJetEtaTrkMaxCut, trkMaxStyle, kTRUE);
+    set1DStyle(hJetEtaJetIdCut, jetIdStyle, kTRUE);
+
+    //
     // Divide 2D histograms
+    //
+    hJetPtVsEtaMatchedKineCut->Divide(hJetPtVsEtaMatchedKineCut, hJetPtVsEtaKineCut, 1., 1., "b");
+    hJetPtVsEtaUnmatchedKineCut->Divide(hJetPtVsEtaUnmatchedKineCut, hJetPtVsEtaKineCut, 1., 1., "b");
+
+    hJetPtVsEtaMatchedTrkMaxCut->Divide(hJetPtVsEtaMatchedTrkMaxCut, hJetPtVsEtaTrkMaxCut, 1., 1., "b");
+    hJetPtVsEtaUnmatchedTrkMaxCut->Divide(hJetPtVsEtaUnmatchedTrkMaxCut, hJetPtVsEtaTrkMaxCut, 1., 1., "b");
+    hLeadJetMatchedPtVsEtaTrkMaxCut->Divide(hLeadJetMatchedPtVsEtaTrkMaxCut, hLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
+    hLeadJetUnmatchedPtVsEtaTrkMaxCut->Divide(hLeadJetUnmatchedPtVsEtaTrkMaxCut, hLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
+    hSubLeadJetMatchedPtVsEtaTrkMaxCut->Divide(hSubLeadJetMatchedPtVsEtaTrkMaxCut, hSubLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
+    hSubLeadJetUnmatchedPtVsEtaTrkMaxCut->Divide(hSubLeadJetUnmatchedPtVsEtaTrkMaxCut, hSubLeadJetAllPtVsEtaTrkMaxCut, 1., 1., "b");
+
+    hJetPtVsEtaMatchedJetIdCut->Divide(hJetPtVsEtaMatchedJetIdCut, hJetPtVsEtaJetIdCut, 1., 1., "b");
+    hJetPtVsEtaUnmatchedJetIdCut->Divide(hJetPtVsEtaUnmatchedJetIdCut, hJetPtVsEtaJetIdCut, 1., 1., "b");
+    hLeadJetMatchedPtVsEtaJetIdCut->Divide(hLeadJetMatchedPtVsEtaJetIdCut, hLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
+    hLeadJetUnmatchedPtVsEtaJetIdCut->Divide(hLeadJetUnmatchedPtVsEtaJetIdCut, hLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
     hSubLeadJetMatchedPtVsEtaJetIdCut->Divide(hSubLeadJetMatchedPtVsEtaJetIdCut, hSubLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
     hSubLeadJetUnmatchedPtVsEtaJetIdCut->Divide(hSubLeadJetUnmatchedPtVsEtaJetIdCut, hSubLeadJetAllPtVsEtaJetIdCut, 1., 1., "b");
+
+    //
     // Set style
+    //
+    set2DStyle(hJetPtVsEtaMatchedKineCut);
+    set2DStyle(hJetPtVsEtaUnmatchedKineCut);
+
+    set2DStyle(hJetPtVsEtaMatchedTrkMaxCut);
+    set2DStyle(hJetPtVsEtaUnmatchedTrkMaxCut);
+    set2DStyle(hLeadJetMatchedPtVsEtaTrkMaxCut);
+    set2DStyle(hLeadJetUnmatchedPtVsEtaTrkMaxCut);
+    set2DStyle(hSubLeadJetMatchedPtVsEtaTrkMaxCut);
+    set2DStyle(hSubLeadJetUnmatchedPtVsEtaTrkMaxCut);
+
+    set2DStyle(hJetPtVsEtaMatchedJetIdCut);
+    set2DStyle(hJetPtVsEtaUnmatchedJetIdCut);
+    set2DStyle(hLeadJetMatchedPtVsEtaJetIdCut);
+    set2DStyle(hLeadJetUnmatchedPtVsEtaJetIdCut);
     set2DStyle(hSubLeadJetMatchedPtVsEtaJetIdCut);
     set2DStyle(hSubLeadJetUnmatchedPtVsEtaJetIdCut);
 
-
+    //
     // Retrieve 1D binning
+    //
     Int_t fPtBins = hJetPtVsEtaTrkMaxCut->GetNbinsY();
     Double_t fPtRange[2] {hJetPtVsEtaTrkMaxCut->GetYaxis()->GetBinLowEdge(1), 
                           hJetPtVsEtaTrkMaxCut->GetYaxis()->GetBinUpEdge(fPtBins) };
@@ -1306,7 +1312,9 @@ void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
     std::cout << "fPtBins:  " << fPtBins << std::endl;
     std::cout << "fEtaBins: " << fEtaBins << std::endl;
 
+    //
     // Reserve histograms for projections
+    //
 
     // Kine selection
     TH1D *hJetMatchedPtKineCut[ fEtaBins ];
@@ -1421,6 +1429,33 @@ void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
     TLegend *hEtaLegend2[fPtBins];
     TLegend *hPtLegend[fEtaBins];
     TLegend *hPtLegend2[fEtaBins];
+
+    // Plot integrated eta distributions
+    c->cd();
+    setPadStyle();
+    if ( plotJetIdCut ) {
+        hJetEtaJetIdCut->Draw();
+    }
+    hJetEtaTrkMaxCut->Draw("same");
+    if ( plotKineCut ) {
+        hJetEtaKineCut->Draw("same");
+    }
+    
+    t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
+    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    hEtaLegend[0] = new TLegend(0.45, 0.35, 0.65, 0.55);
+    hEtaLegend[0]->SetTextSize(0.04);
+    hEtaLegend[0]->SetLineWidth(0);
+    hEtaLegend[0]->AddEntry(hJetEtaTrkMaxCut, Form("TrkMax"), "p");
+    if ( plotKineCut ) {
+        hEtaLegend[0]->AddEntry(hJetEtaKineCut, Form("KineOnly"), "p");
+    }
+    if ( plotJetIdCut ) {
+        hEtaLegend[0]->AddEntry(hJetEtaJetIdCut, Form("JetId"), "p");
+    }
+    hEtaLegend[0]->Draw();
+    c->SaveAs( Form("%s/pPb8160_%s_eta_distributions_%s.pdf", 
+                    date.Data(), direction.Data(), branchName.Data()) );
 
     //
     // Plotting eta distributions
@@ -1935,19 +1970,19 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //compareInclusiveJetPtSpectra(inFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
-    // plotEfficiency(inFile, date, branchId);
+    //plotEfficiency(inFile, date, branchId);
 
     // Plot dijet distributions
     //plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
-    plotRecoAndFakes(inFile, date, branchId);
+    //plotRecoAndFakes(inFile, date, branchId);
 
     // Plot correlation between ref and reco dijet eta
-    //plotEtaDijetCorrelation(inFile, date);
+    // plotEtaDijetCorrelation(inFile, date);
 
     // Plot distributions for jetId
-    //plotJetIdHistos(inFile, date);
+    plotJetIdHistos(inFile, date);
 
     // Plot JES and JER
     //plotJESandJER(inFile, date, branchId);

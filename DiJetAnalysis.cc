@@ -842,7 +842,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(6., ptHatW);   
     }
     else if ( !fIsDijetFound && !fIsDijetJetIdFound ) {
-        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(0., ptHatW);
+        fHM->hRecoTrkMaxToJetIdDijetMatching->Fill(7., ptHatW);
     }
 
     if ( fVerbose ) {

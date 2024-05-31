@@ -966,7 +966,7 @@ void unfoldDistributions() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_ak4.root";
+    const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_ak4_etaSel.root";
     TFile *inFile = TFile::Open(inFileName);
 
     TDatime dt;
