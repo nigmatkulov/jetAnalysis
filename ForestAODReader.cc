@@ -278,7 +278,11 @@ void ForestAODReader::setupJEC() {
                                   fJECPath.Data(), fCollidingSystem.Data(),
                                   fCollidingEnergyGeV, fJECInputFileDataName.Data() ) );
         }
-        std::cout << Form("Add JEC file: %s\n", fJECFiles.back().c_str());
+    }
+
+    std::cout << "JEC files added: " << std::endl;
+    for (UInt_t i{0}; i<fJECFiles.size(); i++) {
+        std::cout << i << fJECFiles.at(i) << std::endl;
     }
 	
 	fJEC = new JetCorrector( fJECFiles );
@@ -1081,12 +1085,13 @@ Event* ForestAODReader::returnEvent() {
     Int_t nBadPFJets{0};
     Int_t nBadCaloJets{0};
 
-    if (fFixJetArrays) {
+    if (fFixJetArrays && fIsMc) {
         fixIndices();
     }
 
     fEvent = new Event();
 
+    // Remove UPC bins
     if ( fIsMc && fCorrectCentMC && fHiBin<10) {
         delete fEvent;
         fEvent = nullptr;
@@ -1242,7 +1247,7 @@ Event* ForestAODReader::returnEvent() {
             jet->setWTAPhi( fPFRecoJetWTAPhi[iJet] );
             jet->setRawPt( fPFRecoJetPt[iJet] );
             jet->setTrackMaxPt( fPFRecoJetTrackMax[iJet] );
-            if ( fJEC && fIsMc ) {
+            if ( fJEC ) {
                 fJEC->SetJetPT( fPFRecoJetPt[iJet] );
                 fJEC->SetJetEta( fPFRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fPFRecoJetPhi[iJet] );

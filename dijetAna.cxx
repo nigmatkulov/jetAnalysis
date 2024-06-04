@@ -178,7 +178,7 @@ int main(int argc, char const *argv[]) {
     
     // Initialize histogram manager
     HistoManagerDiJet *hm = new HistoManagerDiJet{};
-    hm->setIsMc(kTRUE);
+    hm->setIsMc( isMc );
     hm->init(kTRUE); // kTRUE stands up for use MC; need to FIX
 
     // Add histogram manager to analysis
