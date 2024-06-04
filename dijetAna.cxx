@@ -171,8 +171,8 @@ int main(int argc, char const *argv[]) {
     }
     analysis->setEtaShift( 0.4654094531 );
     analysis->setLeadJetPtLow( 50. );
-    analysis->setSubLeadJetPtLow( 30. );
-    analysis->setDijetPhiCut( TMath::TwoPi() / 3 );
+    analysis->setSubLeadJetPtLow( 40. );
+    analysis->setDijetPhiCut( 5. * TMath::Pi() / 6 );
     //analysis->useEtaShiftAndSignSwap();
     //analysis->setVerbose();
     

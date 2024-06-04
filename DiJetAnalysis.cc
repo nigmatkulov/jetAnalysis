@@ -122,7 +122,7 @@ Double_t DiJetAnalysis::deltaPhi(const Double_t& phi1, const Double_t phi2) {
 //________________
 Bool_t DiJetAnalysis::isGoodGenJet(const GenJet* jet) {
     Bool_t goodJet{kFALSE};
-    if ( jet->pt() > 20. && TMath::Abs( jet->eta() ) < 5.1 ) {
+    if ( jet->pt() > 20. && TMath::Abs( jet->eta() ) < 3.0 ) {
         goodJet = {kTRUE};
     }
     
@@ -244,7 +244,7 @@ Bool_t DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
     Bool_t goodKine{kFALSE};
     Bool_t hasMatching{kFALSE};
 
-    if ( jet->ptJECCorr() > 20 && TMath::Abs( jet->eta() ) < 5.1 ) {
+    if ( jet->ptJECCorr() > 20 && TMath::Abs( jet->eta() ) < 3.0 ) {
         goodKine = {kTRUE};
     }
 
@@ -366,7 +366,8 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(genDijetLeadSublead);
             fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(genDijetLeadSublead, ptHatW);
             fHM->hGenDijetEta->Fill(dijetEta, ptHatW);
-            fHM->hGenDijetPtEtaDphi->Fill(dijetPt, dijetEta, dijetDphi, ptHatW);
+            fHM->hGenDijetPtEtaDphi->Fill(dijetPt, dijetEta, dijetDphi, 1.);
+            fHM->hGenDijetPtEtaDphiWeighted->Fill(dijetPt, dijetEta, dijetDphi, ptHatW);
         } // if ( isDijetFound )
     } // if ( idLead>=0 && idSubLead>=0 )
 
@@ -722,7 +723,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(dijetRecoInfo);
             fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(dijetRecoInfo, ptHatW);
             fHM->hRecoDijetEta->Fill( dijetRecoEta, ptHatW );
-            fHM->hRecoDijetPtEtaDphi->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, ptHatW );
+            fHM->hRecoDijetPtEtaDphi->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, 1. );
+            fHM->hRecoDijetPtEtaDphiWeighted->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, ptHatW );
 
             if ( fIsMc ) {
 
@@ -755,8 +757,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
                 fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );
                 fHM->hRefDijetEtaVsRecoDijetEta->Fill( dijetRecoEta, dijetRefEta, ptHatW );
-                fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->Fill( dijetRecoEta, dijetRefEta, dijetRecoPt, ptHatW);
-                fHM->hRefDijetPtEtaDphi->Fill( dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW );
+                fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->Fill( dijetRecoEta, dijetRefEta, dijetRecoPt, 1.);
+                fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted->Fill( dijetRecoEta, dijetRefEta, dijetRecoPt, ptHatW);
+                fHM->hRefDijetPtEtaDphi->Fill( dijetRefPt, dijetRefEta, dijetRefDphi, 1. );
+                fHM->hRefDijetPtEtaDphiWeighted->Fill( dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW );
                         
             } // if ( fIsMc )
 
@@ -1005,7 +1009,8 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
                                              ptRefSubLead, etaRefSubLead };    
 
             fHM->hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
-            fHM->hRefSelDijetPtEtaDphi->Fill(dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW);
+            fHM->hRefSelDijetPtEtaDphi->Fill(dijetRefPt, dijetRefEta, dijetRefDphi, 1.);
+            fHM->hRefSelDijetPtEtaDphiWeighted->Fill(dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW);
             fHM->hRefSelDijetEta->Fill(dijetRefEta, ptHatW);
         } // if ( isDijetFound )
     } // if (idRecoLead>=0 && idRecoSubLead>=0)
