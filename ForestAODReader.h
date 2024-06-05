@@ -95,6 +95,8 @@ class ForestAODReader : public BaseReader {
     void fixJetArrays() { fFixJetArrays = {kTRUE}; }
     /// @brief Use extra JEC correction (in pPb 8160 it is needed for ak4cs)
     void useExtraJECCorr() { fUseExtraJEC = {kTRUE}; }
+    /// @brief Set verbose mode
+    void setVerbose()       { fVerbose = {kTRUE}; }
 
     /// @brief Return amount of events to read
     Long64_t nEventsTotal() const { return fEvents2Read; }
@@ -539,6 +541,9 @@ class ForestAODReader : public BaseReader {
     Bool_t  fUseExtraJEC;
     /// @brief JEC extra correction
     TF1    *fJECScaleCorr;
+
+    /// @brief  Verbose mode
+    Bool_t  fVerbose;
 
     ClassDef(ForestAODReader, 1)
 };

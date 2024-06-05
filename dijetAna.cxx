@@ -155,6 +155,7 @@ int main(int argc, char const *argv[]) {
     if ( !isMc ) {
         reader->setJECFileDataName( JECFileDataName.Data() );
     }
+    //reader->setVerbose();
 
     // Pass reader to the manager
     manager->setEventReader(reader);

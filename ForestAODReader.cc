@@ -36,7 +36,10 @@ ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEve
     fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
     fRecoPFJet2GenJetId{}, fGenJet2RecoPFJet{}, 
     fRecoCaloJet2GenJetId{}, fGenJet2RecoCaloJet{},
-    fUseExtraJEC{kFALSE}, fJECScaleCorr{nullptr} {
+    fUseExtraJEC{kFALSE}, fJECScaleCorr{nullptr}, fVerbose{kFALSE} {
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::ForestAODReader()" << std::endl;
+    }
     // Initialize many variables
     clearVariables();
 }
@@ -57,13 +60,20 @@ ForestAODReader::ForestAODReader(const Char_t* inputStream,
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
     fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
-    fJECScaleCorr{nullptr} {
+    fJECScaleCorr{nullptr}, fVerbose{kFALSE} {
     // Initialize many variables
     clearVariables();
+
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::ForestAODReader()" << std::endl;
+    }
 }
 
 //_________________
 ForestAODReader::~ForestAODReader() {
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::~ForestAODReader()";
+    }
     if (fEvent) delete fEvent;
     if (fHltTree) delete fHltTree;
     if (fSkimTree) delete fSkimTree;
@@ -81,6 +91,9 @@ ForestAODReader::~ForestAODReader() {
 
 //_________________
 void ForestAODReader::clearVariables() {
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::clearVariables " << std::endl;
+    }
     fRunId = {0};
     fEventId = {0};
     fLumi = {0};
@@ -238,10 +251,17 @@ void ForestAODReader::clearVariables() {
         fRecoCaloJet2GenJetId.clear();
         fGenJet2RecoCaloJet.clear();
     }
+
+    if ( fVerbose ) {
+        std::cout << "\t[DONE]" << std::endl;
+    }
 }
 
 //_________________
 Int_t ForestAODReader::init() {
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::init()" << std::endl;
+    }
     Int_t status = 0;
     // Setup chains to read
     status = setupChains();
@@ -249,11 +269,18 @@ Int_t ForestAODReader::init() {
     setupBranches();
     // Setup jet energy correction files and pointer
     setupJEC();
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::init() is finished " << std::endl;
+    }
     return status;
 }
 
 //________________
 void ForestAODReader::setupJEC() {
+
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::setupJEC()" << std::endl;
+    }
 
     if ( fJECFiles.empty() ) {
         
@@ -289,6 +316,10 @@ void ForestAODReader::setupJEC() {
 
     if ( fUseExtraJEC ) {
         createExtraJECScaleCorrFunction();
+    }
+
+    if ( fVerbose ) {
+        std::cout << "\t[DONE]" << std::endl;
     }
 }
 
@@ -455,6 +486,10 @@ void ForestAODReader::finish() {
 //_________________
 Int_t ForestAODReader::setupChains() {
 
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::setupChains()";
+    }
+
     // Setup chains (0-good, 1-bad)
     Int_t returnStatus = 1;
 
@@ -567,11 +602,19 @@ Int_t ForestAODReader::setupChains() {
         } // else {   if file list
         returnStatus = 0;
     } // else {   if normal input
+
+    if ( fVerbose ) {
+        std::cout << "\t[DONE]" << std::endl;
+    }
     return returnStatus;
 }
 
 //_________________
 void ForestAODReader::setupBranches() {
+
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::setupChains()";
+    }
 
     // Disable all branches - this is important while reading big files
     fEventTree->SetBranchStatus("*", 0);
@@ -928,6 +971,10 @@ void ForestAODReader::setupBranches() {
         fGenTrkTree->SetBranchAddress("pdg", &fGenTrackPid);
         fGenTrkTree->SetBranchAddress("sube", &fGenTrackSube);
     }
+
+    if ( fVerbose ) {
+        std::cout << "\t[DONE]" << std::endl;
+    }
 }
 
 //_________________
@@ -937,6 +984,10 @@ void ForestAODReader::report() {
 
 //_________________
 void ForestAODReader::readEvent() {
+
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::readEvent()\n";
+    }
 
     if (fIsMc) {
         fRecoPFJet2GenJetId.clear();
@@ -969,11 +1020,18 @@ void ForestAODReader::readEvent() {
     if (fUseGenTrackBranch) fGenTrkTree->GetEntry(fEventsProcessed);
     fEventsProcessed++;
 
-    //std::cout << "Events processed: " << fEventsProcessed << std::endl;
+    if ( fVerbose ) {
+        std::cout << "Events processed: " << fEventsProcessed << std::endl;
+        std::cout << "ForestAODReader::readEvent() \t[DONE]" << std::endl;
+    }
 }
 
 //________________
 void ForestAODReader::fixIndices() {
+
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::fixIndices()";
+    }
 
     if (fUsePartFlowJetBranch) {
 
@@ -1073,11 +1131,17 @@ void ForestAODReader::fixIndices() {
         }
     } // if (fUseCaloJetBranch)
 
-    //std::cout << "Indices fixed" << std::endl;
+    if ( fVerbose ) {
+        std::cout << "\t[DONE]\n";
+    }
 }
 
 //_________________
 Event* ForestAODReader::returnEvent() {
+
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::returnEvent() \n";
+    }
 
     //std::cout << "ForestAODReader::returnEvent" << std::endl;
     readEvent();
@@ -1119,6 +1183,10 @@ Event* ForestAODReader::returnEvent() {
     if ( fIsMc ) {
         fEvent->setPtHat( fPtHat );
         fEvent->setPtHatWeight( fPtHatWeight );
+    }
+    else {
+        fEvent->setPtHat( 1. );
+        fEvent->setPtHatWeight( 1. );        
     }
 
     // Fill HLT branch
@@ -1195,10 +1263,16 @@ Event* ForestAODReader::returnEvent() {
     // Create particle flow jet instances
     if ( fUsePartFlowJetBranch ) {
 
+        if ( fVerbose ) {
+            std::cout << "Use PF branch \n";
+        }
+
         // Loop over generated jets
         if ( fIsMc && !fEvent->isGenJetCollectionFilled() ) {
 
-            // std::cout << "nGenPFJets: " << fNPFGenJets << std::endl;
+            if ( fVerbose ) {
+                std::cout << "nGenPFJets: " << fNPFGenJets << std::endl;
+            }
 
             for (Int_t iGenJet{0}; iGenJet<fNPFGenJets; iGenJet++) {
                 GenJet *jet = new GenJet{};
@@ -1221,7 +1295,9 @@ Event* ForestAODReader::returnEvent() {
 
         // Loop over reconstructed jets
         
-        // std::cout << "nRecoPFJets: " << fNPFRecoJets << std::endl;
+        if ( fVerbose ) {
+            std::cout << "nRecoPFJets: " << fNPFRecoJets << std::endl;
+        }
 
         for (Int_t iJet{0}; iJet<fNPFRecoJets; iJet++) {
 
@@ -1252,7 +1328,9 @@ Event* ForestAODReader::returnEvent() {
                 fJEC->SetJetEta( fPFRecoJetEta[iJet] );
                 fJEC->SetJetPhi( fPFRecoJetPhi[iJet] );
                 double pTcorr = fJEC->GetCorrectedPT();
-                //std::cout << "pTCorr: " << pTcorr << std::endl; 
+                if ( fVerbose ) {
+                    std::cout << "pTCorr: " << pTcorr << std::endl; 
+                }
                 if ( fUseExtraJEC ) {
                     if ( fJECScaleCorr ){
                         pTcorr *= fJECScaleCorr->Eval( pTcorr );
@@ -1278,7 +1356,9 @@ Event* ForestAODReader::returnEvent() {
             jet->setJtPfNEM( fPFRecoJtPfNEM[iJet] );
             jet->setJtPfMUM( fPFRecoJtPfMUM[iJet] );
 
-            // jet->print();
+            if ( fVerbose ) {
+                jet->print();
+            }
 
             // Check fronе-loaded cut
             if ( fJetCut && !fJetCut->pass(jet) ) {
