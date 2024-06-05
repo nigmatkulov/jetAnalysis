@@ -23,11 +23,11 @@ pd_number="$5"
 # Prefix
 sample_prefix="inputfile"
 if [ "$sample_name" == "DATA_MB" ]; then
-    ${sample_prefix}=MB_PD${pd_number}_${direction}
+    ${sample_prefix}="MB_PD${pd_number}_${direction}"
 elif [ "$sample_name" == "DATA_HM185" ]; then
-    ${sample_prefix}=HM185_PD${pd_number}_${direction}
+    ${sample_prefix}="HM185_PD${pd_number}_${direction}"
 else
-    ${sample_prefix}=HM185_${direction}
+    ${sample_prefix}="HM185_${direction}"
 fi
 
 # Check if the input file exists
