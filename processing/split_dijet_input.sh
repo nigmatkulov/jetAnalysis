@@ -47,12 +47,6 @@ fi
 if [ ! -d "$PWD/input/pPb8160/${formatted_date}" ]; then
     #echo "Directory '$PWD/input/pPb8160/${formatted_date}' does not exist. Creating..."
     mkdir -p "$PWD/input/pPb8160/${formatted_date}"
-    if [ $? -eq 0 ]; then
-        #echo "Directory created successfully."
-    else
-        #echo "Failed to create directory. Terminating"
-        exit 1
-    fi
 fi
 
 # Create sublists
