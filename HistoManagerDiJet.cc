@@ -171,6 +171,11 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hNumOfNeutPart[i]) delete hNumOfNeutPart[i];
     }
 
+    if (hRecoLeadJetAllPtVsEta) delete hRecoLeadJetAllPtVsEta;
+    if (hRecoSubLeadJetAllPtVsEta) delete hRecoSubLeadJetAllPtVsEta;
+    if (hRecoLeadJetAllPtVsEtaJetIdCut) delete hRecoLeadJetAllPtVsEtaJetIdCut;
+    if (hRecoSubLeadJetAllPtVsEtaJetIdCut) delete hRecoSubLeadJetAllPtVsEtaJetIdCut;
+
     if (hRecoInclusiveAllJetPtVsEta) delete hRecoInclusiveAllJetPtVsEta;
     if (hRecoInclusiveJetPtVsEtaKineCut) delete hRecoInclusiveJetPtVsEtaKineCut;
     if (hRecoInclusiveJetPtVsEtaTrkMaxCut) delete hRecoInclusiveJetPtVsEtaTrkMaxCut;
@@ -201,17 +206,14 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRecoInclusiveMatchedJetPtVsEta) delete hRecoInclusiveMatchedJetPtVsEta;
         if (hRecoInclusiveUnmatchedJetPtVsEta) delete hRecoInclusiveUnmatchedJetPtVsEta;
 
-        if (hRecoLeadJetAllPtVsEta) delete hRecoLeadJetAllPtVsEta;
+
         if (hRecoLeadJetMatchedPtVsEta) delete hRecoLeadJetMatchedPtVsEta;
         if (hRecoLeadJetUnmatchedPtVsEta) delete hRecoLeadJetUnmatchedPtVsEta;
-        if (hRecoSubLeadJetAllPtVsEta) delete hRecoSubLeadJetAllPtVsEta;
         if (hRecoSubLeadJetMatchedPtVsEta) delete hRecoSubLeadJetMatchedPtVsEta;
         if (hRecoSubLeadJetUnmatchedPtVsEta) delete hRecoSubLeadJetUnmatchedPtVsEta;
 
-        if (hRecoLeadJetAllPtVsEtaJetIdCut) delete hRecoLeadJetAllPtVsEtaJetIdCut;
         if (hRecoLeadJetMatchedPtVsEtaJetIdCut) delete hRecoLeadJetMatchedPtVsEtaJetIdCut;
         if (hRecoLeadJetUnmatchedPtVsEtaJetIdCut) delete hRecoLeadJetUnmatchedPtVsEtaJetIdCut;
-        if (hRecoSubLeadJetAllPtVsEtaJetIdCut) delete hRecoSubLeadJetAllPtVsEtaJetIdCut;
         if (hRecoSubLeadJetMatchedPtVsEtaJetIdCut) delete hRecoSubLeadJetMatchedPtVsEtaJetIdCut;
         if (hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut) delete hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut;
 
@@ -554,10 +556,7 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRecoInclusiveMatchedJetPtVsEta->Sumw2();
 
 
-        hRecoLeadJetAllPtVsEta = new TH2D("hRecoLeadJetAllPtVsEta","Leading jet all p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
-                                          fEtaBins, fEtaRange[0], fEtaRange[1], 
-                                          ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoLeadJetAllPtVsEta->Sumw2();
+
         hRecoLeadJetMatchedPtVsEta = new TH2D("hRecoLeadJetMatchedPtVsEta","Leading jet matched p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
                                               fEtaBins, fEtaRange[0], fEtaRange[1], 
                                               ptShortBins, ptShortRange[0], ptShortRange[1]);
@@ -566,10 +565,6 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                                 fEtaBins, fEtaRange[0], fEtaRange[1], 
                                                 ptShortBins, ptShortRange[0], ptShortRange[1]);
         hRecoLeadJetUnmatchedPtVsEta->Sumw2();
-        hRecoSubLeadJetAllPtVsEta = new TH2D("hRecoSubLeadJetAllPtVsEta","Subleading jet all p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
-                                             fEtaBins, fEtaRange[0], fEtaRange[1], 
-                                             ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoSubLeadJetAllPtVsEta->Sumw2();
         hRecoSubLeadJetMatchedPtVsEta = new TH2D("hRecoSubLeadJetMatchedPtVsEta","Subleading jet matched p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
                                                  fEtaBins, fEtaRange[0], fEtaRange[1], 
                                                  ptShortBins, ptShortRange[0], ptShortRange[1]);
@@ -580,10 +575,6 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRecoSubLeadJetUnmatchedPtVsEta->Sumw2();
 
 
-        hRecoLeadJetAllPtVsEtaJetIdCut = new TH2D("hRecoLeadJetAllPtVsEtaJetIdCut","Leading jet all p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
-                                                  fEtaBins, fEtaRange[0], fEtaRange[1], 
-                                                  ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoLeadJetAllPtVsEtaJetIdCut->Sumw2();
         hRecoLeadJetMatchedPtVsEtaJetIdCut = new TH2D("hRecoLeadJetMatchedPtVsEtaJetIdCut","Leading jet matched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
                                                       fEtaBins, fEtaRange[0], fEtaRange[1], 
                                                       ptShortBins, ptShortRange[0], ptShortRange[1]);
@@ -592,10 +583,6 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                                         fEtaBins, fEtaRange[0], fEtaRange[1], 
                                                         ptShortBins, ptShortRange[0], ptShortRange[1]);
         hRecoLeadJetUnmatchedPtVsEtaJetIdCut->Sumw2();
-        hRecoSubLeadJetAllPtVsEtaJetIdCut = new TH2D("hRecoSubLeadJetAllPtVsEtaJetIdCut","Subleading jet all p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1], 
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoSubLeadJetAllPtVsEtaJetIdCut->Sumw2();
         hRecoSubLeadJetMatchedPtVsEtaJetIdCut = new TH2D("hRecoSubLeadJetMatchedPtVsEtaJetIdCut","Subleading jet matched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
                                                          fEtaBins, fEtaRange[0], fEtaRange[1], 
                                                          ptShortBins, ptShortRange[0], ptShortRange[1]);
@@ -824,6 +811,25 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     //
     // Reco inclusive jets
     //
+
+    hRecoLeadJetAllPtVsEta = new TH2D("hRecoLeadJetAllPtVsEta","Leading jet all p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
+                                        fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                        ptShortBins, ptShortRange[0], ptShortRange[1]);
+    hRecoLeadJetAllPtVsEta->Sumw2();
+    hRecoSubLeadJetAllPtVsEta = new TH2D("hRecoSubLeadJetAllPtVsEta","Subleading jet all p_{T} vs #eta;#eta;p_{T} (GeV/c)", 
+                                        fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                        ptShortBins, ptShortRange[0], ptShortRange[1]);
+    hRecoSubLeadJetAllPtVsEta->Sumw2();
+    hRecoLeadJetAllPtVsEtaJetIdCut = new TH2D("hRecoLeadJetAllPtVsEtaJetIdCut","Leading jet all p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
+                                            fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                            ptShortBins, ptShortRange[0], ptShortRange[1]);
+    hRecoLeadJetAllPtVsEtaJetIdCut->Sumw2();
+    hRecoSubLeadJetAllPtVsEtaJetIdCut = new TH2D("hRecoSubLeadJetAllPtVsEtaJetIdCut","Subleading jet all p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
+                                                fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                                ptShortBins, ptShortRange[0], ptShortRange[1]);
+    hRecoSubLeadJetAllPtVsEtaJetIdCut->Sumw2();
+
+
     hRecoInclusiveJetPt = new TH1D("hRecoInclusiveJetPt","Reco jet p_{T};Reco p_{T} (GeV/c);Entries",
                                    fPtBins, fPtRange[0], fPtRange[1]);
     hRecoInclusiveJetPt->Sumw2();
@@ -970,17 +976,15 @@ void HistoManagerDiJet::writeOutput() {
         hRecoInclusiveMatchedJetPtVsEta->Write();
         hRecoInclusiveUnmatchedJetPtVsEta->Write();
 
-        hRecoLeadJetAllPtVsEta->Write();
+        
         hRecoLeadJetMatchedPtVsEta->Write();
         hRecoLeadJetUnmatchedPtVsEta->Write();
-        hRecoSubLeadJetAllPtVsEta->Write();
         hRecoSubLeadJetMatchedPtVsEta->Write();
         hRecoSubLeadJetUnmatchedPtVsEta->Write();
 
-        hRecoLeadJetAllPtVsEtaJetIdCut->Write();
+        
         hRecoLeadJetMatchedPtVsEtaJetIdCut->Write();
         hRecoLeadJetUnmatchedPtVsEtaJetIdCut->Write();
-        hRecoSubLeadJetAllPtVsEtaJetIdCut->Write();
         hRecoSubLeadJetMatchedPtVsEtaJetIdCut->Write();
         hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut->Write();
 
@@ -1024,6 +1028,11 @@ void HistoManagerDiJet::writeOutput() {
         hRefPtLeadPtSublead->Write();
         hRefEtaLeadEtaSublead->Write();
     } // if ( fIsMc )
+
+    hRecoLeadJetAllPtVsEta->Write();
+    hRecoSubLeadJetAllPtVsEta->Write();
+    hRecoLeadJetAllPtVsEtaJetIdCut->Write();
+    hRecoSubLeadJetAllPtVsEtaJetIdCut->Write();
 
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Write();
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Write();
