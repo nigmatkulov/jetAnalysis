@@ -426,6 +426,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         else if ( TMath::Abs( eta ) <= 3.0 ) { dummyIter = {2}; }
         else { dummyIter = {3}; }
 
+        std::cout << "pT: " << pt << " eta: " << eta << " ptHatW: " << ptHatW << std::endl;
         fHM->hRecoInclusiveJetPt->Fill(pt, ptHatW);
         fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt, ptHatW);
         fHM->hRecoInclusiveJetPtVsEtaKineCut->Fill(eta, pt, ptHatW);
