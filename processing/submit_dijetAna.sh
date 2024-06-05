@@ -40,7 +40,7 @@ else
 fi
 
 # Specify number of files per list to split
-files_per_job=20
+files_per_job=50
 #input_file_list=$HOME/filelists/test_list.txt
 
 echo -e "Splitting input file list: ${input_file_list}"
