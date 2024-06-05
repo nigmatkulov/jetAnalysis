@@ -675,6 +675,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     // TrkMax dijets
     //
 
+    if ( fVerbose ) {
+        std::cout << "Start checking TrkMax dijets\n";
+    }
+
     fIsDijetFound = {kFALSE};
 
     if ( idRecoLead>=0 && idRecoSubLead>=0 ) {
@@ -701,12 +705,26 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         } // if ( fIsMc )
 
         Bool_t goodLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoLead ) );
+        if ( fVerbose ) {
+            std::cout << "Leading jet is good\n";
+        }
         Bool_t goodSubLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoSubLead ) );
+        if ( fVerbose ) {
+            std::cout << "SubLeading jet is good\n";
+        }
         Bool_t goodDijet = isGoodDijet( ptRecoLead, ptRecoSubLead, TMath::Abs( deltaPhi(phiRecoLead, phiRecoSubLead) ) );
         fIsDijetFound = goodLeadJet && goodSubLeadJet && goodDijet;
 
+        if ( fVerbose ) {
+            std::cout << "Good dijet found! \n";
+        }
+
         // Analyze trkMax dijets
         if ( fIsDijetFound ) {
+
+            if ( fVerbose ) {
+                std::cout << "Start filling dijet histograms";
+            }
 
             // Dijet analysis
             Double_t dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
@@ -764,12 +782,19 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                         
             } // if ( fIsMc )
 
+            if ( fVerbose ) {
+                std::cout << "\t[DONE]\n";
+            }
         } // if ( fIsDijetFound )
     } // if ( idRecoLead>=0 && idRecoSubLead>=0 )
 
     //
     // JetId dijets
     //
+
+    if ( fVerbose ) {
+        std::cout << "Start checking JetId dijets\n";
+    }
 
     fIsDijetJetIdFound = {kFALSE};
 
@@ -797,12 +822,26 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         } // if ( fIsMc )
         
         Bool_t goodLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoLeadJetId ) );
+        if ( fVerbose ) {
+            std::cout << "Leading jet is good\n";
+        }
         Bool_t goodSubLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoSubLeadJetId ) );
+        if ( fVerbose ) {
+            std::cout << "SubLeading jet is good\n";
+        }
         Bool_t goodDijet = isGoodDijet( ptRecoLeadJetId, ptRecoSubLeadJetId, TMath::Abs( deltaPhi(phiRecoLeadJetId, phiRecoSubLeadJetId) ) );
         fIsDijetJetIdFound = goodLeadJet && goodSubLeadJet && goodDijet;
 
+        if ( fVerbose ) {
+            std::cout << "Good dijet found! \n";
+        }
+
         // Analyze trkMax dijets
         if ( fIsDijetJetIdFound ) {
+
+            if ( fVerbose ) {
+                std::cout << "Start filling dijet histograms";
+            }
 
             // Dijet analysis
             Double_t dijetRecoPt = 0.5 * (ptRecoLeadJetId + ptRecoSubLeadJetId);
@@ -820,6 +859,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 fHM->hRefDijetPtEtaDphiJetId->Fill( dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW );
                 fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->Fill( dijetRecoEta, dijetRefEta, dijetRecoPt, ptHatW);
             } // if ( fIsMc )
+
+            if ( fVerbose ) {
+                std::cout << "\t[DONE]\n";
+            }
 
         } // if ( fIsDijetJetIdFound )
     } // if ( idRecoLeadJetId>=0 && idRecoSubLeadJetId>=0 )
