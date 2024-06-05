@@ -706,17 +706,20 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         Bool_t goodLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoLead ) );
         if ( fVerbose ) {
-            std::cout << "Leading jet is good\n";
+            std::cout << Form("Leading jet is %s\n", ((goodLeadJet) ? "good" : "bad") );  
         }
         Bool_t goodSubLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoSubLead ) );
         if ( fVerbose ) {
-            std::cout << "SubLeading jet is good\n";
+            std::cout << Form("SubLeading jet is %s\n", ((goodSubLeadJet) ? "good" : "bad") );  
         }
         Bool_t goodDijet = isGoodDijet( ptRecoLead, ptRecoSubLead, TMath::Abs( deltaPhi(phiRecoLead, phiRecoSubLead) ) );
+        if ( fVerbose ) {
+            std::cout << Form("Dijet is %s\n", ((goodDijet) ? "good" : "bad") );  
+        }
         fIsDijetFound = goodLeadJet && goodSubLeadJet && goodDijet;
 
         if ( fVerbose ) {
-            std::cout << "Good dijet found! \n";
+            std::cout << Form("Dijet status %s\n", ((fIsDijetFound) ? "[GOOD]" : "[BAD]") );  
         }
 
         // Analyze trkMax dijets
@@ -823,17 +826,20 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         
         Bool_t goodLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoLeadJetId ) );
         if ( fVerbose ) {
-            std::cout << "Leading jet is good\n";
+            std::cout << Form("Leading jet is %s\n", ((goodLeadJet) ? "good" : "bad") );  
         }
         Bool_t goodSubLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoSubLeadJetId ) );
         if ( fVerbose ) {
-            std::cout << "SubLeading jet is good\n";
+            std::cout << Form("SubLeading jet is %s\n", ((goodSubLeadJet) ? "good" : "bad") );  
         }
         Bool_t goodDijet = isGoodDijet( ptRecoLeadJetId, ptRecoSubLeadJetId, TMath::Abs( deltaPhi(phiRecoLeadJetId, phiRecoSubLeadJetId) ) );
+        if ( fVerbose ) {
+            std::cout << Form("Dijet is %s\n", ((goodDijet) ? "good" : "bad") );  
+        }
         fIsDijetJetIdFound = goodLeadJet && goodSubLeadJet && goodDijet;
 
         if ( fVerbose ) {
-            std::cout << "Good dijet found! \n";
+            std::cout << Form("Dijet status %s\n", ((fIsDijetJetIdFound) ? "[GOOD]" : "[BAD]") );  
         }
 
         // Analyze trkMax dijets
