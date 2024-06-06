@@ -38,8 +38,10 @@ int main(int argc, char const *argv[]) {
     TString oFileName{};
     TString JECFileName;
     TString JECFileDataName;
+    TString JEUFileName;
     TString path2JEC = "../";
     Double_t ptHatCut[2] {15., 30.};
+    Int_t   useJEU{0};
 
     // Sequence of command line arguments:
     //
@@ -90,7 +92,8 @@ int main(int argc, char const *argv[]) {
         else {
             JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
         }
-        JECFileDataName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt"; 
+        JECFileDataName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt";
+        JEUFileName = "Summer16_23Sep2016HV4_DATA_Uncertainty_AK4PF.txt";
     } // else
 
     // Initialize package manager
@@ -151,9 +154,11 @@ int main(int argc, char const *argv[]) {
 
     // Set path to jet analysis (then will automatically add path to aux_files)
     reader->setPath2JetAnalysis( path2JEC.Data() );
-    reader->setJECFileName( JECFileName.Data() );
+    reader->addJECFile( JECFileName.Data() );
     if ( !isMc ) {
-        reader->setJECFileDataName( JECFileDataName.Data() );
+        reader->setUseJEU( useJEU );
+        reader->addJECFile( JECFileDataName.Data() );
+        reader->setJEUFileName( JEUFileName );
     }
     //reader->setVerbose();
 

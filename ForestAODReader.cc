@@ -30,13 +30,14 @@ ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEve
     fHltTree{nullptr}, fSkimTree{nullptr}, fEventTree{nullptr}, fCaloJetTree{nullptr},
     fPartFlowJetTree{nullptr}, fTrkTree{nullptr}, fGenTrkTree{nullptr},
     fPFTreeName{"akCs4PFJetAnalyzer"}, fCaloTreeName{"fCaloTreeName"},
-    fJEC{nullptr}, fJECFiles{}, fJEU{nullptr}, fJEUFiles{},
+    fJEC{nullptr}, fJECFiles{}, fJECPath{}, fJEU{nullptr}, fJEUInputFileName{},
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
     fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
     fRecoPFJet2GenJetId{}, fGenJet2RecoPFJet{}, 
     fRecoCaloJet2GenJetId{}, fGenJet2RecoCaloJet{},
-    fUseExtraJEC{kFALSE}, fJECScaleCorr{nullptr}, fVerbose{kFALSE} {
+    fUseExtraJEC{kFALSE}, fJECScaleCorr{nullptr}, fUseJEU{0}, 
+    fVerbose{kFALSE} {
     if ( fVerbose ) {
         std::cout << "ForestAODReader::ForestAODReader()" << std::endl;
     }
@@ -56,11 +57,11 @@ ForestAODReader::ForestAODReader(const Char_t* inputStream,
     fUsePartFlowJetBranch{usePFJetBranch}, fUseCaloJetBranch{useCaloJetBranch}, 
     fUseTrackBranch{useTrackBranch}, fUseGenTrackBranch{useGenTrackBranch},
     fPFTreeName{"akCs4PFJetAnalyzer"}, fCaloTreeName{"fCaloTreeName"},
-    fJEC{nullptr}, fJECFiles{}, fJEU{nullptr}, fJEUFiles{},
+    fJEC{nullptr}, fJECFiles{}, fJECPath{}, fJEU{nullptr}, fJEUInputFileName{},
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
     fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
-    fJECScaleCorr{nullptr}, fVerbose{kFALSE} {
+    fJECScaleCorr{nullptr}, fUseJEU{0}, fVerbose{kFALSE} {
     // Initialize many variables
     clearVariables();
 
@@ -269,6 +270,8 @@ Int_t ForestAODReader::init() {
     setupBranches();
     // Setup jet energy correction files and pointer
     setupJEC();
+    // Setup jet energy uncertainty files and pointer
+    setupJEU();
     if ( fVerbose ) {
         std::cout << "ForestAODReader::init() is finished " << std::endl;
     }
@@ -282,30 +285,27 @@ void ForestAODReader::setupJEC() {
         std::cout << "ForestAODReader::setupJEC()" << std::endl;
     }
 
-    if ( fJECFiles.empty() ) {
-        
-        // If no path to the aux_file
-        if ( fJECPath.Length() <= 0 ) {
-            // Set default values
-            std::cout << "[WARNING] Default path to JEC files will be used" << std::endl;
-            setPath2JetAnalysis();
-        }
-
-        // If no correction file is specified
-        if ( fJECInputFileName.Length() <= 0 ) {
-            std::cout << "[WARNING] Default JEC file with parameters will be used" << std::endl;
-            setJECFileName();
-            if ( !fIsMc ) setJECFileDataName();
-        }
-        fJECFiles.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
-                                   fJECPath.Data(), fCollidingSystem.Data(),
-                                   fCollidingEnergyGeV, fJECInputFileName.Data() ) );
-        if ( !fIsMc ) {
-            fJECFiles.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
-                                  fJECPath.Data(), fCollidingSystem.Data(),
-                                  fCollidingEnergyGeV, fJECInputFileDataName.Data() ) );
-        }
+    // If no path to the aux_file
+    if ( fJECPath.Length() <= 0 ) {
+        // Set default values
+        std::cout << "[WARNING] Default path to JEC files will be used" << std::endl;
+        setPath2JetAnalysis();
     }
+
+    if ( fJECFiles.empty() ) {
+        std::cout << "[WARNING] Default JEC file with parameters will be used" << std::endl;
+        addJECFile();
+    }
+
+    std::vector< std::string > tmp;
+    for (UInt_t i{0}; i<fJECFiles.size(); i++) {
+        tmp.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
+                             fJECPath.Data(), fCollidingSystem.Data(),
+                             fCollidingEnergyGeV, fJECFiles.at(i).c_str() ) );
+    }
+        
+    fJECFiles.clear();
+    fJECFiles = tmp;
 
     std::cout << "JEC files added: " << std::endl;
     for (UInt_t i{0}; i<fJECFiles.size(); i++) {
@@ -321,6 +321,36 @@ void ForestAODReader::setupJEC() {
     if ( fVerbose ) {
         std::cout << "\t[DONE]" << std::endl;
     }
+}
+
+//________________
+void ForestAODReader::setupJEU() {
+
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::setupJEU()" << std::endl;
+    }
+
+    // Next part is needed only if JEU correction is applied
+    if ( fUseJEU == 0) return;
+
+    // If no path to the aux_file
+    if ( fJECPath.Length() <= 0 ) {
+        // Set default values
+        std::cout << "[WARNING] Default path to JEU files will be used" << std::endl;
+        setPath2JetAnalysis();
+    }
+
+    // If no correction file is specified
+    if ( fJEUInputFileName.Length() <= 0 ) {
+        std::cout << "[WARNING] Default JEU file with parameters will be used" << std::endl;
+        setJEUFileName();
+    }
+
+    fJEU = new JetUncertainty( fJEUInputFileName.Data() );
+
+    if ( fVerbose ) {
+        std::cout << "\t[DONE]" << std::endl;
+    }   
 }
 
 //________________
@@ -1339,8 +1369,29 @@ Event* ForestAODReader::returnEvent() {
                         std::cerr << "No extra correction exists!" << std::endl;
                     }
                 }
+
+                if ( fVerbose && fUseExtraJEC ) {
+                    std::cout << "pTCorr after axtra correction for the jetType: " << pTcorr << std::endl; 
+                }
+
+
+                // JEU correction for the real data for systematic uncertainty calculation
+                if ( fUseJEU !=0 && fJEU && !fIsMc ) {
+                    fJEU->SetJetPT( pTcorr );
+			        fJEU->SetJetEta( fPFRecoJetEta[iJet] );
+			        fJEU->SetJetPhi( fPFRecoJetPhi[iJet] );
+                    if ( fUseJEU > 0 ) {
+                        pTcorr *= (1. + fJEU->GetUncertainty().first);
+                    }
+                    else {
+                        pTcorr *= (1. - fJEU->GetUncertainty().second);
+                    }
+
+                    if ( fVerbose ) {
+                        std::cout << "pTCorr after JEU: " << pTcorr << std::endl; 
+                    }
+                }
                 jet->setPtJECCorr( pTcorr );
-                //std::cout << "pTCorr: " << jet->recoJetPtJECCorr() << std::endl; 
             }
             else { // If no JEC available
                 jet->setPtJECCorr( -999.f );

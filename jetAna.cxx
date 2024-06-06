@@ -139,7 +139,7 @@ int main(int argc, char const *argv[]) {
 
     // Set path to jet analysis (then will automatically add path to aux_files)
     reader->setPath2JetAnalysis( path2JEC.Data() );
-    reader->setJECFileName( JECFileName.Data() );
+    reader->addJECFile( JECFileName.Data() );
     
     manager->setEventReader(reader);
 

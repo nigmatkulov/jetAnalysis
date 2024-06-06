@@ -76,11 +76,13 @@ class ForestAODReader : public BaseReader {
     /// @brief Set year of data taking
     void setYearOfDataTaking(const Int_t& year = 2018)  { fYearOfDataTaking = {year}; }
     /// @brief Path to jetAnalysis directory (or any folder) that contains aux_files/... with JEC corrections
-    void setPath2JetAnalysis(const Char_t *name = "/Users/gnigmat/work/cms/soft/jetAnalysis") { fJECPath = name; }
-    /// @brief Set input JEC file name
-    void setJECFileName(const Char_t *name = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt") { fJECInputFileName = name; }
-    /// @brief Set residual JEC file name (for experimental data)
-    void setJECFileDataName(const Char_t *name = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt") { fJECInputFileDataName = name; }
+    void setPath2JetAnalysis(const Char_t *name = "../") { fJECPath = name; }
+    /// @brief Add JEC file name to the list of JEC files
+    void addJECFile(const Char_t *name = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt") { fJECFiles.push_back(name); }
+    /// @brief Use JEU: 0 - not use (default), 1 = +JEU, -1 = -JEU
+    void setUseJEU(const Int_t &use = 0)  { fUseJEU = (Int_t)use; }
+    /// @brief Add JEU file to the list of JEU files
+    void setJEUFileName(const Char_t *name = "Summer16_23Sep2016HV4_DATA_Uncertainty_AK4PF.txt") { fJEUInputFileName = name; }
     /// @brief Apply jet pT-smearing
     void setJetPtSmearing(const Bool_t& smear = kFALSE) { fDoJetPtSmearing = {smear}; }
     /// @brief Set event cut
@@ -497,15 +499,10 @@ class ForestAODReader : public BaseReader {
     std::vector< std::string > fJECFiles;
     /// @brief Path to jetAnalysis directory
     TString fJECPath;
-    /// @brief Input file with JEC corrections
-    TString fJECInputFileName;
-    /// @brief Input file for residual corrections (first apply fJECInputFileName and 
-    ///        the residual (for experimental data only))
-    TString fJECInputFileDataName;
     /// @brief Jet Energy Uncertainty instance
     JetUncertainty *fJEU;
-    /// @brief List of files with JEU
-    std::vector< std::string > fJEUFiles;
+    /// @brief Input file name with JEU correction
+    TString fJEUInputFileName;
 
     /// @brief Colliding system: pp, pPb or PbPb
     TString fCollidingSystem;
@@ -541,6 +538,8 @@ class ForestAODReader : public BaseReader {
     Bool_t  fUseExtraJEC;
     /// @brief JEC extra correction
     TF1    *fJECScaleCorr;
+    /// @brief Use JEU correction: 0 - not use (default), 1 - +JEU, -1 - -JEU
+    Int_t   fUseJEU;
 
     /// @brief  Verbose mode
     Bool_t  fVerbose;

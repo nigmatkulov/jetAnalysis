@@ -19,8 +19,6 @@
 #ifndef JetUncertainty_h
 #define JetUncertainty_h
 
-
-
 // С++ headers
 #include <iostream>
 #include <fstream>

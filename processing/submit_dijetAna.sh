@@ -23,7 +23,7 @@ else
 fi
 
 # Dataset number
-pd_number=1
+pd_number=$1
 
 # Generate path to the inputfile list
 if [ "$sample_name" == "DATA_MB" ]; then
