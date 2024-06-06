@@ -104,6 +104,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hGenDijetEta;
     TH3D *hGenDijetPtEtaDphi;
     TH3D *hGenDijetPtEtaDphiWeighted;
+    TH1D *hGenDijetEtaCM;
+    TH3D *hGenDijetPtEtaDphiCM;
+    TH3D *hGenDijetPtEtaDphiCMWeighted;
 
     //
     // Reco jet histograms
@@ -153,6 +156,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoEtaLeadEtaSublead;
     TH3D *hRecoDijetPtEtaDphi;
     TH3D *hRecoDijetPtEtaDphiWeighted;
+    TH3D *hRecoDijetPtEtaDphiCM;
+    TH3D *hRecoDijetPtEtaDphiCMWeighted;
 
     TH3D *hRecoDijetPtEtaDphiJetId;
 
@@ -226,6 +231,7 @@ class HistoManagerDiJet : public BaseHistoManager {
 
 
     TH1D *hRecoDijetEta;
+    TH1D *hRecoDijetEtaCM;
     
     TH1D *hRefDijetEta;
     TH2D *hRefDijetEtaVsRecoDijetEta;
@@ -233,9 +239,19 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted;
     TH3D *hRefDijetPtEtaDphi;
     TH3D *hRefDijetPtEtaDphiWeighted;
+
+    TH1D *hRefDijetEtaCM;
+    TH3D *hRefDijetPtEtaDphiCM;
+    TH3D *hRefDijetPtEtaDphiCMWeighted;
+    TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCM;
+    TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted;
+
     TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaDphi;
     TH3D *hRefSelDijetPtEtaDphiWeighted;
+    TH1D *hRefSelDijetEtaCM;
+    TH3D *hRefSelDijetPtEtaDphiCM;
+    TH3D *hRefSelDijetPtEtaDphiCMWeighted;
 
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId;
     TH3D *hRefDijetPtEtaDphiJetId;

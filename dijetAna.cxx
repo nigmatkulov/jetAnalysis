@@ -42,6 +42,7 @@ int main(int argc, char const *argv[]) {
     TString path2JEC = "..";
     Double_t ptHatCut[2] {15., 30.};
     Int_t   useJEU{0};
+    Double_t etaShift = 0.4654094531;
 
     // Sequence of command line arguments:
     //
@@ -175,7 +176,7 @@ int main(int argc, char const *argv[]) {
     if ( isPbGoingDir ) {
         analysis->setPbGoing();
     }
-    analysis->setEtaShift( 0.4654094531 );
+    analysis->setEtaShift( etaShift );
     analysis->setLeadJetPtLow( 50. );
     analysis->setSubLeadJetPtLow( 40. );
     analysis->setDijetPhiCut( 5. * TMath::Pi() / 6 );
