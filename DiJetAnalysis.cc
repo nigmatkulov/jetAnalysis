@@ -300,17 +300,6 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
         // Apply single-jet selection to gen jets
         //if ( !isGoodGenJet( *genJetIter ) ) continue;
-
-        // Apply lab frame boost to CM for the pPb 
-        if ( fIsPPb ) {
-            if ( fIsPbGoingDir ) {
-                eta -= fEtaShift;
-                eta = -eta;
-            }
-            else {
-                eta += fEtaShift;
-            }
-        } // if ( fIsPPb )
         
         if ( pt > ptLead ) {
             ptSubLead = ptLead;
@@ -364,6 +353,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
                 if ( fIsPbGoingDir ) {
                     dijetEtaCM += fEtaShift;
                     dijetEtaCM = -dijetEtaCM;
+                    dijetEta = -dijetEta;
                 }
                 else {
                     dijetEtaCM -= fEtaShift;
@@ -755,6 +745,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                     if ( fIsPbGoingDir ) {
                         dijetRecoEtaCM += fEtaShift;
                         dijetRecoEtaCM = -dijetRecoEtaCM;
+                        dijetRecoEta = -dijetRecoEta;
                     }
                     else {
                         dijetRecoEtaCM -= fEtaShift;
@@ -767,6 +758,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                     else {
                         dijetRecoEtaCM += fEtaShift;
                         dijetRecoEtaCM = -dijetRecoEtaCM;
+                        dijetRecoEta = -dijetRecoEta;
                     }
                 }
             } // if ( fIsPPb )
@@ -798,6 +790,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                     if ( fIsPbGoingDir ) {
                         dijetRefEtaCM += fEtaShift;
                         dijetRefEtaCM = -dijetRefEtaCM;
+                        dijetRefEta = -dijetRefEta;
                     }
                     else {
                         dijetRefEtaCM -= fEtaShift;
@@ -911,6 +904,20 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             Double_t dijetRecoEta = 0.5 * (etaRecoLeadJetId + etaRecoSubLeadJetId);
             Double_t dijetRecoDphi = deltaPhi(phiRecoLeadJetId, phiRecoSubLeadJetId);
 
+            // Apply lab frame boost to CM for the pPb 
+            if ( fIsPPb ) {
+                if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+                    if ( fIsPbGoingDir ) {
+                        dijetRecoEta = -dijetRecoEta;
+                    }
+                }
+                else { // For data: p goes to negative, Pb goes to positive
+                    if ( !fIsPbGoingDir ) {
+                        dijetRecoEta = -dijetRecoEta;
+                    }
+                }
+            } // if ( fIsPPb )
+
             fHM->hRecoDijetPtEtaDphiJetId->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, ptHatW );
 
             if ( fIsMc ) {
@@ -918,6 +925,12 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 Double_t dijetRefPt = 0.5 * (ptRefLeadJetId + ptRefSubLeadJetId);
                 Double_t dijetRefEta = 0.5 * (etaRefLeadJetId + etaRefSubLeadJetId);
                 Double_t dijetRefDphi = deltaPhi(phiRefLeadJetId, phiRefSubLeadJetId);
+
+                if ( fIsPPb ) {
+                    if ( fIsPbGoingDir ) {
+                        dijetRefEta = -dijetRefEta;
+                    }
+                } // if ( fIsPPb ) 
 
                 fHM->hRefDijetPtEtaDphiJetId->Fill( dijetRefPt, dijetRefEta, dijetRefDphi, ptHatW );
                 fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->Fill( dijetRecoEta, dijetRefEta, dijetRecoPt, ptHatW);
@@ -1090,6 +1103,8 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
                         dijetRecoEtaCM = -dijetRecoEtaCM;
                         dijetRefEtaCM += fEtaShift;
                         dijetRefEtaCM = -dijetRefEtaCM;
+                        dijetRecoEta = -dijetRecoEta;
+                        dijetRefEta = -dijetRefEta;
                     }
                     else {
                         dijetRecoEtaCM -= fEtaShift;
@@ -1103,6 +1118,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
                     else {
                         dijetRecoEtaCM += fEtaShift;
                         dijetRecoEtaCM = -dijetRecoEtaCM;
+                        dijetRefEta = -dijetRefEta;
                     }
                 }
             } // if ( fIsPPb )
