@@ -71,8 +71,6 @@ class DiJetAnalysis : public BaseAnalysis {
     void setNEventsInSample(const Int_t& n)  { fNEventsInSample = n; }
     /// @brief Set loose jetId cut
     void setLooseJetIdCut()                  { fIsLooseJetIdCut = {kTRUE}; }
-    /// @brief Use eta shift and sign swap
-    void useEtaShiftAndSignSwap() { fUseEtaShiftAndSignSwap = {kTRUE}; }
     /// @brief Print DiJetAnalysis setup
     void print();
 
@@ -128,8 +126,6 @@ class DiJetAnalysis : public BaseAnalysis {
     Int_t    fNEventsInSample;
     /// @brief Is loose/tight jetId cut (default: false = tight)
     Bool_t   fIsLooseJetIdCut;
-    /// @brief Use/not use eta shift and sign swap (default: not use)
-    Bool_t   fUseEtaShiftAndSignSwap;
     /// @brief Check if dijet passed trkMax cut is found
     Bool_t   fIsDijetFound;
     /// @brief Check if dijet passed jetId cut is found

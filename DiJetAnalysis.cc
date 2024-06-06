@@ -31,7 +31,7 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fLeadJetPtLow{50.}, fSubleadJetPtLow{40.},
     fDijetPhiCut{ 5. * TMath::Pi() / 6},
     fIsPbGoingDir{kFALSE}, fVerbose{kFALSE},
-    fNEventsInSample{1000000}, fUseEtaShiftAndSignSwap{kFALSE},
+    fNEventsInSample{1000000},
     fIsDijetFound{kFALSE}, fIsDijetJetIdFound{kFALSE},
     fEventCounter{0}, fCycleCounter{0} {
     fPtHatRange[0] = {15.};
@@ -62,7 +62,6 @@ void DiJetAnalysis::print() {
               << "Is pPb                      : " << fIsPPb << std::endl
               << "Is Pb-going direction       : " << fIsPbGoingDir << std::endl
               << "eta shift                   : " << fEtaShift << std::endl
-              << "Use eta shift and sign swap : " << fUseEtaShiftAndSignSwap << std::endl
               << "ptHat range                 : " << fPtHatRange[0] << "-" << fPtHatRange[1] << std::endl
               << "Leading jet pT              : " << fLeadJetPtLow << std::endl
               << "SubLeading jet pT           : " << fSubleadJetPtLow << std::endl
@@ -303,7 +302,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
         //if ( !isGoodGenJet( *genJetIter ) ) continue;
 
         // Apply lab frame boost to CM for the pPb 
-        if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
+        if ( fIsPPb ) {
             if ( fIsPbGoingDir ) {
                 eta -= fEtaShift;
                 eta = -eta;
@@ -311,7 +310,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             else {
                 eta += fEtaShift;
             }
-        } // if ( fUseEtaShiftAndSignSwap && fIsPPb )
+        } // if ( fIsPPb )
         
         if ( pt > ptLead ) {
             ptSubLead = ptLead;
@@ -361,7 +360,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             Double_t dijetDphi = deltaPhi(phiLead, phiSubLead);
             Double_t dijetEtaCM = dijetEta;
 
-            if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
+            if ( fIsPPb ) {
                 if ( fIsPbGoingDir ) {
                     dijetEtaCM += fEtaShift;
                     dijetEtaCM = -dijetEtaCM;
@@ -751,7 +750,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             Double_t dijetRecoEtaCM = dijetRecoEta;
 
             // Apply lab frame boost to CM for the pPb 
-            if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
+            if ( fIsPPb ) {
                 if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
                     if ( fIsPbGoingDir ) {
                         dijetRecoEtaCM += fEtaShift;
@@ -795,7 +794,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 Double_t dijetRefDphi = deltaPhi(phiRefLead, phiRefSubLead);
                 Double_t dijetRefEtaCM = dijetRefEta;
 
-                if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
+                if ( fIsPPb ) {
                     if ( fIsPbGoingDir ) {
                         dijetRefEtaCM += fEtaShift;
                         dijetRefEtaCM = -dijetRefEtaCM;
@@ -1084,7 +1083,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
             Double_t dijetRefEtaCM = dijetRefEta;
 
             // Apply lab frame boost to CM for the pPb 
-            if ( fUseEtaShiftAndSignSwap && fIsPPb ) {
+            if ( fIsPPb ) {
                 if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
                     if ( fIsPbGoingDir ) {
                         dijetRecoEtaCM += fEtaShift;
