@@ -346,6 +346,15 @@ void ForestAODReader::setupJEU() {
         setJEUFileName();
     }
 
+    TString tmp = Form( "%s/aux_files/%s_%i/JEC/%s", 
+                        fJECPath.Data(), fCollidingSystem.Data(),
+                        fCollidingEnergyGeV, fJEUInputFileName.Data() );
+    fJEUInputFileName = tmp;
+
+    if ( fVerbose ) {
+        std::cout << "JEU file: " << fJEUInputFileName.Data() << std::endl;
+    } 
+
     fJEU = new JetUncertainty( fJEUInputFileName.Data() );
 
     if ( fVerbose ) {
