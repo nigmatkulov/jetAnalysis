@@ -1591,7 +1591,6 @@
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2429.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_243.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2430.root
-/eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2431.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2432.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2433.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2434.root
@@ -2175,7 +2174,6 @@
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2955.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2956.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2957.root
-/eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2958.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2959.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_296.root
 /eos/cms/store/group/phys_heavyions/gnigmatk/Jets_pPb/Data_withjetid/MBPD3/Pbgoing/HiForest_pPb_DATA_MBPD3_Pbgoing_2960.root
