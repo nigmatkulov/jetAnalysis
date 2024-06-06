@@ -1111,7 +1111,6 @@ void HistoManagerDiJet::writeOutput() {
         hRecoSubLeadJetMatchedPtVsEtaJetIdCut->Write();
         hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut->Write();
 
-
         hRecoInclusiveJetJESPtEtaPhiKineCut->Write();
         hRecoInclusiveJetDEtaPtEtaKineCut->Write();
         hRecoInclusiveMatchedJetPtVsEtaKineCut->Write();
@@ -1175,6 +1174,11 @@ void HistoManagerDiJet::writeOutput() {
     hRecoDijetEta->Write();
     hRecoDijetPtEtaDphi->Write();
     hRecoDijetPtEtaDphiWeighted->Write();
+    hRecoDijetEtaCM->Write();
+    hRecoDijetPtEtaDphiCM->Write();
+    hRecoDijetPtEtaDphiCMWeighted->Write();
+
+
     hRecoDijetPtEtaDphiJetId->Write();
     hRecoTrkMaxToJetIdDijetMatching->Write();
 
