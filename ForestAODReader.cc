@@ -351,11 +351,8 @@ void ForestAODReader::setupJEU() {
                         fCollidingEnergyGeV, fJEUInputFileName.Data() );
     fJEUInputFileName = tmp;
 
-    if ( fVerbose ) {
-        std::cout << "JEU file: " << fJEUInputFileName.Data() << std::endl;
-    } 
-
     fJEU = new JetUncertainty( fJEUInputFileName.Data() );
+    std::cout << "JEU file: " << fJEUInputFileName.Data() << std::endl;
 
     if ( fVerbose ) {
         std::cout << "\t[DONE]" << std::endl;
