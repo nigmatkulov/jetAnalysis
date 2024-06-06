@@ -39,7 +39,7 @@ int main(int argc, char const *argv[]) {
     TString JECFileName;
     TString JECFileDataName;
     TString JEUFileName;
-    TString path2JEC = "../";
+    TString path2JEC = "..";
     Double_t ptHatCut[2] {15., 30.};
     Int_t   useJEU{0};
 
