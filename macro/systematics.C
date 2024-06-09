@@ -92,28 +92,28 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t lineWidth = 2;
     Int_t color = 2;
     if (type == 0) {
-        color = 2;
-        markerStyle = 20;
+        color = 2;        // red
+        markerStyle = 20; // filled circle
     }
     else if (type == 1) {
-        color = 4;
-        markerStyle = 24;
+        color = 4;        // blue
+        markerStyle = 71; // open circle
     }
     else if (type == 2) {
-        color = 1;
-        markerStyle = 22;
+        color = 1;        // black
+        markerStyle = 22; // filled triangle
     }
     else if (type == 3) {
-        color = 6;
-        markerStyle = 26;
+        color = 2;        // red
+        markerStyle = 71; // open circle
     }
     else if (type == 4) {
-        color = 3;
-        markerStyle = 29;
+        color = 4;        // blue
+        markerStyle = 20; // filled circle
     }
     else {
-        color = 9;
-        markerStyle = 30;
+        color = 6;        // magenta
+        markerStyle = 76; // open star
     }
 
     h->SetLineWidth( lineWidth );
@@ -206,7 +206,8 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
     TH3D *hPtEtaDphiPGoing = (TH3D*)pGoingFile->Get("hRecoDijetPtEtaDphiWeighted");
     //TH3D *hPtEtaDphiPGoing = (TH3D*)pGoingFile->Get("hRecoDijetPtEtaDphi");
     hPtEtaDphiPGoing->SetName("hPtEtaDphiPGoing");
-    TString frame = "cm";
+
+    TString frame = "lab";
 
     // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
     //                                        90., 100.,  110., 120., 130.,
@@ -334,6 +335,192 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
 
     cComp->SaveAs( Form("%s/pPb8160_etaDijet_dirComp_all_%s.pdf", date.Data(), frame.Data() ) );
     cRat->SaveAs( Form("%s/pPb8160_etaDijet_dirRat_all_%s.pdf", date.Data(), frame.Data() ) );
+}
+
+
+//________________
+void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing, 
+                                       TFile *mcPbGoing, TFile *mcPGoing, TString date) {
+
+    TH2D *hExpPtEtaPbGoing = dynamic_cast<TH2D*>( expPbGoing->Get("hRecoDijetPtEta") );
+    hExpPtEtaPbGoing->SetName("hExpPtEtaPbGoing");
+    TH2D *hExpPtEtaPGoing = dynamic_cast<TH2D*>( expPGoing->Get("hRecoDijetPtEta") );
+    hExpPtEtaPGoing->SetName("hExpPtEtaPGoing");
+
+    TH2D *hMcPtEtaPbGoing = dynamic_cast<TH2D*>( mcPbGoing->Get("hRecoDijetPtEta") );
+    hMcPtEtaPbGoing->SetName("hMcPtEtaPbGoing");
+    TH2D *hMcPtEtaPGoing = dynamic_cast<TH2D*>( mcPGoing->Get("hRecoDijetPtEta") );
+    hMcPtEtaPGoing->SetName("hMcPtEtaPGoing");
+
+    TString frame = "lab";
+
+    // Do rebinning if needed
+    Int_t rebinX{1}, rebinY{1};
+    hExpPtEtaPbGoing->RebinX( rebinX );
+    hExpPtEtaPbGoing->RebinY( rebinY );
+    hExpPtEtaPGoing->RebinX( rebinX );
+    hExpPtEtaPGoing->RebinY( rebinY );
+    hMcPtEtaPbGoing->RebinX( rebinX );
+    hMcPtEtaPbGoing->RebinY( rebinY );
+    hMcPtEtaPGoing->RebinX( rebinX );
+    hMcPtEtaPGoing->RebinY( rebinY );
+
+    // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
+    //                                        90., 100.,  110., 120., 130.,
+    //                                       140., 150.,  160., 180., 200., 
+    //                                       240., 300., 1000.};
+    // fDijetPtBins{194}, fDijetPtRange{30., 1000.}
+
+    // Dijet pT selection
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+
+    // Styles
+    Int_t expPbGoingType{0};
+    Int_t expPGoingType{3};
+    Int_t mcPbGoingType{4};
+    Int_t mcPGoingType{1};
+    Int_t expOverMcType{2};
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // Dijet eta distributions
+    TH1D *hExpEtaPbGoing[ ptDijetLow.size() ];
+    TH1D *hExpEtaPGoing[ ptDijetLow.size() ];
+    TH1D *hExpEtaPb2PGoingRatio[ ptDijetLow.size() ];
+    TH1D *hMcEtaPbGoing[ ptDijetLow.size() ];
+    TH1D *hMcEtaPGoing[ ptDijetLow.size() ];
+    TH1D *hMcEtaPb2PGoingRatio[ ptDijetLow.size() ];
+    TH1D *hExpOverMcPb2PGoingRatio[ ptDijetLow.size() ];
+
+    TLine *line;
+    TLegend *leg;
+
+    Int_t sizeX{1200};
+    Int_t sizeY{800};
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    Int_t ptBins = ptDijetLow.size();
+
+    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
+    cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
+    cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    // Loop over dijet pT bins
+    for (Int_t i{0}; i<ptBins; i++) {
+
+        // Exp Pb-going projection
+        hExpEtaPbGoing[i] = dynamic_cast<TH1D*>( hExpPtEtaPbGoing->ProjectionY( Form("hExpEtaPbGoing_%d", i), 
+                                                                                ptDijetLow.at(i), ptDijetHi.at(i) ) );
+        rescaleEta( hExpEtaPbGoing[i] );
+        set1DStyle(hExpEtaPbGoing[i], expPbGoingType);
+
+        // Exp p-going projection
+        hExpEtaPGoing[i] = dynamic_cast<TH1D*>( hExpPtEtaPGoing->ProjectionY( Form("hExpEtaPGoing_%d", i), 
+                                                                              ptDijetLow.at(i), ptDijetHi.at(i) ));
+        rescaleEta( hExpEtaPGoing[i] );
+        set1DStyle(hExpEtaPGoing[i], expPGoingType);
+
+        // Ratio of Pb-going to p-going
+        hExpEtaPb2PGoingRatio[i] = dynamic_cast<TH1D*>( hExpEtaPbGoing[i]->Clone( Form("hExpEtaPb2PGoingRatio_%d", i) ) );
+        make1DRatio(hExpEtaPb2PGoingRatio[i], hExpEtaPGoing[i], Form("hExpEtaPb2PGoingRatio_%d", i) );
+        hExpEtaPb2PGoingRatio[i]->GetYaxis()->SetTitle("Pb-going / p-going");
+
+        // Mc Pb-going projection
+        hMcEtaPbGoing[i] = dynamic_cast<TH1D*>( hMcPtEtaPbGoing->ProjectionY( Form("hMcEtaPbGoing_%d", i), 
+                                                                                ptDijetLow.at(i), ptDijetHi.at(i) ) );
+        rescaleEta( hMcEtaPbGoing[i] );
+        set1DStyle(hMcEtaPbGoing[i], mcPbGoingType);
+
+        // Mc p-going projection
+        hMcEtaPGoing[i] = dynamic_cast<TH1D*>( hMcPtEtaPGoing->ProjectionY( Form("hMcEtaPGoing_%d", i), 
+                                                                              ptDijetLow.at(i), ptDijetHi.at(i) ));
+        rescaleEta( hMcEtaPGoing[i] );
+        set1DStyle(hMcEtaPGoing[i], mcPGoingType);
+
+        // Ratio of Pb-going to p-going
+        hMcEtaPb2PGoingRatio[i] = dynamic_cast<TH1D*>( hMcEtaPbGoing[i]->Clone( Form("hMcEtaPb2PGoingRatio_%d", i) ) );
+        make1DRatio(hMcEtaPb2PGoingRatio[i], hMcEtaPGoing[i], Form("hMcEtaPb2PGoingRatio_%d", i) );
+        hMcEtaPb2PGoingRatio[i]->GetYaxis()->SetTitle("Pb-going / p-going");
+
+        // Make double ratio
+        hExpOverMcPb2PGoingRatio[i] = dynamic_cast<TH1D*>( hExpEtaPb2PGoingRatio[i]->Clone( Form("hExpOverMcPb2PGoingRatio_%d", i) ) );
+        make1DRatio( hExpOverMcPb2PGoingRatio[i], hMcEtaPb2PGoingRatio[i], Form("hExpOverMcPb2PGoingRatio_%d", i) );
+        hExpOverMcPb2PGoingRatio[i]->GetYaxis()->SetTitle("Data / MC (Pb-going / p-going)");
+        set1DStyle( hExpOverMcPb2PGoingRatio[i], expOverMcType );
+
+        // Plot comparison
+        canv->cd();
+        setPadStyle();
+        hExpEtaPb2PGoingRatio[i]->Draw();
+        hMcEtaPb2PGoingRatio[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.75, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hExpEtaPb2PGoingRatio[i], Form("Data"), "p");
+        leg->AddEntry(hMcEtaPb2PGoingRatio[i], Form("MC"), "p");
+        leg->Draw();
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_exp2mc_dirComp_pt_%d_%d_%s.pdf", date.Data(), 
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+
+        // Plot ratios of Pb-going to p-going
+        canv->cd();
+        setPadStyle();
+        hExpOverMcPb2PGoingRatio[i]->Draw();
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        line = new TLine(hExpOverMcPb2PGoingRatio[i]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hExpOverMcPb2PGoingRatio[i]->GetXaxis()->GetBinUpEdge(hExpOverMcPb2PGoingRatio[i]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_ exp2mc_dirRat_pt_%d_%d_%s.pdf", date.Data(), 
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+
+        // Plot all comparisons on one canvas
+        cComp->cd(i+1);
+        setPadStyle();
+        hExpEtaPb2PGoingRatio[i]->Draw();
+        hMcEtaPb2PGoingRatio[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.75, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hExpEtaPb2PGoingRatio[i], Form("Data"), "p");
+        leg->AddEntry(hMcEtaPb2PGoingRatio[i], Form("MC"), "p");
+        leg->Draw();
+
+        // Plot all ratios on one canvas
+        cRat->cd(i+1);
+        setPadStyle();
+        hExpOverMcPb2PGoingRatio[i]->Draw();
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        line = new TLine(hExpOverMcPb2PGoingRatio[i]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hExpOverMcPb2PGoingRatio[i]->GetXaxis()->GetBinUpEdge(hExpOverMcPb2PGoingRatio[i]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+    } // for (Int_t i=0; i<ptDijetLow.size(); i++)
+
+    cComp->SaveAs( Form("%s/pPb8160_etaDijet_exp2mc_dirComp_all_%s.pdf", date.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/pPb8160_etaDijet_exp2mc_dirRat_all_%s.pdf", date.Data(), frame.Data() ) );
 }
 
 //________________
@@ -500,6 +687,167 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
 
     cComp->SaveAs( Form("%s/pPb8160_etaDijet_jeuComp_all_%s.pdf", date.Data(), frame.Data() ) );
     cRat->SaveAs( Form("%s/pPb8160_etaDijet_jeuRat_all_%s.pdf", date.Data(), frame.Data() ) );
+}
+
+//________________
+void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString date) {
+
+    TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get("hRecoDijetPtEtaDphiWeighted");
+    hPtEtaDphiDef->SetName("hPtEtaDphiDef");
+    TH3D *hPtEtaDphiUp = (TH3D*)jerUpFile->Get("hRecoDijetPtEtaDphiWeighted");
+    hPtEtaDphiUp->SetName("hPtEtaDphiUp");
+    TH3D *hPtEtaDphiDown = (TH3D*)jerDownFile->Get("hRecoDijetPtEtaDphiWeighted");
+    hPtEtaDphiDown->SetName("hPtEtaDphiDown");
+
+    TString frame = "lab";
+
+    // Dijet pT selection
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+
+    // Styles
+    Int_t defType{2};
+    Int_t upType{0};
+    Int_t downType{1};
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // Dijet eta distributions
+    TH1D *hEtaDef[ ptDijetLow.size() ];
+    TH1D *hEtaUp[ ptDijetLow.size() ];
+    TH1D *hEtaDown[ ptDijetLow.size() ];
+
+    TH1D *hEtaRatioUp[ ptDijetLow.size() ];
+    TH1D *hEtaRatioDown[ ptDijetLow.size() ];
+
+    TLine *line;
+    TLegend *leg;
+
+    Int_t sizeX{1200};
+    Int_t sizeY{800};
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    Int_t ptBins = ptDijetLow.size();
+
+    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
+    cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
+    cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    // Loop over dijet pT bins
+    for (Int_t i{0}; i<ptBins; i++) {
+
+        std::cout << "pT bin: " << i << std::endl;
+
+        // Nominal selection
+        hEtaDef[i] = projectEtaFrom3D(hPtEtaDphiDef, Form("hEtaDef_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        rescaleEta( hEtaDef[i] );
+        set1DStyle(hEtaDef[i], defType);
+
+        // JEU up selection
+        hEtaUp[i] = projectEtaFrom3D(hPtEtaDphiUp, Form("hEtaUp_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        rescaleEta( hEtaUp[i] );
+        set1DStyle(hEtaUp[i], upType);
+
+        // JEU down selection
+        hEtaDown[i] = projectEtaFrom3D(hPtEtaDphiDown, Form("hEtaDown_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        rescaleEta( hEtaDown[i] );
+        set1DStyle(hEtaDown[i], downType);
+
+        // Ratio of JEU up to default ratio
+        hEtaRatioUp[i] = (TH1D*)hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) );
+        make1DRatio(hEtaRatioUp[i], hEtaDef[i], Form("hEtaRatioUp_%d", i), upType );
+        hEtaRatioUp[i]->GetYaxis()->SetTitle("JER / Default");
+
+        // Plot comparison
+        canv->cd();
+        setPadStyle();
+        hEtaDef[i]->Draw();
+        hEtaUp[i]->Draw("same");
+        hEtaDown[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaDef[i], Form("JER def."), "p");
+        leg->AddEntry(hEtaUp[i], Form("JER+"), "p");
+        leg->AddEntry(hEtaDown[i], Form("JER-"), "p");
+        leg->Draw();
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_jerComp_pt_%d_%d_%s.pdf", date.Data(), 
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+
+        // Plot ratios
+        canv->cd();
+        setPadStyle();
+        hEtaRatioUp[i]->Draw();
+        hEtaRatioDown[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaRatioUp[i], Form("JER+ / Default"), "p");
+        leg->AddEntry(hEtaRatioDown[i], Form("JER- / Default"), "p");
+        leg->Draw();
+        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_jerRat_pt_%d_%d_%s.pdf", date.Data(), 
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+
+        // Plot all comparisons on one canvas
+        cComp->cd(i+1);
+        setPadStyle();
+                hEtaDef[i]->Draw();
+        hEtaUp[i]->Draw("same");
+        hEtaDown[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaDef[i], Form("JER def."), "p");
+        leg->AddEntry(hEtaUp[i], Form("JER+"), "p");
+        leg->AddEntry(hEtaDown[i], Form("JER-"), "p");
+        leg->Draw();
+
+        // Plot all rations on one canvas
+        cRat->cd(i+1);
+        setPadStyle();
+        hEtaRatioUp[i]->Draw();
+        hEtaRatioDown[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaRatioUp[i], Form("JER+ / Default"), "p");
+        leg->AddEntry(hEtaRatioDown[i], Form("JER- / Default"), "p");
+        leg->Draw();
+        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+    } // for (Int_t i{0}; i<ptBins; i++)
+
+    cComp->SaveAs( Form("%s/pPb8160_etaDijet_jerComp_all_%s.pdf", date.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/pPb8160_etaDijet_jerRat_all_%s.pdf", date.Data(), frame.Data() ) );
 }
 
 //________________
@@ -807,13 +1155,17 @@ void systematics() {
     TString pbGoingFileName("../build/MB_Pbgoing_pPb8160_ak4.root");
     TString pGoingFileName("../build/MB_pgoing_pPb8160_ak4.root");
 
-    // TString pbGoingFileName("../build/oEmbedding_pPb8160_Pbgoing_ak4.root");
-    // TString pGoingFileName("../build/oEmbedding_pPb8160_pgoing_ak4.root");
+    TString pbGoingEmbeddingFileName("../build/oEmbedding_pPb8160_Pbgoing_jerDef_ak4.root");
+    TString pGoingEmbeddingFileName("../build/oEmbedding_pPb8160_pgoing_jerDef_ak4.root");
 
     TString akcs4FileName("../build/MB_pPb8160_akCs4.root");
     TString jeuUpFileName("../build/MB_pPb8160_jeu_up_ak4.root");
     TString jeuDownFileName("../build/MB_pPb8160_jeu_down_ak4.root");
     TString embeddingFileName("../build/oEmbedding_pPb8160_ak4.root");
+
+    TString jerDefFileName("../build/oEmbedding_pPb8160_jerDef_ak4.root");
+    TString jerUpFileName("../build/oEmbedding_pPb8160_jerUp_ak4.root");
+    TString jerDownFileName("../build/oEmbedding_pPb8160_jerDown_ak4.root");
 
     // Check the directory for storing figures exists
     if ( directoryExists( date.Data() ) ) {
@@ -831,6 +1183,9 @@ void systematics() {
     TFile *jeuUpFile = TFile::Open( jeuUpFileName.Data() );
     TFile *jeuDownFile = TFile::Open( jeuDownFileName.Data() );
     TFile *embeddingFile = TFile::Open( embeddingFileName.Data() );
+    TFile *jerDefFile = TFile::Open( jerDefFileName.Data() );
+    TFile *jerUpFile = TFile::Open( jerUpFileName.Data() );
+    TFile *jerDownFile = TFile::Open( jerDownFileName.Data() );
 
     // Checks files are okay
     if ( !checkFileIsGood( defaultFile ) ) return;
@@ -840,6 +1195,9 @@ void systematics() {
     if ( !checkFileIsGood( jeuUpFile ) ) return;
     if ( !checkFileIsGood( jeuDownFile ) ) return;
     if ( !checkFileIsGood( embeddingFile ) ) return;
+    if ( !checkFileIsGood( jerDefFile ) ) return;
+    if ( !checkFileIsGood( jerUpFile ) ) return;
+    if ( !checkFileIsGood( jerDownFile ) ) return;
 
     // Retrieve the base branch name to work on
     Int_t branchId{0};
@@ -854,8 +1212,12 @@ void systematics() {
 
     // plotJEU( defaultFile, jeuUpFile, jeuDownFile, date );
 
-    plotPointingResolution( embeddingFile, date );
+    plotJER(jerDefFile, jerUpFile, jerDownFile, TString date);
+
+    // plotPointingResolution( embeddingFile, date );
 
     // compareJetCollections( defaultFile, akcs4File, date );
+
+    
 
 }
