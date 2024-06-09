@@ -17,6 +17,7 @@
 #include "TChain.h"
 #include "TString.h"
 #include "TF1.h"
+#include "TRandom3.h"
 
 // JetAnalysis headers
 #include "BaseReader.h"
@@ -99,6 +100,12 @@ class ForestAODReader : public BaseReader {
     void useExtraJECCorr() { fUseExtraJEC = {kTRUE}; }
     /// @brief Set verbose mode
     void setVerbose()       { fVerbose = {kTRUE}; }
+    /// @brief Use JES systematics variation: 0 - default, +1 - JES+, -1 - JES-
+    void useJERSystematics(const Int_t &syst)  { fUseJERSystematics = syst; }
+    /// @brief Set parameters of JER fit with sqrt(a*a + b*b/x)
+    void setJERFitParams(const Double_t &a = 0.0415552, const Double_t &b = 0.960013) { fAlphaJER = a; fBetaJER = b; }
+    /// @brief Set default parameters of JER for systematics
+    void setJERSystParams();
 
     /// @brief Return amount of events to read
     Long64_t nEventsTotal() const { return fEvents2Read; }
@@ -130,6 +137,10 @@ class ForestAODReader : public BaseReader {
     void setupJEC();
     /// @brief Setup JEU
     void setupJEU();
+    /// @brief Calculate and return smearing factor
+    Double_t  extraJERCorr(const Double_t &pt, const Double_t& eta);
+    /// @brief Find resolution factor from JERSyst values for the given eta
+    Double_t  retrieveResolutionFactor(const Double_t& eta);
 
     /// @brief Calculate event weight
     /// @param isMC Is MC sample
@@ -540,6 +551,22 @@ class ForestAODReader : public BaseReader {
     TF1    *fJECScaleCorr;
     /// @brief Use JEU correction: 0 - not use (default), 1 - +JEU, -1 - -JEU
     Int_t   fUseJEU;
+    /// @brief  For MC use extra correction to address imperfection of MC w.r.t. data.
+    /// 0 - default, 1 - JES+, -1 - JES-
+    Int_t   fUseJERSystematics;
+    std::vector<Double_t> fJerEtaLow;
+    std::vector<Double_t> fJerEtaHi;
+    std::vector<Double_t> fJerDef;
+    std::vector<Double_t> fJerLow;
+    std::vector<Double_t> fJerHi;
+    /// @brief First parameter of JER fit with sqrt(a*a + b*b/x)
+    Double_t fAlphaJER;
+    /// @brief Second parameter of JER fit with sqrt(a*a + b*b/x)
+    Double_t fBetaJER;
+    /// @brief Gaussian distribution that is used to smear JER
+    TF1 *fJERSmearFunc;
+    /// @brief Random number generator
+    TRandom3 *fRndm;
 
     /// @brief  Verbose mode
     Bool_t  fVerbose;

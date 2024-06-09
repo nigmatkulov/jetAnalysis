@@ -36,13 +36,17 @@ ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEve
     fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
     fRecoPFJet2GenJetId{}, fGenJet2RecoPFJet{}, 
     fRecoCaloJet2GenJetId{}, fGenJet2RecoCaloJet{},
-    fUseExtraJEC{kFALSE}, fJECScaleCorr{nullptr}, fUseJEU{0}, 
+    fUseExtraJEC{kFALSE}, fJECScaleCorr{nullptr}, fUseJEU{0},
+    fUseJERSystematics{0}, fAlphaJER{0.0415552}, fBetaJER{0.960013},
+    fJERSmearFunc{nullptr}, fRndm{nullptr},
     fVerbose{kFALSE} {
     if ( fVerbose ) {
         std::cout << "ForestAODReader::ForestAODReader()" << std::endl;
     }
     // Initialize many variables
+    fRndm = new TRandom3(0);
     clearVariables();
+    setJERSystParams();
 }
 
 //_________________
@@ -61,13 +65,17 @@ ForestAODReader::ForestAODReader(const Char_t* inputStream,
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
     fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
-    fJECScaleCorr{nullptr}, fUseJEU{0}, fVerbose{kFALSE} {
+    fJECScaleCorr{nullptr}, fUseJEU{0}, fUseJERSystematics{0}, 
+    fAlphaJER{0.0415552}, fBetaJER{0.960013}, fJERSmearFunc{nullptr}, 
+    fVerbose{kFALSE} {
     // Initialize many variables
+    fRndm = new TRandom3(0);
     clearVariables();
 
     if ( fVerbose ) {
         std::cout << "ForestAODReader::ForestAODReader()" << std::endl;
     }
+    setJERSystParams();
 }
 
 //_________________
@@ -88,6 +96,114 @@ ForestAODReader::~ForestAODReader() {
     if (fEventCut) delete fEventCut;
     if (fJetCut) delete fJetCut;
     if (fJECScaleCorr) delete fJECScaleCorr;
+    if (fJERSmearFunc) delete fJERSmearFunc;
+}
+
+//________________
+void ForestAODReader::setJERSystParams() {
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::setJERSystParams";
+    }
+    fJerEtaLow.clear(); fJerEtaHi.clear(); fJerDef.clear(); fJerLow.clear(); fJerHi.clear();
+    fJerEtaLow.push_back(-5.191); fJerEtaHi.push_back(-3.139); fJerDef.push_back(1.1922); fJerLow.push_back(1.0434); fJerHi.push_back(1.341);
+    fJerEtaLow.push_back(-3.139); fJerEtaHi.push_back(-2.964); fJerDef.push_back(1.1869); fJerLow.push_back(1.0626); fJerHi.push_back(1.3112);
+    fJerEtaLow.push_back(-2.964); fJerEtaHi.push_back(-2.853); fJerDef.push_back(1.7788); fJerLow.push_back(1.578); fJerHi.push_back(1.9796);
+    fJerEtaLow.push_back(-2.853); fJerEtaHi.push_back(-2.500); fJerDef.push_back(1.3418); fJerLow.push_back(1.1327); fJerHi.push_back(1.5509);
+    fJerEtaLow.push_back(-2.500); fJerEtaHi.push_back(-2.322); fJerDef.push_back(1.2963); fJerLow.push_back(1.0592); fJerHi.push_back(1.5334);
+    fJerEtaLow.push_back(-2.322); fJerEtaHi.push_back(-2.043); fJerDef.push_back(1.1512); fJerLow.push_back(1.0372); fJerHi.push_back(1.2652);
+    fJerEtaLow.push_back(-2.043); fJerEtaHi.push_back(-1.930); fJerDef.push_back(1.1426); fJerLow.push_back(1.0212); fJerHi.push_back(1.264);
+    fJerEtaLow.push_back(-1.930); fJerEtaHi.push_back(-1.740); fJerDef.push_back(1.1000); fJerLow.push_back(0.9921); fJerHi.push_back(1.2079);
+    fJerEtaLow.push_back(-1.740); fJerEtaHi.push_back(-1.305); fJerDef.push_back(1.1278); fJerLow.push_back(1.0292); fJerHi.push_back(1.2264);
+    fJerEtaLow.push_back(-1.305); fJerEtaHi.push_back(-1.131); fJerDef.push_back(1.1609); fJerLow.push_back(1.0584); fJerHi.push_back(1.2634);
+    fJerEtaLow.push_back(-1.131); fJerEtaHi.push_back(-0.783); fJerDef.push_back(1.1464); fJerLow.push_back(1.0832); fJerHi.push_back(1.2096);
+    fJerEtaLow.push_back(-0.783); fJerEtaHi.push_back(-0.522); fJerDef.push_back(1.1948); fJerLow.push_back(1.1296); fJerHi.push_back(1.26);
+    fJerEtaLow.push_back(-0.522); fJerEtaHi.push_back(0.000); fJerDef.push_back(1.15958); fJerLow.push_back(1.095); fJerHi.push_back(1.224);
+    fJerEtaLow.push_back(0.000); fJerEtaHi.push_back(0.522); fJerDef.push_back(1.15958); fJerLow.push_back(1.095); fJerHi.push_back(1.224);
+    fJerEtaLow.push_back(0.522); fJerEtaHi.push_back(0.783); fJerDef.push_back(1.1948); fJerLow.push_back(1.1296); fJerHi.push_back(1.26);
+    fJerEtaLow.push_back(0.783); fJerEtaHi.push_back(1.131); fJerDef.push_back(1.1464); fJerLow.push_back(1.0832); fJerHi.push_back(1.2096);
+    fJerEtaLow.push_back(1.131); fJerEtaHi.push_back(1.305); fJerDef.push_back(1.1609); fJerLow.push_back(1.0584); fJerHi.push_back(1.2634);
+    fJerEtaLow.push_back(1.305); fJerEtaHi.push_back(1.740); fJerDef.push_back(1.1278); fJerLow.push_back(1.0292); fJerHi.push_back(1.2264);
+    fJerEtaLow.push_back(1.740); fJerEtaHi.push_back(1.930); fJerDef.push_back(1.1000); fJerLow.push_back(0.9921); fJerHi.push_back(1.2079);
+    fJerEtaLow.push_back(1.930); fJerEtaHi.push_back(2.043); fJerDef.push_back(1.1426); fJerLow.push_back(1.0212); fJerHi.push_back(1.264);
+    fJerEtaLow.push_back(2.043); fJerEtaHi.push_back(2.322); fJerDef.push_back(1.1512); fJerLow.push_back(1.0372); fJerHi.push_back(1.2652);
+    fJerEtaLow.push_back(2.322); fJerEtaHi.push_back(2.500); fJerDef.push_back(1.2963); fJerLow.push_back(1.0592); fJerHi.push_back(1.5334);
+    fJerEtaLow.push_back(2.500); fJerEtaHi.push_back(2.853); fJerDef.push_back(1.3418); fJerLow.push_back(1.1327); fJerHi.push_back(1.5509);
+    fJerEtaLow.push_back(2.853); fJerEtaHi.push_back(2.964); fJerDef.push_back(1.7788); fJerLow.push_back(1.578); fJerHi.push_back(1.9796);
+    fJerEtaLow.push_back(2.964); fJerEtaHi.push_back(3.139); fJerDef.push_back(1.1869); fJerLow.push_back(1.0626); fJerHi.push_back(1.3112);
+    fJerEtaLow.push_back(3.139); fJerEtaHi.push_back(5.191); fJerDef.push_back(1.1922); fJerLow.push_back(1.0434); fJerHi.push_back(1.341);
+
+    fJERSmearFunc = new TF1("fJERSmearFunc","sqrt( [0] * [0] + [1] * [1] / x )", 30., 800.);
+    fJERSmearFunc->SetParameter(0, fAlphaJER);
+    fJERSmearFunc->SetParameter(1, fBetaJER);
+
+    if ( fVerbose ) {
+        std::cout << "\t[DONE]\n";
+    }
+}
+
+//________________
+Double_t ForestAODReader::retrieveResolutionFactor(const Double_t& eta) {
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::retrieveResolutionFactor\n";
+    }
+
+    Double_t val{1.};
+    Double_t res{0.};
+
+    // Search for the bin index
+    for (Int_t i{0}; i<fJerEtaLow.size(); i++) {
+        if ( eta>=fJerEtaLow.at(i) && eta<fJerEtaHi.at(i) ) {
+            if ( fUseJERSystematics == -1 ) {
+                val = fJerLow.at(i);
+            }
+            else if ( fUseJERSystematics == 0 ) {
+                val = fJerDef.at(i);
+            }
+            else if ( fUseJERSystematics == 1 ) {
+                val = fJerHi.at(i);
+            }
+            else {
+                val = {1.};
+            }
+            break;
+        }
+    }
+
+    res = TMath::Sqrt( TMath::Max(val * val - 1., 0.) );
+
+    if ( fVerbose ) {
+        std::cout << "JER val: " << val << " Resolution factor: " << res << std::endl;
+        std::cout << "\t[DONE]\n";
+    }
+    return res;
+}
+
+//________________
+Double_t ForestAODReader::extraJERCorr(const Double_t &ptCorr, const Double_t &eta) {
+    if ( fVerbose ) {
+        std::cout << "ForestAODReader::extraJERCorr\n";
+    }
+
+    Double_t res = retrieveResolutionFactor(eta);
+    Double_t sigmaSmear{0.};
+    if ( ptCorr <= 30.) {
+        sigmaSmear = res * fJERSmearFunc->Eval( 31. );
+    }
+    else if ( ptCorr >= 800 ) {
+        sigmaSmear = res * fJERSmearFunc->Eval( 799. );
+    }
+    else {
+        sigmaSmear = res * fJERSmearFunc->Eval( ptCorr );
+    }
+
+    Double_t extraCorr = fRndm->Gaus( 1., sigmaSmear );
+
+    if ( fVerbose ) {
+        std::cout << "Resolution factor: " << res << " sigma: " << sigmaSmear 
+                  << " correction factor: " << extraCorr << std::endl;
+        std::cout << "\t[DONE]\n";
+    }
+    return extraCorr;
 }
 
 //_________________
@@ -272,6 +388,11 @@ Int_t ForestAODReader::init() {
     setupJEC();
     // Setup jet energy uncertainty files and pointer
     setupJEU();
+    if ( fIsMc ) {
+        if ( TMath::Abs(fUseJERSystematics)<=1 ) {
+            setJERSystParams();
+        }
+    }
     if ( fVerbose ) {
         std::cout << "ForestAODReader::init() is finished " << std::endl;
     }
@@ -1380,6 +1501,9 @@ Event* ForestAODReader::returnEvent() {
                     std::cout << "pTCorr after axtra correction for the jetType: " << pTcorr << std::endl; 
                 }
 
+                if ( fIsMc && ( TMath::Abs( fUseJERSystematics ) <= 1 ) ) {
+                    pTcorr *= extraJERCorr(pTcorr, fPFRecoJetEta[iJet]);
+                }
 
                 // JEU correction for the real data for systematic uncertainty calculation
                 if ( fUseJEU !=0 && fJEU && !fIsMc ) {

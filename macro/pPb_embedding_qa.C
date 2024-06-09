@@ -229,8 +229,8 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
     Int_t rebinX{1}, rebinY{1};
 
     // Plotting options
-    Bool_t plotKineCut{kTRUE};
-    Bool_t plotJetIdCut{kTRUE};
+    Bool_t plotKineCut{kFALSE};
+    Bool_t plotJetIdCut{kFALSE};
 
     // Make latex
     TLatex t;
@@ -778,12 +778,12 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
     hJESMean->GetYaxis()->SetRangeUser(0.95, 1.1);
     hJESMean->GetYaxis()->SetTitle("JES");
-    hJESMean->GetXaxis()->SetRangeUser(20, 200);
+    //hJESMean->GetXaxis()->SetRangeUser(20, 200);
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
     canv->SaveAs( Form("%s/pPb8160_%s_jes_mu_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
 
     hJESSigma->Draw();
-    hJESSigma->GetXaxis()->SetRangeUser(20, 800);
+    //hJESSigma->GetXaxis()->SetRangeUser(20, 800);
     hJESSigma->GetYaxis()->SetTitle("JER");
     t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
@@ -1174,7 +1174,7 @@ void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
 
     // Plotting options
     Bool_t plotKineCut{kFALSE};
-    Bool_t plotJetIdCut{kTRUE};
+    Bool_t plotJetIdCut{kFALSE};
 
     // Make latex
     TLatex t;
@@ -1433,10 +1433,10 @@ void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
     // Plot integrated eta distributions
     c->cd();
     setPadStyle();
-    if ( plotJetIdCut ) {
-        hJetEtaJetIdCut->Draw();
-    }
     hJetEtaTrkMaxCut->Draw("same");
+    if ( plotJetIdCut ) {
+        hJetEtaJetIdCut->Draw("same");
+    }
     if ( plotKineCut ) {
         hJetEtaKineCut->Draw("same");
     }
@@ -1934,7 +1934,7 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    TDatime dt;
+    TDatime dt; 
     TString date { Form( "%d",dt.GetDate() ) };
     TString inputFileName(inFileName);
 
@@ -1970,7 +1970,7 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     //compareInclusiveJetPtSpectra(inFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
-    //plotEfficiency(inFile, date, branchId);
+    // plotEfficiency(inFile, date, branchId);
 
     // Plot dijet distributions
     //plotDijetDistributions(inFile, date);
@@ -1982,8 +1982,8 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     // plotEtaDijetCorrelation(inFile, date);
 
     // Plot distributions for jetId
-    plotJetIdHistos(inFile, date);
+    // plotJetIdHistos(inFile, date);
 
     // Plot JES and JER
-    //plotJESandJER(inFile, date, branchId);
+    plotJESandJER(inFile, date, branchId);
 }
