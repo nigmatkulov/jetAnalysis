@@ -167,12 +167,12 @@ Double_t ForestAODReader::retrieveResolutionFactor(const Double_t& eta) {
             }
             break;
         }
-    }
+    } // for (Int_t i{0}; i<fJerEtaLow.size(); i++)
 
     res = TMath::Sqrt( TMath::Max(val * val - 1., 0.) );
 
     if ( fVerbose ) {
-        std::cout << "JER val: " << val << " Resolution factor: " << res << std::endl;
+        std::cout << "eta: " << eta << "JER val: " << val << " Resolution factor: " << res << std::endl;
         std::cout << "\t[DONE]\n";
     }
     return res;

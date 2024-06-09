@@ -42,6 +42,7 @@ int main(int argc, char const *argv[]) {
     TString path2JEC = "..";
     Double_t ptHatCut[2] {15., 30.};
     Int_t   useJEU{0};
+    Int_t   useJERSyst{0}; //0-default, 1-JER+, -1-JER-
     Double_t etaShift = 0.4654094531;
 
     // Sequence of command line arguments:
@@ -161,6 +162,12 @@ int main(int argc, char const *argv[]) {
         reader->addJECFile( JECFileDataName.Data() );
         reader->setJEUFileName( JEUFileName );
     }
+    if ( isMc ) {
+        reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use
+        reader->setJERFitParams(0.0415552, 0.960013);
+        reader->setJERSystParams();
+    }
+
     //reader->setVerbose();
 
     // Pass reader to the manager

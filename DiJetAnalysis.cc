@@ -773,6 +773,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(dijetRecoInfo);
             fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(dijetRecoInfo, ptHatW);
             fHM->hRecoDijetEta->Fill( dijetRecoEta, ptHatW );
+            fHM->hRecoDijetPtEta->Fill( dijetRecoPt, dijetRecoEta, ptHatW );
             fHM->hRecoDijetPtEtaDphi->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, 1. );
             fHM->hRecoDijetPtEtaDphiWeighted->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, ptHatW );
             fHM->hRecoDijetEtaCM->Fill( dijetRecoEtaCM, ptHatW );

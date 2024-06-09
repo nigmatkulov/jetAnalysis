@@ -31,7 +31,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   fEtaBins{52}, fEtaRange{-5.2, 5.2},
   fPhiBins{32}, fPhiRange{-TMath::Pi(), TMath::Pi()},
   fDijetPtBins{194}, fDijetPtRange{30., 1000.},
-  fDijetEtaBins{50}, fDijetEtaRange{-5.0, 5.0},
+  fDijetEtaBins{48}, fDijetEtaRange{-4.8, 4.8},
   fDijetDphiBins{16}, fDijetDphiRange{-TMath::Pi(), TMath::Pi()},
   fPtHatBins{100}, fPtHatRange{15., 1015.},
   fFracBins{100}, fFracRange{0., 1.},
@@ -77,6 +77,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRecoInclusiveJetPt{nullptr},
   hRecoPtLeadPtSublead{nullptr},
   hRecoEtaLeadEtaSublead{nullptr},
+  hRecoDijetPtEta{nullptr},
   hRecoDijetPtEtaDphi{nullptr},
   hRecoDijetPtEtaDphiJetId{nullptr},
   hRecoInclusiveAllJetPtVsEta{nullptr},
@@ -262,6 +263,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoPtLeadPtSublead) delete hRecoPtLeadPtSublead;
     if (hRecoEtaLeadEtaSublead) delete hRecoEtaLeadEtaSublead;
     if (hRecoDijetEta) delete hRecoDijetEta;
+    if (hRecoDijetPtEta) delete hRecoDijetPtEta;
     if (hRecoDijetPtEtaDphi) delete hRecoDijetPtEtaDphi;
     if (hRecoDijetPtEtaDphiWeighted) delete hRecoDijetPtEtaDphiWeighted;
     if (hRecoDijetEtaCM) delete hRecoDijetEtaCM;
@@ -987,6 +989,10 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     hRecoDijetEta = new TH1D("hRecoDijetEta","Reco dijet #eta;Reco #eta^{dijet};Entries",
                              fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
     hRecoDijetEta->Sumw2();
+    hRecoDijetPtEta = new TH2D("hRecoDijetPtEta", "Reco dijet #eta vs p_{T};p_{T}^{ave} (GeV/c);#eta^{dijet}", 
+                               fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                               fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEta->Sumw2();
     hRecoDijetPtEtaDphi = new TH3D("hRecoDijetPtEtaDphi","Reco dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
                                    fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                    fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
@@ -1171,6 +1177,7 @@ void HistoManagerDiJet::writeOutput() {
     hRecoInclusiveJetPt->Write();
     hRecoPtLeadPtSublead->Write();
     hRecoEtaLeadEtaSublead->Write();
+    hRecoDijetPtEta->Write();
     hRecoDijetEta->Write();
     hRecoDijetPtEtaDphi->Write();
     hRecoDijetPtEtaDphiWeighted->Write();
