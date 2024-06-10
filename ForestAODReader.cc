@@ -1503,9 +1503,10 @@ Event* ForestAODReader::returnEvent() {
 
                 if ( fIsMc && ( TMath::Abs( fUseJERSystematics ) <= 1 ) ) {
                     // pTcorr *= extraJERCorr( pTcorr, fPFRecoJetEta[iJet]);
-
-                    pTcorr *= extraJERCorr( fEvent->genJetCollection()->at( fRecoPFJet2GenJetId.at(iJet) )->pt(), 
-                                            fPFRecoJetEta[iJet]);
+                    if ( jet->hasMatching() ) {
+                        pTcorr *= extraJERCorr( fEvent->genJetCollection()->at( fRecoPFJet2GenJetId.at(iJet) )->pt(), 
+                                                fPFRecoJetEta[iJet]);
+                    }
                 }
 
                 // JEU correction for the real data for systematic uncertainty calculation
