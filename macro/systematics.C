@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include "TLine.h"
 #include "TLatex.h"
+#include "TSystem.h"
 
 // C++ headers
 #include <iostream>
@@ -1146,6 +1147,197 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
 }
 
 //________________
+void compareJER(TFile *embFile, TFile *jerDefFile, TFile *jerUpFile, TFile *jerDownFile, TString date) {
+
+    // Retrieve JES histogram
+    THnSparseD *hJESPtEtaPhiPure = (THnSparseD*)embFile->Get("hJESInclusiveJetPtEtaPhiWeighted");
+    hJESPtEtaPhiPure->SetName("hJESPtEtaPhiPure");
+    THnSparseD *hJESPtEtaPhiJerDef = (THnSparseD*)jerDefFile->Get("hJESInclusiveJetPtEtaPhiWeighted");
+    hJESPtEtaPhiJerDef->SetName("hJESPtEtaPhiJerDef");
+    THnSparseD *hJESPtEtaPhiJerUp = (THnSparseD*)jerUpFile->Get("hJESInclusiveJetPtEtaPhiWeighted");
+    hJESPtEtaPhiJerUp->SetName("hJESPtEtaPhiJerUp");
+    THnSparseD *hJESPtEtaPhiJerDown = (THnSparseD*)jerDownFile->Get("hJESInclusiveJetPtEtaPhiWeighted");
+    hJESPtEtaPhiJerDown->SetName("hJESPtEtaPhiJerDown");
+
+    Int_t rebinX{1}, rebinY{1};
+
+    // Styles
+    Int_t pureType{2};
+    Int_t upType{0};
+    Int_t downType{1};
+    Int_t defType{5};
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.04);
+
+    TLegend *leg;
+
+    // Get JES vs ref pT
+    hJESPtEtaPhiPure->GetAxis(2)->SetRange(20, 32); // -1.2 < eta < 1.2
+    TH2D* hJESvsPtPure = (TH2D*)hJESPtEtaPhiPure->Projection(0, 1);
+    hJESvsPtPure->SetName("hJESvsPtPure");
+    hJESvsPtPure->RebinX( rebinX );
+    hJESvsPtPure->RebinY( rebinY );
+    set2DStyle( hJESvsPtPure );
+
+    hJESPtEtaPhiJerDef->GetAxis(2)->SetRange(20, 32); // -1.2 < eta < 1.2
+    TH2D* hJESvsPtJerDef = (TH2D*)hJESPtEtaPhiJerDef->Projection(0, 1);
+    hJESvsPtJerDef->SetName("hJESvsPtJerDef");
+    hJESvsPtJerDef->RebinX( rebinX );
+    hJESvsPtJerDef->RebinY( rebinY );
+    set2DStyle( hJESvsPtJerDef );
+
+    hJESPtEtaPhiJerUp->GetAxis(2)->SetRange(20, 32); // -1.2 < eta < 1.2
+    TH2D* hJESvsPtJerUp = (TH2D*)hJESPtEtaPhiJerUp->Projection(0, 1);
+    hJESvsPtJerUp->SetName("hJESvsPtJerUp");
+    hJESvsPtJerUp->RebinX( rebinX );
+    hJESvsPtJerUp->RebinY( rebinY );
+    set2DStyle( hJESvsPtJerUp );
+
+    hJESPtEtaPhiJerDown->GetAxis(2)->SetRange(20, 32); // -1.2 < eta < 1.2
+    TH2D* hJESvsPtJerDown = (TH2D*)hJESPtEtaPhiJerDown->Projection(0, 1);
+    hJESvsPtJerDown->SetName("hJESvsPtJerDown");
+    hJESvsPtJerDown->RebinX( rebinX );
+    hJESvsPtJerDown->RebinY( rebinY );
+    set2DStyle( hJESvsPtJerDown );
+
+    // Prepare 1D histograms
+    TH1D *hJERVsPtPure;
+    TH1D *hJERVsPtJerUp;
+    TH1D *hJERVsPtJerDown;
+    TH1D *hJERVsPtJerDef;
+
+    TH1D *hJESVsPtPure;
+    TH1D *hJESVsPtJerUp;
+    TH1D *hJESVsPtJerDown;
+    TH1D *hJESVsPtJerDef;
+
+    TF1 *fitPure = new TF1("fitPure", "TMath::Sqrt([0] + [1]/x)", 30., 800.);
+    fitPure->SetParameters(0.0415552, 0.960013);
+    fitPure->SetLineColor(pureType);
+    fitPure->SetLineWidth(2);
+    TF1 *fitJerDef = new TF1("fitJerDef", "TMath::Sqrt([0] + [1]/x)", 30., 800.);
+    fitJerDef->SetParameters(0.0415552, 0.960013);
+    fitJerDef->SetLineColor(defType);
+    fitJerDef->SetLineWidth(2);
+    TF1 *fitJerUp = new TF1("fitJerUp", "TMath::Sqrt([0] + [1]/x)", 30., 800.);
+    fitJerUp->SetParameters(0.0415552, 0.960013);
+    fitJerUp->SetLineColor(upType);
+    fitJerUp->SetLineWidth(2);
+    TF1 *fitJerDown = new TF1("fitJerDown", "TMath::Sqrt([0] + [1]/x)", 30., 800.);
+    fitJerDown->SetParameters(0.0415552, 0.960013);
+    fitJerDown->SetLineColor(downType);
+    fitJerDown->SetLineWidth(2);
+
+    // Make slices
+    hJESvsPtPure->FitSlicesY();
+    hJESvsPtJerDef->FitSlicesY();
+    hJESvsPtJerUp->FitSlicesY();
+    hJESvsPtJerDown->FitSlicesY();
+
+    // Retrieve JER
+    hJERVsPtPure = (TH1D*)gDirectory->Get("hJESvsPtPure_2");
+    hJERVsPtPure->SetName("hJERVsPtPure");
+    hJERVsPtPure->GetYaxis()->SetTitle("JER");
+    set1DStyle(hJERVsPtPure, pureType);
+
+    hJERVsPtJerUp = (TH1D*)gDirectory->Get("hJESvsPtJerUp_2");
+    hJERVsPtJerUp->SetName("hJERVsPtJerUp");
+    hJERVsPtJerUp->GetYaxis()->SetTitle("JER");
+    set1DStyle(hJERVsPtJerUp, upType);
+
+    hJERVsPtJerDown = (TH1D*)gDirectory->Get("hJESvsPtJerDown_2");
+    hJERVsPtJerDown->SetName("hJERVsPtJerDown");
+    hJERVsPtJerDown->GetYaxis()->SetTitle("JER");
+    set1DStyle(hJERVsPtJerDown, downType);
+
+    hJERVsPtJerDef = (TH1D*)gDirectory->Get("hJESvsPtJerDef_2");
+    hJERVsPtJerDef->SetName("hJERVsPtJerDef");
+    hJERVsPtJerDef->GetYaxis()->SetTitle("JER");
+    set1DStyle(hJERVsPtJerDef, defType);
+
+    // Retrieve JES
+    hJESVsPtPure = (TH1D*)gDirectory->Get("hJESvsPtPure_1");
+    hJESVsPtPure->SetName("hJESVsPtPure");
+    hJESVsPtPure->GetYaxis()->SetTitle("JES");
+    set1DStyle(hJESVsPtPure, pureType);
+
+    hJESVsPtJerUp = (TH1D*)gDirectory->Get("hJESvsPtJerUp_1");
+    hJESVsPtJerUp->SetName("hJESVsPtJerUp");
+    hJESVsPtJerUp->GetYaxis()->SetTitle("JES");
+    set1DStyle(hJESVsPtJerUp, upType);
+
+    hJESVsPtJerDown = (TH1D*)gDirectory->Get("hJESvsPtJerDown_1");
+    hJESVsPtJerDown->SetName("hJESVsPtJerDown");
+    hJESVsPtJerDown->GetYaxis()->SetTitle("JES");
+    set1DStyle(hJESVsPtJerDown, downType);
+
+    hJESVsPtJerDef = (TH1D*)gDirectory->Get("hJESvsPtJerDef_1");
+    hJESVsPtJerDef->SetName("hJESVsPtJerDef");
+    hJESVsPtJerDef->GetYaxis()->SetTitle("JES");
+    set1DStyle(hJESVsPtJerDef, defType);
+
+    // Set fit line properties
+    hJERVsPtPure->Fit("fitPure","MRE0");
+    hJERVsPtPure->SetLineColor(kBlack);
+    hJERVsPtJerDef->Fit("fitJerDef","MRE0");
+    hJERVsPtJerDef->SetLineColor(kMagenta);
+    hJERVsPtJerUp->Fit("fitJerUp","MRE0");
+    hJERVsPtJerUp->SetLineColor(kRed);
+    hJERVsPtJerDown->Fit("fitJerDown","MRE0");
+    hJERVsPtJerDown->SetLineColor(kBlue);
+
+
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    canv->cd();
+    setPadStyle();
+
+    hJERVsPtPure->Draw();
+    fitPure->Draw("same");
+    hJERVsPtJerDef->Draw("same");
+    fitJerDef->Draw("same");
+    hJERVsPtJerUp->Draw("same");
+    fitJerUp->Draw("same");
+    hJERVsPtJerDown->Draw("same");
+    fitJerDown->Draw("same");
+
+    leg = new TLegend(0.4, 0.6, 0.65, 0.8);
+    leg->SetTextSize(0.04);
+    leg->SetLineWidth(0);
+    leg->AddEntry(hJERVsPtPure, Form("JER pure"), "p");
+    leg->AddEntry(hJERVsPtJerDef, Form("JER def"), "p");
+    leg->AddEntry(hJERVsPtJerUp, Form("JER+"), "p");
+    leg->AddEntry(hJERVsPtJerDown, Form("JER-"), "p");
+    leg->Draw();
+
+    t.DrawLatexNDC(0.4, 0.82, Form("Fit func: #sqrt{a + b/x}") );
+    t.DrawLatexNDC(0.6, 0.75, Form("Pure a: %5.4f b: %4.3f", fitPure->GetParameter(0), fitPure->GetParameter(1)) );
+    t.DrawLatexNDC(0.6, 0.7,  Form("Def  a: %5.4f b: %4.3f", fitJerDef->GetParameter(0), fitJerDef->GetParameter(1)) );
+    t.DrawLatexNDC(0.6, 0.65, Form("JER+ a: %5.4f b: %4.3f", fitJerUp->GetParameter(0), fitJerUp->GetParameter(1)) );
+    t.DrawLatexNDC(0.6, 0.6,  Form("JER- a: %5.4f b: %4.3f", fitJerDown->GetParameter(0), fitJerDown->GetParameter(1)) );
+
+    TCanvas *canv2 = new TCanvas("canv2", "canv2", 1200, 800);
+    canv2->cd();
+    setPadStyle();
+
+    hJESVsPtPure->Draw();
+    hJESVsPtJerUp->Draw("same");
+    hJESVsPtJerDown->Draw("same");
+    hJESVsPtJerDef->Draw("same");
+
+    leg = new TLegend(0.4, 0.6, 0.65, 0.8);
+    leg->SetTextSize(0.04);
+    leg->SetLineWidth(0);
+    leg->AddEntry(hJESVsPtPure, Form("JES pure"), "p");
+    leg->AddEntry(hJESVsPtJerDef, Form("JES def"), "p");
+    leg->AddEntry(hJESVsPtJerUp, Form("JES+"), "p");
+    leg->AddEntry(hJESVsPtJerDown, Form("JES-"), "p");
+    leg->Draw();
+
+}
+
+//________________
 void systematics() {
 
     // Base style
@@ -1220,9 +1412,9 @@ void systematics() {
     // plotDifferentDirections( pbGoingFile, pGoingFile, date );
     // plotDifferentDirections( pbGoingEmbeddingFile, pGoingEmbeddingFile, date );
 
-    compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, date);
+    // compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, date);
 
-    // plotJEU( defaultFile, jeuUpFile, jeuDownFile, date );
+    plotJEU( defaultFile, jeuUpFile, jeuDownFile, date );
 
     // plotJER(jerDefFile, jerUpFile, jerDownFile, date);
 
@@ -1230,6 +1422,6 @@ void systematics() {
 
     // compareJetCollections( defaultFile, akcs4File, date );
 
-    
+    // compareJER( embeddingFile, jerDefFile, jerUpFile, jerDownFile, date );
 
 }
