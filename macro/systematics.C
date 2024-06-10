@@ -97,7 +97,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     }
     else if (type == 1) {
         color = 4;        // blue
-        markerStyle = 71; // open circle
+        markerStyle = 24; // open circle
     }
     else if (type == 2) {
         color = 1;        // black
@@ -105,7 +105,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     }
     else if (type == 3) {
         color = 2;        // red
-        markerStyle = 71; // open circle
+        markerStyle = 24; // open circle
     }
     else if (type == 4) {
         color = 4;        // blue
@@ -113,7 +113,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     }
     else {
         color = 6;        // magenta
-        markerStyle = 76; // open star
+        markerStyle = 30; // open star
     }
 
     h->SetLineWidth( lineWidth );
@@ -355,7 +355,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
     TString frame = "lab";
 
     // Do rebinning if needed
-    Int_t rebinX{1}, rebinY{1};
+    Int_t rebinX{1}, rebinY{4};
     hExpPtEtaPbGoing->RebinX( rebinX );
     hExpPtEtaPbGoing->RebinY( rebinY );
     hExpPtEtaPGoing->RebinX( rebinX );
@@ -430,6 +430,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
         hExpEtaPb2PGoingRatio[i] = dynamic_cast<TH1D*>( hExpEtaPbGoing[i]->Clone( Form("hExpEtaPb2PGoingRatio_%d", i) ) );
         make1DRatio(hExpEtaPb2PGoingRatio[i], hExpEtaPGoing[i], Form("hExpEtaPb2PGoingRatio_%d", i) );
         hExpEtaPb2PGoingRatio[i]->GetYaxis()->SetTitle("Pb-going / p-going");
+        set1DStyle( hExpEtaPb2PGoingRatio[i], expPbGoingType);
 
         // Mc Pb-going projection
         hMcEtaPbGoing[i] = dynamic_cast<TH1D*>( hMcPtEtaPbGoing->ProjectionY( Form("hMcEtaPbGoing_%d", i), 
@@ -447,6 +448,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
         hMcEtaPb2PGoingRatio[i] = dynamic_cast<TH1D*>( hMcEtaPbGoing[i]->Clone( Form("hMcEtaPb2PGoingRatio_%d", i) ) );
         make1DRatio(hMcEtaPb2PGoingRatio[i], hMcEtaPGoing[i], Form("hMcEtaPb2PGoingRatio_%d", i) );
         hMcEtaPb2PGoingRatio[i]->GetYaxis()->SetTitle("Pb-going / p-going");
+        set1DStyle( hMcEtaPb2PGoingRatio[i], mcPbGoingType);
 
         // Make double ratio
         hExpOverMcPb2PGoingRatio[i] = dynamic_cast<TH1D*>( hExpEtaPb2PGoingRatio[i]->Clone( Form("hExpOverMcPb2PGoingRatio_%d", i) ) );
@@ -743,25 +745,30 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
 
         std::cout << "pT bin: " << i << std::endl;
 
-        // Nominal selection
+        // JER default selection
         hEtaDef[i] = projectEtaFrom3D(hPtEtaDphiDef, Form("hEtaDef_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
         rescaleEta( hEtaDef[i] );
         set1DStyle(hEtaDef[i], defType);
 
-        // JEU up selection
+        // JER up selection
         hEtaUp[i] = projectEtaFrom3D(hPtEtaDphiUp, Form("hEtaUp_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
         rescaleEta( hEtaUp[i] );
         set1DStyle(hEtaUp[i], upType);
 
-        // JEU down selection
+        // JER down selection
         hEtaDown[i] = projectEtaFrom3D(hPtEtaDphiDown, Form("hEtaDown_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
         rescaleEta( hEtaDown[i] );
         set1DStyle(hEtaDown[i], downType);
 
-        // Ratio of JEU up to default ratio
-        hEtaRatioUp[i] = (TH1D*)hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) );
+        // Ratio of JER up to default ratio
+        hEtaRatioUp[i] = dynamic_cast<TH1D*>( hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) ) );
         make1DRatio(hEtaRatioUp[i], hEtaDef[i], Form("hEtaRatioUp_%d", i), upType );
         hEtaRatioUp[i]->GetYaxis()->SetTitle("JER / Default");
+
+        // Ratio of JER down to default ratio
+        hEtaRatioDown[i] = dynamic_cast<TH1D*>( hEtaDown[i]->Clone( Form("hEtaRatioDown_%d", i) ) );
+        make1DRatio(hEtaRatioDown[i], hEtaDef[i], Form("hEtaRatioDown_%d", i), downType );
+        hEtaRatioDown[i]->GetYaxis()->SetTitle("JER / Default");
 
         // Plot comparison
         canv->cd();
@@ -1186,6 +1193,8 @@ void systematics() {
     TFile *jerDefFile = TFile::Open( jerDefFileName.Data() );
     TFile *jerUpFile = TFile::Open( jerUpFileName.Data() );
     TFile *jerDownFile = TFile::Open( jerDownFileName.Data() );
+    TFile *pbGoingEmbeddingFile = TFile::Open( pbGoingEmbeddingFileName );
+    TFile *pGoingEmbeddingFile = TFile::Open( pGoingEmbeddingFileName );
 
     // Checks files are okay
     if ( !checkFileIsGood( defaultFile ) ) return;
@@ -1209,10 +1218,13 @@ void systematics() {
     }
 
     // plotDifferentDirections( pbGoingFile, pGoingFile, date );
+    // plotDifferentDirections( pbGoingEmbeddingFile, pGoingEmbeddingFile, date );
+
+    compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, date);
 
     // plotJEU( defaultFile, jeuUpFile, jeuDownFile, date );
 
-    plotJER(jerDefFile, jerUpFile, jerDownFile, TString date);
+    // plotJER(jerDefFile, jerUpFile, jerDownFile, date);
 
     // plotPointingResolution( embeddingFile, date );
 
