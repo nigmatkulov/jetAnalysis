@@ -1973,7 +1973,7 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     // plotEfficiency(inFile, date, branchId);
 
     // Plot dijet distributions
-    //plotDijetDistributions(inFile, date);
+    plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
     //plotRecoAndFakes(inFile, date, branchId);
@@ -1985,5 +1985,5 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     // plotJetIdHistos(inFile, date);
 
     // Plot JES and JER
-    plotJESandJER(inFile, date, branchId);
+    //plotJESandJER(inFile, date, branchId);
 }

@@ -19,7 +19,6 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <cstdio>
 
 //________________
 bool directoryExists(const char* directoryPath) {
@@ -184,9 +183,10 @@ void make1DRatio(TH1D *hRat, TH1D *hDen, const Char_t *ratioName = "Ratio to def
         std::cout << "Denominator does not exist" << std::endl;
     }
 
-    hRat->Divide( hRat, hDen, 1., 1. /* , "b" */);
+    hRat->Divide( hRat, hDen, 1., 1. /*, "b" */);
     hRat->GetYaxis()->SetTitle( ratioName );
     hRat->GetYaxis()->SetRangeUser(0.8, 1.2);
+    //hRat->GetXaxis()->SetRangeUser(-3., 3.);
     set1DStyle(hRat, style);
 }
 
@@ -221,8 +221,8 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
-    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 , 3};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194, 194};
 
     // Styles
     Int_t pbGoingType{0};
@@ -341,7 +341,7 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
 }
 
 //________________
-void dirSystematics(TF1 *fitf, TH1D *h, TGraph* syst) {
+void dirSystematics(TF1 *fitf, TH1D *h, TH1D* hSyst, TGraph* syst) {
 
     std::cout << Form("Def file name: %s\n", h->GetName());
     // Loop over the bins and estimate systematics for those that have entries
@@ -349,8 +349,13 @@ void dirSystematics(TF1 *fitf, TH1D *h, TGraph* syst) {
         //if ( h->GetBinContent(i) == 0 ) continue;
         Double_t xVal = h->GetXaxis()->GetBinCenter(i);
         Double_t yVal = TMath::Abs( fitf->Eval( xVal ) - 1.);
-        std::cout << Form("x: %3.2f y [perc.]: %.3f ", xVal, yVal * 100.) << std::endl;;
+        if ( TMath::Abs( h->GetBinContent(i) ) < 0.0001 ) {
+            yVal = 0.;
+        }
+        std::cout << Form("bin content: %f x: %3.2f y [perc.]: %.3f ", h->GetBinContent(i), xVal, yVal * 100.) << std::endl;;
         syst->SetPoint(i-1, xVal, yVal );
+
+        hSyst->SetBinContent(i, yVal);
     } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
 }
 
@@ -396,8 +401,8 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
-    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 , 3};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194, 194};
 
     // Styles
     Int_t expPbGoingType{0};
@@ -422,6 +427,10 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
 
     TF1 *fitRatio[ ptDijetLow.size() ];
     TGraph *grSyst[ ptDijetLow.size() ];
+
+    TH1D *hDirSyst[ ptDijetLow.size() ];
+    TH1D *hJeuSyst[ ptDijetLow.size() ];
+    TH1D *hJerSyst[ ptDijetLow.size() ];
 
     TLine *line;
     TLegend *leg;
@@ -488,13 +497,17 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
         set1DStyle( hExpOverMcPb2PGoingRatio[i], expOverMcType );
 
         // Fit function
-        fitRatio[i] = new TF1(Form("fitRatio_%d",i), "[0] + [1] * x", -4.8, 4.8);
-        fitRatio[i]->SetParameters(0., 0.001);
+        // fitRatio[i] = new TF1(Form("fitRatio_%d",i), "[0] + [1] * x + [2] * x * x", -3.5, 3.5);
+        fitRatio[i] = new TF1(Form("fitRatio_%d",i), "[0] + [1] * (x - [2]) * (x - [2])", -3.5, 3.5);
+        fitRatio[i]->SetParameters(0., 0.001, 0.465);
+        // fitRatio[i]->SetParLimits(2, 0., 1e6);
+        fitRatio[i]->SetParLimits(1, 0., 1e6);
         fitRatio[i]->SetLineColor( kRed );
         fitRatio[i]->SetLineWidth( 2 );
         hExpOverMcPb2PGoingRatio[i]->Fit(Form("fitRatio_%d",i), "MRE0");
+        hDirSyst[i] = dynamic_cast<TH1D*>( hDefEta[i]->Clone( Form("hDirSyst_%d",i) ) );
         grSyst[i] = new TGraph();
-        dirSystematics(fitRatio[i], hDefEta[i], grSyst[i]);
+        dirSystematics(fitRatio[i], hDefEta[i], hDirSyst[i], grSyst[i]);
         grSyst[i]->SetName( Form("dirSyst_%d",i) );
 
         // Write systematic uncertainty to ASCII file
@@ -584,6 +597,14 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
 
     cComp->SaveAs( Form("%s/pPb8160_etaDijet_exp2mc_dirComp_all_%s.pdf", date.Data(), frame.Data() ) );
     cRat->SaveAs( Form("%s/pPb8160_etaDijet_exp2mc_dirRat_all_%s.pdf", date.Data(), frame.Data() ) );
+
+    TFile *oFile = new TFile( Form("%s/pPb8160_dirSyst_%s.root", date.Data(), frame.Data() ), "recreate" );
+    for (Int_t i{0}; i<ptBins; i++) {
+        hDirSyst[i]->GetYaxis()->SetRangeUser(0., 0.3);
+        hDirSyst[i]->GetXaxis()->SetRangeUser(-4.8, 4.8);
+        hDirSyst[i]->Write();
+    } // for (Int_t i{0}; i<ptBins; i++)
+    oFile->Close();
 }
 
 //________________
@@ -591,7 +612,7 @@ void jeuSystematics(TF1 *jeuUp, TF1 *jeuDown, TH1D *hDef, TGraph* syst) {
 
     // Loop over the bins and estimate systematics for those that have entries
     for (Int_t i{1}; i<=hDef->GetNbinsX(); i++ ) {
-        if ( hDef->GetBinContent(i) == 0 ) continue;
+        // if ( hDef->GetBinContent(i) == 0 ) continue;
         Double_t xVal = hDef->GetBinCenter(i);
 
         Double_t yUp = jeuUp->Eval( xVal );
@@ -599,14 +620,19 @@ void jeuSystematics(TF1 *jeuUp, TF1 *jeuDown, TH1D *hDef, TGraph* syst) {
         std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
         Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
         Double_t sysYabs = sysYrel * hDef->GetBinContent(i);
-        std::cout << Form("syst [perc.]: %.3f syst [abs. val.]: %.8f\n", sysYrel * 100., sysYabs );
+
+        // if ( TMath::Abs(hDef->GetBinContent(i)) < 0.00001 ) {
+        //     sysYrel = 0.;
+        // }
+
+        std::cout << Form("bin content: %f syst [rel. uncrt.]: %.3f syst [abs. uncrt.]: %.8f\n", hDef->GetBinContent(i), sysYrel * 100., sysYabs );
 
         syst->SetPoint(i-1, xVal, sysYrel );
     } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
 }
 
 //________________
-void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString date) {
+void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *dataFile, TString date, Bool_t drawFits = kTRUE) {
 
     TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get("hRecoDijetPtEtaDphiWeighted");
     hPtEtaDphiDef->SetName("hPtEtaDphiDef");
@@ -614,14 +640,17 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
     hPtEtaDphiUp->SetName("hPtEtaDphiUp");
     TH3D *hPtEtaDphiDown = (TH3D*)jeuDownFile->Get("hRecoDijetPtEtaDphiWeighted");
     hPtEtaDphiDown->SetName("hPtEtaDphiDown");
+    
+    TH3D *hPtEtaDphiData = (TH3D*)dataFile->Get("hRecoDijetPtEtaDphiWeighted");
+    hPtEtaDphiData->SetName("hPtEtaDphiData");
 
     TString frame = "lab";
 
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
-    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 , 3};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194, 194};
 
     // Styles
     Int_t defType{2};
@@ -636,6 +665,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
     TH1D *hEtaDef[ ptDijetLow.size() ];
     TH1D *hEtaUp[ ptDijetLow.size() ];
     TH1D *hEtaDown[ ptDijetLow.size() ];
+    TH1D *hEtaData[ ptDijetLow.size() ];
 
     TH1D *hEtaRatioUp[ ptDijetLow.size() ];
     TH1D *hEtaRatioDown[ ptDijetLow.size() ];
@@ -664,6 +694,11 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
 
         std::cout << "pT bin: " << i << std::endl;
 
+        // Read histograms for the real data
+        hEtaData[i] = projectEtaFrom3D(hPtEtaDphiData, Form("hEtaData_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        rescaleEta( hEtaData[i] );
+        set1DStyle(hEtaData[i], defType);
+
         // Nominal selection
         hEtaDef[i] = projectEtaFrom3D(hPtEtaDphiDef, Form("hEtaDef_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
         rescaleEta( hEtaDef[i] );
@@ -682,10 +717,13 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
         // Ratio of JEU up to default ratio
         hEtaRatioUp[i] = (TH1D*)hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) );
         make1DRatio(hEtaRatioUp[i], hEtaDef[i], Form("hEtaRatioUp_%d", i), upType );
-        hEtaRatioUp[i]->GetYaxis()->SetTitle("JEU / Default");
+        hEtaRatioUp[i]->GetYaxis()->SetTitle("JES / Default");
 
+        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d", i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", -5., 5.);
         fitRatioUp[i] = new TF1(Form("fitRatioUp_%d", i), "[0]+[1]*x+[2]*x*x", -5., 5.);
+        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d", i), "[0]+[1]*(x-0.465)*(x-0.465)", -5., 5.);
         fitRatioUp[i]->SetParameters(0.986138, -0.0026037, 0.0119519);
+        fitRatioUp[i]->SetParLimits(2, 0., 1e6);
         fitRatioUp[i]->SetLineColor(upType);
         fitRatioUp[i]->SetLineWidth(2);
         hEtaRatioUp[i]->Fit(Form("fitRatioUp_%d", i), "MRE0");
@@ -693,17 +731,20 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
         // Ratio of JEU down to default ratio
         hEtaRatioDown[i] = (TH1D*)hEtaDown[i]->Clone( Form("hEtaRatioDown_%d", i) );
         make1DRatio(hEtaRatioDown[i], hEtaDef[i], Form("hEtaRatioDown_%d", i), downType );
-        hEtaRatioDown[i]->GetYaxis()->SetTitle("JEU / Default");
+        hEtaRatioDown[i]->GetYaxis()->SetTitle("JES / Default");
 
+        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d", i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", -5., 5.);
         fitRatioDown[i] = new TF1(Form("fitRatioDown_%d", i), "[0]+[1]*x+[2]*x*x", -5., 5.);
+        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d", i), "[0]+[1]*(x-0.465)*(x-0.465)", -5., 5.);
         fitRatioDown[i]->SetParameters(1.01234, 0.00637344, -0.0104644);
+        fitRatioDown[i]->SetParLimits(2, -1e6, 0);
         fitRatioDown[i]->SetLineColor(downType);
         fitRatioDown[i]->SetLineWidth(2);
         hEtaRatioDown[i]->Fit(Form("fitRatioDown_%d", i), "MRE0");
 
         // Calculate systematic uncertainty
         grSyst[i] = new TGraph();
-        jeuSystematics(fitRatioUp[i], fitRatioDown[i], hEtaDef[i], grSyst[i]);
+        jeuSystematics(fitRatioUp[i], fitRatioDown[i], hEtaData[i], grSyst[i]);
         grSyst[i]->SetName( Form("grSystJEU_%d", i) );
         // std::cout << "Number of points in graph: " << grSyst[i]->GetN() << std::endl;
         // grSyst[i]->Print();
@@ -733,12 +774,13 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
         if ( outFile2.is_open() ) {
             for (Int_t iPoint = 1; iPoint <= hEtaDef[i]->GetNbinsX(); iPoint++) {
                 // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0}, yErr{0}; 
+                Double_t x{0}, y{0}, xErr{0}, yErr{0}; 
                 x = hEtaDef[i]->GetXaxis()->GetBinCenter(iPoint);
                 y = hEtaDef[i]->GetBinContent(iPoint);
-                yErr = hEtaDef[i]->GetBinError(iPoint);   
+                xErr = hEtaDef[i]->GetXaxis()->GetBinWidth(iPoint) / 2;
+                yErr = hEtaDef[i]->GetBinError(iPoint);
                 // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFile2 << x << " " << y << " " << yErr << std::endl;
+                outFile2 << x << " " << y << " " << xErr << " " << yErr << std::endl;
             }
             outFile2.close();
         }
@@ -760,8 +802,8 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
         leg->AddEntry(hEtaDef[i], Form("Default"), "p");
-        leg->AddEntry(hEtaUp[i], Form("JEU+"), "p");
-        leg->AddEntry(hEtaDown[i], Form("JEU-"), "p");
+        leg->AddEntry(hEtaUp[i], Form("JES+"), "p");
+        leg->AddEntry(hEtaDown[i], Form("JES-"), "p");
         leg->Draw();
         canv->SaveAs( Form("%s/pPb8160_etaDijet_jeuComp_pt_%d_%d_%s.pdf", date.Data(), 
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
@@ -772,14 +814,18 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
         setPadStyle();
         hEtaRatioUp[i]->Draw();
         hEtaRatioDown[i]->Draw("same");
+        if (drawFits) {
+            fitRatioUp[i]->Draw("same");
+            fitRatioDown[i]->Draw("same");
+        }
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.45, 0.2, 0.65, 0.3);
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioUp[i], Form("JEU+ / Default"), "p");
-        leg->AddEntry(hEtaRatioDown[i], Form("JEU- / Default"), "p");
+        leg->AddEntry(hEtaRatioUp[i], Form("JES+ / Default"), "p");
+        leg->AddEntry(hEtaRatioDown[i], Form("JES- / Default"), "p");
         leg->Draw();
         line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
                          hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
@@ -794,7 +840,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
         // Plot all comparisons on one canvas
         cComp->cd(i+1);
         setPadStyle();
-                hEtaDef[i]->Draw();
+        hEtaDef[i]->Draw();
         hEtaUp[i]->Draw("same");
         hEtaDown[i]->Draw("same");
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
@@ -804,8 +850,8 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
         leg->AddEntry(hEtaDef[i], Form("Default"), "p");
-        leg->AddEntry(hEtaUp[i], Form("JEU+"), "p");
-        leg->AddEntry(hEtaDown[i], Form("JEU-"), "p");
+        leg->AddEntry(hEtaUp[i], Form("JES+"), "p");
+        leg->AddEntry(hEtaDown[i], Form("JES-"), "p");
         leg->Draw();
 
         // Plot all ratios on one canvas
@@ -813,16 +859,18 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TString d
         setPadStyle();
         hEtaRatioUp[i]->Draw();
         hEtaRatioDown[i]->Draw("same");
-        fitRatioUp[i]->Draw("same");
-        fitRatioDown[i]->Draw("same");
+        if (drawFits) {
+            fitRatioUp[i]->Draw("same");
+            fitRatioDown[i]->Draw("same");
+        }
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.45, 0.2, 0.65, 0.3);
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioUp[i], Form("JEU+ / Default"), "p");
-        leg->AddEntry(hEtaRatioDown[i], Form("JEU- / Default"), "p");
+        leg->AddEntry(hEtaRatioUp[i], Form("JES+ / Default"), "p");
+        leg->AddEntry(hEtaRatioDown[i], Form("JES- / Default"), "p");
         leg->Draw();
         line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
                          hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
@@ -841,7 +889,7 @@ void jerSystematics(TF1 *jerUp, TF1 *jerDown, TH1D *hDef, TGraph* syst) {
 
     // Loop over the bins and estimate systematics for those that have entries
     for (Int_t i{1}; i<=hDef->GetNbinsX(); i++ ) {
-        if ( hDef->GetBinContent(i) == 0 ) continue;
+        // if ( hDef->GetBinContent(i) == 0 ) continue;
         Double_t xVal = hDef->GetBinCenter(i);
 
         Double_t yUp = jerUp->Eval( xVal );
@@ -849,14 +897,32 @@ void jerSystematics(TF1 *jerUp, TF1 *jerDown, TH1D *hDef, TGraph* syst) {
         std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
         Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
         Double_t sysYabs = sysYrel * hDef->GetBinContent(i);
-        std::cout << Form("syst [perc.]: %.3f syst [abs. val.]: %.8f\n", sysYrel * 100., sysYabs );
+        // if ( TMath::Abs(hDef->GetBinContent(i)) < 0.00001 ) {
+        //     sysYrel = 0.;
+        // }
+
+        std::cout << Form("bin content: %f syst [perc.]: %.3f syst [abs. val.]: %.8f\n", hDef->GetBinContent(i), sysYrel * 100., sysYabs );
 
         syst->SetPoint(i-1, xVal, sysYrel );
     } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
+    std::cout << "JER up chi2/ndf: " << jerUp->GetChisquare() / jerUp->GetNDF() 
+              << " JER down chi2/ndf: " << jerDown->GetChisquare() / jerDown->GetNDF()
+              << std::endl;
 }
 
 //________________
-void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString date) {
+void updateJERRatio(TH1D *h) {
+    for (Int_t i{1}; i<=h->GetNbinsX(); i++) {
+        if (h->GetBinContent(i) != 0 ) {
+            Double_t val = h->GetBinContent(i);
+            val = TMath::Abs(val - 1.) + 1.;
+            h->SetBinContent(i, val);
+        }
+    } // for (Int_t i{1}; i<=h->GetNBinsX(); i++)
+}
+
+//________________
+void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString date, Bool_t drawFits = kTRUE) {
 
     TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get("hRecoDijetPtEtaDphiWeighted");
     hPtEtaDphiDef->SetName("hPtEtaDphiDef");
@@ -870,8 +936,8 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
-    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 , 3};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194, 194};
 
     // Styles
     Int_t defType{2};
@@ -933,30 +999,58 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         hEtaRatioUp[i] = dynamic_cast<TH1D*>( hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) ) );
         make1DRatio(hEtaRatioUp[i], hEtaDef[i], Form("hEtaRatioUp_%d", i), upType );
         hEtaRatioUp[i]->GetYaxis()->SetTitle("JER / Default");
+        updateJERRatio( hEtaRatioUp[i] );
 
         // Ratio of JER down to default ratio
         hEtaRatioDown[i] = dynamic_cast<TH1D*>( hEtaDown[i]->Clone( Form("hEtaRatioDown_%d", i) ) );
         make1DRatio(hEtaRatioDown[i], hEtaDef[i], Form("hEtaRatioDown_%d", i), downType );
         hEtaRatioDown[i]->GetYaxis()->SetTitle("JER / Default");
+        updateJERRatio( hEtaRatioDown[i] );
 
         // Make fit functions
-        fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]+[1]*x", -4.8, 4.8);
-        fitRatioUp[i]->SetParameters(0., 0.0001);
+        fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]+[1]*x + [2]*x*x", -3.5, 3.5);
+        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]", -5., 5.);
+        // fitRatioUp[i]->SetParameters(0., 0.0001);
+        fitRatioUp[i]->SetParLimits(2, 0.000001, 1e6);
+        fitRatioUp[i]->SetParameters(0.);
         fitRatioUp[i]->SetLineColor(upType);
         fitRatioUp[i]->SetLineWidth(2);
 
-        fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x", -4.8, 4.8);
-        fitRatioDown[i]->SetParameters(0., 0.0001);
+        fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x +[2]*x*x", -3.5, 3.5);
+        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]", -5., 5.);
+        // fitRatioDown[i]->SetParameters(0., 0.0001);
+        fitRatioDown[i]->SetParLimits(2, 0.000001, 1e6);
+        fitRatioDown[i]->SetParameters(0.);
         fitRatioDown[i]->SetLineColor(downType);
         fitRatioDown[i]->SetLineWidth(2);
 
         // Perform fits
         hEtaRatioUp[i]->Fit(Form("fitRatioUp_%d",i), "MRE0");
         hEtaRatioDown[i]->Fit(Form("fitRatioDown_%d",i), "MRE0");
+        std::cout << "chi2/ndf up: " << fitRatioUp[i]->GetChisquare() / fitRatioUp[i]->GetNDF() << std::endl;
+        std::cout << "chi2/ndf down: " << fitRatioDown[i]->GetChisquare() / fitRatioDown[i]->GetNDF() << std::endl;
 
         // Calculate systematics
         grSyst[i] = new TGraph();
-        jerSystematics(fitRatioUp[i], fitRatioDown[i], hEtaDef[i], )
+        jerSystematics(fitRatioUp[i], fitRatioDown[i], hEtaDef[i], grSyst[i]);
+
+        // Write systematic uncertainty to ASCII file
+        std::ofstream outFile( Form("%s/pPb8160_etaDijet_jerSyst_%d_%d_%s.txt", date.Data(), 
+                                    ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                                    ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+        if ( outFile.is_open() ) {
+            for (Int_t iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
+                // std::cout << "i: " << iPoint;
+                Double_t x{0}, y{0};
+                grSyst[i]->GetPoint(iPoint, x, y);
+                // std::cout << " x: " << x << " y: " << y << std::endl;
+                outFile << x << " " << y << std::endl;
+            }
+            outFile.close();
+        }
+        else {
+            std::cerr << "[JerSyst] Unable to open file for writing" << std::endl;
+        }
 
         // Plot comparison
         canv->cd();
@@ -983,6 +1077,10 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         setPadStyle();
         hEtaRatioUp[i]->Draw();
         hEtaRatioDown[i]->Draw("same");
+        if (drawFits) {
+            fitRatioUp[i]->Draw("same");
+            fitRatioDown[i]->Draw("same");
+        }
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
@@ -1039,6 +1137,10 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         line->SetLineWidth(3);
         line->SetLineStyle(3);
         line->Draw();
+        if (drawFits) {
+            fitRatioUp[i]->Draw("same");
+            fitRatioDown[i]->Draw("same");
+        }
     } // for (Int_t i{0}; i<ptBins; i++)
 
     cComp->SaveAs( Form("%s/pPb8160_etaDijet_jerComp_all_%s.pdf", date.Data(), frame.Data() ) );
@@ -1046,7 +1148,24 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
 }
 
 //________________
-void plotPointingResolution(TFile *embeddingFile, TString date) {
+void pointingSystematics(TF1 *fitf, TH1D *h, TGraph* syst) {
+
+    std::cout << Form("Def file name: %s\n", h->GetName());
+    // Loop over the bins and estimate systematics for those that have entries
+    for (Int_t i{1}; i<=h->GetNbinsX(); i++ ) {
+        //if ( h->GetBinContent(i) == 0 ) continue;
+        Double_t xVal = h->GetXaxis()->GetBinCenter(i);
+        Double_t yVal = TMath::Abs( fitf->Eval( xVal ) - 1.);
+        // if ( TMath::Abs( h->GetBinContent(i) ) < 0.0001 ) {
+        //     yVal = 0.;
+        // }
+        std::cout << Form("bin content: %f x: %3.2f y [perc.]: %.3f ", h->GetBinContent(i), xVal, yVal * 100.) << std::endl;;
+        syst->SetPoint(i-1, xVal, yVal );
+    } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
+}
+
+//________________
+void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits = kTRUE) {
 
     TH3D *hRecoEtaRefEtaRecoPt = (TH3D*)embeddingFile->Get("hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted");
     hRecoEtaRefEtaRecoPt->SetName("hRecoEtaRefEtaRecoPt");
@@ -1071,7 +1190,12 @@ void plotPointingResolution(TFile *embeddingFile, TString date) {
     TH1D *hEtaReco[ ptDijetLow.size() ];
     TH1D *hEtaRef[ ptDijetLow.size() ];
     TH1D *hEtaDiff[ ptDijetLow.size() ];
+    TH1D *hEtaRatio[ ptDijetLow.size() ];
     TH2D *hEtaRefVsEtaReco[ ptDijetLow.size() ];
+
+    TF1 *fitRatio[ ptDijetLow.size() ];
+
+    TGraph *grSyst[ ptDijetLow.size() ];
 
     TLine *line;
     TLegend *leg;
@@ -1083,6 +1207,9 @@ void plotPointingResolution(TFile *embeddingFile, TString date) {
 
     TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
     cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cDiff = new TCanvas("cDiff", "cDiff", sizeX, sizeY);
+    cDiff->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
 
     TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
     cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
@@ -1119,6 +1246,42 @@ void plotPointingResolution(TFile *embeddingFile, TString date) {
         hEtaDiff[i]->Add(hEtaRef[i], -1.);
         hEtaDiff[i]->GetYaxis()->SetTitle("reco - ref");
 
+        // Make ratios of reco to ref
+        hEtaRatio[i] = dynamic_cast<TH1D*>( hEtaReco[i]->Clone( Form("hEtaRatio_%d", i) ) );
+        make1DRatio(hEtaRatio[i], hEtaRef[i], Form("make1DRatio_%d", i), recoType);
+        hEtaRatio[i]->GetYaxis()->SetTitle("reco / ref");
+
+        // Create fit function
+        fitRatio[i] = new TF1( Form("fitRatio_%d", i), "[0]+[1]*x+[2]*x*x", -4.8, 4.8 );
+        fitRatio[i]->SetLineColor(kBlack);
+        fitRatio[i]->SetLineWidth(2);
+        fitRatio[i]->SetParameters(0., 0., 0.);
+        fitRatio[i]->SetParLimits(2, -1e6, 0.);
+        hEtaRatio[i]->Fit( Form("fitRatio_%d", i), "MRE0" );
+        std::cout << "chi2/ndf down: " << fitRatio[i]->GetChisquare() / fitRatio[i]->GetNDF() << std::endl;
+
+        // Create graph to store the data
+        grSyst[i] = new TGraph();
+        pointingSystematics( fitRatio[i], hEtaRatio[i], grSyst[i] );
+
+        // Write systematic uncertainty to ASCII file
+        std::ofstream outFile( Form("%s/pPb8160_etaDijet_pointingSyst_%d_%d_%s.txt", date.Data(), 
+                                    ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                                    ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+        if ( outFile.is_open() ) {
+            for (Int_t iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
+                // std::cout << "i: " << iPoint;
+                Double_t x{0}, y{0};
+                grSyst[i]->GetPoint(iPoint, x, y);
+                // std::cout << " x: " << x << " y: " << y << std::endl;
+                outFile << x << " " << y << std::endl;
+            }
+            outFile.close();
+        }
+        else {
+            std::cerr << "[PointingSyst] Unable to open file for writing" << std::endl;
+        }
+
         // Plot 2D matrix
         canv->cd();
         setPadStyle();
@@ -1145,6 +1308,20 @@ void plotPointingResolution(TFile *embeddingFile, TString date) {
         leg->AddEntry(hEtaRef[i], Form("Ref"), "p");
         leg->Draw();
         canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefComp_pt_%d_%d_%s.pdf", date.Data(), 
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+
+        // Plot reco to ref ratio
+        canv->cd();
+        setPadStyle();
+        hEtaRatio[i]->Draw();
+        if (drawFits) {
+            fitRatio[i]->Draw("same");
+        }
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefRatio_pt_%d_%d_%s.pdf", date.Data(), 
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1184,18 +1361,30 @@ void plotPointingResolution(TFile *embeddingFile, TString date) {
         leg->Draw();
 
         // Plot all differences on one canvas
-        cRat->cd(i+1);
+        cDiff->cd(i+1);
         setPadStyle();
         hEtaDiff[i]->Draw();
         hEtaDiff[i]->GetYaxis()->SetRangeUser(-0.002, 0.002);
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+
+        // Plot all differences on one canvas
+        cRat->cd(i+1);
+        setPadStyle();
+        hEtaRatio[i]->Draw();
+        if (drawFits) {
+            fitRatio[i]->Draw("same");
+        }
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
     } // for (Int_t i{0}; i<ptBins; i++) 
 
     cComp->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefComp_all_%s.pdf", date.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefDiff_all_%s.pdf", date.Data(), frame.Data() ) );
+    cDiff->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefDiff_all_%s.pdf", date.Data(), frame.Data() ) );
     c2D->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefCorr_2D_all_%s.pdf", date.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefRatio_all_%s.pdf", date.Data(), frame.Data() ) );
 }
 
 //________________
@@ -1211,8 +1400,8 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
-    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 , 3};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194, 194};
 
     // Styles
     Int_t ak4Type{0};
@@ -1522,6 +1711,8 @@ void compareJER(TFile *embFile, TFile *jerDefFile, TFile *jerUpFile, TFile *jerD
     leg->AddEntry(hJESVsPtJerDown, Form("JES-"), "p");
     leg->Draw();
 
+    canv->SaveAs( Form("%s/pPb8160_JER.pdf", date.Data() ) );
+    canv2->SaveAs( Form("%s/pPb8160_JES.pdf", date.Data() ) );
 }
 
 //________________
@@ -1531,6 +1722,8 @@ void systematics() {
     gStyle->SetOptStat(0);
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
+
+    Bool_t drawFits = kTRUE;
 
     // Date
     TDatime dt;
@@ -1596,19 +1789,19 @@ void systematics() {
         branchId = {1};
     }
 
-    // plotDifferentDirections( pbGoingFile, pGoingFile, date );
+    plotDifferentDirections( pbGoingFile, pGoingFile, date );
     // plotDifferentDirections( pbGoingEmbeddingFile, pGoingEmbeddingFile, date );
 
     // compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, date, defaultFile);
 
-    // plotJEU( defaultFile, jeuUpFile, jeuDownFile, date );
+    // plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, drawFits );
 
-    plotJER(jerDefFile, jerUpFile, jerDownFile, date);
+    // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
-    // plotPointingResolution( embeddingFile, date );
+    // plotPointingResolution( embeddingFile, date, drawFits );
 
     // compareJetCollections( defaultFile, akcs4File, date );
 
-    // compareJER( embeddingFile, jerDefFile, jerUpFile, jerDownFile, date );
+    //compareJER( embeddingFile, jerDefFile, jerUpFile, jerDownFile, date );
 
 }
