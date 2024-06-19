@@ -109,7 +109,12 @@ int main(int argc, char const *argv[]) {
     eventCut->usePPAprimaryVertexFilter();
     eventCut->useHBHENoiseFilterResultRun2Loose();
     eventCut->usePhfCoincFilter();
-    eventCut->usePVertexFilterCutdz1p0();
+    // Default cut
+    //eventCut->usePVertexFilterCutdz1p0();
+    // Pile-up systematics
+    eventCut->usePVertexFilterCutGplus();
+    // Pile-up systematics
+    //eventCut->usePVertexFilterCutVtx1();
     // Trigger
     //eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
 

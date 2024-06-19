@@ -71,6 +71,10 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
         color = 4;        // blue
         markerStyle = 20; // filled circle
     }
+    else if (type == 5 ) {
+        color = 8;        // green
+        markerStyle = 43; // diamond
+    }
     else {
         color = 6;        // magenta
         markerStyle = 30; // open star
@@ -121,6 +125,17 @@ void set1DStyle(TGraphErrors *h) {
 }
 
 //________________
+void plotCMSHeader() {
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+    t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.57, 0.93, "pPb 174.56 nb^{-1} (8.16 TeV)");
+    t.SetTextSize(0.05);
+}
+
+//________________
 void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
     // Create histogram
     set1DStyle(h, style);
@@ -149,7 +164,7 @@ void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
     // Temporary smoothing procedure
     //
     Int_t binLow = h->FindBin(-1.5);
-    Int_t binHi = h->FindBin(1.5);
+    Int_t binHi = h->FindBin(1.8);
     Double_t maxVal = {-1};
     for (Int_t i = binLow; i<=binHi; i++) {
         if (maxVal < h->GetBinContent(i) ) {
@@ -163,22 +178,25 @@ void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
 }
 
 //________________
-void addSystSource(TH1D* hTot, TH1D* hSource) {
+void addSystSource(TH1D* hTot, TH1D* hJeu, TH1D* hJer, TH1D* hPointing) {
     // std::cout << "Add systematic source" << std::endl;
-    Double_t yTot{0}, ySource{0};
+    Double_t yTot{0}, yJeu{0}, yJer{0}, yPointing{0};
     for (Int_t i{1}; i <= hTot->GetNbinsX(); i++) {
-        yTot = hTot->GetBinContent(i);
-        ySource = hSource->GetBinContent(i);
+        yJeu = hJeu->GetBinContent(i);
+        yJer = hJer->GetBinContent(i);
+        yPointing = hPointing->GetBinContent(i);
+        yTot = TMath::Sqrt(yJeu*yJeu + yJer*yJer + yPointing*yPointing);
         // std::cout << "i: " << i << " ySource: " << ySource << " yTot before: " 
         //           << yTot << " yTot after: " << yTot + ySource << std::endl;
-        hTot->SetBinContent(i, yTot + ySource);
+        hTot->SetBinContent(i, yTot);
     }
 }
 
 //________________
-TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr, 
-                        TGraphErrors *data = nullptr, TGraph* dirSyst = nullptr) {
-    Double_t dirVal{0}, jeuVal{0}, jerVal{0}, totalUncrt{0};
+TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr,
+                        TGraph* pointingSyst = nullptr, TGraphErrors *data = nullptr, 
+                        TGraph* dirSyst = nullptr) {
+    Double_t dirVal{0}, jeuVal{0}, jerVal{0}, pointingVal{0}, totalUncrt{0};
     Double_t xVal{0}, yVal{0}, tmp{0};
     TGraphErrors *gr = new TGraphErrors();
 
@@ -186,6 +204,11 @@ TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr,
     // Loop over data points
     for (Int_t i=0; i<data->GetN(); i++) {
         data->GetPoint(i, xVal, yVal);
+
+        if (pointingSyst) {
+            pointingSyst->GetPoint(i, tmp, pointingVal);
+        }
+
         if (dirSyst) {
             dirSyst->GetPoint(i, tmp, dirVal);
 
@@ -197,9 +220,11 @@ TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr,
             jerSyst->GetPoint(i, tmp, jerVal);
         }
 
-        totalUncrt = TMath::Sqrt( dirVal*dirVal + jeuVal*jeuVal + jerVal*jerVal);
+        totalUncrt = TMath::Sqrt( dirVal*dirVal + jeuVal*jeuVal + jerVal*jerVal + pointingVal*pointingVal);
 
-        std::cout << "Total uncert [%]: " << totalUncrt * 100 << " dirVal: " << dirVal * 100 << " jeuVal: " << jeuVal * 100 << " jerVal: " << jerVal * 100 << std::endl;
+        std::cout << "Total uncert [%]: " << totalUncrt * 100 << " dirVal: " << dirVal * 100 << " jeuVal: " 
+                  << jeuVal * 100 << " jerVal: " << jerVal * 100  << " pointingVal: " << pointingVal * 100 
+                  << std::endl;
         std::cout << "Data y: " << yVal << " ey: " << data->GetErrorY(i) << std::endl;
 
 
@@ -225,10 +250,15 @@ void pPbFinalDijetEtaDistributions() {
 
     // Bool_t useDirSyst{kTRUE};
     Bool_t useDirSyst{kFALSE};
+
     Bool_t useJeuSyst{kTRUE};
     // Bool_t useJeuSyst{kFALSE};
+
     Bool_t useJerSyst{kTRUE};
     // Bool_t useJerSyst{kFALSE};
+
+    Bool_t usePointingSyst{kTRUE};
+    // Bool_t usePointingSyst{kFALSE};
 
     // Dijet pT selection
     Int_t ptStep {5};
@@ -256,6 +286,7 @@ void pPbFinalDijetEtaDistributions() {
     Int_t totalType{2};
     Int_t dirType{0};
     Int_t jeuType{1};
+    Int_t pointingType{5};
     Int_t jerType{6};
 
     TLatex t;
@@ -268,6 +299,7 @@ void pPbFinalDijetEtaDistributions() {
     TH1D *hDirSyst[ ptDijetPtLow.size() ];
     TH1D *hJeuSyst[ ptDijetPtLow.size() ];
     TH1D *hJerSyst[ ptDijetPtLow.size() ];
+    TH1D *hPointingSyst[ ptDijetPtLow.size() ];
     TH1D *hTotalSyst[ ptDijetPtLow.size() ];
 
     // Create graphs
@@ -275,11 +307,13 @@ void pPbFinalDijetEtaDistributions() {
     TGraph *grDijetDirRelSyst[ ptDijetPtLow.size() ];
     TGraph *grDijetJeuRelSyst[ ptDijetPtLow.size() ];
     TGraph *grDijetJerRelSyst[ ptDijetPtLow.size() ];
+    TGraph *grDijetPointingRelSyst[ ptDijetPtLow.size() ];
     for (int i{0}; i<ptDijetPtLow.size(); i++ ) {
         grDijetEta[i] = nullptr;
         grDijetDirRelSyst[i] = nullptr;
         grDijetJeuRelSyst[i] = nullptr;
         grDijetJerRelSyst[i] = nullptr;
+        grDijetPointingRelSyst[i] = nullptr;
     }
     TGraphErrors *grErrTotalSystUncrt[ ptDijetPtLow.size() ];
     TMultiGraph *mgDijetEta[ ptDijetPtLow.size() ];
@@ -325,7 +359,6 @@ void pPbFinalDijetEtaDistributions() {
             relSyst(grDijetDirRelSyst[i], hDirSyst[i], dirType);
             hDirSyst[i]->Scale(100.);
             hDirSyst[i]->SetName( Form("hDirSyst_%d",i) );
-            addSystSource(hTotalSyst[i], hDirSyst[i]);
         }
 
         // Retrieve JEU systematics
@@ -338,7 +371,6 @@ void pPbFinalDijetEtaDistributions() {
             relSyst(grDijetJeuRelSyst[i], hJeuSyst[i], jeuType);
             hJeuSyst[i]->Scale(100.);
             hJeuSyst[i]->SetName( Form("hJeuSyst_%d",i) );
-            addSystSource(hTotalSyst[i], hJeuSyst[i]);
         }
 
         // Retrieve JER systematics
@@ -351,14 +383,28 @@ void pPbFinalDijetEtaDistributions() {
             relSyst(grDijetJerRelSyst[i], hJerSyst[i], jerType);
             hJerSyst[i]->Scale(100.);
             hJerSyst[i]->SetName( Form("hJerSyst_%d",i) );
-            addSystSource(hTotalSyst[i], hJerSyst[i]);
         }
+
+        // Retrieve pointing resolution systematics
+        if ( usePointingSyst ) {
+            grDijetPointingRelSyst[i] = new TGraph(Form("freezeSyst/pPb8160_etaDijet_pointingSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetPointingRelSyst[i]->SetName( Form("grPointingSyst_%d", i) );
+            hPointingSyst[i] = new TH1D(  Form("hPointingSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
+            hPointingSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+            hPointingSyst[i]->Sumw2();
+            relSyst(grDijetPointingRelSyst[i], hPointingSyst[i], pointingType);
+            hPointingSyst[i]->Scale(100.);
+            hPointingSyst[i]->SetName( Form("hPointingSyst_%d",i) );
+        }
+
+        // Calculate total systematic uncertainty for the 
+        addSystSource(hTotalSyst[i], hJeuSyst[i], hJerSyst[i], hPointingSyst[i]);
 
         //
         // Create graph with total systematic uncertainties
         //
         //std::cout << "Address of dir syst: " << grDijetDirRelSyst[i] << " name: " << grDijetDirRelSyst[i]->GetName() << std::endl;
-        grErrTotalSystUncrt[i] = totalSyst( grDijetJeuRelSyst[i], grDijetJerRelSyst[i], grDijetEta[i] /*, grDijetDirRelSyst[i] */);
+        grErrTotalSystUncrt[i] = totalSyst( grDijetJeuRelSyst[i], grDijetJerRelSyst[i], grDijetPointingRelSyst[i], grDijetEta[i] /*, grDijetDirRelSyst[i] */);
         grErrTotalSystUncrt[i]->SetName( Form("grErrTotalSystUncrt_%d", i));
         grErrTotalSystUncrt[i]->SetFillColor(29);
         grErrTotalSystUncrt[i]->SetFillStyle(1001); // Solid fill
@@ -385,9 +431,12 @@ void pPbFinalDijetEtaDistributions() {
         if ( useJerSyst ) {
             hJerSyst[i]->Draw("same");
         }
+        if ( usePointingSyst ) {
+            hPointingSyst[i]->Draw("same");
+        }
         hTotalSyst[i]->GetYaxis()->SetRangeUser(0., 20.);
         hTotalSyst[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         leg = new TLegend(0.4, 0.65, 0.65, 0.85);
         leg->SetTextSize(0.05);
@@ -402,6 +451,9 @@ void pPbFinalDijetEtaDistributions() {
         if (useJerSyst) {
             leg->AddEntry(hJerSyst[i], Form("JER"), "l");  
         }
+        if ( usePointingSyst ) {
+            leg->AddEntry(hPointingSyst[i], Form("Pointing res."), "l");  
+        }
         leg->Draw();
         canv->SaveAs( Form("freezeSyst/pPb8160_syst_pt_%d_%d_lab.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
 
@@ -414,16 +466,13 @@ void pPbFinalDijetEtaDistributions() {
         mgDijetEta[i]->Draw("AP");
         mgDijetEta[i]->GetYaxis()->SetRangeUser(0.005, 0.15);
         mgDijetEta[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{dijet} GeV/c<%d", 
+        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{ave} GeV/c<%d", 
                        ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading}>50 GeV/c");
         t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading}>40 GeV/c");
         t.DrawLatexNDC(0.2, 0.59, "|#eta|<3");
         t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet}>#frac{5#pi}{6}");
-        t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
-        t.SetTextSize(0.04);
-        t.DrawLatexNDC(0.57, 0.93, "pPb 174.56 nb^{-1} (8.16 TeV)");
-        t.SetTextSize(0.05);
+        plotCMSHeader();
 
         leg = new TLegend(0.7, 0.7, 0.85, 0.85);
         leg->SetTextSize(0.05);
@@ -450,9 +499,12 @@ void pPbFinalDijetEtaDistributions() {
         if ( useJerSyst ) {
             hJerSyst[i]->Draw("same");
         }
+        if ( usePointingSyst ) {
+            hPointingSyst[i]->Draw("same");
+        }
         hTotalSyst[i]->GetYaxis()->SetRangeUser(0., 20.);
         hTotalSyst[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         leg = new TLegend(0.4, 0.65, 0.65, 0.85);
         leg->SetTextSize(0.05);
@@ -467,6 +519,9 @@ void pPbFinalDijetEtaDistributions() {
         if (useJerSyst) {
             leg->AddEntry(hJerSyst[i], Form("JER"), "l");  
         }
+        if ( usePointingSyst ) {
+            leg->AddEntry(hPointingSyst[i], Form("Pointing res."), "l");  
+        }
         leg->Draw();
 
         //
@@ -478,7 +533,7 @@ void pPbFinalDijetEtaDistributions() {
         mgDijetEta[i]->GetYaxis()->SetRangeUser(0.005, 0.15);
         mgDijetEta[i]->GetXaxis()->SetRangeUser(-3., 3.);
         // gPad->SetLogy(1);
-        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{dijet} GeV/c<%d", 
+        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{ave} GeV/c<%d", 
                        ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading}>50 GeV/c");
         t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading}>40 GeV/c");

@@ -276,7 +276,7 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
         setPadStyle();
         hEtaPbGoing[i]->Draw();
         hEtaPGoing[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.75, 0.4, 0.85);
@@ -293,7 +293,7 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
         canv->cd();
         setPadStyle();
         hEtaPb2PGoingRatio[i]->Draw();
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         line = new TLine(hEtaPb2PGoingRatio[i]->GetXaxis()->GetBinLowEdge(1), 1., 
@@ -311,7 +311,7 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
         setPadStyle();
         hEtaPbGoing[i]->Draw();
         hEtaPGoing[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.75, 0.4, 0.85);
@@ -325,7 +325,7 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
         cRat->cd(i+1);
         setPadStyle();
         hEtaPb2PGoingRatio[i]->Draw();
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         line = new TLine(hEtaPb2PGoingRatio[i]->GetXaxis()->GetBinLowEdge(1), 1., 
@@ -534,7 +534,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
         setPadStyle();
         hExpEtaPb2PGoingRatio[i]->Draw();
         hMcEtaPb2PGoingRatio[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.75, 0.4, 0.85);
@@ -551,7 +551,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
         canv->cd();
         setPadStyle();
         hExpOverMcPb2PGoingRatio[i]->Draw();
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         line = new TLine(hExpOverMcPb2PGoingRatio[i]->GetXaxis()->GetBinLowEdge(1), 1., 
@@ -569,7 +569,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
         setPadStyle();
         hExpEtaPb2PGoingRatio[i]->Draw();
         hMcEtaPb2PGoingRatio[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.75, 0.4, 0.85);
@@ -583,7 +583,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
         cRat->cd(i+1);
         setPadStyle();
         hExpOverMcPb2PGoingRatio[i]->Draw();
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         line = new TLine(hExpOverMcPb2PGoingRatio[i]->GetXaxis()->GetBinLowEdge(1), 1., 
@@ -795,7 +795,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         hEtaDef[i]->Draw();
         hEtaUp[i]->Draw("same");
         hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.65, 0.4, 0.85);
@@ -818,7 +818,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
             fitRatioUp[i]->Draw("same");
             fitRatioDown[i]->Draw("same");
         }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.45, 0.2, 0.65, 0.3);
@@ -843,7 +843,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         hEtaDef[i]->Draw();
         hEtaUp[i]->Draw("same");
         hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.65, 0.4, 0.85);
@@ -863,7 +863,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
             fitRatioUp[i]->Draw("same");
             fitRatioDown[i]->Draw("same");
         }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.45, 0.2, 0.65, 0.3);
@@ -1058,7 +1058,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         hEtaDef[i]->Draw();
         hEtaUp[i]->Draw("same");
         hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.65, 0.4, 0.85);
@@ -1081,7 +1081,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
             fitRatioUp[i]->Draw("same");
             fitRatioDown[i]->Draw("same");
         }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.45, 0.2, 0.65, 0.3);
@@ -1106,7 +1106,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
                 hEtaDef[i]->Draw();
         hEtaUp[i]->Draw("same");
         hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.65, 0.4, 0.85);
@@ -1122,7 +1122,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         setPadStyle();
         hEtaRatioUp[i]->Draw();
         hEtaRatioDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.45, 0.2, 0.65, 0.3);
@@ -1286,7 +1286,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         canv->cd();
         setPadStyle();
         hEtaRefVsEtaReco[i]->Draw("colz");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefComp_2D_pt_%d_%d_%s.pdf", date.Data(), 
@@ -1298,7 +1298,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         setPadStyle();
         hEtaReco[i]->Draw();
         hEtaRef[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.65, 0.4, 0.85);
@@ -1318,7 +1318,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         if (drawFits) {
             fitRatio[i]->Draw("same");
         }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefRatio_pt_%d_%d_%s.pdf", date.Data(), 
@@ -1330,7 +1330,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         setPadStyle();
         hEtaDiff[i]->Draw();
         hEtaDiff[i]->GetYaxis()->SetRangeUser(-0.002, 0.002);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefDiff_pt_%d_%d_%s.pdf", date.Data(), 
@@ -1341,7 +1341,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         c2D->cd(i+1);
         setPadStyle();
         hEtaRefVsEtaReco[i]->Draw("colz");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
 
@@ -1350,7 +1350,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         setPadStyle();
         hEtaReco[i]->Draw();
         hEtaRef[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.65, 0.4, 0.85);
@@ -1365,7 +1365,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         setPadStyle();
         hEtaDiff[i]->Draw();
         hEtaDiff[i]->GetYaxis()->SetRangeUser(-0.002, 0.002);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
 
@@ -1376,7 +1376,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         if (drawFits) {
             fitRatio[i]->Draw("same");
         }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{dijet} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
     } // for (Int_t i{0}; i<ptBins; i++) 
@@ -1789,7 +1789,7 @@ void systematics() {
         branchId = {1};
     }
 
-    plotDifferentDirections( pbGoingFile, pGoingFile, date );
+    // plotDifferentDirections( pbGoingFile, pGoingFile, date );
     // plotDifferentDirections( pbGoingEmbeddingFile, pGoingEmbeddingFile, date );
 
     // compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, date, defaultFile);
@@ -1798,7 +1798,7 @@ void systematics() {
 
     // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
-    // plotPointingResolution( embeddingFile, date, drawFits );
+    plotPointingResolution( embeddingFile, date, drawFits );
 
     // compareJetCollections( defaultFile, akcs4File, date );
 
