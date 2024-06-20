@@ -1388,6 +1388,256 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
 }
 
 //________________
+void pileupSystematics(TF1 *pileupUp, TF1 *pileupDown, TH1D *hDef, TGraph* syst) {
+
+    // Loop over the bins and estimate systematics for those that have entries
+    for (Int_t i{1}; i<=hDef->GetNbinsX(); i++ ) {
+        // if ( hDef->GetBinContent(i) == 0 ) continue;
+        Double_t xVal = hDef->GetBinCenter(i);
+
+        Double_t yUp = pileupUp->Eval( xVal );
+        Double_t yDown = pileupDown->Eval( xVal );
+        std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
+        Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
+        Double_t sysYabs = sysYrel * hDef->GetBinContent(i);
+
+        std::cout << Form("bin content: %f syst [perc.]: %.4f syst [abs. val.]: %.8f\n", hDef->GetBinContent(i), sysYrel * 100., sysYabs );
+
+        syst->SetPoint(i-1, xVal, sysYrel );
+    } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
+    std::cout << "pileup Gplus chi2/ndf: " << pileupUp->GetChisquare() / pileupUp->GetNDF() 
+              << " pileup Vtx1 chi2/ndf: " << pileupDown->GetChisquare() / pileupDown->GetNDF()
+              << std::endl;
+}
+
+//________________
+void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString date, Bool_t drawFits = kTRUE) {
+
+    TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get("hRecoDijetPtEtaDphiWeighted");
+    hPtEtaDphiDef->SetName("hPtEtaDphiDef");
+    TH3D *hPtEtaDphiUp = (TH3D*)gplusFile->Get("hRecoDijetPtEtaDphiWeighted");
+    hPtEtaDphiUp->SetName("hPtEtaDphiUp");
+    TH3D *hPtEtaDphiDown = (TH3D*)vtx1File->Get("hRecoDijetPtEtaDphiWeighted");
+    hPtEtaDphiDown->SetName("hPtEtaDphiDown");
+
+    TString frame = "lab";
+
+    // Dijet pT selection
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 , 3};
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194, 194};
+
+    // Styles
+    Int_t defType{2};
+    Int_t upType{0};
+    Int_t downType{1};
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // Dijet eta distributions
+    TH1D *hEtaDef[ ptDijetLow.size() ];
+    TH1D *hEtaUp[ ptDijetLow.size() ];
+    TH1D *hEtaDown[ ptDijetLow.size() ];
+
+    TH1D *hEtaRatioUp[ ptDijetLow.size() ];
+    TH1D *hEtaRatioDown[ ptDijetLow.size() ];
+
+    TF1 *fitRatioUp[ ptDijetLow.size() ];
+    TF1 *fitRatioDown[ ptDijetLow.size() ];
+
+    TGraph *grSyst[ ptDijetLow.size() ];
+
+    TLine *line;
+    TLegend *leg;
+
+    Int_t sizeX{1200};
+    Int_t sizeY{800};
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    Int_t ptBins = ptDijetLow.size();
+
+    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
+    cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
+    cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    // Loop over dijet pT bins
+    for (Int_t i{0}; i<ptBins; i++) {
+
+        std::cout << "pT bin: " << i << std::endl;
+
+        // JER default selection
+        hEtaDef[i] = projectEtaFrom3D(hPtEtaDphiDef, Form("hEtaDef_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        rescaleEta( hEtaDef[i] );
+        set1DStyle(hEtaDef[i], defType);
+
+        // JER up selection
+        hEtaUp[i] = projectEtaFrom3D(hPtEtaDphiUp, Form("hEtaUp_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        rescaleEta( hEtaUp[i] );
+        set1DStyle(hEtaUp[i], upType);
+
+        // JER down selection
+        hEtaDown[i] = projectEtaFrom3D(hPtEtaDphiDown, Form("hEtaDown_%d", i), ptDijetLow.at(i), ptDijetHi.at(i) );
+        rescaleEta( hEtaDown[i] );
+        set1DStyle(hEtaDown[i], downType);
+
+        // Ratio of JER up to default ratio
+        hEtaRatioUp[i] = dynamic_cast<TH1D*>( hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) ) );
+        make1DRatio(hEtaRatioUp[i], hEtaDef[i], Form("hEtaRatioUp_%d", i), upType );
+        hEtaRatioUp[i]->GetYaxis()->SetTitle("vtx.flt. / dz1p0");
+        //updateJERRatio( hEtaRatioUp[i] );
+
+        // Ratio of JER down to default ratio
+        hEtaRatioDown[i] = dynamic_cast<TH1D*>( hEtaDown[i]->Clone( Form("hEtaRatioDown_%d", i) ) );
+        make1DRatio(hEtaRatioDown[i], hEtaDef[i], Form("hEtaRatioDown_%d", i), downType );
+        hEtaRatioDown[i]->GetYaxis()->SetTitle("vtx.flt. / dz1p0");
+        //updateJERRatio( hEtaRatioDown[i] );
+
+        // Make fit functions
+        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]+[1]*x + [2]*x*x", -3.5, 3.5);
+        fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]", -5., 5.);
+        // fitRatioUp[i]->SetParameters(0., 0.0001);
+        // fitRatioUp[i]->SetParLimits(2, 0.000001, 1e6);
+        fitRatioUp[i]->SetParameters(0.);
+        fitRatioUp[i]->SetLineColor(upType);
+        fitRatioUp[i]->SetLineWidth(2);
+
+        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x +[2]*x*x", -3.5, 3.5);
+        fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]", -5., 5.);
+        // fitRatioDown[i]->SetParameters(0., 0.0001);
+        // fitRatioDown[i]->SetParLimits(2, 0.000001, 1e6);
+        fitRatioDown[i]->SetParameters(0.);
+        fitRatioDown[i]->SetLineColor(downType);
+        fitRatioDown[i]->SetLineWidth(2);
+
+        // Perform fits
+        hEtaRatioUp[i]->Fit(Form("fitRatioUp_%d",i), "MRE0");
+        hEtaRatioDown[i]->Fit(Form("fitRatioDown_%d",i), "MRE0");
+        std::cout << "chi2/ndf up: " << fitRatioUp[i]->GetChisquare() / fitRatioUp[i]->GetNDF() << std::endl;
+        std::cout << "chi2/ndf down: " << fitRatioDown[i]->GetChisquare() / fitRatioDown[i]->GetNDF() << std::endl;
+
+        // Calculate systematics
+        grSyst[i] = new TGraph();
+        pileupSystematics(fitRatioUp[i], fitRatioDown[i], hEtaDef[i], grSyst[i]);
+
+        // Write systematic uncertainty to ASCII file
+        std::ofstream outFile( Form("%s/pPb8160_etaDijet_pileupSyst_%d_%d_%s.txt", date.Data(), 
+                                    ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                                    ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+        if ( outFile.is_open() ) {
+            for (Int_t iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
+                // std::cout << "i: " << iPoint;
+                Double_t x{0}, y{0};
+                grSyst[i]->GetPoint(iPoint, x, y);
+                // std::cout << " x: " << x << " y: " << y << std::endl;
+                outFile << x << " " << y << std::endl;
+            }
+            outFile.close();
+        }
+        else {
+            std::cerr << "[PileupSyst] Unable to open file for writing" << std::endl;
+        }
+
+        // Plot comparison
+        canv->cd();
+        setPadStyle();
+        hEtaDef[i]->Draw();
+        hEtaUp[i]->Draw("same");
+        hEtaDown[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaDef[i], Form("dz1p0 def."), "p");
+        leg->AddEntry(hEtaUp[i], Form("Gplus"), "p");
+        leg->AddEntry(hEtaDown[i], Form("Vtx1"), "p");
+        leg->Draw();
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_pileupComp_pt_%d_%d_%s.pdf", date.Data(), 
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+
+        // Plot ratios
+        canv->cd();
+        setPadStyle();
+        hEtaRatioUp[i]->Draw();
+        hEtaRatioDown[i]->Draw("same");
+        if (drawFits) {
+            fitRatioUp[i]->Draw("same");
+            fitRatioDown[i]->Draw("same");
+        }
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaRatioUp[i], Form("Gplus / dz1p0"), "p");
+        leg->AddEntry(hEtaRatioDown[i], Form("Vtx1 / Default"), "p");
+        leg->Draw();
+        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_pileupRat_pt_%d_%d_%s.pdf", date.Data(), 
+                      ptLow + (ptDijetLow.at(i)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
+
+        // Plot all comparisons on one canvas
+        cComp->cd(i+1);
+        setPadStyle();
+                hEtaDef[i]->Draw();
+        hEtaUp[i]->Draw("same");
+        hEtaDown[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaDef[i], Form("dz1p0"), "p");
+        leg->AddEntry(hEtaUp[i], Form("Gplus"), "p");
+        leg->AddEntry(hEtaDown[i], Form("Vtz1"), "p");
+        leg->Draw();
+
+        // Plot all rations on one canvas
+        cRat->cd(i+1);
+        setPadStyle();
+        hEtaRatioUp[i]->Draw();
+        hEtaRatioDown[i]->Draw("same");
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
+                       ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hEtaRatioUp[i], Form("Gplus / dz1p0"), "p");
+        leg->AddEntry(hEtaRatioDown[i], Form("Vtz1 / dz1p0"), "p");
+        leg->Draw();
+        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        if (drawFits) {
+            fitRatioUp[i]->Draw("same");
+            fitRatioDown[i]->Draw("same");
+        }
+    } // for (Int_t i{0}; i<ptBins; i++)
+
+    cComp->SaveAs( Form("%s/pPb8160_etaDijet_pileupComp_all_%s.pdf", date.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/pPb8160_etaDijet_pileupRat_all_%s.pdf", date.Data(), frame.Data() ) );
+
+}
+
+//________________
 void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
 
     TH3D *hPtEtaDphiAk4 = (TH3D*)ak4->Get("hRecoDijetPtEtaDphiWeighted");
@@ -1723,7 +1973,7 @@ void systematics() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    Bool_t drawFits = kFALSE;
+    Bool_t drawFits = kTRUE;
 
     // Date
     TDatime dt;
@@ -1746,6 +1996,9 @@ void systematics() {
     TString jerUpFileName("../build/oEmbedding_pPb8160_jerUp_ak4.root");
     TString jerDownFileName("../build/oEmbedding_pPb8160_jerDown_ak4.root");
 
+    TString pileupGplusFileName("../build/MB_pPb8160_gplus_ak4.root");
+    TString pileupVtx1FileName("../build/MB_pPb8160_vtx1_ak4.root");
+
     // Check the directory for storing figures exists
     if ( directoryExists( date.Data() ) ) {
         //std::cout << "Directory exists." << std::endl;
@@ -1765,8 +2018,10 @@ void systematics() {
     TFile *jerDefFile = TFile::Open( jerDefFileName.Data() );
     TFile *jerUpFile = TFile::Open( jerUpFileName.Data() );
     TFile *jerDownFile = TFile::Open( jerDownFileName.Data() );
-    TFile *pbGoingEmbeddingFile = TFile::Open( pbGoingEmbeddingFileName );
-    TFile *pGoingEmbeddingFile = TFile::Open( pGoingEmbeddingFileName );
+    TFile *pbGoingEmbeddingFile = TFile::Open( pbGoingEmbeddingFileName.Data() );
+    TFile *pGoingEmbeddingFile = TFile::Open( pGoingEmbeddingFileName.Data() );
+    TFile *gplusFile = TFile::Open( pileupGplusFileName.Data() );
+    TFile *vtx1File = TFile::Open( pileupVtx1FileName.Data() );
 
     // Checks files are okay
     if ( !checkFileIsGood( defaultFile ) ) return;
@@ -1779,6 +2034,8 @@ void systematics() {
     if ( !checkFileIsGood( jerDefFile ) ) return;
     if ( !checkFileIsGood( jerUpFile ) ) return;
     if ( !checkFileIsGood( jerDownFile ) ) return;
+    if ( !checkFileIsGood( gplusFile ) ) return;
+    if ( !checkFileIsGood( vtx1File ) ) return;
 
     // Retrieve the base branch name to work on
     Int_t branchId{0};
@@ -1799,6 +2056,8 @@ void systematics() {
     // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
     // plotPointingResolution( embeddingFile, date, drawFits );
+
+    plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
 
     // compareJetCollections( defaultFile, akcs4File, date );
 

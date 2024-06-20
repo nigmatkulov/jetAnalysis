@@ -165,7 +165,7 @@ void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
     //
     Int_t binLow = h->FindBin(-1.5);
     Int_t binHi = h->FindBin(1.8);
-    Double_t maxVal = {-1};
+    Double_t maxVal{-1};
     for (Int_t i = binLow; i<=binHi; i++) {
         if (maxVal < h->GetBinContent(i) ) {
             maxVal = h->GetBinContent(i);
@@ -174,18 +174,20 @@ void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
 
     for (Int_t i = binLow; i<=binHi; i++) {
         h->SetBinContent( i, maxVal );
+        gr->SetPointY(i-1, maxVal);
     } // for (Int_t i = binLow; i<=binHi; i++)
 }
 
 //________________
-void addSystSource(TH1D* hTot, TH1D* hJeu, TH1D* hJer, TH1D* hPointing) {
+void addSystSource(TH1D* hTot, TH1D* hJeu, TH1D* hJer, TH1D* hPointing, TH1D* hPileup) {
     // std::cout << "Add systematic source" << std::endl;
-    Double_t yTot{0}, yJeu{0}, yJer{0}, yPointing{0};
+    Double_t yTot{0}, yJeu{0}, yJer{0}, yPointing{0}, yPileup{0};
     for (Int_t i{1}; i <= hTot->GetNbinsX(); i++) {
         yJeu = hJeu->GetBinContent(i);
         yJer = hJer->GetBinContent(i);
         yPointing = hPointing->GetBinContent(i);
-        yTot = TMath::Sqrt(yJeu*yJeu + yJer*yJer + yPointing*yPointing);
+        yPileup = hPileup->GetBinContent(i);
+        yTot = TMath::Sqrt(yJeu*yJeu + yJer*yJer + yPointing*yPointing + yPileup*yPileup);
         // std::cout << "i: " << i << " ySource: " << ySource << " yTot before: " 
         //           << yTot << " yTot after: " << yTot + ySource << std::endl;
         hTot->SetBinContent(i, yTot);
@@ -194,9 +196,10 @@ void addSystSource(TH1D* hTot, TH1D* hJeu, TH1D* hJer, TH1D* hPointing) {
 
 //________________
 TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr,
-                        TGraph* pointingSyst = nullptr, TGraphErrors *data = nullptr, 
+                        TGraph* pointingSyst = nullptr, TGraph* pileupSyst = nullptr,
+                        TGraphErrors *data = nullptr, 
                         TGraph* dirSyst = nullptr) {
-    Double_t dirVal{0}, jeuVal{0}, jerVal{0}, pointingVal{0}, totalUncrt{0};
+    Double_t dirVal{0}, jeuVal{0}, jerVal{0}, pointingVal{0}, pileupVal{0}, totalUncrt{0};
     Double_t xVal{0}, yVal{0}, tmp{0};
     TGraphErrors *gr = new TGraphErrors();
 
@@ -208,10 +211,8 @@ TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr,
         if (pointingSyst) {
             pointingSyst->GetPoint(i, tmp, pointingVal);
         }
-
         if (dirSyst) {
             dirSyst->GetPoint(i, tmp, dirVal);
-
         }
         if (jeuSyst) {
             jeuSyst->GetPoint(i, tmp, jeuVal);
@@ -219,8 +220,11 @@ TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr,
         if (jerSyst) {
             jerSyst->GetPoint(i, tmp, jerVal);
         }
+        if (pileupSyst) {
+            pileupSyst->GetPoint(i, tmp, pileupVal);
+        }
 
-        totalUncrt = TMath::Sqrt( dirVal*dirVal + jeuVal*jeuVal + jerVal*jerVal + pointingVal*pointingVal);
+        totalUncrt = TMath::Sqrt( dirVal*dirVal + jeuVal*jeuVal + jerVal*jerVal + pointingVal*pointingVal + pileupVal*pileupVal);
 
         std::cout << "Total uncert [%]: " << totalUncrt * 100 << " dirVal: " << dirVal * 100 << " jeuVal: " 
                   << jeuVal * 100 << " jerVal: " << jerVal * 100  << " pointingVal: " << pointingVal * 100 
@@ -260,6 +264,9 @@ void pPbFinalDijetEtaDistributions() {
     Bool_t usePointingSyst{kTRUE};
     // Bool_t usePointingSyst{kFALSE};
 
+    Bool_t usePileupSyst{kTRUE};
+    // Bool_t usePileupSyst{kFALSE};
+
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
@@ -288,6 +295,7 @@ void pPbFinalDijetEtaDistributions() {
     Int_t jeuType{1};
     Int_t pointingType{5};
     Int_t jerType{6};
+    Int_t pileupType{0};
 
     TLatex t;
     t.SetTextFont(42);
@@ -300,6 +308,7 @@ void pPbFinalDijetEtaDistributions() {
     TH1D *hJeuSyst[ ptDijetPtLow.size() ];
     TH1D *hJerSyst[ ptDijetPtLow.size() ];
     TH1D *hPointingSyst[ ptDijetPtLow.size() ];
+    TH1D *hPileupSyst[ ptDijetPtLow.size() ];
     TH1D *hTotalSyst[ ptDijetPtLow.size() ];
 
     // Create graphs
@@ -308,12 +317,14 @@ void pPbFinalDijetEtaDistributions() {
     TGraph *grDijetJeuRelSyst[ ptDijetPtLow.size() ];
     TGraph *grDijetJerRelSyst[ ptDijetPtLow.size() ];
     TGraph *grDijetPointingRelSyst[ ptDijetPtLow.size() ];
+    TGraph *grDijetPileupRelSyst[ ptDijetPtLow.size() ];
     for (int i{0}; i<ptDijetPtLow.size(); i++ ) {
         grDijetEta[i] = nullptr;
         grDijetDirRelSyst[i] = nullptr;
         grDijetJeuRelSyst[i] = nullptr;
         grDijetJerRelSyst[i] = nullptr;
         grDijetPointingRelSyst[i] = nullptr;
+        grDijetPileupRelSyst[i] = nullptr;
     }
     TGraphErrors *grErrTotalSystUncrt[ ptDijetPtLow.size() ];
     TMultiGraph *mgDijetEta[ ptDijetPtLow.size() ];
@@ -397,14 +408,26 @@ void pPbFinalDijetEtaDistributions() {
             hPointingSyst[i]->SetName( Form("hPointingSyst_%d",i) );
         }
 
+        // Retrieve systematics due to pileup effect
+        if ( usePileupSyst ) {
+            grDijetPileupRelSyst[i] = new TGraph(Form("freezeSyst/pPb8160_etaDijet_pileupSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetPileupRelSyst[i]->SetName( Form("grPileupSyst_%d", i) );
+            hPileupSyst[i] = new TH1D(  Form("hPileupSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
+            hPileupSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+            hPileupSyst[i]->Sumw2();
+            relSyst(grDijetPileupRelSyst[i], hPileupSyst[i], pileupType);
+            hPileupSyst[i]->Scale(100.);
+            hPileupSyst[i]->SetName( Form("hPileupSyst_%d",i) );
+        }
+
         // Calculate total systematic uncertainty for the 
-        addSystSource(hTotalSyst[i], hJeuSyst[i], hJerSyst[i], hPointingSyst[i]);
+        addSystSource(hTotalSyst[i], hJeuSyst[i], hJerSyst[i], hPointingSyst[i], hPileupSyst[i]);
 
         //
         // Create graph with total systematic uncertainties
         //
         //std::cout << "Address of dir syst: " << grDijetDirRelSyst[i] << " name: " << grDijetDirRelSyst[i]->GetName() << std::endl;
-        grErrTotalSystUncrt[i] = totalSyst( grDijetJeuRelSyst[i], grDijetJerRelSyst[i], grDijetPointingRelSyst[i], grDijetEta[i] /*, grDijetDirRelSyst[i] */);
+        grErrTotalSystUncrt[i] = totalSyst( grDijetJeuRelSyst[i], grDijetJerRelSyst[i], grDijetPointingRelSyst[i], grDijetPileupRelSyst[i], grDijetEta[i] /*, grDijetDirRelSyst[i] */);
         grErrTotalSystUncrt[i]->SetName( Form("grErrTotalSystUncrt_%d", i));
         grErrTotalSystUncrt[i]->SetFillColor(29);
         grErrTotalSystUncrt[i]->SetFillStyle(1001); // Solid fill
@@ -434,6 +457,9 @@ void pPbFinalDijetEtaDistributions() {
         if ( usePointingSyst ) {
             hPointingSyst[i]->Draw("same");
         }
+        if ( usePileupSyst ) {
+            hPileupSyst[i]->Draw("same");
+        }
         hTotalSyst[i]->GetYaxis()->SetRangeUser(0., 20.);
         hTotalSyst[i]->GetXaxis()->SetRangeUser(-3., 3.);
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
@@ -453,6 +479,9 @@ void pPbFinalDijetEtaDistributions() {
         }
         if ( usePointingSyst ) {
             leg->AddEntry(hPointingSyst[i], Form("Pointing res."), "l");  
+        }
+        if ( usePileupSyst ) {
+            leg->AddEntry(hPileupSyst[i], Form("Pileup"), "l");
         }
         leg->Draw();
         canv->SaveAs( Form("freezeSyst/pPb8160_syst_pt_%d_%d_lab.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
@@ -502,6 +531,9 @@ void pPbFinalDijetEtaDistributions() {
         if ( usePointingSyst ) {
             hPointingSyst[i]->Draw("same");
         }
+        if ( usePileupSyst ) {
+            leg->AddEntry(hPileupSyst[i], Form("Pileup"), "l");
+        }
         hTotalSyst[i]->GetYaxis()->SetRangeUser(0., 20.);
         hTotalSyst[i]->GetXaxis()->SetRangeUser(-3., 3.);
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
@@ -521,6 +553,9 @@ void pPbFinalDijetEtaDistributions() {
         }
         if ( usePointingSyst ) {
             leg->AddEntry(hPointingSyst[i], Form("Pointing res."), "l");  
+        }
+        if ( usePileupSyst ) {
+            leg->AddEntry(hPileupSyst[i], Form("Pileup"), "l");  
         }
         leg->Draw();
 
