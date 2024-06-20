@@ -1723,7 +1723,7 @@ void systematics() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    Bool_t drawFits = kTRUE;
+    Bool_t drawFits = kFALSE;
 
     // Date
     TDatime dt;
@@ -1798,7 +1798,7 @@ void systematics() {
 
     // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
-    plotPointingResolution( embeddingFile, date, drawFits );
+    // plotPointingResolution( embeddingFile, date, drawFits );
 
     // compareJetCollections( defaultFile, akcs4File, date );
 
