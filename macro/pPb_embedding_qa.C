@@ -110,8 +110,8 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     h->GetYaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetTitleSize(0.06);
     h->GetXaxis()->SetLabelSize(0.06);
-    h->GetXaxis()->SetNdivisions(208);
-    h->GetYaxis()->SetNdivisions(208);    
+    h->GetXaxis()->SetNdivisions(205);
+    h->GetYaxis()->SetNdivisions(205);    
     h->GetYaxis()->SetTitleOffset(1.1);
 
     if ( doRenorm ) {
@@ -125,8 +125,8 @@ void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
     h->GetYaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetTitleSize(0.06);
     h->GetXaxis()->SetLabelSize(0.06);
-    h->GetXaxis()->SetNdivisions(208);
-    h->GetYaxis()->SetNdivisions(208);    
+    h->GetXaxis()->SetNdivisions(205);
+    h->GetYaxis()->SetNdivisions(205);    
     h->GetYaxis()->SetTitleOffset(1.1);
 
     if ( doRenorm ) {
@@ -715,16 +715,16 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
     TString inputFileName( inFile->GetName() );
     TString direction;
     if ( inputFileName.Contains("Pbgoing") ) {
-        direction = "Pbgoing";
+        direction = "Pb-going";
     }
     else if ( inputFileName.Contains("pgoing") ) {
-        direction = "pgoing";
+        direction = "p-going";
     }
     else {
         direction = "unknownDir";
     }
 
-    Int_t rebinX{1}, rebinY{1};
+    Int_t rebinX{1}, rebinY{2};
 
     // Retrieve JES histogram
     THnSparseD *hJESPtEtaPhi = (THnSparseD*)inFile->Get("hJESInclusiveJetPtEtaPhiWeighted");
@@ -738,12 +738,17 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
         branchName = "ak4";
     }
 
+    Int_t etaLow{20}, etaHi{32};
+    Double_t etaStep = 0.2;
+    Double_t etaStart{-5.2};
+
     // Get JES vs ref pT
-    hJESPtEtaPhi->GetAxis(2)->SetRange(20, 32); // -1.2 < eta < 1.2
+    hJESPtEtaPhi->GetAxis(2)->SetRange(etaLow, etaHi); // -1.2 < eta < 1.2
     TH2D* hJESvsPt = (TH2D*)hJESPtEtaPhi->Projection(0, 1);
     hJESvsPt->SetName("hJESvsPt");
     hJESvsPt->RebinX( rebinX );
     hJESvsPt->RebinY( rebinY );
+    hJESvsPt->GetYaxis()->SetTitle("p_{T}^{reco} / p_{T}^{ref}");
     set2DStyle( hJESvsPt );
 
     TLatex t;
@@ -756,6 +761,8 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
     hJESvsPt->Draw("colz");
     t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    t.DrawLatexNDC(0.65, 0.75, direction.Data() );
+    t.DrawLatexNDC(0.6, 0.65, Form("%2.1f<#eta<%2.1f", etaStart + etaStep * etaLow, etaStart + etaStep * etaHi) );
     canv->SaveAs( Form("%s/pPb8160_%s_jes_2d_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
 
     // Create histograms for JES and JER
@@ -775,11 +782,12 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
 
     hJESMean->Draw();
     t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
-    t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
-    hJESMean->GetYaxis()->SetRangeUser(0.95, 1.1);
+    hJESMean->GetYaxis()->SetRangeUser(0.95, 1.05);
     hJESMean->GetYaxis()->SetTitle("JES");
     //hJESMean->GetXaxis()->SetRangeUser(20, 200);
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    t.DrawLatexNDC(0.65, 0.75, direction.Data() );
+    t.DrawLatexNDC(0.6, 0.65, Form("%2.1f<#eta<%2.1f", etaStart + etaStep * etaLow, etaStart + etaStep * etaHi) );
     canv->SaveAs( Form("%s/pPb8160_%s_jes_mu_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
 
     hJESSigma->Draw();
@@ -787,6 +795,8 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
     hJESSigma->GetYaxis()->SetTitle("JER");
     t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    t.DrawLatexNDC(0.65, 0.75, direction.Data() );
+    t.DrawLatexNDC(0.6, 0.65, Form("%2.1f<#eta<%2.1f", etaStart + etaStep * etaLow, etaStart + etaStep * etaHi) );
     canv->SaveAs( Form("%s/pPb8160_%s_jes_sigma_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
 
     // Return eta to original area
@@ -799,21 +809,28 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
     canv2->cd(1);
     setPadStyle();
     hJESvsPt->Draw("colz");
-    gPad->SetLogz();
+    hJESvsPt->GetYaxis()->SetTitle("p_{T}^{reco} / p_{T}^{ref}");
+    //gPad->SetLogz();
     t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    t.DrawLatexNDC(0.65, 0.75, direction.Data() );
+    t.DrawLatexNDC(0.6, 0.65, Form("%2.1f<#eta<%2.1f", etaStart + etaStep * etaLow, etaStart + etaStep * etaHi) );
 
     canv2->cd(2);
     setPadStyle();
     hJESMean->Draw();
     t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    t.DrawLatexNDC(0.65, 0.75, direction.Data() );
+    t.DrawLatexNDC(0.6, 0.65, Form("%2.1f<#eta<%2.1f", etaStart + etaStep * etaLow, etaStart + etaStep * etaHi) );
 
     canv2->cd(3);
     setPadStyle();
     hJESSigma->Draw();
     t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
     t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+    t.DrawLatexNDC(0.65, 0.75, direction.Data() );
+    t.DrawLatexNDC(0.6, 0.65, Form("%2.1f<#eta<%2.1f", etaStart + etaStep * etaLow, etaStart + etaStep * etaHi) );
     
     canv2->SaveAs( Form("%s/pPb8160_%s_jes_%s.pdf", date.Data(), direction.Data(), branchName.Data()) );
 
@@ -840,6 +857,7 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
         hJESvsEta[i]->GetXaxis()->SetTitle("#eta");
         hJESvsEta[i]->RebinX(2);
         hJESvsEta[i]->RebinY(2);
+        hJESvsEta[i]->GetYaxis()->SetTitle("p_{T}^{reco} / p_{T}^{ref}");
         set2DStyle( hJESvsEta[i] );
 
         // Fit slices
@@ -858,6 +876,7 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
         hJESvsEta[i]->Draw("colz");
         t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
         t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.65, 0.75, direction.Data() );
         t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
         canv->SaveAs( Form("%s/pPb8160_%s_jes_vs_eta_pt_%d_%d_%s.pdf", 
                            date.Data(),  direction.Data(), ptFirst + (ptLow.at(i)-1) * ptStep, 
@@ -866,9 +885,10 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
         canv->cd();
         setPadStyle();
         hJESvsEtaMean[i]->Draw();
-        hJESvsEtaMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        hJESvsEtaMean[i]->GetYaxis()->SetRangeUser(0.95, 1.05);
         t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
         t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.65, 0.75, direction.Data() );
         t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
         canv->SaveAs( Form("%s/pPb8160_%s_jes_vs_eta_mu_pt_%d_%d_%s.pdf", 
                            date.Data(),  direction.Data(), ptFirst + (ptLow.at(i)-1) * ptStep, 
@@ -880,6 +900,7 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
         hJESvsEtaSigma[i]->GetYaxis()->SetRangeUser(0., 0.2);
         t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
         t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.65, 0.75, direction.Data() );
         t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
         canv->SaveAs( Form("%s/pPb8160_%s_jes_vs_eta_mu_pt_%d_%d_%s.pdf", 
                            date.Data(), direction.Data(), ptFirst + (ptLow.at(i)-1) * ptStep, 
@@ -890,14 +911,16 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
         hJESvsEta[i]->Draw("colz");
         t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
         t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.65, 0.75, direction.Data() );
         t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
 
         canv3[i]->cd(2);
         setPadStyle();
         hJESvsEtaMean[i]->Draw();
-        hJESvsEtaMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        hJESvsEtaMean[i]->GetYaxis()->SetRangeUser(0.95, 1.05);
         t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
         t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.65, 0.75, direction.Data() );
         t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
 
         canv3[i]->cd(3);
@@ -906,6 +929,7 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
         hJESvsEtaSigma[i]->GetYaxis()->SetRangeUser(0., 0.2);
         t.DrawLatexNDC(0.35, 0.93, "PYTHIA8+EPOS" );
         t.DrawLatexNDC(0.75, 0.85, branchName.Data() );
+        t.DrawLatexNDC(0.65, 0.75, direction.Data() );
         t.DrawLatexNDC(0.3, 0.2, Form("%d<p_{T} (GeV/c)<%d", ptFirst + (ptLow.at(i)-1) * ptStep, ptFirst + ptHi.at(i) * ptStep ) );
 
         canv3[i]->SaveAs( Form("%s/pPb8160_%s_jes_vs_eta_all_pt_%d_%d_%s.pdf", 
@@ -1976,7 +2000,7 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     // plotDijetDistributions(inFile, date);
 
     // Plot reco, reco with matching and calculate fakes
-    plotRecoAndFakes(inFile, date, branchId);
+    // plotRecoAndFakes(inFile, date, branchId);
 
     // Plot correlation between ref and reco dijet eta
     // plotEtaDijetCorrelation(inFile, date);
@@ -1985,5 +2009,5 @@ void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pb
     // plotJetIdHistos(inFile, date);
 
     // Plot JES and JER
-    //plotJESandJER(inFile, date, branchId);
+    plotJESandJER(inFile, date, branchId);
 }

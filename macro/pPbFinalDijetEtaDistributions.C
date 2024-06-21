@@ -462,7 +462,7 @@ void pPbFinalDijetEtaDistributions() {
         }
         hTotalSyst[i]->GetYaxis()->SetRangeUser(0., 20.);
         hTotalSyst[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         leg = new TLegend(0.4, 0.65, 0.65, 0.85);
         leg->SetTextSize(0.05);
@@ -495,10 +495,10 @@ void pPbFinalDijetEtaDistributions() {
         mgDijetEta[i]->Draw("AP");
         mgDijetEta[i]->GetYaxis()->SetRangeUser(0.005, 0.15);
         mgDijetEta[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{ave} GeV/c<%d", 
+        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{ave} GeV<%d", 
                        ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
-        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading}>50 GeV/c");
-        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading}>40 GeV/c");
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading}>50 GeV");
+        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading}>40 GeV");
         t.DrawLatexNDC(0.2, 0.59, "|#eta|<3");
         t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet}>#frac{5#pi}{6}");
         plotCMSHeader();
@@ -536,7 +536,7 @@ void pPbFinalDijetEtaDistributions() {
         }
         hTotalSyst[i]->GetYaxis()->SetRangeUser(0., 20.);
         hTotalSyst[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         leg = new TLegend(0.4, 0.65, 0.65, 0.85);
         leg->SetTextSize(0.05);
@@ -568,10 +568,10 @@ void pPbFinalDijetEtaDistributions() {
         mgDijetEta[i]->GetYaxis()->SetRangeUser(0.005, 0.15);
         mgDijetEta[i]->GetXaxis()->SetRangeUser(-3., 3.);
         // gPad->SetLogy(1);
-        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{ave} GeV/c<%d", 
+        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{ave} GeV<%d", 
                        ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
-        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading}>50 GeV/c");
-        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading}>40 GeV/c");
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading}>50 GeV");
+        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading}>40 GeV");
         t.DrawLatexNDC(0.2, 0.59, "|#eta|<3");
         t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet}>#frac{5#pi}{6}");
         t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");

@@ -2057,10 +2057,10 @@ void systematics() {
 
     // plotPointingResolution( embeddingFile, date, drawFits );
 
-    plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
+    // plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
 
-    // compareJetCollections( defaultFile, akcs4File, date );
+    compareJetCollections( defaultFile, akcs4File, date );
 
-    //compareJER( embeddingFile, jerDefFile, jerUpFile, jerDownFile, date );
+    // compareJER( embeddingFile, jerDefFile, jerUpFile, jerDownFile, date );
 
 }
