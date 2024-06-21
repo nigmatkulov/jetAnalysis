@@ -110,9 +110,9 @@ int main(int argc, char const *argv[]) {
     eventCut->useHBHENoiseFilterResultRun2Loose();
     eventCut->usePhfCoincFilter();
     // Default cut
-    //eventCut->usePVertexFilterCutdz1p0();
+    eventCut->usePVertexFilterCutdz1p0();
     // Pile-up systematics
-    eventCut->usePVertexFilterCutGplus();
+    // eventCut->usePVertexFilterCutGplus();
     // Pile-up systematics
     //eventCut->usePVertexFilterCutVtx1();
     
