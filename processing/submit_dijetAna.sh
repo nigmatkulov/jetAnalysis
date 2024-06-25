@@ -11,8 +11,9 @@ cd $EXEC_PATH
 formatted_date=$(date +"%Y%m%d")
 
 # Read input parameters
-# First parameters tells the dataset name: DATA_MB, DATA_HM185, DATA_HM250
-sample_name=DATA_MB
+# First parameters tells the dataset name: DATA_MB, DATA_HM185, DATA_HM250, DATA_PAEGJet
+#sample_name=DATA_MB
+sample_nae=DATA_PAEGJet
 
 # Beam direction
 is_Pbgoing=1
@@ -34,9 +35,12 @@ elif [ "$sample_name" == "DATA_HM185" ]; then
     sample_prefix="HM185_PD${pd_number}_${direction}"
     input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_HM185/${direction}/${sample_prefix}.txt"
     
-else
+elif [ "$sample_name" == "DATA_HM250" ]; then
     sample_prefix="HM250_${direction}"
     input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_HM250/${direction}/${sample_prefix}.txt"
+else
+    sample_prefix="PAEGJet_${direction}"
+    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_PAEGJet/${direction}/${sample_prefix}.txt"
 fi
 
 # Specify number of files per list to split
