@@ -231,9 +231,9 @@ void ForestAODReader::clearVariables() {
     fHLT_PAAK4CaloJet80_Eta5p1_v3 = {0};
     fHLT_PAAK4CaloJet100_Eta5p1_v3 = {0};
     fHLT_PAAK4PFJet60_Eta5p1_v4 = {0};
-    fHLT_PAAK4PFJet80_Eta5p1_v3 = {0};
-    fHLT_PAAK4PFJet100_Eta5p1_v3 = {0};
-    fHLT_PAAK4PFJet120_Eta5p1_v2 = {0};
+    fHLT_PAAK4PFJet80_Eta5p1_v4 = {0};
+    fHLT_PAAK4PFJet100_Eta5p1_v4 = {0};
+    fHLT_PAAK4PFJet120_Eta5p1_v4 = {0};
 
     fHLT_HIAK4PFJet15_v1 = {0};
     fHLT_HIAK4PFJet15_v1_Prescl = {0};
@@ -854,9 +854,9 @@ void ForestAODReader::setupBranches() {
         fHltTree->SetBranchAddress("HLT_PAAK4CaloJet80_Eta5p1_v3", &fHLT_PAAK4CaloJet80_Eta5p1_v3);
         fHltTree->SetBranchAddress("HLT_PAAK4CaloJet100_Eta5p1_v3", &fHLT_PAAK4CaloJet100_Eta5p1_v3);
         fHltTree->SetBranchAddress("HLT_PAAK4PFJet60_Eta5p1_v4", &fHLT_PAAK4PFJet60_Eta5p1_v4);
-        fHltTree->SetBranchAddress("HLT_PAAK4PFJet80_Eta5p1_v3", &fHLT_PAAK4PFJet80_Eta5p1_v3);
-        fHltTree->SetBranchAddress("HLT_PAAK4PFJet100_Eta5p1_v3", &fHLT_PAAK4PFJet100_Eta5p1_v3);
-        fHltTree->SetBranchAddress("HLT_PAAK4PFJet120_Eta5p1_v2", &fHLT_PAAK4PFJet120_Eta5p1_v2);
+        fHltTree->SetBranchAddress("HLT_PAAK4PFJet80_Eta5p1_v4", &fHLT_PAAK4PFJet80_Eta5p1_v4);
+        fHltTree->SetBranchAddress("HLT_PAAK4PFJet100_Eta5p1_v4", &fHLT_PAAK4PFJet100_Eta5p1_v4);
+        fHltTree->SetBranchAddress("HLT_PAAK4PFJet120_Eta5p1_v4", &fHLT_PAAK4PFJet120_Eta5p1_v4);
 
         fHltTree->SetBranchAddress("HLT_HIAK4PFJet15_v1", &fHLT_HIAK4PFJet15_v1);
         fHltTree->SetBranchAddress("HLT_HIAK4PFJet15_v1_Prescl", &fHLT_HIAK4PFJet15_v1_Prescl);
@@ -1353,9 +1353,9 @@ Event* ForestAODReader::returnEvent() {
         fEvent->trigAndSkim()->setHLT_PAAK4CaloJet80_Eta5p1_v3(fHLT_PAAK4CaloJet80_Eta5p1_v3);
         fEvent->trigAndSkim()->setHLT_PAAK4CaloJet100_Eta5p1_v3(fHLT_PAAK4CaloJet100_Eta5p1_v3);
         fEvent->trigAndSkim()->setHLT_PAAK4PFJet60_Eta5p1_v4(fHLT_PAAK4PFJet60_Eta5p1_v4);
-        fEvent->trigAndSkim()->setHLT_PAAK4PFJet80_Eta5p1_v3(fHLT_PAAK4PFJet80_Eta5p1_v3);
-        fEvent->trigAndSkim()->setHLT_PAAK4PFJet100_Eta5p1_v3(fHLT_PAAK4PFJet100_Eta5p1_v3);
-        fEvent->trigAndSkim()->setHLT_PAAK4PFJet120_Eta5p1_v2(fHLT_PAAK4PFJet120_Eta5p1_v2);
+        fEvent->trigAndSkim()->setHLT_PAAK4PFJet80_Eta5p1_v4(fHLT_PAAK4PFJet80_Eta5p1_v4);
+        fEvent->trigAndSkim()->setHLT_PAAK4PFJet100_Eta5p1_v4(fHLT_PAAK4PFJet100_Eta5p1_v4);
+        fEvent->trigAndSkim()->setHLT_PAAK4PFJet120_Eta5p1_v4(fHLT_PAAK4PFJet120_Eta5p1_v4);
 
         fEvent->trigAndSkim()->setHLT_HIAK4PFJet15_v1(fHLT_HIAK4PFJet15_v1);
         fEvent->trigAndSkim()->setHLT_HIAK4PFJet15_v1_Prescl(fHLT_HIAK4PFJet15_v1_Prescl);
