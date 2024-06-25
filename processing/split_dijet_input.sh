@@ -25,8 +25,10 @@ if [ "$sample_name" == "DATA_MB" ]; then
     sample_prefix="MB_PD${pd_number}_${direction}"
 elif [ "$sample_name" == "DATA_HM185" ]; then
     sample_prefix="HM185_PD${pd_number}_${direction}"
+elif [ "$sample_name" == "DATA_HM250" ]; then
+    sample_prefix="HM250_${direction}"
 else
-    sample_prefix="HM185_${direction}"
+    sample_prefix="PAEGJet_${direction}"
 fi
 
 # Check if the input file exists
@@ -59,4 +61,3 @@ for ((i = 0; i < num_sublists; i++)); do
 done
 
 echo $num_sublists
-

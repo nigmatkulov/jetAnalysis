@@ -13,7 +13,7 @@ formatted_date=$(date +"%Y%m%d")
 # Read input parameters
 # First parameters tells the dataset name: DATA_MB, DATA_HM185, DATA_HM250, DATA_PAEGJet
 #sample_name=DATA_MB
-sample_nae=DATA_PAEGJet
+sample_name=DATA_PAEGJet
 
 # Beam direction
 is_Pbgoing=1
