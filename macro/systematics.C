@@ -203,6 +203,27 @@ TH1D* projectEtaFrom3D(TH3D* h3D, const Char_t *name,
 //________________
 void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date) {
 
+    TString trigName = "MB";
+    TString fName = pbGoingFile->GetName();
+    if ( fName.Contains("MB") ) {
+        trigName = "MB";
+    }
+    else if ( fName.Contains("Jet60") ) {
+        trigName = "Jet60";
+    }
+    else if ( fName.Contains("Jet80") ) {
+        trigName = "Jet80";
+    }
+    else if ( fName.Contains("Jet100") ) {
+        trigName = "Jet100";
+    }
+    else if ( fName.Contains("Jet120") ) {
+        trigName = "Jet120";
+    }
+    else {
+        trigName = "MB";
+    }
+
     TH3D *hPtEtaDphiPbGoing = (TH3D*)pbGoingFile->Get("hRecoDijetPtEtaDphiWeighted");
     //TH3D *hPtEtaDphiPbGoing = (TH3D*)pbGoingFile->Get("hRecoDijetPtEtaDphi");
     hPtEtaDphiPbGoing->SetName("hPtEtaDphiPbGoing");
@@ -285,7 +306,7 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
         leg->AddEntry(hEtaPbGoing[i], Form("Pb-going"), "p");
         leg->AddEntry(hEtaPGoing[i], Form("p-going"), "p");
         leg->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_dirComp_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_dirComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -302,7 +323,7 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
         line->SetLineWidth(3);
         line->SetLineStyle(3);
         line->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_dirRat_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_dirRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -336,8 +357,8 @@ void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date
         line->Draw();
     } // for (Int_t i=0; i<ptDijetLow.size(); i++)
 
-    cComp->SaveAs( Form("%s/pPb8160_etaDijet_dirComp_all_%s.pdf", date.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pPb8160_etaDijet_dirRat_all_%s.pdf", date.Data(), frame.Data() ) );
+    cComp->SaveAs( Form("%s/%s_pPb8160_etaDijet_dirComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/%s_pPb8160_etaDijet_dirRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
 }
 
 //________________
@@ -634,6 +655,27 @@ void jeuSystematics(TF1 *jeuUp, TF1 *jeuDown, TH1D *hDef, TGraph* syst) {
 //________________
 void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *dataFile, TString date, Bool_t drawFits = kTRUE) {
 
+    TString trigName = "MB";
+    TString fName = defaultFile->GetName();
+    if ( fName.Contains("MB") ) {
+        trigName = "MB";
+    }
+    else if ( fName.Contains("Jet60") ) {
+        trigName = "Jet60";
+    }
+    else if ( fName.Contains("Jet80") ) {
+        trigName = "Jet80";
+    }
+    else if ( fName.Contains("Jet100") ) {
+        trigName = "Jet100";
+    }
+    else if ( fName.Contains("Jet120") ) {
+        trigName = "Jet120";
+    }
+    else {
+        trigName = "MB";
+    }
+
     TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get("hRecoDijetPtEtaDphiWeighted");
     hPtEtaDphiDef->SetName("hPtEtaDphiDef");
     TH3D *hPtEtaDphiUp = (TH3D*)jeuUpFile->Get("hRecoDijetPtEtaDphiWeighted");
@@ -750,7 +792,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         // grSyst[i]->Print();
 
         // Write systematic uncertainty to ASCII file
-        std::ofstream outFile( Form("%s/pPb8160_etaDijet_jeuSyst_%d_%d_%s.txt", date.Data(), 
+        std::ofstream outFile( Form("%s/%s_pPb8160_etaDijet_jeuSyst_%d_%d_%s.txt", date.Data(), trigName.Data(),
                                     ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                                     ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
         if ( outFile.is_open() ) {
@@ -768,7 +810,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         }
 
         // Write data points to ASCII file
-        std::ofstream outFile2( Form("%s/pPb8160_etaDijet_data_%d_%d_%s.txt", date.Data(), 
+        std::ofstream outFile2( Form("%s/%s_pPb8160_etaDijet_data_%d_%d_%s.txt", date.Data(), trigName.Data(),
                                     ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                                     ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
         if ( outFile2.is_open() ) {
@@ -805,7 +847,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         leg->AddEntry(hEtaUp[i], Form("JES+"), "p");
         leg->AddEntry(hEtaDown[i], Form("JES-"), "p");
         leg->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_jeuComp_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_jeuComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -833,7 +875,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         line->SetLineWidth(3);
         line->SetLineStyle(3);
         line->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_jeuRat_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_jeuRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -880,8 +922,8 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         line->Draw();
     } // for (Int_t i=0; i<ptDijetLow.size(); i++)
 
-    cComp->SaveAs( Form("%s/pPb8160_etaDijet_jeuComp_all_%s.pdf", date.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pPb8160_etaDijet_jeuRat_all_%s.pdf", date.Data(), frame.Data() ) );
+    cComp->SaveAs( Form("%s/%s_pPb8160_etaDijet_jeuComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/%s_pPb8160_etaDijet_jeuRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
 }
 
 //________________
@@ -923,6 +965,27 @@ void updateJERRatio(TH1D *h) {
 
 //________________
 void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString date, Bool_t drawFits = kTRUE) {
+
+    TString trigName = "MB";
+    TString fName = defaultFile->GetName();
+    if ( fName.Contains("MB") ) {
+        trigName = "MB";
+    }
+    else if ( fName.Contains("Jet60") ) {
+        trigName = "Jet60";
+    }
+    else if ( fName.Contains("Jet80") ) {
+        trigName = "Jet80";
+    }
+    else if ( fName.Contains("Jet100") ) {
+        trigName = "Jet100";
+    }
+    else if ( fName.Contains("Jet120") ) {
+        trigName = "Jet120";
+    }
+    else {
+        trigName = "MB";
+    }
 
     TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get("hRecoDijetPtEtaDphiWeighted");
     hPtEtaDphiDef->SetName("hPtEtaDphiDef");
@@ -1035,7 +1098,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         jerSystematics(fitRatioUp[i], fitRatioDown[i], hEtaDef[i], grSyst[i]);
 
         // Write systematic uncertainty to ASCII file
-        std::ofstream outFile( Form("%s/pPb8160_etaDijet_jerSyst_%d_%d_%s.txt", date.Data(), 
+        std::ofstream outFile( Form("%s/%s_pPb8160_etaDijet_jerSyst_%d_%d_%s.txt", date.Data(), trigName.Data(),
                                     ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                                     ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
         if ( outFile.is_open() ) {
@@ -1068,7 +1131,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         leg->AddEntry(hEtaUp[i], Form("JER+"), "p");
         leg->AddEntry(hEtaDown[i], Form("JER-"), "p");
         leg->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_jerComp_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_jerComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1096,7 +1159,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         line->SetLineWidth(3);
         line->SetLineStyle(3);
         line->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_jerRat_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_jerRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1143,8 +1206,8 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         }
     } // for (Int_t i{0}; i<ptBins; i++)
 
-    cComp->SaveAs( Form("%s/pPb8160_etaDijet_jerComp_all_%s.pdf", date.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pPb8160_etaDijet_jerRat_all_%s.pdf", date.Data(), frame.Data() ) );
+    cComp->SaveAs( Form("%s/%s_pPb8160_etaDijet_jerComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/%s_pPb8160_etaDijet_jerRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
 }
 
 //________________
@@ -1166,6 +1229,27 @@ void pointingSystematics(TF1 *fitf, TH1D *h, TGraph* syst) {
 
 //________________
 void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits = kTRUE) {
+
+    TString trigName = "MB";
+    TString fName = embeddingFile->GetName();
+    if ( fName.Contains("MB") ) {
+        trigName = "MB";
+    }
+    else if ( fName.Contains("Jet60") ) {
+        trigName = "Jet60";
+    }
+    else if ( fName.Contains("Jet80") ) {
+        trigName = "Jet80";
+    }
+    else if ( fName.Contains("Jet100") ) {
+        trigName = "Jet100";
+    }
+    else if ( fName.Contains("Jet120") ) {
+        trigName = "Jet120";
+    }
+    else {
+        trigName = "MB";
+    }
 
     TH3D *hRecoEtaRefEtaRecoPt = (TH3D*)embeddingFile->Get("hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted");
     hRecoEtaRefEtaRecoPt->SetName("hRecoEtaRefEtaRecoPt");
@@ -1265,7 +1349,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         pointingSystematics( fitRatio[i], hEtaRatio[i], grSyst[i] );
 
         // Write systematic uncertainty to ASCII file
-        std::ofstream outFile( Form("%s/pPb8160_etaDijet_pointingSyst_%d_%d_%s.txt", date.Data(), 
+        std::ofstream outFile( Form("%s/%s_pPb8160_etaDijet_pointingSyst_%d_%d_%s.txt", date.Data(), trigName.Data(),
                                     ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                                     ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
         if ( outFile.is_open() ) {
@@ -1289,7 +1373,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefComp_2D_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_RecoRefComp_2D_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1307,7 +1391,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         leg->AddEntry(hEtaReco[i], Form("Reco"), "p");
         leg->AddEntry(hEtaRef[i], Form("Ref"), "p");
         leg->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefComp_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_RecoRefComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1321,7 +1405,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefRatio_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_RecoRefRatio_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1333,7 +1417,7 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV/c) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefDiff_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_RecoRefDiff_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1381,10 +1465,10 @@ void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t drawFits 
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
     } // for (Int_t i{0}; i<ptBins; i++) 
 
-    cComp->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefComp_all_%s.pdf", date.Data(), frame.Data() ) );
-    cDiff->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefDiff_all_%s.pdf", date.Data(), frame.Data() ) );
-    c2D->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefCorr_2D_all_%s.pdf", date.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pPb8160_etaDijet_RecoRefRatio_all_%s.pdf", date.Data(), frame.Data() ) );
+    cComp->SaveAs( Form("%s/%s_pPb8160_etaDijet_RecoRefComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
+    cDiff->SaveAs( Form("%s/%s_pPb8160_etaDijet_RecoRefDiff_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
+    c2D->SaveAs( Form("%s/%s_pPb8160_etaDijet_RecoRefCorr_2D_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/%s_pPb8160_etaDijet_RecoRefRatio_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
 }
 
 //________________
@@ -1412,6 +1496,27 @@ void pileupSystematics(TF1 *pileupUp, TF1 *pileupDown, TH1D *hDef, TGraph* syst)
 
 //________________
 void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString date, Bool_t drawFits = kTRUE) {
+
+    TString trigName = "MB";
+    TString fName = defaultFile->GetName();
+    if ( fName.Contains("MB") ) {
+        trigName = "MB";
+    }
+    else if ( fName.Contains("Jet60") ) {
+        trigName = "Jet60";
+    }
+    else if ( fName.Contains("Jet80") ) {
+        trigName = "Jet80";
+    }
+    else if ( fName.Contains("Jet100") ) {
+        trigName = "Jet100";
+    }
+    else if ( fName.Contains("Jet120") ) {
+        trigName = "Jet120";
+    }
+    else {
+        trigName = "MB";
+    }
 
     TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get("hRecoDijetPtEtaDphiWeighted");
     hPtEtaDphiDef->SetName("hPtEtaDphiDef");
@@ -1524,7 +1629,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         pileupSystematics(fitRatioUp[i], fitRatioDown[i], hEtaDef[i], grSyst[i]);
 
         // Write systematic uncertainty to ASCII file
-        std::ofstream outFile( Form("%s/pPb8160_etaDijet_pileupSyst_%d_%d_%s.txt", date.Data(), 
+        std::ofstream outFile( Form("%s/%s_pPb8160_etaDijet_pileupSyst_%d_%d_%s.txt", date.Data(), trigName.Data(),
                                     ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                                     ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
         if ( outFile.is_open() ) {
@@ -1557,7 +1662,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         leg->AddEntry(hEtaUp[i], Form("Gplus"), "p");
         leg->AddEntry(hEtaDown[i], Form("Vtx1"), "p");
         leg->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_pileupComp_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_pileupComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1585,7 +1690,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         line->SetLineWidth(3);
         line->SetLineStyle(3);
         line->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_pileupRat_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_pileupRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1632,13 +1737,34 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         }
     } // for (Int_t i{0}; i<ptBins; i++)
 
-    cComp->SaveAs( Form("%s/pPb8160_etaDijet_pileupComp_all_%s.pdf", date.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pPb8160_etaDijet_pileupRat_all_%s.pdf", date.Data(), frame.Data() ) );
+    cComp->SaveAs( Form("%s/%s_pPb8160_etaDijet_pileupComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/%s_pPb8160_etaDijet_pileupRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
 
 }
 
 //________________
 void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
+
+    TString trigName = "MB";
+    TString fName = ak4->GetName();
+    if ( fName.Contains("MB") ) {
+        trigName = "MB";
+    }
+    else if ( fName.Contains("Jet60") ) {
+        trigName = "Jet60";
+    }
+    else if ( fName.Contains("Jet80") ) {
+        trigName = "Jet80";
+    }
+    else if ( fName.Contains("Jet100") ) {
+        trigName = "Jet100";
+    }
+    else if ( fName.Contains("Jet120") ) {
+        trigName = "Jet120";
+    }
+    else {
+        trigName = "MB";
+    }
 
     TH3D *hPtEtaDphiAk4 = (TH3D*)ak4->Get("hRecoDijetPtEtaDphiWeighted");
     hPtEtaDphiAk4->SetName("hPtEtaDphiAk4");
@@ -1715,7 +1841,7 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
         leg->AddEntry(hEtaAk4[i], Form("ak4"), "p");
         leg->AddEntry(hEtaAkCs4[i], Form("akCs4"), "p");
         leg->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_jetCollComp_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_jetCollComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1733,7 +1859,7 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
         line->SetLineWidth(3);
         line->SetLineStyle(3);
         line->Draw();
-        canv->SaveAs( Form("%s/pPb8160_etaDijet_jetCollRat_pt_%d_%d_%s.pdf", date.Data(), 
+        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_jetCollRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
                       ptLow + (ptDijetLow.at(i)-1) * ptStep, 
                       ptLow + ptDijetHi.at(i) * ptStep, frame.Data() ) );
 
@@ -1768,8 +1894,8 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
         line->Draw();
     } // for (Int_t i{0}; i<ptBins; i++)
 
-    cComp->SaveAs( Form("%s/pPb8160_etaDijet_jetCollComp_all_%s.pdf", date.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pPb8160_etaDijet_jetCollRat_all_%s.pdf", date.Data(), frame.Data() ) );
+    cComp->SaveAs( Form("%s/%s_pPb8160_etaDijet_jetCollComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/%s_pPb8160_etaDijet_jetCollRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
 }
 
 //________________
@@ -1975,29 +2101,34 @@ void systematics() {
 
     Bool_t drawFits = kTRUE;
 
+    TString trigName = "MB";
+    // TString trigName = "Jet60";
+    // TString trigName = "Jet80";
+    // TString trigName = "Jet100";
+
     // Date
     TDatime dt;
     TString date { Form( "%d",dt.GetDate() ) };
 
     // List of file names
-    TString defaultFileName("../build/MB_pPb8160_ak4.root");
-    TString pbGoingFileName("../build/MB_Pbgoing_pPb8160_ak4.root");
-    TString pGoingFileName("../build/MB_pgoing_pPb8160_ak4.root");
+    TString defaultFileName( Form("../build/%s_pPb8160_ak4.root", trigName.Data()) );
+    TString pbGoingFileName( Form("../build/%s_Pbgoing_pPb8160_ak4.root", trigName.Data()) );
+    TString pGoingFileName( Form("../build/%s_pgoing_pPb8160_ak4.root", trigName.Data()) );
 
     TString pbGoingEmbeddingFileName("../build/oEmbedding_pPb8160_Pbgoing_jerDef_ak4.root");
     TString pGoingEmbeddingFileName("../build/oEmbedding_pPb8160_pgoing_jerDef_ak4.root");
 
-    TString akcs4FileName("../build/MB_pPb8160_akCs4.root");
-    TString jeuUpFileName("../build/MB_pPb8160_jeu_up_ak4.root");
-    TString jeuDownFileName("../build/MB_pPb8160_jeu_down_ak4.root");
+    TString akcs4FileName( Form("../build/%s_pPb8160_akCs4.root", trigName.Data()) );
+    TString jeuUpFileName( Form("../build/%s_pPb8160_jeu_up_ak4.root", trigName.Data()) );
+    TString jeuDownFileName( Form("../build/%s_pPb8160_jeu_down_ak4.root", trigName.Data()) );
     TString embeddingFileName("../build/oEmbedding_pPb8160_ak4.root");
 
     TString jerDefFileName("../build/oEmbedding_pPb8160_jerDef_ak4.root");
     TString jerUpFileName("../build/oEmbedding_pPb8160_jerUp_ak4.root");
     TString jerDownFileName("../build/oEmbedding_pPb8160_jerDown_ak4.root");
 
-    TString pileupGplusFileName("../build/MB_pPb8160_gplus_ak4.root");
-    TString pileupVtx1FileName("../build/MB_pPb8160_vtx1_ak4.root");
+    TString pileupGplusFileName( Form("../build/%s_pPb8160_gplus_ak4.root", trigName.Data()) );
+    TString pileupVtx1FileName( Form("../build/%s_pPb8160_vtx1_ak4.root", trigName.Data()) );
 
     // Check the directory for storing figures exists
     if ( directoryExists( date.Data() ) ) {
@@ -2046,7 +2177,7 @@ void systematics() {
         branchId = {1};
     }
 
-    // plotDifferentDirections( pbGoingFile, pGoingFile, date );
+    plotDifferentDirections( pbGoingFile, pGoingFile, date );
     // plotDifferentDirections( pbGoingEmbeddingFile, pGoingEmbeddingFile, date );
 
     // compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, date, defaultFile);
@@ -2059,7 +2190,7 @@ void systematics() {
 
     // plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
 
-    compareJetCollections( defaultFile, akcs4File, date );
+    // compareJetCollections( defaultFile, akcs4File, date );
 
     // compareJER( embeddingFile, jerDefFile, jerUpFile, jerDownFile, date );
 
