@@ -34,9 +34,9 @@ class TriggerAndSkim : public TObject {
     void setHLT_PAAK4CaloJet80_Eta5p1_v3(const Int_t& b) { fHLT_PAAK4CaloJet80_Eta5p1_v3 = (Char_t)b; }
     void setHLT_PAAK4CaloJet100_Eta5p1_v3(const Int_t& b) { fHLT_PAAK4CaloJet100_Eta5p1_v3 = (Char_t)b; }
     void setHLT_PAAK4PFJet60_Eta5p1_v4(const Int_t& b) { fHLT_PAAK4PFJet60_Eta5p1_v4 = (Char_t)b; }
-    void setHLT_PAAK4PFJet80_Eta5p1_v4(const Int_t& b) { fHLT_PAAK4PFJet80_Eta5p1_v4 = (Char_t)b; }
-    void setHLT_PAAK4PFJet100_Eta5p1_v4(const Int_t& b) { fHLT_PAAK4PFJet100_Eta5p1_v4 = (Char_t)b; }
-    void setHLT_PAAK4PFJet120_Eta5p1_v4(const Int_t& b) { fHLT_PAAK4PFJet120_Eta5p1_v4 = (Char_t)b; }
+    void setHLT_PAAK4PFJet80_Eta5p1_v3(const Int_t& b) { fHLT_PAAK4PFJet80_Eta5p1_v3 = (Char_t)b; }
+    void setHLT_PAAK4PFJet100_Eta5p1_v3(const Int_t& b) { fHLT_PAAK4PFJet100_Eta5p1_v3 = (Char_t)b; }
+    void setHLT_PAAK4PFJet120_Eta5p1_v2(const Int_t& b) { fHLT_PAAK4PFJet120_Eta5p1_v2 = (Char_t)b; }
 
     void setHLT_HIAK4PFJet15_v1(const Int_t& b)        { fHLT_HIAK4PFJet15_v1 = (Char_t)b; }
     void setHLT_HIAK4PFJet15_v1_Prescl(const Int_t& b) { fHLT_HIAK4PFJet15_v1_Prescl = (Char_t)b; }  
@@ -102,9 +102,9 @@ class TriggerAndSkim : public TObject {
     Int_t HLT_PAAK4CaloJet80_Eta5p1_v3() const { return (Int_t)fHLT_PAAK4CaloJet80_Eta5p1_v3; }
     Int_t HLT_PAAK4CaloJet100_Eta5p1_v3() const { return (Int_t)fHLT_PAAK4CaloJet100_Eta5p1_v3; }
     Int_t HLT_PAAK4PFJet60_Eta5p1_v4() const { return (Int_t)fHLT_PAAK4PFJet60_Eta5p1_v4; }
-    Int_t HLT_PAAK4PFJet80_Eta5p1_v4() const { return (Int_t)fHLT_PAAK4PFJet80_Eta5p1_v4; }
-    Int_t HLT_PAAK4PFJet100_Eta5p1_v4() const { return (Int_t)fHLT_PAAK4PFJet100_Eta5p1_v4; }
-    Int_t HLT_PAAK4PFJet120_Eta5p1_v4() const { return (Int_t)fHLT_PAAK4PFJet120_Eta5p1_v4; }
+    Int_t HLT_PAAK4PFJet80_Eta5p1_v3() const { return (Int_t)fHLT_PAAK4PFJet80_Eta5p1_v3; }
+    Int_t HLT_PAAK4PFJet100_Eta5p1_v3() const { return (Int_t)fHLT_PAAK4PFJet100_Eta5p1_v3; }
+    Int_t HLT_PAAK4PFJet120_Eta5p1_v2() const { return (Int_t)fHLT_PAAK4PFJet120_Eta5p1_v2; }
 
     Int_t HLT_HIAK4PFJet15_v1() const { return (Int_t)fHLT_HIAK4PFJet15_v1; }
     Int_t HLT_HIAK4PFJet15_v1_Prescl() const { return (Int_t)fHLT_HIAK4PFJet15_v1_Prescl; }
@@ -169,9 +169,9 @@ class TriggerAndSkim : public TObject {
     Char_t fHLT_PAAK4CaloJet80_Eta5p1_v3;
     Char_t fHLT_PAAK4CaloJet100_Eta5p1_v3;
     Char_t fHLT_PAAK4PFJet60_Eta5p1_v4;
-    Char_t fHLT_PAAK4PFJet80_Eta5p1_v4;
-    Char_t fHLT_PAAK4PFJet100_Eta5p1_v4;
-    Char_t fHLT_PAAK4PFJet120_Eta5p1_v4;
+    Char_t fHLT_PAAK4PFJet80_Eta5p1_v3;
+    Char_t fHLT_PAAK4PFJet100_Eta5p1_v3;
+    Char_t fHLT_PAAK4PFJet120_Eta5p1_v2;
 
     Char_t fHLT_HIAK4PFJet15_v1;
     Char_t fHLT_HIAK4PFJet15_v1_Prescl;

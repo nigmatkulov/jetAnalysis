@@ -283,9 +283,9 @@ class ForestAODReader : public BaseReader {
     Int_t fHLT_PAAK4CaloJet80_Eta5p1_v3;
     Int_t fHLT_PAAK4CaloJet100_Eta5p1_v3;
     Int_t fHLT_PAAK4PFJet60_Eta5p1_v4;
-    Int_t fHLT_PAAK4PFJet80_Eta5p1_v4;
-    Int_t fHLT_PAAK4PFJet100_Eta5p1_v4;
-    Int_t fHLT_PAAK4PFJet120_Eta5p1_v4;
+    Int_t fHLT_PAAK4PFJet80_Eta5p1_v3;
+    Int_t fHLT_PAAK4PFJet100_Eta5p1_v3;
+    Int_t fHLT_PAAK4PFJet120_Eta5p1_v2;
 
     Int_t fHLT_HIAK4PFJet15_v1;
     Int_t fHLT_HIAK4PFJet15_v1_Prescl;

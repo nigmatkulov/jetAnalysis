@@ -39,9 +39,9 @@ EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fPVertexFilterCutVtx1{kFALSE},
     fHLT_HIPuAK4CaloJet80Eta5p1_v1{kFALSE},
     fHLT_PAAK4PFJet60_Eta5p1_v4{kFALSE},
-    fHLT_PAAK4PFJet80_Eta5p1_v4{kFALSE},
-    fHLT_PAAK4PFJet100_Eta5p1_v4{kFALSE},
-    fHLT_PAAK4PFJet120_Eta5p1_v4{kFALSE},
+    fHLT_PAAK4PFJet80_Eta5p1_v3{kFALSE},
+    fHLT_PAAK4PFJet100_Eta5p1_v3{kFALSE},
+    fHLT_PAAK4PFJet120_Eta5p1_v2{kFALSE},
     fEventsPassed{0}, fEventsFailed{0} {
     fLumi[0] = 0;
     fLumi[1] = std::numeric_limits<unsigned int>::max();
@@ -225,27 +225,27 @@ Bool_t EventCut::pass(const Event* ev) {
             }
         }
     }
-        if ( fHLT_PAAK4PFJet80_Eta5p1_v4 ) {
-        if ( ev->trigAndSkim()->HLT_PAAK4PFJet80_Eta5p1_v4() == 0 ) {
+        if ( fHLT_PAAK4PFJet80_Eta5p1_v3 ) {
+        if ( ev->trigAndSkim()->HLT_PAAK4PFJet80_Eta5p1_v3() == 0 ) {
             goodTrigger = { kFALSE };
             if ( fVerbose ) {
-                std::cout << Form("Bad trigger: HLT_PAAK4PFJet80_Eta5p1_v4\n");
+                std::cout << Form("Bad trigger: HLT_PAAK4PFJet80_Eta5p1_v3\n");
             }
         }
     }
-        if ( fHLT_PAAK4PFJet100_Eta5p1_v4 ) {
-        if ( ev->trigAndSkim()->HLT_PAAK4PFJet100_Eta5p1_v4() == 0 ) {
+        if ( fHLT_PAAK4PFJet100_Eta5p1_v3 ) {
+        if ( ev->trigAndSkim()->HLT_PAAK4PFJet100_Eta5p1_v3() == 0 ) {
             goodTrigger = { kFALSE };
             if ( fVerbose ) {
-                std::cout << Form("Bad trigger: HLT_PAAK4PFJet100_Eta5p1_v4\n");
+                std::cout << Form("Bad trigger: HLT_PAAK4PFJet100_Eta5p1_v3\n");
             }
         }
     }
-        if ( fHLT_PAAK4PFJet120_Eta5p1_v4 ) {
-        if ( ev->trigAndSkim()->HLT_PAAK4PFJet120_Eta5p1_v4() == 0 ) {
+        if ( fHLT_PAAK4PFJet120_Eta5p1_v2 ) {
+        if ( ev->trigAndSkim()->HLT_PAAK4PFJet120_Eta5p1_v2() == 0 ) {
             goodTrigger = { kFALSE };
             if ( fVerbose ) {
-                std::cout << Form("Bad trigger: HLT_PAAK4PFJet120_Eta5p1_v4\n");
+                std::cout << Form("Bad trigger: HLT_PAAK4PFJet120_Eta5p1_v2\n");
             }
         }
     }
