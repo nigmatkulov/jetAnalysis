@@ -819,6 +819,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                                                  ptRefLead, etaRefLead,
                                                  ptRefSubLead, etaRefSubLead };
 
+                Double_t dijetUnfold[4] = { dijetRecoPt, dijetRecoEta, dijetRefPt, dijetRefEta };
+
+                fHM->hRecoDijetPtEtaRefDijetPtEta->Fill(dijetUnfold, 1.);
+                fHM->hRecoDijetPtEtaRefDijetPtEtaWeighted->Fill(dijetUnfold, ptHatW);
+
                 fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Fill(dijetRecoUnfold);
                 fHM->hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Fill(dijetRecoUnfold, ptHatW);
                 fHM->hRefDijetEta->Fill( dijetRefEta, ptHatW );

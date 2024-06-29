@@ -123,8 +123,6 @@ int main(int argc, char const *argv[]) {
     //eventCut->useHLT_PAAK4PFJet120_Eta5p1_v2();
 
 
-
-
     // Set ptHat cut for embedding
     if ( isMc ) {
         eventCut->setPtHat(ptHatCut[0], ptHatCut[1]);

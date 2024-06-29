@@ -221,6 +221,11 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Ref sublead pt, sublead eta weighted [12]
     THnSparseD *hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
 
+    // Reco dijet pt, eta
+    // Ref dijet pt, eta
+    THnSparseD *hRecoDijetPtEtaRefDijetPtEta;
+    THnSparseD *hRecoDijetPtEtaRefDijetPtEtaWeighted;
+
     // With cut on ref for the selection of dijets !!
     // Reco dijet pt, dijet eta, 
     // Reco lead pt, lead eta,
