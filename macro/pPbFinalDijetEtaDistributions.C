@@ -139,6 +139,7 @@ void plotCMSHeader() {
 void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
     // Create histogram
     set1DStyle(h, style);
+    TString name = gr->GetName();
     std::cout << "Source: " << gr->GetName() << std::endl;
     for (Int_t i{1}; i <= h->GetNbinsX(); i++) {
         h->SetBinContent(i, 0.);
@@ -163,19 +164,24 @@ void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
     //
     // Temporary smoothing procedure
     //
-    Int_t binLow = h->FindBin(-1.5);
-    Int_t binHi = h->FindBin(1.8);
-    Double_t maxVal{-1};
-    for (Int_t i = binLow; i<=binHi; i++) {
-        if (maxVal < h->GetBinContent(i) ) {
-            maxVal = h->GetBinContent(i);
-        }
-    } // for (Int_t i = binLow; i<=binHi; i++)
+    // h->Smooth();
+    if ( name.Contains("JeuSyst") || name.Contains("PointingSyst") ) {
+        Int_t binLow = h->FindBin(-1.2);
+        Int_t binHi = h->FindBin(1.2);
+        Double_t maxVal{-1};
+        for (Int_t i = binLow; i<=binHi; i++) {
+            if (maxVal < h->GetBinContent(i) ) {
+                maxVal = h->GetBinContent(i);
+            }
+        } // for (Int_t i = binLow; i<=binHi; i++)
 
-    for (Int_t i = binLow; i<=binHi; i++) {
-        h->SetBinContent( i, maxVal );
-        gr->SetPointY(i-1, maxVal);
-    } // for (Int_t i = binLow; i<=binHi; i++)
+        for (Int_t i = 1; i<=h->GetNbinsX(); i++) {
+            if ( h->GetBinContent(i) < maxVal) {
+                h->SetBinContent( i, maxVal );
+                gr->SetPointY(i-1, maxVal);
+            }
+        } // for (Int_t i = binLow; i<=binHi; i++)
+    } // if ( name.Contains("jeuSyst") || name.Contains("pointingSyst") )
 }
 
 //________________
@@ -270,8 +276,8 @@ void pPbFinalDijetEtaDistributions() {
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 };
-    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
+    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
 
     std::vector<Int_t> ptDijetPtLow{};
     std::vector<Int_t> ptDijetPtHi{};
@@ -330,23 +336,38 @@ void pPbFinalDijetEtaDistributions() {
     TMultiGraph *mgDijetEta[ ptDijetPtLow.size() ];
 
     // Create canvases
-    Int_t sizeX = 1200;
-    Int_t sizeY = 800;
+    Int_t sizeX = 1000;
+    Int_t sizeY = 1200;
 
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
     Int_t ptBins = ptDijetPtLow.size();
 
     TCanvas *cSyst = new TCanvas("cSyst", "cSyst", sizeX, sizeY);
-    cSyst->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cSyst->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
 
     TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
-    cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cRat->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
+
+    TString triggerName = "MB";
 
     // Loop over pT bins
     for (UInt_t i{0}; i<ptDijetPtLow.size(); i++) {
 
+        if (ptDijetPtLow.at(i) < 80) {
+            triggerName = "MB";
+        }
+        else if (ptDijetPtLow.at(i) < 100) {
+            triggerName = "Jet60";
+        }
+        else if (ptDijetPtLow.at(i) < 120) {
+            triggerName = "Jet80";
+        }
+        else {
+            triggerName = "Jet100";
+        }
+
         // Retrieve data for the give pT average bin
-        grDijetEta[i] = new TGraphErrors( Form("freezeSyst/pPb8160_etaDijet_data_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grDijetEta[i] = new TGraphErrors( Form("freezeSyst/%s_pPb8160_etaDijet_data_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
         grDijetEta[i]->SetName( Form("grDijetEta_%d", i) );
         set1DStyle(grDijetEta[i]);
         for (Int_t j{0}; j<grDijetEta[i]->GetN(); j++) {
@@ -374,7 +395,7 @@ void pPbFinalDijetEtaDistributions() {
 
         // Retrieve JEU systematics
         if ( useJeuSyst ) {
-            grDijetJeuRelSyst[i] = new TGraph(Form("freezeSyst/pPb8160_etaDijet_jeuSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetJeuRelSyst[i] = new TGraph(Form("freezeSyst/%s_pPb8160_etaDijet_jeuSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetJeuRelSyst[i]->SetName( Form("grJeuSyst_%d", i) );
             hJeuSyst[i] = new TH1D(  Form("hJeuSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hJeuSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -386,7 +407,7 @@ void pPbFinalDijetEtaDistributions() {
 
         // Retrieve JER systematics
         if ( useJerSyst ) {
-            grDijetJerRelSyst[i] = new TGraph(Form("freezeSyst/pPb8160_etaDijet_jerSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetJerRelSyst[i] = new TGraph(Form("freezeSyst/MB_pPb8160_etaDijet_jerSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetJerRelSyst[i]->SetName( Form("grJerSyst_%d", i) );
             hJerSyst[i] = new TH1D(  Form("hJerSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hJerSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -398,7 +419,7 @@ void pPbFinalDijetEtaDistributions() {
 
         // Retrieve pointing resolution systematics
         if ( usePointingSyst ) {
-            grDijetPointingRelSyst[i] = new TGraph(Form("freezeSyst/pPb8160_etaDijet_pointingSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetPointingRelSyst[i] = new TGraph(Form("freezeSyst/MB_pPb8160_etaDijet_pointingSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetPointingRelSyst[i]->SetName( Form("grPointingSyst_%d", i) );
             hPointingSyst[i] = new TH1D(  Form("hPointingSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hPointingSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -410,7 +431,7 @@ void pPbFinalDijetEtaDistributions() {
 
         // Retrieve systematics due to pileup effect
         if ( usePileupSyst ) {
-            grDijetPileupRelSyst[i] = new TGraph(Form("freezeSyst/pPb8160_etaDijet_pileupSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetPileupRelSyst[i] = new TGraph(Form("freezeSyst/%s_pPb8160_etaDijet_pileupSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetPileupRelSyst[i]->SetName( Form("grPileupSyst_%d", i) );
             hPileupSyst[i] = new TH1D(  Form("hPileupSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hPileupSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);

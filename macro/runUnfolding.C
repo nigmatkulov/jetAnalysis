@@ -8,4 +8,6 @@ void runUnfolding() {
     gSystem->Load("~/work/RooUnfold/build/libRooUnfold.dylib");
     gROOT->LoadMacro("./unfoldDistributions.C");
     gROOT->ProcessLine( Form("unfoldDistributions()") );
+    // gROOT->LoadMacro("./testUnfolding.C");
+    // gROOT->ProcessLine("testUnfolding()");
 }
