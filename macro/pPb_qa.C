@@ -71,32 +71,28 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t lineWidth = 2;
     Int_t color = 2;
     if (type == 0) {
-        color = 2;
-        markerStyle = 20;
+        color = 2;        // red
+        markerStyle = 20; // filled circle
     }
     else if (type == 1) {
-        color = 4;
-        markerStyle = 21;
+        color = 4;        // blue
+        markerStyle = 24; // open circle
     }
     else if (type == 2) {
-        color = 1;
-        markerStyle = 22;
+        color = 1;        // black
+        markerStyle = 22; // filled triangle
     }
     else if (type == 3) {
-        color = 2;
-        markerStyle = 24;
+        color = 2;        // red
+        markerStyle = 24; // open circle
     }
     else if (type == 4) {
-        color = 4;
-        markerStyle = 25;
-    }
-    else if (type == 5) {
-        color = 1;
-        markerStyle = 26;
+        color = 4;        // blue
+        markerStyle = 20; // filled circle
     }
     else {
-        color = 9;
-        markerStyle = 30;
+        color = 6;        // magenta
+        markerStyle = 30; // open star
     }
 
     h->SetLineWidth( lineWidth );
@@ -162,6 +158,26 @@ void rescaleEta(TH2* h) {
         } // for (Int_t jBin=1; jBin<=h->GetNbinsY(); jBin++)
     } // for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++)
     h->Scale( 1. / h->Integral() );
+}
+
+//________________
+void copy2DHisto(TH2* h, TH2* hOrig, Int_t xLow = 1, Int_t xHi = -1, Int_t yLow = 1, Int_t yHi = -1) {
+    Int_t xBinLow{ xLow }, xBinHi{ hOrig->GetNbinsX() };
+    if ( xHi > 0 && xHi < xBinHi ) {
+        xBinHi = xHi;
+    }
+
+    Int_t yBinLow{ yLow }, yBinHi{ hOrig->GetNbinsY() };
+    if ( yHi > 0 && yHi < yBinHi ) {
+        yBinHi = yHi;
+    }
+
+    for (Int_t i=xBinLow; i<=xBinHi; i++) {
+        for (Int_t j=yBinLow; j<=yBinHi; j++) {
+            h->SetBinContent( i, j, hOrig->GetBinContent(i, j) );
+            h->SetBinError( i, j, hOrig->GetBinError(i, j) );
+        }
+    }
 }
 
 //________________
@@ -575,18 +591,285 @@ void plotEfficiency(TFile *inFile, TString date, Int_t jetBranch = 0) {
 }
 
 //________________
-void plotEtaDijetCorrelation(TFile *inFile, TString date) {
+void plotDijetResponseMatrices(TFile *embFile, TFile *mbFile, TFile *jet60File,
+                               TFile *jet80File, TFile *jet100File, TString date) {
 
-    TH2D *hDijetEtaRefVsReco = (TH2D*)inFile->Get("hRefDijetEtaVsRecoDijetEta");
-    hDijetEtaRefVsReco->SetName("hDijetEtaRefVsReco");
+    TString inputFileName( embFile->GetName() );
+    TString direction;
+    if ( inputFileName.Contains("Pbgoing") ) {
+        direction = "Pbgoing";
+    }
+    else if ( inputFileName.Contains("pgoing") ) {
+        direction = "pgoing";
+    }
+    else {
+        direction = "pPbgoing";
+    }
 
-    // Plot efficiency
-    TCanvas *cDijetEtaRefVsReco = new TCanvas("cDijetEtaRefVsReco","cDijetEtaRefVsReco", 800, 800);
+    TString frame = "lab";
+
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    // Bin numbers
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194};
+    // pTave values
+    std::vector<Int_t> ptDijetPtValLow{};
+    std::vector<Int_t> ptDijetPtValHi{};
+
+    Int_t ptBins = ptDijetLow.size();
+
+    for (UInt_t i{0}; i<ptDijetLow.size(); i++) {
+        ptDijetPtValLow.push_back( ptLow + (ptDijetLow.at(i)-1) * ptStep );
+        ptDijetPtValHi.push_back( ptLow + ptDijetHi.at(i) * ptStep );
+    }
+
+    Int_t recoType{0};
+    Int_t refType{1};
+    Int_t genType{3};
+    Int_t refSelType{6};
+    Int_t dataType{2};
+    Bool_t doRenorm{kFALSE};
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    // Retrieve distributions for embedding
+    THnSparseD *hReco2RefDijet = dynamic_cast< THnSparseD* >( embFile->Get("hRecoDijetPtEtaRefDijetPtEtaWeighted") );
+    hReco2RefDijet->SetName("hReco2RefDijet");
+    TH3D *hGenDijetPtEtaDphi = dynamic_cast< TH3D* >( embFile->Get("hGenDijetPtEtaDphiWeighted") );
+    hGenDijetPtEtaDphi->SetName("hGenDijetPtEtaDphi");
+
+    // Retrieve distributions for experimental data
+    TH3D* hRecoDataMB = dynamic_cast< TH3D* > ( mbFile->Get("hRecoDijetPtEtaDphiWeighted") );
+    hRecoDataMB->SetName("hRecoDataMB");
+    TH3D* hRecoDataJet60 = dynamic_cast< TH3D* > ( jet60File->Get("hRecoDijetPtEtaDphiWeighted") );
+    hRecoDataJet60->SetName("hRecoDataJet60");
+    TH3D* hRecoDataJet80 = dynamic_cast< TH3D* > ( jet80File->Get("hRecoDijetPtEtaDphiWeighted") );
+    hRecoDataJet80->SetName("hRecoDataJet80");
+    TH3D* hRecoDataJet100 = dynamic_cast< TH3D* > ( jet100File->Get("hRecoDijetPtEtaDphiWeighted") );
+    hRecoDataJet100->SetName("hRecoDataJet100");
+
+    // Prepare histograms
+    TH2D *hRecoPtVsRefPt;
+    TH2D *hEmbRecoPtVsRecoEta;
+    TH2D *hGenPtVsGenEta;
+    TH2D *hDataRecoPtVsRecoEta[ ptDijetLow.size() + 1 ]; // pT bins + integrated
+    TH2D *hRecoEtaVsRefEta[ ptDijetLow.size() + 1 ];     // pT bins + integrated
+    TH2D *hEmbRefPtVsRefEta[ ptDijetLow.size() + 1 ];    // pT bins + integrated
+
+    TH2D *hRecoPtVsRecoEtaMB = dynamic_cast<TH2D*> ( hRecoDataMB->Project3D("xy") );
+    hRecoPtVsRecoEtaMB->SetName("hRecoPtVsRecoEtaMB");
+    rescaleEta( hRecoPtVsRecoEtaMB );
+    set2DStyle( hRecoPtVsRecoEtaMB, kTRUE );
+
+    TH2D *hRecoPtVsRecoEtaJet60 = dynamic_cast<TH2D*> ( hRecoDataJet60->Project3D("xy") );
+    hRecoPtVsRecoEtaJet60->SetName("hRecoPtVsRecoEtaJet60");
+    rescaleEta( hRecoPtVsRecoEtaJet60 );
+    set2DStyle( hRecoPtVsRecoEtaJet60, kTRUE );
+
+    TH2D *hRecoPtVsRecoEtaJet80 = dynamic_cast<TH2D*> ( hRecoDataJet80->Project3D("xy") );
+    hRecoPtVsRecoEtaJet80->SetName("hRecoPtVsRecoEtaJet80");
+    rescaleEta( hRecoPtVsRecoEtaJet80 );
+    set2DStyle( hRecoPtVsRecoEtaJet80, kTRUE );
+
+    TH2D *hRecoPtVsRecoEtaJet100 = dynamic_cast<TH2D*> ( hRecoDataJet100->Project3D("xy") );
+    hRecoPtVsRecoEtaJet100->SetName("hRecoPtVsRecoEtaJet100");
+    rescaleEta( hRecoPtVsRecoEtaJet100 );
+    set2DStyle( hRecoPtVsRecoEtaJet100, kTRUE );
+
+    // Create canvases
+    Int_t sizeX{1200};
+    Int_t sizeY{800};
+
+    TCanvas *canv = new TCanvas("canv", "canv", sizeX, sizeY);
+
+    TCanvas *cRecoEtaVsRefEta = new TCanvas("cRecoEtaVsRefEta", "cRecoEtaVsRefEta", sizeX, sizeY);
+    cRecoEtaVsRefEta->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cEmbRefPtVsRefEta = new TCanvas("cEmbRefPtVsRefEta", "cEmbRefPtVsRefEta", sizeX, sizeY);
+    cEmbRefPtVsRefEta->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    // Fill and save reco pt vs ref pt for embedding
+    hRecoPtVsRefPt = dynamic_cast<TH2D*> ( hReco2RefDijet->Projection(0, 2) );
+    set2DStyle(hRecoPtVsRefPt);
+
+    canv->cd();
     setPadStyle();
-    hDijetEtaRefVsReco->Draw("colz");
-    gPad->SetLogz(1);
+    hRecoPtVsRecoEtaMB->Draw("colz");
+    t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    canv->SaveAs( Form("%s/data_pPb8160_recoPtVsRecoEtaMB_%s.pdf", date.Data(), frame.Data() ) );
 
-    cDijetEtaRefVsReco->SaveAs(Form("%s/pPb8160_ref_vs_reco_responce.pdf", date.Data()));
+    canv->cd();
+    setPadStyle();
+    hRecoPtVsRecoEtaJet60->Draw("colz");
+    t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    canv->SaveAs( Form("%s/data_pPb8160_recoPtVsRecoEtaJet60_%s.pdf", date.Data(), frame.Data() ) );
+
+    canv->cd();
+    setPadStyle();
+    hRecoPtVsRecoEtaJet80->Draw("colz");
+    t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    canv->SaveAs( Form("%s/data_pPb8160_recoPtVsRecoEtaJet80_%s.pdf", date.Data(), frame.Data() ) );
+
+    canv->cd();
+    setPadStyle();
+    hRecoPtVsRecoEtaJet100->Draw("colz");
+    t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    canv->SaveAs( Form("%s/data_pPb8160_recoPtVsRecoEtaJet100_%s.pdf", date.Data(), frame.Data() ) );
+
+    canv->cd();
+    setPadStyle();
+    hRecoPtVsRefPt->Draw("colz");
+    t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    canv->SaveAs( Form("%s/emb_pPb8160_recoPtVsRefPt_%s.pdf", date.Data(), frame.Data() ) );
+
+    // Fill and save reco pt vs ref eta for embedding
+    hEmbRecoPtVsRecoEta = dynamic_cast<TH2D*> ( hReco2RefDijet->Projection(0, 1) );
+    set2DStyle(hEmbRecoPtVsRecoEta);
+
+    canv->cd();
+    setPadStyle();
+    hEmbRecoPtVsRecoEta->Draw("colz");
+    t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    canv->SaveAs( Form("%s/emb_pPb8160_recoPtVsRecoEta_%s.pdf", date.Data(), frame.Data() ) );
+
+    // Fill and save gen pt vs gen eta for embedding
+    hGenPtVsGenEta = dynamic_cast<TH2D*> ( hGenDijetPtEtaDphi->Project3D("xy") );
+    hGenPtVsGenEta->SetName( "hGenPtVsGenEta" );
+    set2DStyle(hGenPtVsGenEta);
+
+    canv->cd();
+    setPadStyle();
+    hGenPtVsGenEta->Draw("colz");
+    t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    canv->SaveAs( Form("%s/emb_pPb8160_genPtVsGenEta_%s.pdf", date.Data(), frame.Data() ) );
+
+    // Loop over pTave bins
+    for ( Int_t iPt{0}; iPt<ptDijetLow.size(); iPt++ ) {  
+
+        // Select pTave bin for embedding
+        hReco2RefDijet->GetAxis(0)->SetRange( ptDijetLow.at(iPt), ptDijetHi.at(iPt) );
+        hRecoEtaVsRefEta[iPt] = dynamic_cast<TH2D*> ( hReco2RefDijet->Projection(3, 1) );
+        hRecoEtaVsRefEta[iPt]->SetName( Form("hRecoEtaVsRefEta_%d", iPt) );
+        hRecoEtaVsRefEta[iPt]->GetXaxis()->SetTitle("Reco #eta");
+        hRecoEtaVsRefEta[iPt]->GetYaxis()->SetTitle("Ref #eta");
+        set2DStyle(hRecoEtaVsRefEta[iPt]);
+
+        hEmbRefPtVsRefEta[iPt] = dynamic_cast<TH2D*> ( hReco2RefDijet->Projection(2, 3) );
+        hEmbRefPtVsRefEta[iPt]->SetName( Form("hEmbRefPtVsRefEta_%d", iPt) );
+        hEmbRefPtVsRefEta[iPt]->GetXaxis()->SetTitle("Ref #eta");
+        set2DStyle(hEmbRefPtVsRefEta[iPt]);
+
+        if ( iPt == 0 ) {
+            hRecoEtaVsRefEta[ ptDijetLow.size() ] = dynamic_cast<TH2D*> ( hRecoEtaVsRefEta[iPt]->Clone( Form("hRecoEtaVsRefEta_%d", ptDijetLow.size()) ) );
+            hEmbRefPtVsRefEta[ ptDijetLow.size() ] = dynamic_cast<TH2D*> ( hEmbRefPtVsRefEta[iPt]->Clone( Form("hEmbRefPtVsRefEta_%d", ptDijetLow.size()) ) );
+        }
+        else {
+            hRecoEtaVsRefEta[ ptDijetLow.size() ]->Add( hRecoEtaVsRefEta[iPt] );
+            hEmbRefPtVsRefEta[ ptDijetLow.size() ]->Add( hEmbRefPtVsRefEta[iPt] );
+        }
+
+        // Rescale 2D distributions
+        rescaleEta( hRecoEtaVsRefEta[iPt] );
+        rescaleEta( hEmbRefPtVsRefEta[iPt] );
+
+        // Retrieve experimental distributions
+        if ( ptDijetPtValLow.at(iPt) < 80 ) {
+            hDataRecoPtVsRecoEta[iPt] = dynamic_cast<TH2D*> ( hRecoPtVsRecoEtaMB->Clone( Form("hDataRecoPtVsRecoEta_%d", iPt) ) );
+            hDataRecoPtVsRecoEta[iPt]->Reset();
+            copy2DHisto(hDataRecoPtVsRecoEta[iPt], hRecoPtVsRecoEtaMB, 1, hRecoPtVsRecoEtaMB->GetNbinsX(), ptDijetLow.at(iPt), ptDijetHi.at(iPt) );
+        }
+        else if ( ptDijetPtValLow.at(iPt) < 100 ) {
+            hDataRecoPtVsRecoEta[iPt] = dynamic_cast<TH2D*> ( hRecoPtVsRecoEtaJet60->Clone( Form("hDataRecoPtVsRecoEta_%d", iPt) ) );
+            hDataRecoPtVsRecoEta[iPt]->Reset();
+            copy2DHisto(hDataRecoPtVsRecoEta[iPt], hRecoPtVsRecoEtaJet60, 1, hRecoPtVsRecoEtaJet60->GetNbinsX(), ptDijetLow.at(iPt), ptDijetHi.at(iPt) );
+        }
+        else if ( ptDijetPtValLow.at(iPt) < 120 ) {
+            hDataRecoPtVsRecoEta[iPt] = dynamic_cast<TH2D*> ( hRecoPtVsRecoEtaJet80->Clone( Form("hDataRecoPtVsRecoEta_%d", iPt) ) );
+            hDataRecoPtVsRecoEta[iPt]->Reset();
+            copy2DHisto(hDataRecoPtVsRecoEta[iPt], hRecoPtVsRecoEtaJet80, 1, hRecoPtVsRecoEtaJet80->GetNbinsX(), ptDijetLow.at(iPt), ptDijetHi.at(iPt) );
+        }
+        else {
+            hDataRecoPtVsRecoEta[iPt] = dynamic_cast<TH2D*> ( hRecoPtVsRecoEtaJet100->Clone( Form("hDataRecoPtVsRecoEta_%d", iPt) ) );
+            hDataRecoPtVsRecoEta[iPt]->Reset();
+            copy2DHisto(hDataRecoPtVsRecoEta[iPt], hRecoPtVsRecoEtaJet100, 1, hRecoPtVsRecoEtaJet100->GetNbinsX(), ptDijetLow.at(iPt), ptDijetHi.at(iPt) );
+        }
+        hDataRecoPtVsRecoEta[iPt]->SetName( Form("hDataRecoPtVsRecoEta_%d", iPt) );
+        set2DStyle(hDataRecoPtVsRecoEta[iPt]);
+
+        if ( iPt == 0 ) {
+            hDataRecoPtVsRecoEta[ ptDijetLow.size() ] = dynamic_cast<TH2D*> ( hDataRecoPtVsRecoEta[iPt]->Clone( Form("hDataRecoPtVsRecoEta_%d", ptDijetLow.size()) ) );
+        }
+        else {
+            hDataRecoPtVsRecoEta[ ptDijetLow.size() ]->Add( hDataRecoPtVsRecoEta[iPt] );
+        }
+
+        // Rescale 2D distributions
+        rescaleEta( hDataRecoPtVsRecoEta[iPt] );
+
+        // Store individual ref eta vs reco eta projections for embedding (for the given reco pT)
+        canv->cd();
+        setPadStyle();
+        hRecoEtaVsRefEta[iPt]->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        canv->SaveAs( Form("%s/emb_pPb8160_refEtaVsRecoEta_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Store individual ref pt vs ref eta projections for embedding (for the given reco pT)
+        canv->cd();
+        setPadStyle();
+        hEmbRefPtVsRefEta[iPt]->Draw("colz");
+        hEmbRefPtVsRefEta[iPt]->GetYaxis()->SetRangeUser( (Double_t)ptDijetPtValLow.at(iPt) / 2, (Double_t)ptDijetPtValHi.at(iPt) * 2);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        canv->SaveAs( Form("%s/emb_pPb8160_refPtVsRefEta_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Store individual reco pt vs reco eta projections for data (for the given reco pT)
+        canv->cd();
+        setPadStyle();
+        hDataRecoPtVsRecoEta[iPt]->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        canv->SaveAs( Form("%s/data_pPb8160_recoPtVsRecoEta_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Fill individual ref eta vs reco eta projections for embedding on one canvas (for the given reco pT)
+        cRecoEtaVsRefEta->cd( iPt+1 );
+        setPadStyle();
+        hRecoEtaVsRefEta[iPt]->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+
+        // Fill individual ref pt vs ref eta projections for embedding (for the given reco pT)
+        cEmbRefPtVsRefEta->cd( iPt+1 );
+        setPadStyle();
+        hEmbRefPtVsRefEta[iPt]->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    } // for ( Int_t iPt{0}; iPt<ptDijetLow.size(); iPt++ )
+
+    // Write the reco pt vs reco eta for the data
+    canv->cd();
+    setPadStyle();
+    rescaleEta( hDataRecoPtVsRecoEta[ ptDijetLow.size() ] );
+    hDataRecoPtVsRecoEta[ ptDijetLow.size() ]->Draw("colz");
+    t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+    canv->SaveAs( Form("%s/data_pPb8160_recoPtVsRecoEta_%s.pdf", date.Data(), frame.Data() ) );
+    
+    cRecoEtaVsRefEta->SaveAs( Form("%s/emb_pPb8160_recoEtaVsRefEta_all_%s.pdf", date.Data(), frame.Data() ) );
+    cEmbRefPtVsRefEta->SaveAs( Form("%s/emb_pPb8160_refPtVsRefEta_all_%s.pdf", date.Data(), frame.Data() ) );
 }
 
 //________________
@@ -721,7 +1004,7 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
         direction = "p-going";
     }
     else {
-        direction = "unknownDir";
+        direction = "pPbgoing";
     }
 
     Int_t rebinX{1}, rebinY{2};
@@ -940,9 +1223,10 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
 }
 
 //________________
-void plotDijetDistributions(TFile *inFile, TString date) {
+void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
+                            TFile *jet80File, TFile *jet100File, TString date) {
 
-    TString inputFileName( inFile->GetName() );
+    TString inputFileName( embFile->GetName() );
     TString direction;
     if ( inputFileName.Contains("Pbgoing") ) {
         direction = "Pbgoing";
@@ -951,110 +1235,373 @@ void plotDijetDistributions(TFile *inFile, TString date) {
         direction = "pgoing";
     }
     else {
-        direction = "unknownDir";
+        direction = "pPbgoing";
     }
+
+    TString frame = "lab";
+
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    // Bin numbers
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194};
+    // pTave values
+    std::vector<Int_t> ptDijetPtValLow{};
+    std::vector<Int_t> ptDijetPtValHi{};
+
+    for (UInt_t i{0}; i<ptDijetLow.size(); i++) {
+        ptDijetPtValLow.push_back( ptLow + (ptDijetLow.at(i)-1) * ptStep );
+        ptDijetPtValHi.push_back( ptLow + ptDijetHi.at(i) * ptStep );
+    }
+    // std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    // std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194};
 
     Int_t recoType{0};
     Int_t refType{1};
     Int_t genType{3};
-    Int_t refSelType{2};
+    Int_t refSelType{6};
+    Int_t dataType{2};
     Bool_t doRenorm{kFALSE};
-
-    TH1D *hRecoDijetEta = (TH1D*)inFile->Get("hRecoDijetEta");
-    if ( !hRecoDijetEta ) {
-        std::cout << "[WARNING] plotDijetDistributions - No recoDijetEta found\n";
-    }
-    TH1D *hRefDijetEta = (TH1D*)inFile->Get("hRefDijetEta");
-    if ( !hRefDijetEta ) {
-        std::cout << "[WARNING] plotDijetDistributions - No refDijetEta found\n";
-    }
-    TH1D *hGenDijetEta = (TH1D*)inFile->Get("hGenDijetEta");
-    if ( !hGenDijetEta ) {
-        std::cout << "[WARNING] plotDijetDistributions - No genDijetEta found\n";
-    }
-    TH1D *hRefSelDijetEta = (TH1D*)inFile->Get("hRefSelDijetEta");
-    if ( !hRefSelDijetEta ) {
-        std::cout << "[WARNING] plotDijetDistributions - No refSelDijetEta found\n";
-    }
-
-    set1DStyle(hRecoDijetEta,   recoType, doRenorm);
-    set1DStyle(hRefDijetEta,    refType, doRenorm);
-    set1DStyle(hGenDijetEta,    genType, doRenorm);
-    set1DStyle(hRefSelDijetEta, refSelType, doRenorm);
-
-    rescaleEta( hRecoDijetEta );
-    rescaleEta( hRefDijetEta );
-    rescaleEta( hGenDijetEta );
-    rescaleEta( hRefSelDijetEta );
-
-    TH1D *hReco2Gen = new TH1D("hReco2Gen", "hReco2Gen;#eta_{dijet};#frac{reco}{gen}",
-                                hRecoDijetEta->GetNbinsX(), 
-                                hRecoDijetEta->GetXaxis()->GetBinLowEdge(1),
-                                hRecoDijetEta->GetXaxis()->GetBinUpEdge( hRecoDijetEta->GetNbinsX() ) );
-    hReco2Gen->Sumw2();
-    set1DStyle(hReco2Gen, recoType);
-    TH1D *hRef2Gen = new TH1D("hRef2Gen", "hRef2Gen;#eta_{dijet};#frac{ref}{gen}",
-                                hRefDijetEta->GetNbinsX(), 
-                                hRefDijetEta->GetXaxis()->GetBinLowEdge(1),
-                                hRefDijetEta->GetXaxis()->GetBinUpEdge( hRefDijetEta->GetNbinsX() ) );
-    hRef2Gen->Sumw2();
-    set1DStyle(hRef2Gen, refType);
-    TH1D *hRefSel2Gen = new TH1D("hRefSel2Gen", "hRefSel2Gen;#eta_{dijet};#frac{ref sel}{gen}",
-                                hRefDijetEta->GetNbinsX(), 
-                                hRefDijetEta->GetXaxis()->GetBinLowEdge(1),
-                                hRefDijetEta->GetXaxis()->GetBinUpEdge( hRefDijetEta->GetNbinsX() ) );
-    hRefSel2Gen->Sumw2();
-    set1DStyle(hRefSel2Gen, refSelType);
-
-    hReco2Gen->Divide(hRecoDijetEta, hGenDijetEta, 1., 1., "b");
-    hRef2Gen->Divide(hRefDijetEta, hGenDijetEta, 1., 1., "b");
-    hRefSel2Gen->Divide(hRefSelDijetEta, hGenDijetEta, 1., 1., "b");
 
     TLatex t;
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
-    TCanvas *c1DEta = new TCanvas("c1DEta", "c1DEta", 1000, 1000);
-    c1DEta->Divide(1, 2);
+    // Retrieve distributions for embedding
+    THnSparseD *hReco2RefDijet = dynamic_cast< THnSparseD* >( embFile->Get("hRecoDijetPtEtaRefDijetPtEtaWeighted") );
+    hReco2RefDijet->SetName("hReco2RefDijet");
+    TH3D *hGenDijetPtEtaDphi = dynamic_cast< TH3D* >( embFile->Get("hGenDijetPtEtaDphiWeighted") );
+    hGenDijetPtEtaDphi->SetName("hGenDijetPtEtaDphi");
 
-    c1DEta->cd(1);
-    setPadStyle();
-    hGenDijetEta->Draw();
-    hRecoDijetEta->Draw("same");
-    hRefDijetEta->Draw("same");
-    hRefSelDijetEta->Draw("same");
-    hGenDijetEta->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
-    TLegend *leg = new TLegend(0.65, 0.68, 0.8, 0.92);
-    leg->SetLineWidth(0);
-    leg->AddEntry(hGenDijetEta,Form("Gen"), "p");
-    leg->AddEntry(hRefDijetEta,Form("Ref"), "p");
-    leg->AddEntry(hRecoDijetEta,Form("Reco"), "p");
-    leg->AddEntry(hRefSelDijetEta,Form("Ref Sel"), "p");
-    leg->SetTextSize(0.06);
-    leg->Draw();
+    // Retrieve distributions for experimental data
+    TH3D* hRecoDataMB = dynamic_cast< TH3D* > ( mbFile->Get("hRecoDijetPtEtaDphiWeighted") );
+    hRecoDataMB->SetName("hRecoDataMB");
+    TH3D* hRecoDataJet60 = dynamic_cast< TH3D* > ( jet60File->Get("hRecoDijetPtEtaDphiWeighted") );
+    hRecoDataJet60->SetName("hRecoDataJet60");
+    TH3D* hRecoDataJet80 = dynamic_cast< TH3D* > ( jet80File->Get("hRecoDijetPtEtaDphiWeighted") );
+    hRecoDataJet80->SetName("hRecoDataJet80");
+    TH3D* hRecoDataJet100 = dynamic_cast< TH3D* > ( jet100File->Get("hRecoDijetPtEtaDphiWeighted") );
+    hRecoDataJet100->SetName("hRecoDataJet100");
 
-    c1DEta->cd(2);
-    setPadStyle();
-    hReco2Gen->Draw();
-    hRef2Gen->Draw("same");
-    hRefSel2Gen->Draw("same");
-    TLegend *leg2 = new TLegend(0.65, 0.68, 0.8, 0.92);
-    leg2->SetLineWidth(0);
-    leg2->AddEntry(hRef2Gen,Form("Ref/Gen"), "p");
-    leg2->AddEntry(hReco2Gen,Form("Reco/Gen"), "p");
-    leg2->AddEntry(hRefSel2Gen,Form("RefSel/Gen"), "p");
-    leg2->SetTextSize(0.06);
-    leg2->Draw();
-    hReco2Gen->GetYaxis()->SetRangeUser(0.8, 1.2);
-    hReco2Gen->GetYaxis()->SetTitle("Ratio to Gen");
-    TLine *l = new TLine(hReco2Gen->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hReco2Gen->GetXaxis()->GetBinUpEdge(hReco2Gen->GetNbinsX()), 1.);
-    l->SetLineColor(kMagenta);
-    l->SetLineWidth(3);
-    l->SetLineStyle(3);
-    l->Draw();
+    // Create 1D dijet eta histograms
+    TH1D *hRecoEta[ ptDijetLow.size() ];
+    TH1D *hRecoDataEta[ ptDijetLow.size() ];
+    TH1D *hRefEta[ ptDijetLow.size() ];
+    TH1D *hGenEta[ ptDijetLow.size() ];
+    TH1D *hRecoEtaDivNeighborEmb[ ptDijetLow.size() - 1 ];
+    TH1D *hRecoEtaDivNeighborData[ ptDijetLow.size() - 1 ];
 
-    c1DEta->SaveAs( Form("%s/pPb8160_%s_eta_dijet_comparison.pdf", date.Data(), direction.Data()) );
+    TH1D *hReco2GenRatio[ ptDijetLow.size() ];
+    TH1D *hRef2GenRatio[ ptDijetLow.size() ];
+    TH1D *hRecoData2MCRatio[ ptDijetLow.size() ];
+
+    // Create line and legend
+    TLine *line;
+    TLegend *leg;
+
+    // Create canvases and pads
+    Int_t sizeX{1200};
+    Int_t sizeY{800};
+
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    Int_t ptBins = ptDijetLow.size();
+
+    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
+    cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
+    cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cRatData2Mc = new TCanvas("cRatData2Mc", "cRatData2Mc", sizeX, sizeY);
+    cRatData2Mc->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cRatNeighbor = new TCanvas("cRatNeighbor", "cRatNeighbor", sizeX, sizeY);
+    cRatNeighbor->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    // Loop over pTave bins
+    for ( Int_t iPt{0}; iPt<ptDijetLow.size(); iPt++ ) {
+
+        // Retrieve gen distribution
+        hGenEta[iPt] = dynamic_cast<TH1D*>( hGenDijetPtEtaDphi->ProjectionY( Form("hGenEta_%d", iPt), ptDijetLow.at(iPt), ptDijetHi.at(iPt) ) );
+        hGenEta[iPt]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        rescaleEta( hGenEta[iPt] );
+        set1DStyle( hGenEta[iPt], genType );
+
+
+        // Retrieve reco and ref eta distributions for the given reco pTave bin
+        hReco2RefDijet->GetAxis(0)->SetRange( ptDijetLow.at(iPt), ptDijetHi.at(iPt) );
+
+        // Project on reco eta
+        hRecoEta[iPt] = dynamic_cast<TH1D*> ( hReco2RefDijet->Projection(1) );
+        hRecoEta[iPt]->SetName( Form("hRecoEta_%d", iPt) );
+        hRecoEta[iPt]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        rescaleEta( hRecoEta[iPt] );
+        set1DStyle( hRecoEta[iPt], recoType );
+
+        // Project on ref eta
+        hRefEta[iPt] = dynamic_cast<TH1D*> ( hReco2RefDijet->Projection(3) );
+        hRefEta[iPt]->SetName( Form("hRefEta_%d", iPt) );
+        hRefEta[iPt]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        rescaleEta( hRefEta[iPt] );
+        set1DStyle( hRefEta[iPt], refType );
+
+        // Make ratio of reco to gen distribution
+        hReco2GenRatio[iPt] = dynamic_cast<TH1D*>( hRecoEta[iPt]->Clone( Form("hReco2GenRatio_%d", iPt) ) );
+        hReco2GenRatio[iPt]->Divide( hReco2GenRatio[iPt], hGenEta[iPt], 1., 1. );
+        hReco2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hReco2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
+
+        // Make ratio of ref to gen distribution
+        hRef2GenRatio[iPt] = dynamic_cast<TH1D*>( hRefEta[iPt]->Clone( Form("hRef2GenRatio_%d", iPt) ) );
+        hRef2GenRatio[iPt]->Divide( hRef2GenRatio[iPt], hGenEta[iPt], 1., 1. );
+        hRef2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hRef2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
+
+        // Retrieve experimental distributions
+        if (ptDijetPtValLow.at(iPt) < 80) {
+            hRecoDataEta[iPt] = dynamic_cast<TH1D*> ( hRecoDataMB->ProjectionY( Form("hRecoDataEta_%d", iPt), ptDijetLow.at(iPt), ptDijetHi.at(iPt) ) );
+            hRecoDataEta[iPt]->GetXaxis()->SetTitle( "#eta^{dijet}" );
+            hRecoDataEta[iPt]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+            rescaleEta( hRecoDataEta[iPt] );
+            set1DStyle( hRecoDataEta[iPt], dataType );
+            // hRecoDataEta[iPt]->Draw();
+
+        }
+        else if (ptDijetPtValLow.at(iPt) < 100) {
+            hRecoDataEta[iPt] = dynamic_cast<TH1D*> ( hRecoDataJet60->ProjectionY( Form("hRecoDataEta_%d", iPt), ptDijetLow.at(iPt), ptDijetHi.at(iPt) ) );
+            hRecoDataEta[iPt]->GetXaxis()->SetTitle( "#eta^{dijet}" );
+            hRecoDataEta[iPt]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+            rescaleEta( hRecoDataEta[iPt] );
+            set1DStyle( hRecoDataEta[iPt], dataType );
+        }
+        else if (ptDijetPtValLow.at(iPt) < 120) {
+            hRecoDataEta[iPt] = dynamic_cast<TH1D*> ( hRecoDataJet80->ProjectionY( Form("hRecoDataEta_%d", iPt), ptDijetLow.at(iPt), ptDijetHi.at(iPt) ) );
+            hRecoDataEta[iPt]->GetXaxis()->SetTitle( "#eta^{dijet}" );
+            hRecoDataEta[iPt]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+            rescaleEta( hRecoDataEta[iPt] );
+            set1DStyle( hRecoDataEta[iPt], dataType );
+        }
+        else {
+            hRecoDataEta[iPt] = dynamic_cast<TH1D*> ( hRecoDataJet100->ProjectionY( Form("hRecoDataEta_%d", iPt), ptDijetLow.at(iPt), ptDijetHi.at(iPt) ) );
+            hRecoDataEta[iPt]->GetXaxis()->SetTitle( "#eta^{dijet}" );
+            hRecoDataEta[iPt]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+            rescaleEta( hRecoDataEta[iPt] );
+            set1DStyle( hRecoDataEta[iPt], dataType );
+        }
+
+        // Make ratio of reco data to reco MC
+        hRecoData2MCRatio[iPt] = dynamic_cast<TH1D*> ( hRecoDataEta[iPt]->Clone( Form("hRecoData2MCRatio_%d", iPt) ) );
+        hRecoData2MCRatio[iPt]->Divide(hRecoData2MCRatio[iPt], hRecoEta[iPt], 1., 1.);
+        std::cout << "data nbins: " <<  hRecoData2MCRatio[iPt]->GetNbinsX() << " embed nbins: " << hRecoEta[iPt]->GetNbinsX() << std::endl;
+        hRecoData2MCRatio[iPt]->GetXaxis()->SetTitle( "Reco #eta^{dijet}" );
+        set1DStyle(hRecoData2MCRatio[iPt], dataType);
+
+        // Make ratio of the reco distribution to the neighbor (previous one)
+        if ( iPt != 0 ) {
+            hRecoEtaDivNeighborEmb[iPt-1] = dynamic_cast<TH1D*> ( hRecoEta[iPt]->Clone( Form("hRecoEtaDivNeighborEmb_%d", iPt-1)  ) );
+            hRecoEtaDivNeighborEmb[iPt-1]->Divide( hRecoEtaDivNeighborEmb[iPt-1], hRecoEta[iPt-1], 1., 1.);
+            hRecoEtaDivNeighborEmb[iPt-1]->GetYaxis()->SetTitle("Ratio to neighboring p_{T} bin");
+            set1DStyle(hRecoEtaDivNeighborEmb[iPt-1], recoType);
+
+            hRecoEtaDivNeighborData[iPt-1] = dynamic_cast<TH1D*> ( hRecoDataEta[iPt]->Clone( Form("hRecoEtaDivNeighborData_%d", iPt-1)  ) );
+            hRecoEtaDivNeighborData[iPt-1]->Divide( hRecoEtaDivNeighborData[iPt-1], hRecoDataEta[iPt-1], 1., 1.);
+            hRecoEtaDivNeighborData[iPt-1]->GetYaxis()->SetTitle("Ratio to neighboring p_{T} bin");
+            set1DStyle(hRecoEtaDivNeighborData[iPt-1], dataType);
+        }
+
+        // Plot comparison of gen, reco and ref
+        canv->cd();
+        setPadStyle();
+        hGenEta[iPt]->Draw();
+        hRecoEta[iPt]->Draw("same");
+        hRefEta[iPt]->Draw("same");
+        hRecoDataEta[iPt]->Draw("same");
+        hGenEta[iPt]->GetYaxis()->SetRangeUser(0., 0.15);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hGenEta[iPt], Form("Gen"), "p");
+        leg->AddEntry(hRecoEta[iPt], Form("Reco"), "p");
+        leg->AddEntry(hRefEta[iPt], Form("Ref"), "p");
+        leg->AddEntry(hRecoDataEta[iPt], Form("Data"), "p");
+        leg->Draw();
+        canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_RecoRefGenComp_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Plot ratios of reco and ref to gen
+        canv->cd();
+        setPadStyle();
+        hReco2GenRatio[iPt]->Draw();
+        hRef2GenRatio[iPt]->Draw("same");
+        hReco2GenRatio[iPt]->GetYaxis()->SetRangeUser(0.8, 1.5);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hReco2GenRatio[iPt], Form("Reco/Gen"), "p");
+        leg->AddEntry(hRef2GenRatio[iPt], Form("Ref/Gen"), "p");
+        leg->Draw();
+        line = new TLine(hReco2GenRatio[iPt]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hReco2GenRatio[iPt]->GetXaxis()->GetBinUpEdge(hReco2GenRatio[iPt]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_RecoRefGenRat_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Plot ratios of reco data to reco embedding
+        canv->cd();
+        setPadStyle();
+        hRecoData2MCRatio[iPt]->Draw();
+        hRecoData2MCRatio[iPt]->GetYaxis()->SetRangeUser(0.5, 1.5);
+        hRecoData2MCRatio[iPt]->GetYaxis()->SetTitle("Data / Embed");
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        // leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        // leg->SetTextSize(0.04);
+        // leg->SetLineWidth(0);
+        // leg->AddEntry(hReco2GenRatio[iPt], Form("Reco/Gen"), "p");
+        // leg->AddEntry(hRef2GenRatio[iPt], Form("Ref/Gen"), "p");
+        // leg->Draw();
+        line = new TLine(hRecoData2MCRatio[iPt]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hRecoData2MCRatio[iPt]->GetXaxis()->GetBinUpEdge(hRecoData2MCRatio[iPt]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/pPb8160_etaDijet_data2embed_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Plot comparisons on a single canvas
+        cComp->cd( iPt+1 );
+        setPadStyle();
+        hGenEta[iPt]->Draw();
+        hRecoEta[iPt]->Draw("same");
+        hRefEta[iPt]->Draw("same");
+        hRecoDataEta[iPt]->Draw("same");
+        hGenEta[iPt]->GetYaxis()->SetRangeUser(0., 0.15);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hGenEta[iPt], Form("Gen"), "p");
+        leg->AddEntry(hRecoEta[iPt], Form("Reco"), "p");
+        leg->AddEntry(hRefEta[iPt], Form("Ref"), "p");
+        leg->AddEntry(hRecoDataEta[iPt], Form("Data"), "p");
+        leg->Draw();
+
+        // Plot ratios or reco emb to gen and ref emb to gen on a single canvas
+        cRat->cd( iPt+1 );
+        setPadStyle();
+        hReco2GenRatio[iPt]->Draw();
+        hRef2GenRatio[iPt]->Draw("same");
+        hReco2GenRatio[iPt]->GetYaxis()->SetRangeUser(0.8, 1.5);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hReco2GenRatio[iPt], Form("Reco/Gen"), "p");
+        leg->AddEntry(hRef2GenRatio[iPt], Form("Ref/Gen"), "p");
+        leg->Draw();
+        line = new TLine(hReco2GenRatio[iPt]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hReco2GenRatio[iPt]->GetXaxis()->GetBinUpEdge(hReco2GenRatio[iPt]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
+        // Plot ratios of experimental data over reco MC
+        cRatData2Mc->cd( iPt+1 );
+        setPadStyle();
+        hRecoData2MCRatio[iPt]->Draw();
+        hRecoData2MCRatio[iPt]->GetYaxis()->SetRangeUser(0.5, 1.5);
+        hRecoData2MCRatio[iPt]->GetYaxis()->SetTitle("Data / Embed");
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        // leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        // leg->SetTextSize(0.04);
+        // leg->SetLineWidth(0);
+        // leg->AddEntry(hReco2GenRatio[iPt], Form("Reco/Gen"), "p");
+        // leg->AddEntry(hRef2GenRatio[iPt], Form("Ref/Gen"), "p");
+        // leg->Draw();
+        line = new TLine(hRecoData2MCRatio[iPt]->GetXaxis()->GetBinLowEdge(1), 1., 
+                         hRecoData2MCRatio[iPt]->GetXaxis()->GetBinUpEdge(hRecoData2MCRatio[iPt]->GetNbinsX()), 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
+        // Make ratio of the reco distribution to the neighbor (previous one) in one canvas
+        if ( iPt != 0 && iPt != (ptDijetLow.size()-1) ) {
+
+            // Individual distributions
+            canv->cd();
+            setPadStyle();
+            hRecoEtaDivNeighborEmb[iPt-1]->Draw();
+            hRecoEtaDivNeighborData[iPt-1]->Draw("same");
+            hRecoEtaDivNeighborEmb[iPt-1]->GetYaxis()->SetRangeUser(0.8, 1.3);
+            t.DrawLatexNDC(0.15, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d / %d < p_{T}^{ave} (GeV) < %d", 
+                           ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep,
+                           ptLow + (ptDijetLow.at(iPt-1) - 1) * ptStep, ptLow + ptDijetHi.at(iPt-1) * ptStep) );
+            leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+            leg->SetTextSize(0.04);
+            leg->SetLineWidth(0);
+            leg->AddEntry(hRecoEtaDivNeighborEmb[iPt-1], Form("Reco embed"), "p");
+            leg->AddEntry(hRecoEtaDivNeighborData[iPt-1], Form("Reco data"), "p");
+            leg->Draw();
+            line = new TLine(hRecoEtaDivNeighborEmb[iPt-1]->GetXaxis()->GetBinLowEdge(1), 1., 
+                             hRecoEtaDivNeighborEmb[iPt-1]->GetXaxis()->GetBinUpEdge(hRecoEtaDivNeighborEmb[iPt-1]->GetNbinsX()), 1.);
+            line->SetLineColor(kMagenta);
+            line->SetLineWidth(3);
+            line->SetLineStyle(3);
+            line->Draw();
+            canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_recoRatNeighbor_pt_%d_%d_%s.pdf", date.Data(),
+                          ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                          ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+            // Plot all on one canvas
+            cRatNeighbor->cd( iPt );
+            setPadStyle();
+            hRecoEtaDivNeighborEmb[iPt-1]->Draw();
+            hRecoEtaDivNeighborData[iPt-1]->Draw("same");
+            hRecoEtaDivNeighborEmb[iPt-1]->GetYaxis()->SetRangeUser(0.8, 1.3);
+            t.DrawLatexNDC(0.15, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d / %d < p_{T}^{ave} (GeV) < %d", 
+                           ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep,
+                           ptLow + (ptDijetLow.at(iPt-1) - 1) * ptStep, ptLow + ptDijetHi.at(iPt-1) * ptStep) );
+            leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+            leg->SetTextSize(0.04);
+            leg->SetLineWidth(0);
+            leg->AddEntry(hRecoEtaDivNeighborEmb[iPt-1], Form("Reco embed"), "p");
+            leg->AddEntry(hRecoEtaDivNeighborData[iPt-1], Form("Reco data"), "p");
+            leg->Draw();
+            line = new TLine(hRecoEtaDivNeighborEmb[iPt-1]->GetXaxis()->GetBinLowEdge(1), 1., 
+                             hRecoEtaDivNeighborEmb[iPt-1]->GetXaxis()->GetBinUpEdge(hRecoEtaDivNeighborEmb[iPt-1]->GetNbinsX()), 1.);
+            line->SetLineColor(kMagenta);
+            line->SetLineWidth(3);
+            line->SetLineStyle(3);
+            line->Draw();
+        }   
+    } // for ( Int_t iPt{0}; iPt<ptDijetLow.size(); iPt++ )
+
+    cComp->SaveAs( Form("%s/emb_pPb8160_etaDijet_RecoRefGenComp_all_%s.pdf", date.Data(), frame.Data() ) );
+    cRat->SaveAs( Form("%s/emb_pPb8160_etaDijet_RecoRefGenRat_all_%s.pdf", date.Data(), frame.Data() ) );
+    cRatNeighbor->SaveAs( Form("%s/emb_pPb8160_etaDijet_recoRatNeighbor_all_%s.pdf", date.Data(), frame.Data() ) );
+    cRatData2Mc->SaveAs( Form("%s/pPb8160_etaDijet_data2embed_all_%s.pdf", date.Data(), frame.Data() ) );
 }
 
 //________________
@@ -1952,62 +2499,88 @@ void plotRecoAndFakes(TFile *inFile, TString date, Int_t jetBranch = 0) {
 }
 
 //________________
-void pPb_embedding_qa(const Char_t *inFileName = "../build/oEmbedding_pPb8160_Pbgoing_ak4.root") {
+bool isGoodFile(TFile *f) {
+    bool isGood{true};
+    if ( !f ) {
+        std::cout << Form("[ERROR] Input file %s does not exist\n", f->GetName() );
+        isGood = {false};
+    }
+    if ( f->IsZombie() ) {
+        std::cout << Form("[ERROR] File %s is zombie\n", f->GetName() );
+        isGood = {false};
+    }
+    return isGood;
+}
+
+//________________
+void pPb_qa() {
 
     gStyle->SetOptStat(0);
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
+    // File names
+    const Char_t *embeddingFileName = "../build/oEmbedding_pPb8160_jerDef_ak4.root";
+    const Char_t *mbFileName = "../build/MB_pPb8160_ak4.root";
+    const Char_t *jet60FileName = "../build/Jet60_pPb8160_ak4.root";
+    const Char_t *jet80FileName = "../build/Jet80_pPb8160_ak4.root";
+    const Char_t *jet100FileName = "../build/Jet100_pPb8160_ak4.root";
+
+    // Files
+    TFile *embFile = TFile::Open(embeddingFileName);
+    TFile *mbFile = TFile::Open(mbFileName);
+    TFile *jet60File = TFile::Open(jet60FileName);
+    TFile *jet80File = TFile::Open(jet80FileName);
+    TFile *jet100File = TFile::Open(jet100FileName);
+
+    // Check files are good
+    if ( !isGoodFile( embFile ) ) return;
+    if ( !isGoodFile( mbFile ) ) return;
+    if ( !isGoodFile( jet60File ) ) return;
+    if ( !isGoodFile( jet80File ) ) return;
+    if ( !isGoodFile( jet100File ) ) return;
+
+    // Date extraction
     TDatime dt; 
     TString date { Form( "%d",dt.GetDate() ) };
-    TString inputFileName(inFileName);
 
-    if ( directoryExists( date.Data() ) ) {
-        //std::cout << "Directory exists." << std::endl;
-    } 
-    else {
+    if ( !directoryExists( date.Data() ) ) {
         createDirectory( date.Data() );
-    }
+    } 
 
-    TFile *inFile = TFile::Open(inFileName);
-    if ( !inFile ) {
-        std::cout << "[ERROR] Input file does not exist\n";
-        return;
-    }
-    if ( inFile->IsZombie() ) {
-        std::cout << "[ERROR] Beware of zombies!!!!\n";
-        return;
-    }
 
-    Int_t branchId{0};
-    if ( inputFileName.Contains("akCs4") ) {
-        branchId = {0};
-    }
-    else {
-        branchId = {1};
-    }
+    // Int_t branchId{0};
+    // if ( inputFileName.Contains("akCs4") ) {
+    //     branchId = {0};
+    // }
+    // else {
+    //     branchId = {1};
+    // }
 
     // Plot ptHat distribution
-    //plotPtHat(inFile, date, branchId);
+    //plotPtHat(embFile, date);
 
     // Compare inclusive reco, ref and gen transverse momentum spectra
-    //compareInclusiveJetPtSpectra(inFile, date);
+    //compareInclusiveJetPtSpectra(embFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
-    // plotEfficiency(inFile, date, branchId);
+    // plotEfficiency(embFile, date);
 
     // Plot dijet distributions
-    // plotDijetDistributions(inFile, date);
+    plotDijetDistributions(embFile, mbFile, jet60File, jet80File, jet100File, date);
 
     // Plot reco, reco with matching and calculate fakes
-    // plotRecoAndFakes(inFile, date, branchId);
+    // plotRecoAndFakes(embFile, date);
 
     // Plot correlation between ref and reco dijet eta
-    // plotEtaDijetCorrelation(inFile, date);
+    // plotEtaDijetCorrelation(embFile, date);
 
     // Plot distributions for jetId
-    // plotJetIdHistos(inFile, date);
+    // plotJetIdHistos(embFile, date);
 
     // Plot JES and JER
-    plotJESandJER(inFile, date, branchId);
+    // plotJESandJER(embFile, date);
+
+    // Plot various correlation matrices
+    // plotDijetResponseMatrices(embFile, mbFile, jet60File, jet80File, jet100File, date);
 }

@@ -253,7 +253,7 @@ Bool_t EventCut::pass(const Event* ev) {
         std::cout << Form("Event triggers passed: %s\n", (goodTrigger) ? "true" : "false");
     }
 
-    Bool_t passEvent = goodVx && goodVy && goodVz && goodHiBin &&
+    Bool_t passEvent = goodVx && goodVy && goodVz && goodHiBin && goodFilters &&
                        goodCent && goodPtHat && goodPtHatWeight && goodTrigger;
     ( passEvent ) ? fEventsPassed++ : fEventsFailed++;
     

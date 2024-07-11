@@ -22,6 +22,7 @@
 // C++ headers
 #include <iostream>
 #include <vector>
+#include <cmath> 
 
 //________________
 bool directoryExists(const char* directoryPath) {
@@ -1028,7 +1029,7 @@ void runConvolutedUnfolding(TFile *inFile, TString date) {
         direction = "pgoing";
     }
     else {
-        direction = "pAndPb";
+        direction = "pPbgoing";
     }
 
     TString branchName;
@@ -1086,7 +1087,7 @@ void runConvolutedUnfolding(TFile *inFile, TString date) {
     TH1D *hRefEta[ ptDijetLow.size() ];
     TH1D *hGenEta[ ptDijetLow.size() ];
     TH1D *hUnfoldEta[ ptDijetLow.size() ];
-    TH2D *hRef2RecoEta[ ptDijetLow.size() ];
+    TH2D *hRef2RecoEta[ ptDijetLow.size() ][ ptDijetLow.size() ];
 
     // Create convoluted distributions
 
@@ -1111,87 +1112,193 @@ void runConvolutedUnfolding(TFile *inFile, TString date) {
     hRef2Reco->Sumw2();
     set2DStyle(hRef2Reco);
 
-    TCanvas *c = new TCanvas("c", "c", 1200, 800); c->Divide(5, ( (ptDijetLow.size() % 5) == 0 ) ? (ptDijetLow.size() / 5) : (ptDijetLow.size() / 5 + 1));
+    TCanvas *c = new TCanvas("c", "c", 1200, 500); 
+    c->Divide(3, 1);
 
+    //
     // Fill convoluted distributions
-    for (Int_t iPt{0}; iPt < ptDijetLow.size(); iPt++) {
+    //
+
+    Int_t nPtBins = hReco2RefDijet->GetAxis(0)->GetNbins();
+
+    // Loop over reco pt bins
+    for (Int_t iPtReco{0}; iPtReco < ptDijetLow.size(); iPtReco++) {
+
+        //
+        // Project on reco
+        //
 
         // Select dijet reco pTave
-        hReco2RefDijet->GetAxis(0)->SetRange(ptDijetLow.at(iPt), ptDijetHi.at(iPt));
-        //hReco2RefDijet->GetAxis(2)->SetRange(iPt+1, iPt+1);
+        hReco2RefDijet->GetAxis(0)->SetRange(ptDijetLow.at(iPtReco), ptDijetHi.at(iPtReco));
 
         // Retrieve gen distribution
-        hGenEta[iPt] = dynamic_cast<TH1D*>( hGenDijetPtEtaDphi->ProjectionY( Form("hGenEta_%d", iPt), ptDijetLow.at(iPt), ptDijetHi.at(iPt) ) );
-        set1DStyle(hGenEta[iPt], genType);
-        rescaleEta(hGenEta[iPt]);
-
-        // Retrieve ref eta vs reco eta projection
-        hRef2RecoEta[iPt] = dynamic_cast<TH2D*>( hReco2RefDijet->Projection(3, 1) );
-        hRef2RecoEta[iPt]->SetName( Form("hRef2RecoEta_%d", iPt) );
-        hRef2RecoEta[iPt]->GetXaxis()->SetTitle("Reco #eta^{dijet}");
-        hRef2RecoEta[iPt]->GetYaxis()->SetTitle("Ref #eta^{dijet}");
-        set2DStyle(hRef2RecoEta[iPt], kTRUE);
+        hGenEta[iPtReco] = dynamic_cast<TH1D*>( hGenDijetPtEtaDphi->ProjectionY( Form("hGenEta_%d", iPtReco), ptDijetLow.at(iPtReco), ptDijetHi.at(iPtReco) ) );
+        set1DStyle(hGenEta[iPtReco], genType);
+        rescaleEta(hGenEta[iPtReco]);
 
         // Retrieve reco eta projection
-        hRecoEta[iPt] = dynamic_cast<TH1D*> ( hRef2RecoEta[iPt]->ProjectionX() );
-        hRecoEta[iPt]->SetName( Form("hRecoEta_%d", iPt) );
-        //hRecoEta[iPt]->GetXaxis()->SetTitle("Reco #eta^{dijet}");
-        set1DStyle(hRecoEta[iPt], recoType);
+        hRecoEta[iPtReco] = dynamic_cast<TH1D*> ( hReco2RefDijet->Projection(1) );
+        hRecoEta[iPtReco]->SetName( Form("hRecoEta_%d", iPtReco) );
+        for ( Int_t iEta{1}; iEta<=dijetEtaBins; iEta++ ) {
+            if ( TMath::IsNaN( hRecoEta[iPtReco]->GetBinContent( iEta ) ) ) {
+                hRecoEta[iPtReco]->SetBinContent( iEta, 0. );
+                hRecoEta[iPtReco]->SetBinError( iEta, 0. );
+            }
+        }
+        set1DStyle(hRecoEta[iPtReco], recoType);
+        if ( hRecoEta[iPtReco]->Integral() > 0 ) {
+            rescaleEta( hRecoEta[iPtReco] );
+        }
+        
+        // Assign values to the global reco axis
+        for ( Int_t iEta{1}; iEta<=dijetEtaBins; iEta++ ) {
+            if ( TMath::IsNaN( hRecoEta[iPtReco]->GetBinContent(iEta) ) ) {
+                // hReco->SetBinContent( iPtReco * dijetEtaBins + iEta, 0. );
+                // hReco->SetBinError( iPtReco * dijetEtaBins + iEta, 0. );              
+            }
+            else {
+                hReco->SetBinContent( iPtReco * dijetEtaBins + iEta, hRecoEta[iPtReco]->GetBinContent(iEta) );
+                hReco->SetBinError( iPtReco * dijetEtaBins + iEta, hRecoEta[iPtReco]->GetBinError(iEta) );
+            }
 
-        hUnfoldEta[iPt] = dynamic_cast<TH1D*>( hRecoEta[iPt]->Clone( Form("hUnfoldEta_%d", iPt) ) ); 
-        hUnfoldEta[iPt]->Reset();
-        set1DStyle(hUnfoldEta[iPt], unfoldType);
-
-        // Retrieve ref eta projection
-        hRefEta[iPt] = dynamic_cast<TH1D*> ( hRef2RecoEta[iPt]->ProjectionY() );
-        hRefEta[iPt]->SetName( Form("hRefEta_%d", iPt) );
-        //hRefEta[iPt]->GetXaxis()->SetTitle("Ref #eta^{dijet}");
-        set1DStyle(hRefEta[iPt], refType);
-
-
-        // Fill 1D convoluted histograms
-        for (Int_t iEta1{0}; iEta1 < dijetEtaBins; iEta1++) {
-            hReco->SetBinContent( iPt * dijetEtaBins + iEta1 + 1, hRecoEta[iPt]->GetBinContent(iEta1+1) );
-            hReco->SetBinError( iPt * dijetEtaBins + iEta1 + 1, hRecoEta[iPt]->GetBinError(iEta1+1) );
-
-            hRef->SetBinContent( iPt * dijetEtaBins + iEta1 + 1, hRefEta[iPt]->GetBinContent(iEta1+1) );
-            hRef->SetBinError( iPt * dijetEtaBins + iEta1 + 1, hRefEta[iPt]->GetBinError(iEta1+1) );
-
-            hMiss->SetBinContent(iPt * dijetEtaBins + iEta1 + 1, hGenEta[iPt]->GetBinContent(iEta1+1) - hRefEta[iPt]->GetBinContent(iEta1+1) );
-
-            // Fill 2D convoluted histogram
-            for (Int_t iEta2{0}; iEta2 < dijetEtaBins; iEta2++) {
-                hRef2Reco->SetBinContent(iPt * dijetEtaBins + iEta1 + 1, iPt * dijetEtaBins + iEta2 + 1, 
-                                         hRef2RecoEta[iPt]->GetBinContent(iEta1+1, iEta2+1) );
-                hRef2Reco->SetBinError(iPt * dijetEtaBins + iEta1 + 1, iPt * dijetEtaBins + iEta2 + 1, 
-                                       hRef2RecoEta[iPt]->GetBinError(iEta1+1, iEta2+1) );
-            } // for (Int_t iEta2{0}; iEta2 < dijetEtaBins; iEta2++)
-
-            // if ( iPt < 5 ) {
-            //     std::cout << Form("Reco iPt: %d iEta: %d integral: %f\n", iPt, iEta, hRecoEta[iPt]->GetBinContent(iEta+1) );
-            //     std::cout << Form("Ref  iPt: %d iEta: %d integral: %f\n", iPt, iEta, hRefEta[iPt]->GetBinContent(iEta+1) );
-            // }
-        } // for (Int_t iEta=1; iEta<=dijetEtaBins; iEta++)
-
-        // unfold1D(hRecoEta[iPt], hRefEta[iPt], hRef2RecoEta[iPt], hGenEta[iPt], nullptr, hUnfoldEta[iPt], 4);
-        unfold1DInvert(hRecoEta[iPt], hRefEta[iPt], hRef2RecoEta[iPt], hUnfoldEta[iPt]);
-        // c->cd(3*iPt + 1); setPadStyle(); hRecoEta[iPt]->Draw(); hRefEta[iPt]->Draw("same"); hGenEta[iPt]->Draw("same"); hUnfoldEta[iPt]->Draw("same");
-        // c->cd(3*iPt + 2); setPadStyle(); hUnfoldEta[iPt]->Draw();
-        // c->cd(3*iPt + 3); setPadStyle(); hRef2RecoEta[iPt]->Draw("colz");
-        c->cd(iPt + 1); setPadStyle(); hUnfoldEta[iPt]->Draw();
+        }
+        // Reset axis to the original values
+        hReco2RefDijet->GetAxis(0)->SetRange(1, nPtBins );
 
 
+        //
+        // Project on ref
+        //
 
-    } // for (Int_t iPt=3; iPt<=(nDijetPtBins+2); iPt++)
+        // Select ref pT axis
+        hReco2RefDijet->GetAxis(2)->SetRange( ptDijetLow.at(iPtReco), ptDijetHi.at(iPtReco) );
+        hRefEta[iPtReco] = dynamic_cast<TH1D*> ( hReco2RefDijet->Projection(3) );
+        hRefEta[iPtReco]->SetName( Form("hRefEta_%d", iPtReco) );
+        for ( Int_t iEta{1}; iEta<=dijetEtaBins; iEta++ ) {
+            if ( TMath::IsNaN( hRefEta[iPtReco]->GetBinContent( iEta ) ) ) {
+                hRefEta[iPtReco]->SetBinContent( iEta, 0. );
+                hRefEta[iPtReco]->SetBinError( iEta, 0. );
+            }
+        }
+        set1DStyle(hRefEta[iPtReco], refType);
+        if ( hRefEta[iPtReco]->Integral() > 0 ) {
+            rescaleEta( hRefEta[iPtReco] );
+        }
+        // Assign values to the global ref axis
+        for ( Int_t iEta{1}; iEta<=dijetEtaBins; iEta++ ) {
+            if ( TMath::IsNaN( hRefEta[iPtReco]->GetBinContent(iEta) ) ) {
+                hRef->SetBinContent( iPtReco * dijetEtaBins + iEta, 0. );
+                hRef->SetBinError( iPtReco * dijetEtaBins + iEta, 0. );
+            }
+            else {
+                hRef->SetBinContent( iPtReco * dijetEtaBins + iEta, hRefEta[iPtReco]->GetBinContent(iEta) );
+                hRef->SetBinError( iPtReco * dijetEtaBins + iEta, hRefEta[iPtReco]->GetBinError(iEta) );
+            }
+
+        }
+        // Reset axis to the original values
+        hReco2RefDijet->GetAxis(2)->SetRange( 1, nPtBins );
+
+
+        //
+        // Building a response matrix
+        //
+
+        // Select reco pT bin
+        hReco2RefDijet->GetAxis(0)->SetRange(ptDijetLow.at(iPtReco), ptDijetHi.at(iPtReco));
+
+        // Loop over ref pt bins
+        for (Int_t iPtRef{0}; iPtRef < ptDijetLow.size(); iPtRef++ ) {
+
+            // Select ref pT bin
+            hReco2RefDijet->GetAxis(2)->SetRange(ptDijetLow.at(iPtRef), ptDijetHi.at(iPtRef));
+
+            // Retrieve ref eta vs reco eta projection
+            hRef2RecoEta[iPtReco][iPtRef] = dynamic_cast<TH2D*>( hReco2RefDijet->Projection(3, 1) );
+            hRef2RecoEta[iPtReco][iPtRef]->SetName( Form("hRef2RecoEta_%d_%d", iPtReco, iPtRef) );
+            hRef2RecoEta[iPtReco][iPtRef]->GetXaxis()->SetTitle("Reco #eta^{dijet}");
+            hRef2RecoEta[iPtReco][iPtRef]->GetYaxis()->SetTitle("Ref #eta^{dijet}");
+            for (Int_t iEta1{1}; iEta1<=dijetEtaBins; iEta1++) {
+                for (Int_t iEta2{1}; iEta2<=dijetEtaBins; iEta2++) {
+                    if ( TMath::IsNaN( hRef2RecoEta[iPtReco][iPtRef]->GetBinContent(iEta1, iEta2) ) ) {
+                        // std::cout << "Hereeeeeeee. I'm NAN!!!!!!!!" << std::endl;
+                        hRef2RecoEta[iPtReco][iPtRef]->SetBinContent(iEta1, iEta2, 0.);
+                        hRef2RecoEta[iPtReco][iPtRef]->SetBinError(iEta1, iEta2, 0.);
+                    }
+                } // for (Int_t iEta2{1}; iEta2<=dijetEtaBins; iEta2++)
+            } // for (Int_t iEta1{1}; iEta1<=dijetEtaBins; iEta1++)
+            set2DStyle( hRef2RecoEta[iPtReco][iPtRef] );
+            rescaleEta( hRef2RecoEta[iPtReco][iPtRef] );
+
+            for (Int_t iEta1{1}; iEta1<=dijetEtaBins; iEta1++) {
+                for (Int_t iEta2{1}; iEta2<=dijetEtaBins; iEta2++) {
+                    if ( TMath::IsNaN( hRef2RecoEta[iPtReco][iPtRef]->GetBinContent(iEta1, iEta2) ) ) {
+                        // std::cout << "OOopps, I did it again\n";
+                        hRef2Reco->SetBinContent(iPtReco * dijetEtaBins + iEta1, iPtRef * dijetEtaBins + iEta2, 0. );
+                        hRef2Reco->SetBinError(iPtReco * dijetEtaBins + iEta1, iPtRef * dijetEtaBins + iEta2, 0. );                     
+                    }
+                    else {
+                        hRef2Reco->SetBinContent(iPtReco * dijetEtaBins + iEta1, iPtRef * dijetEtaBins + iEta2, 
+                                                 hRef2RecoEta[iPtReco][iPtRef]->GetBinContent(iEta1, iEta2) );
+                        hRef2Reco->SetBinError(iPtReco * dijetEtaBins + iEta1, iPtRef * dijetEtaBins + iEta2, 
+                                               hRef2RecoEta[iPtReco][iPtRef]->GetBinError(iEta1, iEta2) );
+                    }
+
+                    //std::cout << Form("i: %d j: %d val: %f\n", iPtReco * dijetEtaBins + iEta1, iPtRef * dijetEtaBins + iEta2, hRef2RecoEta[iPtReco][iPtRef]->GetBinContent(iEta1, iEta2));
+
+                } // for (Int_t iEta2{1}; iEta2<=dijetEtaBins; iEta2++)
+            } // for (Int_t iEta1{1}; iEta1<=dijetEtaBins; iEta1++)
+        } // for (Int_t iPtRef{0}; iPtRef < ptDijetLow.size(); iPtRef++ )
+        
+        hReco2RefDijet->GetAxis(0)->SetRange( 1, nPtBins );
+        hReco2RefDijet->GetAxis(2)->SetRange( 1, nPtBins );
+    } // for (Int_t iPtReco=3; iPtReco<=(nDijetPtBins+2); iPtReco++)
+
+    for (Int_t i{1}; i<=dijetPtBins * dijetEtaBins; i++) {
+
+        std::cout << "++++++++++++++++++++++++++++++++++++++++" << std::endl;
+        if ( TMath::IsNaN( hReco->GetBinContent(i) ) || hReco->GetBinContent(i) < 0 ) {
+            hReco->SetBinContent(i, 0.);
+            hReco->SetBinError(i, 0.);
+            //std::cout << "Aaaaaaaa Reco i: " << i << " val: " << hReco->GetBinContent(i) << std::endl;
+        }
+        else {
+            //std::cout << "Reco i: " << i << " val: " << hReco->GetBinContent(i) << " err: " << hReco->GetBinError(i) << std::endl;
+        }
+
+        //std::cout << "---------------------------------------" << std::endl;
+
+        if ( TMath::IsNaN( hRef->GetBinContent(i) ) ||  hRef->GetBinContent(i) < 0 ) {
+            hRef->SetBinContent(i, 0.);
+            hRef->SetBinError(i, 0.);
+            //std::cout << "Aaaaaaaa Ref i: " << i << " val: " << hRef->GetBinContent(i) << std::endl;
+        }
+        else {
+            //std::cout << "Ref i: " << i << " val: " << hRef->GetBinContent(i) << " err: " << hRef->GetBinError(i) << std::endl;
+        }
+
+        //std::cout << "======================================" << std::endl;
+
+        for (Int_t j{1}; j<=dijetPtBins * dijetEtaBins; j++) {
+            if ( TMath::IsNaN( hRef2Reco->GetBinContent(i, j) ) || hRef2Reco->GetBinContent(i, j) < 0 ) {
+                hRef2Reco->SetBinContent(i, j, 0.);
+                hRef2Reco->SetBinError(i, j, 0.);
+                //std::cout << "Aaaaaaaa i: " << i << " j: " << j << " val: " << hRef2Reco->GetBinContent(i, j) << std::endl;
+            }
+            else {
+                //std::cout << "i: " << i << " j: " << j << " val: " << hRef2Reco->GetBinContent(i, j) << " err: " << hRef2Reco->GetBinError(i, j) << std::endl;
+            }
+        }
+    }
 
 
 
-    //unfold1D(hReco, hRef, hRef2Reco, nullptr, hMiss, hUnfold, 4);
+    unfold1D(hReco, hRef, hRef2Reco, nullptr, nullptr /* hMiss */, hUnfold, 4);
     //unfold1DInvert(hReco, hRef, hRef2Reco, hUnfold);
 
-    // c->cd(1); setPadStyle(); hReco->Draw(); hRef->Draw("same");
-    // c->cd(2); setPadStyle(); hUnfold->Draw();
-    // c->cd(3); setPadStyle(); hRef2Reco->Draw("colz");
+    c->cd(1); setPadStyle(); hReco->Draw(); 
+    c->cd(2); setPadStyle(); hRef->Draw(); hUnfold->Draw("same");
+    c->cd(3); setPadStyle(); hRef2Reco->Draw("colz");
 
 }
 
