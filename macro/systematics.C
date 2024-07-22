@@ -1612,16 +1612,16 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         //updateJERRatio( hEtaRatioDown[i] );
 
         // Make fit functions
-        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]+[1]*x + [2]*x*x", -3.5, 3.5);
-        fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]", -5., 5.);
+        fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]+[1]*x", -3.5, 3.5);
+        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]", -5., 5.);
         // fitRatioUp[i]->SetParameters(0., 0.0001);
         // fitRatioUp[i]->SetParLimits(2, 0.000001, 1e6);
         fitRatioUp[i]->SetParameters(0.);
         fitRatioUp[i]->SetLineColor(upType);
         fitRatioUp[i]->SetLineWidth(2);
 
-        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x +[2]*x*x", -3.5, 3.5);
-        fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]", -5., 5.);
+        fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x", -3.5, 3.5);
+        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]", -5., 5.);
         // fitRatioDown[i]->SetParameters(0., 0.0001);
         // fitRatioDown[i]->SetParLimits(2, 0.000001, 1e6);
         fitRatioDown[i]->SetParameters(0.);
@@ -1685,6 +1685,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
             fitRatioUp[i]->Draw("same");
             fitRatioDown[i]->Draw("same");
         }
+        hEtaRatioUp[i]->GetYaxis()->SetRangeUser(0.95, 1.05);
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
@@ -1718,14 +1719,15 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         leg->SetLineWidth(0);
         leg->AddEntry(hEtaDef[i], Form("dz1p0"), "p");
         leg->AddEntry(hEtaUp[i], Form("Gplus"), "p");
-        leg->AddEntry(hEtaDown[i], Form("Vtz1"), "p");
+        leg->AddEntry(hEtaDown[i], Form("Vtx1"), "p");
         leg->Draw();
 
-        // Plot all rations on one canvas
+        // Plot all ratios on one canvas
         cRat->cd(i+1);
         setPadStyle();
         hEtaRatioUp[i]->Draw();
         hEtaRatioDown[i]->Draw("same");
+        hEtaRatioUp[i]->GetYaxis()->SetRangeUser(0.95, 1.05);
         t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptLow + (ptDijetLow.at(i) - 1) * ptStep, ptLow + ptDijetHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
@@ -1733,7 +1735,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
         leg->AddEntry(hEtaRatioUp[i], Form("Gplus / dz1p0"), "p");
-        leg->AddEntry(hEtaRatioDown[i], Form("Vtz1 / dz1p0"), "p");
+        leg->AddEntry(hEtaRatioDown[i], Form("Vtx1 / dz1p0"), "p");
         leg->Draw();
         line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
                          hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
@@ -2164,10 +2166,10 @@ void systematics() {
 
     Bool_t drawFits = kTRUE;
 
-    TString trigName = "MB";
+    // TString trigName = "MB";
     // TString trigName = "Jet60";
     // TString trigName = "Jet80";
-    // TString trigName = "Jet100";
+    TString trigName = "Jet100";
 
     // Date
     TDatime dt;
@@ -2248,11 +2250,11 @@ void systematics() {
 
     // plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, drawFits );
 
-    plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
+    // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
     // plotPointingResolution( embeddingFile, date, drawFits );
 
-    // plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
+    plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
 
     // compareJetCollections( defaultFile, akcs4File, date );
 

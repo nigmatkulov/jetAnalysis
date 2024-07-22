@@ -1347,13 +1347,13 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
 
         // Make ratio of reco to gen distribution
         hReco2GenRatio[iPt] = dynamic_cast<TH1D*>( hRecoEta[iPt]->Clone( Form("hReco2GenRatio_%d", iPt) ) );
-        hReco2GenRatio[iPt]->Divide( hReco2GenRatio[iPt], hGenEta[iPt], 1., 1. );
+        hReco2GenRatio[iPt]->Divide( hReco2GenRatio[iPt], hGenEta[iPt], 1., 1., "b" );
         hReco2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
         hReco2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
 
         // Make ratio of ref to gen distribution
         hRef2GenRatio[iPt] = dynamic_cast<TH1D*>( hRefEta[iPt]->Clone( Form("hRef2GenRatio_%d", iPt) ) );
-        hRef2GenRatio[iPt]->Divide( hRef2GenRatio[iPt], hGenEta[iPt], 1., 1. );
+        hRef2GenRatio[iPt]->Divide( hRef2GenRatio[iPt], hGenEta[iPt], 1., 1., "b" );
         hRef2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
         hRef2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
 
@@ -1461,17 +1461,21 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         canv->cd();
         setPadStyle();
         hRecoData2MCRatio[iPt]->Draw();
-        hRecoData2MCRatio[iPt]->GetYaxis()->SetRangeUser(0.5, 1.5);
+        hReco2GenRatio[iPt]->Draw("same");
+        hRef2GenRatio[iPt]->Draw("same");
+        hRecoData2MCRatio[iPt]->GetYaxis()->SetRangeUser(0.7, 1.3);
+        hRecoData2MCRatio[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
         hRecoData2MCRatio[iPt]->GetYaxis()->SetTitle("Data / Embed");
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        // leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        // leg->SetTextSize(0.04);
-        // leg->SetLineWidth(0);
-        // leg->AddEntry(hReco2GenRatio[iPt], Form("Reco/Gen"), "p");
-        // leg->AddEntry(hRef2GenRatio[iPt], Form("Ref/Gen"), "p");
-        // leg->Draw();
+        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hRecoData2MCRatio[iPt], Form("Reco(data)/Reco(MC)"), "p");
+        leg->AddEntry(hReco2GenRatio[iPt], Form("Reco(MC)/Gen"), "p");
+        leg->AddEntry(hRef2GenRatio[iPt], Form("Ref(Ref axis)/Gen"), "p");
+        leg->Draw();
         line = new TLine(hRecoData2MCRatio[iPt]->GetXaxis()->GetBinLowEdge(1), 1., 
                          hRecoData2MCRatio[iPt]->GetXaxis()->GetBinUpEdge(hRecoData2MCRatio[iPt]->GetNbinsX()), 1.);
         line->SetLineColor(kMagenta);
@@ -1528,17 +1532,21 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         cRatData2Mc->cd( iPt+1 );
         setPadStyle();
         hRecoData2MCRatio[iPt]->Draw();
-        hRecoData2MCRatio[iPt]->GetYaxis()->SetRangeUser(0.5, 1.5);
+        hReco2GenRatio[iPt]->Draw("same");
+        hRef2GenRatio[iPt]->Draw("same");
+        hRecoData2MCRatio[iPt]->GetYaxis()->SetRangeUser(0.7, 1.2);
+        hRecoData2MCRatio[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
         hRecoData2MCRatio[iPt]->GetYaxis()->SetTitle("Data / Embed");
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        // leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        // leg->SetTextSize(0.04);
-        // leg->SetLineWidth(0);
-        // leg->AddEntry(hReco2GenRatio[iPt], Form("Reco/Gen"), "p");
-        // leg->AddEntry(hRef2GenRatio[iPt], Form("Ref/Gen"), "p");
-        // leg->Draw();
+        leg = new TLegend(0.45, 0.2, 0.65, 0.4);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hRecoData2MCRatio[iPt], Form("Reco(data)/Reco(MC)"), "p");
+        leg->AddEntry(hReco2GenRatio[iPt], Form("Reco(MC)/Gen"), "p");
+        leg->AddEntry(hRef2GenRatio[iPt], Form("Ref(Ref axis)/Gen"), "p");
+        leg->Draw();
         line = new TLine(hRecoData2MCRatio[iPt]->GetXaxis()->GetBinLowEdge(1), 1., 
                          hRecoData2MCRatio[iPt]->GetXaxis()->GetBinUpEdge(hRecoData2MCRatio[iPt]->GetNbinsX()), 1.);
         line->SetLineColor(kMagenta);

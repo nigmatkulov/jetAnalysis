@@ -43,7 +43,7 @@ int main(int argc, char const *argv[]) {
     Double_t ptHatCut[2] {15., 30.};
     Int_t   useJEU{0};
     Int_t   useJERSyst{0}; //0-default, 1-JER+, -1-JER-
-    Double_t etaShift = 0.4654094531;
+    Double_t etaShift = 0.465;
 
     // Sequence of command line arguments:
     //
