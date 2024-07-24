@@ -118,10 +118,8 @@ int main(int argc, char const *argv[]) {
     
     // Trigger
     // eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
-    eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
-    //eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
-    //eventCut->useHLT_PAAK4PFJet120_Eta5p1_v2();
-
+    // eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
+    // eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
 
     // Set ptHat cut for embedding
     if ( isMc ) {
