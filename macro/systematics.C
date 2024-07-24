@@ -2174,27 +2174,29 @@ void systematics() {
     // Date
     TDatime dt;
     TString date { Form( "%d",dt.GetDate() ) };
+    
+    TString path2cernBox = "/Users/gnigmat/cernbox";
 
     // List of file names
-    TString defaultFileName( Form("/Users/gnigmat/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4.root", trigName.Data()) );
-    TString pbGoingFileName( Form("/Users/gnigmat/cernbox/ana/pPb8160/exp/Pbgoing/def/%s_Pbgoing_pPb8160_ak4.root", trigName.Data()) );
-    TString pGoingFileName( Form("/Users/gnigmat/cernbox/ana/pPb8160/exp/pgoing/def/%s_pgoing_pPb8160_ak4.root", trigName.Data()) );
+    TString defaultFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_ak4.root", path2cernBox.Data(), trigName.Data()) );
+    TString pbGoingFileName( Form("%s/ana/pPb8160/exp/Pbgoing/def/%s_Pbgoing_pPb8160_ak4.root", path2cernBox.Data(), trigName.Data()) );
+    TString pGoingFileName( Form("%s/ana/pPb8160/exp/pgoing/def/%s_pgoing_pPb8160_ak4.root", path2cernBox.Data(), trigName.Data()) );
 
-    TString pbGoingEmbeddingFileName("/Users/gnigmat/cernbox/ana/pPb8160/embedding/Pbgoing/jer/oEmbedding_pPb8160_Pbgoing_jerDef_ak4.root");
-    TString pGoingEmbeddingFileName("/Users/gnigmat/cernbox/ana/pPb8160/embedding/pgoing/jer/oEmbedding_pPb8160_pgoing_jerDef_ak4.root");
+    TString pbGoingEmbeddingFileName( Form("%s/ana/pPb8160/embedding/Pbgoing/jer/oEmbedding_pPb8160_Pbgoing_jerDef_ak4.root", path2cernBox.Data() ));
+    TString pGoingEmbeddingFileName( Form("%s/ana/pPb8160/embedding/pgoing/jer/oEmbedding_pPb8160_pgoing_jerDef_ak4.root", path2cernBox.Data() ) );
 
-    TString akcs4FileName( Form("../build/MB_pPb8160_akCs4.root", trigName.Data()) );
+    TString akcs4FileName( Form("%s/ana/pPb8160/exp/MB_pPb8160_akCs4.root", path2cernBox.Data(), trigName.Data()) );
 
-    TString jeuUpFileName( Form("/Users/gnigmat/cernbox/ana/pPb8160/exp/%s_pPb8160_jeu_up_ak4.root", trigName.Data()) );
-    TString jeuDownFileName( Form("/Users/gnigmat/cernbox/ana/pPb8160/exp/%s_pPb8160_jeu_down_ak4.root", trigName.Data()) );
-    TString embeddingFileName("/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root");
+    TString jeuUpFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_jeu_up_ak4.root", path2cernBox.Data(), trigName.Data()) );
+    TString jeuDownFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_jeu_down_ak4.root", path2cernBox.Data(), trigName.Data()) );
+    TString embeddingFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root", path2cernBox.Data() ) );
 
-    TString jerDefFileName("/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root");
-    TString jerUpFileName("/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_ak4.root");
-    TString jerDownFileName("/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDown_ak4.root");
+    TString jerDefFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root", path2cernBox.Data() ) );
+    TString jerUpFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_ak4.root", path2cernBox.Data() ) );
+    TString jerDownFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDown_ak4.root", path2cernBox.Data() ) );
 
-    TString pileupGplusFileName( Form("/Users/gnigmat/cernbox/ana/pPb8160/exp/%s_pPb8160_gplus_ak4.root", trigName.Data()) );
-    TString pileupVtx1FileName( Form("/Users/gnigmat/cernbox/ana/pPb8160/exp/%s_pPb8160_vtx1_ak4.root", trigName.Data()) );
+    TString pileupGplusFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_gplus_ak4.root", path2cernBox.Data(), trigName.Data()) );
+    TString pileupVtx1FileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_vtx1_ak4.root", path2cernBox.Data(), trigName.Data()) );
 
     // Check the directory for storing figures exists
     if ( directoryExists( date.Data() ) ) {
