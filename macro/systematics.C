@@ -1540,7 +1540,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
     Int_t ptLow {30};
     // std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 , 3};
     // std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194, 194};
-    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  25  };
     std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194};
 
     // Styles
@@ -2166,10 +2166,10 @@ void systematics() {
 
     Bool_t drawFits = kTRUE;
 
-    // TString trigName = "MB";
+    TString trigName = "MB";
     // TString trigName = "Jet60";
     // TString trigName = "Jet80";
-    TString trigName = "Jet100";
+    // TString trigName = "Jet100";
 
     // Date
     TDatime dt;
@@ -2189,7 +2189,7 @@ void systematics() {
 
     TString jeuUpFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_jeu_up_ak4.root", path2cernBox.Data(), trigName.Data()) );
     TString jeuDownFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_jeu_down_ak4.root", path2cernBox.Data(), trigName.Data()) );
-    TString embeddingFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root", path2cernBox.Data() ) );
+    TString embeddingFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_ak4.root", path2cernBox.Data() ) );
 
     TString jerDefFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root", path2cernBox.Data() ) );
     TString jerUpFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_ak4.root", path2cernBox.Data() ) );
@@ -2250,11 +2250,11 @@ void systematics() {
 
     // compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, date, defaultFile);
 
-    // plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, drawFits );
+    plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, drawFits );
 
-    // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
+    plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
-    // plotPointingResolution( embeddingFile, date, drawFits );
+    plotPointingResolution( jerDefFile, date, drawFits );
 
     plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
 

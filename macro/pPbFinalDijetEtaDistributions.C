@@ -194,8 +194,9 @@ void addSystSource(TH1D* hTot, TH1D* hJeu, TH1D* hJer, TH1D* hPointing, TH1D* hP
         yPointing = hPointing->GetBinContent(i);
         yPileup = hPileup->GetBinContent(i);
         yTot = TMath::Sqrt(yJeu*yJeu + yJer*yJer + yPointing*yPointing + yPileup*yPileup);
-        // std::cout << "i: " << i << " ySource: " << ySource << " yTot before: " 
-        //           << yTot << " yTot after: " << yTot + ySource << std::endl;
+        std::cout << "i: " << i << " eta: " << hTot->GetBinCenter(i) << " yJES: " << yJeu << " yJER: " << yJer << " yPoint: " << yPointing
+                  << " yPileup: " << yPileup
+                  << " yTot: " << yTot << std::endl;
         hTot->SetBinContent(i, yTot);
     }
 }
@@ -232,10 +233,11 @@ TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr,
 
         totalUncrt = TMath::Sqrt( dirVal*dirVal + jeuVal*jeuVal + jerVal*jerVal + pointingVal*pointingVal + pileupVal*pileupVal);
 
-        std::cout << "Total uncert [%]: " << totalUncrt * 100 << " dirVal: " << dirVal * 100 << " jeuVal: " 
-                  << jeuVal * 100 << " jerVal: " << jerVal * 100  << " pointingVal: " << pointingVal * 100 
-                  << std::endl;
-        std::cout << "Data y: " << yVal << " ey: " << data->GetErrorY(i) << std::endl;
+        // std::cout << "Total uncert [%]: " << totalUncrt * 100 << " dirVal: " << dirVal * 100 << " jeuVal: " 
+        //           << jeuVal * 100 << " jerVal: " << jerVal * 100  << " pointingVal: " << pointingVal * 100
+        //           << " pileupVal: " << pileupVal*100
+        //           << std::endl;
+        // std::cout << "Data y: " << yVal << " ey: " << data->GetErrorY(i) << std::endl;
 
 
         gr->SetPoint(i, xVal, yVal);
@@ -366,8 +368,14 @@ void pPbFinalDijetEtaDistributions() {
             triggerName = "Jet100";
         }
 
+        // std::cout << "ptDijetPtLow.at(i): " << ptDijetPtLow.at(i) << " trgName: " << triggerName.Data() << std::endl;
+        // std::cout << "Going to open: " <<  Form("freezeSyst/%s_pPb8160_etaDijet_data_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)) << std::endl;
+
         // Retrieve data for the give pT average bin
         grDijetEta[i] = new TGraphErrors( Form("freezeSyst/%s_pPb8160_etaDijet_data_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+
+        std::cout << "After graph" << std::endl;
+
         grDijetEta[i]->SetName( Form("grDijetEta_%d", i) );
         set1DStyle(grDijetEta[i]);
         for (Int_t j{0}; j<grDijetEta[i]->GetN(); j++) {
@@ -553,7 +561,7 @@ void pPbFinalDijetEtaDistributions() {
             hPointingSyst[i]->Draw("same");
         }
         if ( usePileupSyst ) {
-            leg->AddEntry(hPileupSyst[i], Form("Pileup"), "l");
+            hPileupSyst[i]->Draw("same");
         }
         hTotalSyst[i]->GetYaxis()->SetRangeUser(0., 20.);
         hTotalSyst[i]->GetXaxis()->SetRangeUser(-3., 3.);
@@ -578,6 +586,7 @@ void pPbFinalDijetEtaDistributions() {
         if ( usePileupSyst ) {
             leg->AddEntry(hPileupSyst[i], Form("Pileup"), "l");  
         }
+
         leg->Draw();
 
         //
