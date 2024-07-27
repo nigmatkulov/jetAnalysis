@@ -318,6 +318,7 @@ void pPbFinalDijetEtaDistributions() {
     TH1D *hPointingSyst[ ptDijetPtLow.size() ];
     TH1D *hPileupSyst[ ptDijetPtLow.size() ];
     TH1D *hTotalSyst[ ptDijetPtLow.size() ];
+    TH1D *hTotalSystRel[ ptDijetPtLow.size() ];
 
     // Create graphs
     TGraphErrors *grDijetEta[ ptDijetPtLow.size() ];
@@ -619,4 +620,29 @@ void pPbFinalDijetEtaDistributions() {
     } // for (UInt_t i{0}; i<ptDijetBinLow.size(); i++)
     cSyst->SaveAs( Form("freezeSyst/pPb8160_syst_pt_all_lab.pdf") );
     cRat->SaveAs( Form("freezeSyst/pPb8160_dijetEta_pt_all_lab.pdf") );
+
+    TFile *oFile = new TFile("freezeSyst/oSystematics.root", "recreate");
+    for (UInt_t i{0}; i<ptDijetBinLow.size(); i++) {
+        hTotalSystRel[i] = dynamic_cast<TH1D*> ( hTotalSyst[i]->Clone( Form("hTotalSystRel_%d", i) ) );
+        //hTotalSystRel[i]->Sumw2();
+        hTotalSystRel[i]->Scale(1./100);
+        hTotalSystRel[i]->SetMarkerStyle(1);
+        hTotalSystRel[i]->SetFillColor(41);
+        hTotalSystRel[i]->SetMarkerColor(41);
+        hTotalSystRel[i]->SetLineColor(41);
+        for (Int_t j=1; j<hTotalSystRel[i]->GetNbinsX(); j++) {
+            Double_t uncrt = hTotalSystRel[i]->GetBinContent(j);
+            hTotalSystRel[i]->SetBinContent(j, 1.);
+            hTotalSystRel[i]->SetBinError(j, uncrt);
+        }
+        hTotalSystRel[i]->Write();
+        hTotalSyst[i]->Write();
+        hJeuSyst[i]->Write();
+        hJerSyst[i]->Write();
+        hPointingSyst[i]->Write();
+        hPileupSyst[i]->Write();
+        grDijetEta[i]->Write();
+        grErrTotalSystUncrt[i]->Write();
+    } // for (UInt_t i{0}; i<ptDijetBinLow.size(); i++)
+    oFile->Close();
 }
