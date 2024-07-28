@@ -2166,10 +2166,20 @@ void systematics() {
 
     Bool_t drawFits = kTRUE;
 
-    TString trigName = "MB";
-    // TString trigName = "Jet60";
-    // TString trigName = "Jet80";
-    // TString trigName = "Jet100";
+    Int_t trigVal{3}; // 0-MB, 1-Jet60, 2-Jet80, 3-Jet100
+    TString trigName;
+    if ( trigVal == 0 ) {
+        trigName = "MB";
+    }
+    else if ( trigVal == 1 ) {
+        trigName = "Jet60";
+    }
+    else if ( trigVal == 2 ) {
+        trigName = "Jet80";
+    }
+    else {
+        trigName = "Jet100";
+    }
 
     // Date
     TDatime dt;
@@ -2250,11 +2260,11 @@ void systematics() {
 
     // compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, date, defaultFile);
 
-    plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, drawFits );
+    // plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, drawFits );
 
-    plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
+    // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
-    plotPointingResolution( jerDefFile, date, drawFits );
+    // plotPointingResolution( jerDefFile, date, drawFits );
 
     plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
 
