@@ -80,7 +80,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     }
     else if (type == 2) {
         color = 1;        // black
-        markerStyle = 22; // filled triangle
+        markerStyle = 20; // filled triangle
     }
     else if (type == 3) {
         color = 2;        // red
@@ -1354,7 +1354,7 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
 
         // Make ratio of reco to gen distribution
         hReco2GenRatio[iPt] = dynamic_cast<TH1D*>( hRecoEta[iPt]->Clone( Form("hReco2GenRatio_%d", iPt) ) );
-        hReco2GenRatio[iPt]->Divide( hReco2GenRatio[iPt], hGenEta[iPt], 1., 1. /*, "b" */);
+        hReco2GenRatio[iPt]->Divide( hReco2GenRatio[iPt], hGenEta[iPt], 1., 1. /*, "b" */ );
         hReco2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
         hReco2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
         
@@ -1366,7 +1366,7 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
 
         // Make ratio of ref to gen distribution
         hRef2GenRatio[iPt] = dynamic_cast<TH1D*>( hRefEta[iPt]->Clone( Form("hRef2GenRatio_%d", iPt) ) );
-        hRef2GenRatio[iPt]->Divide( hRef2GenRatio[iPt], hGenEta[iPt], 1., 1. /*, "b" */);
+        hRef2GenRatio[iPt]->Divide( hRef2GenRatio[iPt], hGenEta[iPt], 1., 1. /*, "b" */ );
         hRef2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
         hRef2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
 
@@ -1578,7 +1578,7 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
             setPadStyle();
             hRecoEtaDivNeighborEmb[iPt-1]->Draw();
             hRecoEtaDivNeighborData[iPt-1]->Draw("same");
-            hRecoEtaDivNeighborEmb[iPt-1]->GetYaxis()->SetRangeUser(0.8, 1.3);
+            hRecoEtaDivNeighborEmb[iPt-1]->GetYaxis()->SetRangeUser(0.6, 1.3);
             t.DrawLatexNDC(0.15, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d / %d < p_{T}^{ave} (GeV) < %d", 
                            ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep,
                            ptLow + (ptDijetLow.at(iPt-1) - 1) * ptStep, ptLow + ptDijetHi.at(iPt-1) * ptStep) );
@@ -1603,7 +1603,7 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
             setPadStyle();
             hRecoEtaDivNeighborEmb[iPt-1]->Draw();
             hRecoEtaDivNeighborData[iPt-1]->Draw("same");
-            hRecoEtaDivNeighborEmb[iPt-1]->GetYaxis()->SetRangeUser(0.8, 1.3);
+            hRecoEtaDivNeighborEmb[iPt-1]->GetYaxis()->SetRangeUser(0.6, 1.3);
             t.DrawLatexNDC(0.15, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d / %d < p_{T}^{ave} (GeV) < %d", 
                            ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep,
                            ptLow + (ptDijetLow.at(iPt-1) - 1) * ptStep, ptLow + ptDijetHi.at(iPt-1) * ptStep) );
@@ -2537,6 +2537,167 @@ bool isGoodFile(TFile *f) {
 }
 
 //________________
+void print2DarrayFromHisto(TH2* h) {
+    Int_t nBinsX = h->GetNbinsX();
+    Int_t nBinsY = h->GetNbinsY();
+    std::cout << Form("Correction factor for %s \n", h->GetName() );
+    std::cout << Form("Double_t nCorr[%d][%d] = {\n", nBinsX, nBinsY);
+    for (Int_t i=1; i<=nBinsX; i++) {
+        std::cout << "\t{";
+        for (Int_t j=1; j<=nBinsY; j++) {
+
+            Double_t val = h->GetBinContent(i, j);
+            if ( val == 0 ) val = {1.};
+            if ( j != nBinsY ) {
+                std::cout << val << ", ";
+            }
+            else {
+                std::cout << val << " ";
+            }
+        } // for (Int_t j=1; j<=nBinsY; j++)
+        if ( i != nBinsX ) {
+            std::cout << "},\n";
+        }
+        else {
+            std::cout << "}\n";
+        }
+    } // for (Int_t i=1; i<=nBinsX; i++)
+    std::cout << "}\n";
+}
+
+//________________
+void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
+                         TFile *jet80File, TFile *jet100File, TString date) {
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.04);
+
+    Int_t rebin = 2;
+
+    // Retrieve distributions for embedding
+    TH2D *hEmbRecoPtLeadPtSublead = dynamic_cast< TH2D* >( embFile->Get("hRecoPtLeadPtSublead") );
+    hEmbRecoPtLeadPtSublead->SetName("hEmbRecoPtLeadPtSublead");
+    hEmbRecoPtLeadPtSublead->Rebin2D( rebin, rebin );
+    hEmbRecoPtLeadPtSublead->Scale( 1./hEmbRecoPtLeadPtSublead->Integral() );
+    set2DStyle(hEmbRecoPtLeadPtSublead);
+    TH1D* hEmbVzWeighted = dynamic_cast< TH1D* >( embFile->Get("hVzWeighted") );
+    hEmbVzWeighted->SetName("hEmbVzWeighted");
+    // Retrieve distributions for MB
+    TH2D* hMBRecoPtLeadPtSublead = dynamic_cast< TH2D* > ( mbFile->Get("hRecoPtLeadPtSublead") );
+    hMBRecoPtLeadPtSublead->SetName("hMBRecoPtLeadPtSublead");
+    hMBRecoPtLeadPtSublead->Rebin2D( rebin, rebin );
+    hMBRecoPtLeadPtSublead->Scale( 1./hMBRecoPtLeadPtSublead->Integral() );
+    set2DStyle(hMBRecoPtLeadPtSublead);
+    TH1D* hMBVzWeighted = dynamic_cast< TH1D* >( mbFile->Get("hVzWeighted") );
+    hMBVzWeighted->SetName("hMBVzWeighted");
+    // Retrieve distributions for Jet60
+    TH2D* hJet60RecoPtLeadPtSublead = dynamic_cast< TH2D* > ( jet60File->Get("hRecoPtLeadPtSublead") );
+    hJet60RecoPtLeadPtSublead->SetName("hJet60RecoPtLeadPtSublead");
+    hJet60RecoPtLeadPtSublead->Rebin2D( rebin, rebin );
+    hJet60RecoPtLeadPtSublead->Scale( 1./hJet60RecoPtLeadPtSublead->Integral() );
+    set2DStyle(hJet60RecoPtLeadPtSublead);
+    TH1D* hJet60VzWeighted = dynamic_cast< TH1D* >( jet60File->Get("hVzWeighted") );
+    hJet60VzWeighted->SetName("hJet60VzWeighted");
+    // Retrieve distributions for Jet80
+    TH2D* hJet80RecoPtLeadPtSublead = dynamic_cast< TH2D* > ( jet80File->Get("hRecoPtLeadPtSublead") );
+    hJet80RecoPtLeadPtSublead->SetName("hJet80RecoPtLeadPtSublead");
+    hJet80RecoPtLeadPtSublead->Rebin2D( rebin, rebin );
+    hJet80RecoPtLeadPtSublead->Scale( 1./hJet80RecoPtLeadPtSublead->Integral() );
+    set2DStyle(hJet80RecoPtLeadPtSublead);
+    TH1D* hJet80VzWeighted = dynamic_cast< TH1D* >( jet80File->Get("hVzWeighted") );
+    hJet80VzWeighted->SetName("hJet80VzWeighted");
+    // Retrieve distributions for Jet100
+    TH2D* hJet100RecoPtLeadPtSublead = dynamic_cast< TH2D* > ( jet100File->Get("hRecoPtLeadPtSublead") );
+    hJet100RecoPtLeadPtSublead->SetName("hJet100RecoPtLeadPtSublead");
+    hJet100RecoPtLeadPtSublead->Rebin2D( rebin, rebin );
+    hJet100RecoPtLeadPtSublead->Scale( 1./hJet100RecoPtLeadPtSublead->Integral() );
+    set2DStyle(hJet100RecoPtLeadPtSublead);
+    TH1D* hJet100VzWeighted = dynamic_cast< TH1D* >( jet100File->Get("hVzWeighted") );
+    hJet100VzWeighted->SetName("hJet100VzWeighted");
+
+    Int_t recoType{0};
+    Int_t refType{1};
+    Int_t genType{3};
+    Int_t refSelType{6};
+    Int_t dataType{2};
+
+    set1DStyle(hEmbVzWeighted, genType);
+    set1DStyle(hMBVzWeighted, recoType);
+    set1DStyle(hJet60VzWeighted, refType);
+    set1DStyle(hJet80VzWeighted, refSelType);
+    set1DStyle(hJet100VzWeighted, dataType);
+
+    Double_t nEmbNevents = hEmbVzWeighted->Integral();       hEmbVzWeighted->Scale(1./nEmbNevents);
+    Double_t nMBNevents = hMBVzWeighted->Integral();         hMBVzWeighted->Scale(1./nMBNevents);
+    Double_t nJet60Nevents = hJet60VzWeighted->Integral();   hJet60VzWeighted->Scale(1./nJet60Nevents);
+    Double_t nJet80Nevents = hJet80VzWeighted->Integral();   hJet80VzWeighted->Scale(1./nJet80Nevents);
+    Double_t nJet100Nevents = hJet100VzWeighted->Integral(); hJet100VzWeighted->Scale(1./nJet100Nevents);
+
+    TCanvas *cVz = new TCanvas("cVz","cVz", 1200, 800);
+    cVz->cd();
+    setPadStyle();
+    hJet100VzWeighted->Draw();
+    hJet80VzWeighted->Draw("same");
+    hJet60VzWeighted->Draw("same");
+    hMBVzWeighted->Draw("same");
+    hEmbVzWeighted->Draw("same");
+
+    TLegend *leg = new TLegend(0.2, 0.65, 0.4, 0.85);
+    leg->SetTextSize(0.04);
+    leg->SetLineWidth(0);
+    leg->AddEntry(hEmbVzWeighted, "Embedding", "p");
+    leg->AddEntry(hMBVzWeighted, "Min. bias.", "p");
+    leg->AddEntry(hJet60VzWeighted, "Jet60", "p");
+    leg->AddEntry(hJet80VzWeighted, "Jet80", "p");
+    leg->AddEntry(hJet100VzWeighted, "Jet100", "p");
+    leg->Draw();
+
+    t.DrawLatexNDC(0.65, 0.85, Form("N_{events}(Emb): %.5f", nEmbNevents) );
+    t.DrawLatexNDC(0.65, 0.8, Form("N_{events}(MB): %.f", nMBNevents) );
+    t.DrawLatexNDC(0.65, 0.75, Form("N_{events}(Jet60): %.f", nJet60Nevents) );
+    t.DrawLatexNDC(0.65, 0.7, Form("N_{events}(Jet80): %.f", nJet80Nevents) );
+    t.DrawLatexNDC(0.65, 0.65, Form("N_{events}(Jet100): %.f", nJet100Nevents) );
+
+    // Divide data / MC -> correction factor (multiplication) for MC
+    hJet100RecoPtLeadPtSublead->Divide(hJet100RecoPtLeadPtSublead, hEmbRecoPtLeadPtSublead, 1., 1.);
+    hJet80RecoPtLeadPtSublead->Divide(hJet80RecoPtLeadPtSublead, hEmbRecoPtLeadPtSublead, 1., 1.);
+    hJet60RecoPtLeadPtSublead->Divide(hJet60RecoPtLeadPtSublead, hEmbRecoPtLeadPtSublead, 1., 1.);
+    hMBRecoPtLeadPtSublead->Divide(hMBRecoPtLeadPtSublead, hEmbRecoPtLeadPtSublead, 1., 1.);
+
+    print2DarrayFromHisto(hMBRecoPtLeadPtSublead);
+
+    TCanvas *cMaps = new TCanvas("cMaps", "cMaps", 1500, 300);
+    cMaps->Divide(5, 1);
+
+    cMaps->cd(1);
+    setPadStyle();
+    hMBRecoPtLeadPtSublead->Draw("colz");
+    t.DrawLatexNDC(0.15, 0.93, Form("Correction factor min. bias") );
+
+    cMaps->cd(2);
+    setPadStyle();
+    hJet60RecoPtLeadPtSublead->Draw("colz");
+    t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet60") );
+
+    cMaps->cd(3);
+    setPadStyle();
+    hJet80RecoPtLeadPtSublead->Draw("colz");
+    t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet80") );
+
+    cMaps->cd(4);
+    setPadStyle();
+    hJet100RecoPtLeadPtSublead->Draw("colz");
+    t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet100") );
+
+    cMaps->cd(5);
+    setPadStyle();
+    hEmbRecoPtLeadPtSublead->Draw("colz");
+    t.DrawLatexNDC(0.15, 0.93, Form("Pure embedding") );
+}
+
+
+//________________
 void pPb_qa() {
 
     gStyle->SetOptStat(0);
@@ -2591,7 +2752,7 @@ void pPb_qa() {
     // plotEfficiency(embFile, date);
 
     // Plot dijet distributions
-    plotDijetDistributions(embFile, mbFile, jet60File, jet80File, jet100File, date);
+    // plotDijetDistributions(embFile, mbFile, jet60File, jet80File, jet100File, date);
 
     // Plot reco, reco with matching and calculate fakes
     // plotRecoAndFakes(embFile, date);
@@ -2607,4 +2768,7 @@ void pPb_qa() {
 
     // Plot various correlation matrices
     // plotDijetResponseMatrices(embFile, mbFile, jet60File, jet80File, jet100File, date);
+
+    // Build reweighting matrices for the MC w.r.t. data
+    makeMcWeightingMaps(embFile, mbFile, jet60File, jet80File, jet100File, date);
 }

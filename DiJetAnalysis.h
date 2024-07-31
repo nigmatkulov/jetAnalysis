@@ -71,6 +71,15 @@ class DiJetAnalysis : public BaseAnalysis {
     void setNEventsInSample(const Int_t& n)  { fNEventsInSample = n; }
     /// @brief Set loose jetId cut
     void setLooseJetIdCut()                  { fIsLooseJetIdCut = {kTRUE}; }
+    /// @brief Reweight MC to data (trigger-dependent): 
+    /// 0 - do not reweight (default)
+    /// 1 - MB
+    /// 2 - Jet60
+    /// 3 - Jet80
+    /// 4 - Jet100
+    void setUseMcReweighting(const Int_t& w = 0) { fUseMcReweighting = (Short_t)w; }
+
+    void findMcWeight(const Double_t& ptLead, const Double_t& ptSublead);
     /// @brief Print DiJetAnalysis setup
     void print();
 
@@ -130,6 +139,19 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t   fIsDijetFound;
     /// @brief Check if dijet passed jetId cut is found
     Bool_t   fIsDijetJetIdFound;
+    /// @brief Reweight MC to data (trigger-dependent): 
+    /// 0 - do not reweight (default)
+    /// 1 - MB
+    /// 2 - Jet60
+    /// 3 - Jet80
+    /// 4 - Jet100
+    Short_t   fUseMcReweighting;
+    Int_t     fJetPtBins;
+    Double_t  fJetPtLow;
+    Double_t  fJetPtHi;
+    Double_t  fJetPtStep;
+    Double_t  fJetPtLeadPtSubleadReweightMatrix[75][75];
+    Double_t  fMcReweight;
 
     Int_t    fEventCounter;
     Int_t    fCycleCounter;
