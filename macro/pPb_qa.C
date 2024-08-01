@@ -2578,6 +2578,7 @@ void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
     Bool_t doReweighting{kFALSE};
     TString embFileName = embFile->GetName();
     if ( embFileName.Contains("weight") ) {
+        std::cout << "Is reweighting file" << std::endl;
         doReweighting = {kTRUE};
     }
 
@@ -2605,15 +2606,7 @@ void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
     hMBRecoPtLeadPtSublead->Scale( 1./hMBRecoPtLeadPtSublead->Integral() );
     set2DStyle(hMBRecoPtLeadPtSublead);
 
-    TH2D* hMBRecoPtLeadPtSubleadMcReweight{nullptr};
-    if ( doReweighting ) {
-        hMBRecoPtLeadPtSubleadMcReweight = dynamic_cast< TH2D* > ( mbFile->Get("hRecoPtLeadPtSubleadMcReweight") );
-        hMBRecoPtLeadPtSubleadMcReweight->SetName("hMBRecoPtLeadPtSubleadMcReweight");
-        hMBRecoPtLeadPtSubleadMcReweight->Rebin2D( rebin, rebin );
-        hMBRecoPtLeadPtSubleadMcReweight->Scale( 1./hMBRecoPtLeadPtSubleadMcReweight->Integral() );
-        set2DStyle(hMBRecoPtLeadPtSubleadMcReweight);
-    }
-
+    TH2D *hMBRecoPtLeadPtSubleadMcReweight = dynamic_cast< TH2D* > ( hMBRecoPtLeadPtSublead->Clone("hMBRecoPtLeadPtSubleadMcReweight") );
     
     // Retrieve distributions for Jet60
     TH2D* hJet60RecoPtLeadPtSublead = dynamic_cast< TH2D* > ( jet60File->Get("hRecoPtLeadPtSublead") );
@@ -2622,14 +2615,7 @@ void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
     hJet60RecoPtLeadPtSublead->Scale( 1./hJet60RecoPtLeadPtSublead->Integral() );
     set2DStyle(hJet60RecoPtLeadPtSublead);
 
-    TH2D* hJet60RecoPtLeadPtSubleadMcReweight{nullptr};
-    if ( doReweighting ) {
-        hJet60RecoPtLeadPtSubleadMcReweight = dynamic_cast< TH2D* > ( jet60File->Get("hRecoPtLeadPtSubleadMcReweight") );
-        hJet60RecoPtLeadPtSubleadMcReweight->SetName("hJet60RecoPtLeadPtSubleadMcReweight");
-        hJet60RecoPtLeadPtSubleadMcReweight->Rebin2D( rebin, rebin );
-        hJet60RecoPtLeadPtSubleadMcReweight->Scale( 1./hJet60RecoPtLeadPtSubleadMcReweight->Integral() );
-        set2DStyle(hJet60RecoPtLeadPtSubleadMcReweight);
-    }
+    TH2D *hJet60RecoPtLeadPtSubleadMcReweight = dynamic_cast< TH2D* > ( hJet60RecoPtLeadPtSublead->Clone("hJet60RecoPtLeadPtSubleadMcReweight") );
     
     // Retrieve distributions for Jet80
     TH2D* hJet80RecoPtLeadPtSublead = dynamic_cast< TH2D* > ( jet80File->Get("hRecoPtLeadPtSublead") );
@@ -2638,14 +2624,7 @@ void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
     hJet80RecoPtLeadPtSublead->Scale( 1./hJet80RecoPtLeadPtSublead->Integral() );
     set2DStyle(hJet80RecoPtLeadPtSublead);
 
-    TH2D* hJet80RecoPtLeadPtSubleadMcReweight{nullptr};
-    if ( doReweighting ) {
-        hJet80RecoPtLeadPtSubleadMcReweight = dynamic_cast< TH2D* > ( jet80File->Get("hRecoPtLeadPtSubleadMcReweight") );
-        hJet80RecoPtLeadPtSubleadMcReweight->SetName("hJet80RecoPtLeadPtSublead");
-        hJet80RecoPtLeadPtSubleadMcReweight->Rebin2D( rebin, rebin );
-        hJet80RecoPtLeadPtSubleadMcReweight->Scale( 1./hJet80RecoPtLeadPtSubleadMcReweight->Integral() );
-        set2DStyle(hJet80RecoPtLeadPtSubleadMcReweight);
-    }
+    TH2D *hJet80RecoPtLeadPtSubleadMcReweight = dynamic_cast< TH2D* > ( hJet80RecoPtLeadPtSublead->Clone("hJet80RecoPtLeadPtSubleadMcReweight") );
     
     // Retrieve distributions for Jet100
     TH2D* hJet100RecoPtLeadPtSublead = dynamic_cast< TH2D* > ( jet100File->Get("hRecoPtLeadPtSublead") );
@@ -2654,14 +2633,7 @@ void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
     hJet100RecoPtLeadPtSublead->Scale( 1./hJet100RecoPtLeadPtSublead->Integral() );
     set2DStyle(hJet100RecoPtLeadPtSublead);
 
-    TH2D* hJet100RecoPtLeadPtSubleadMcReweight{nullptr};
-    if ( doReweighting ) {
-        hJet100RecoPtLeadPtSubleadMcReweight = dynamic_cast< TH2D* > ( jet100File->Get("hRecoPtLeadPtSubleadMcReweight") );
-        hJet100RecoPtLeadPtSubleadMcReweight->SetName("hJet100RecoPtLeadPtSubleadMcReweight");
-        hJet100RecoPtLeadPtSubleadMcReweight->Rebin2D( rebin, rebin );
-        hJet100RecoPtLeadPtSubleadMcReweight->Scale( 1./hJet100RecoPtLeadPtSubleadMcReweight->Integral() );
-        set2DStyle(hJet100RecoPtLeadPtSubleadMcReweight);
-    }
+    TH2D *hJet100RecoPtLeadPtSubleadMcReweight = dynamic_cast< TH2D* > ( hJet100RecoPtLeadPtSublead->Clone("hJet100RecoPtLeadPtSubleadMcReweight") );
 
 
     // Vz distributions
@@ -2725,10 +2697,17 @@ void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
     hJet60RecoPtLeadPtSublead->Divide(hJet60RecoPtLeadPtSublead, hEmbRecoPtLeadPtSublead, 1., 1.);
     hMBRecoPtLeadPtSublead->Divide(hMBRecoPtLeadPtSublead, hEmbRecoPtLeadPtSublead, 1., 1.);
 
-    //print2DarrayFromHisto(hMBRecoPtLeadPtSublead);
+    if ( doReweighting ) {
+        hJet100RecoPtLeadPtSubleadMcReweight->Divide(hJet100RecoPtLeadPtSubleadMcReweight, hEmbRecoPtLeadPtSubleadMcReweight, 1., 1.);
+        hJet80RecoPtLeadPtSubleadMcReweight->Divide(hJet80RecoPtLeadPtSubleadMcReweight, hEmbRecoPtLeadPtSubleadMcReweight, 1., 1.);
+        hJet60RecoPtLeadPtSubleadMcReweight->Divide(hJet60RecoPtLeadPtSubleadMcReweight, hEmbRecoPtLeadPtSubleadMcReweight, 1., 1.);
+        hMBRecoPtLeadPtSubleadMcReweight->Divide(hMBRecoPtLeadPtSubleadMcReweight, hEmbRecoPtLeadPtSubleadMcReweight, 1., 1.);
+    }
+
+    print2DarrayFromHisto(hMBRecoPtLeadPtSublead);
     // print2DarrayFromHisto(hJet60RecoPtLeadPtSublead);
     // print2DarrayFromHisto(hJet80RecoPtLeadPtSublead);
-    print2DarrayFromHisto(hJet100RecoPtLeadPtSublead);
+    // print2DarrayFromHisto(hJet100RecoPtLeadPtSublead);
 
     // Before reweighting
     TCanvas *cMaps = new TCanvas("cMaps", "cMaps", 1500, 300);
@@ -2764,30 +2743,30 @@ void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
     if ( doReweighting ) {
         cMaps2->Divide(5, 1);
 
-        cMaps->cd(1);
+        cMaps2->cd(1);
         setPadStyle();
-        hMBRecoPtLeadPtSublead->Draw("colz");
-        t.DrawLatexNDC(0.15, 0.93, Form("Correction factor min. bias") );
+        hMBRecoPtLeadPtSubleadMcReweight->Draw("colz");
+        t.DrawLatexNDC(0.15, 0.93, Form("Correction factor min. bias (after)") );
 
         cMaps2->cd(2);
         setPadStyle();
-        hJet60RecoPtLeadPtSublead->Draw("colz");
-        t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet60") );
+        hJet60RecoPtLeadPtSubleadMcReweight->Draw("colz");
+        t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet60 (after)") );
 
         cMaps2->cd(3);
         setPadStyle();
-        hJet80RecoPtLeadPtSublead->Draw("colz");
-        t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet80") );
+        hJet80RecoPtLeadPtSubleadMcReweight->Draw("colz");
+        t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet80 (after)") );
 
         cMaps2->cd(4);
         setPadStyle();
-        hJet100RecoPtLeadPtSublead->Draw("colz");
-        t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet100") );
+        hJet100RecoPtLeadPtSubleadMcReweight->Draw("colz");
+        t.DrawLatexNDC(0.15, 0.93, Form("Correction factor jet100 (after)") );
 
         cMaps2->cd(5);
         setPadStyle();
-        hEmbRecoPtLeadPtSublead->Draw("colz");
-        t.DrawLatexNDC(0.15, 0.93, Form("Pure embedding") );
+        hEmbRecoPtLeadPtSubleadMcReweight->Draw("colz");
+        t.DrawLatexNDC(0.15, 0.93, Form("Pure embedding (after)") );
     }
 
     cVz->SaveAs( Form("%s/pPb8160_vz_EmbMbJet60Jet80Jet100.pdf", date.Data() ) );
@@ -2806,7 +2785,7 @@ void pPb_qa() {
     gStyle->SetPalette(kBird);
 
     // File names
-    const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root";
+    const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightMB_ak4.root";
     const Char_t *mbFileName = "/Users/gnigmat/cernbox/ana/pPb8160/exp/MB_pPb8160_ak4.root";
     const Char_t *jet60FileName = "/Users/gnigmat/cernbox/ana/pPb8160/exp/Jet60_pPb8160_ak4.root";
     const Char_t *jet80FileName = "/Users/gnigmat/cernbox/ana/pPb8160/exp/Jet80_pPb8160_ak4.root";
