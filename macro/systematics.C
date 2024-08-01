@@ -2166,7 +2166,7 @@ void systematics() {
 
     Bool_t drawFits = kTRUE;
 
-    Int_t trigVal{3}; // 0-MB, 1-Jet60, 2-Jet80, 3-Jet100
+    Int_t trigVal{0}; // 0-MB, 1-Jet60, 2-Jet80, 3-Jet100
     TString trigName;
     if ( trigVal == 0 ) {
         trigName = "MB";
@@ -2262,11 +2262,11 @@ void systematics() {
 
     // plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, drawFits );
 
-    // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
+    plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
     // plotPointingResolution( jerDefFile, date, drawFits );
 
-    plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
+    // plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
 
     // compareJetCollections( defaultFile, akcs4File, date );
 

@@ -195,6 +195,9 @@ int main(int argc, char const *argv[]) {
     analysis->setLeadJetPtLow( 50. );
     analysis->setSubLeadJetPtLow( 40. );
     analysis->setDijetPhiCut( 5. * TMath::Pi() / 6 );
+    if ( fIsMc ) {
+        analysis->setUseMcReweighting(1); // Reweight to MB
+    }
     //analysis->setVerbose();
     
     // Initialize histogram manager
