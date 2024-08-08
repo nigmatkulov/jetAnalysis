@@ -1278,6 +1278,12 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
     hReco2RefDijet->SetName("hReco2RefDijet");
     TH3D *hGenDijetPtEtaDphi = dynamic_cast< TH3D* >( embFile->Get("hGenDijetPtEtaDphiWeighted") );
     hGenDijetPtEtaDphi->SetName("hGenDijetPtEtaDphi");
+    THnSparseD *hRefSel = dynamic_cast< THnSparseD* >( embFile->Get("hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted") );
+    hRefSel->SetName("hRefSel");
+    const Int_t nSelDim{4};
+    Int_t projections[ nSelDim ] = {0, 1, 6, 7}; // Dijet reco pt, eta, ref pt, eta
+    THnSparseD * hReco2RefDijetRefSel = dynamic_cast< THnSparseD* >( hRefSel->Projection(nSelDim, projections) );
+    hReco2RefDijetRefSel->SetName("hReco2RefDijetRefSel");
 
     // Retrieve distributions for experimental data
     TH3D* hRecoDataMB = dynamic_cast< TH3D* > ( mbFile->Get("hRecoDijetPtEtaDphiWeighted") );
@@ -1297,10 +1303,33 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
     TH1D *hRecoEtaDivNeighborEmb[ ptDijetLow.size() - 1 ];
     TH1D *hRecoEtaDivNeighborData[ ptDijetLow.size() - 1 ];
 
+    TH1D *hRecoEtaRefSel[ ptDijetLow.size() ];
+    TH1D *hRefEtaRefSel[ ptDijetLow.size() ];
+
     TH1D *hReco2GenRatio[ ptDijetLow.size() ];
     TH1D *hRef2GenRatio[ ptDijetLow.size() ];
     TH1D *hRecoData2MCRatio[ ptDijetLow.size() ];
     TH1D *hRelSystUncrt[ ptDijetLow.size() ];
+
+    // Reco selected: reco eta (1), ref eta (2)
+    // Ref selected: reco eta (3), ref eta (4)
+    // Make ratios: (1)/(4) and (2)/(3)
+    TH1D *hReco2RefRatio14[ ptDijetLow.size() ];
+    TH1D *hReco2RefRatio23[ ptDijetLow.size() ];
+    // Eta resolution check: 
+    // (reco-pT, reco-eta) / (reco-pT, gen-eta) and
+    // (gen-pT, reco-eta) / (gen-pT, gen-eta)
+    TH1D *hReco2RefRatio12[ ptDijetLow.size() ];
+    TH1D *hReco2RefRatio34[ ptDijetLow.size() ];
+    // Pt resolution check: 
+    // (reco-pT, reco-eta) / (gen-pT, reco-eta) and
+    // (reco-pT, gen-eta) / (gen-pT, gen-eta)
+    TH1D *hReco2RefRatio13[ ptDijetLow.size() ];
+    TH1D *hReco2RefRatio24[ ptDijetLow.size() ];
+
+    TH1D *hDoubleRatio1423[ ptDijetLow.size() ];
+    TH1D *hDoubleRatio1234[ ptDijetLow.size() ];
+    TH1D *hDoubleRatio1324[ ptDijetLow.size() ];
 
     // Create line and legend
     TLine *line;
@@ -1324,6 +1353,24 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
 
     TCanvas *cRatNeighbor = new TCanvas("cRatNeighbor", "cRatNeighbor", sizeX, sizeY);
     cRatNeighbor->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cEtaClosure = new TCanvas("cEtaClosure", "cEtaClosure", sizeX, sizeY);
+    cEtaClosure->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cEtaClosureDR = new TCanvas("cEtaClosureDR", "cEtaClosureDR", sizeX, sizeY);
+    cEtaClosureDR->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cPtClosure = new TCanvas("cPtClosure", "cPtClosure", sizeX, sizeY);
+    cPtClosure->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cPtClosureDR = new TCanvas("cPtClosureDR", "cPtClosureDR", sizeX, sizeY);
+    cPtClosureDR->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cPtEtaClosure = new TCanvas("cPtEtaClosure", "cPtEtaClosure", sizeX, sizeY);
+    cPtEtaClosure->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+
+    TCanvas *cPtEtaClosureDR = new TCanvas("cPtEtaClosureDR", "cPtEtaClosureDR", sizeX, sizeY);
+    cPtEtaClosureDR->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
 
     // Loop over pTave bins
     for ( Int_t iPt{0}; iPt<ptDijetLow.size(); iPt++ ) {
@@ -1357,6 +1404,12 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         hReco2GenRatio[iPt]->Divide( hReco2GenRatio[iPt], hGenEta[iPt], 1., 1. /*, "b" */ );
         hReco2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
         hReco2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
+
+        // Make ratio of ref to gen distribution
+        hRef2GenRatio[iPt] = dynamic_cast<TH1D*>( hRefEta[iPt]->Clone( Form("hRef2GenRatio_%d", iPt) ) );
+        hRef2GenRatio[iPt]->Divide( hRef2GenRatio[iPt], hGenEta[iPt], 1., 1. /*, "b" */ );
+        hRef2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hRef2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
         
         if ( useUncrt ) {
             hRelSystUncrt[iPt] = dynamic_cast<TH1D*> ( uncrtFile->Get( Form("hTotalSystRel_%d", iPt) ) );
@@ -1364,11 +1417,85 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
             hRelSystUncrt[iPt]->GetYaxis()->SetTitle("Ratio to gen");
         }
 
-        // Make ratio of ref to gen distribution
-        hRef2GenRatio[iPt] = dynamic_cast<TH1D*>( hRefEta[iPt]->Clone( Form("hRef2GenRatio_%d", iPt) ) );
-        hRef2GenRatio[iPt]->Divide( hRef2GenRatio[iPt], hGenEta[iPt], 1., 1. /*, "b" */ );
-        hRef2GenRatio[iPt]->GetXaxis()->SetTitle("#eta^{dijet}");
-        hRef2GenRatio[iPt]->GetYaxis()->SetTitle("Ratio to gen");
+        // Choose ref selected dijets and cut on the ref pT
+        hReco2RefDijetRefSel->GetAxis(2)->SetRange( ptDijetLow.at(iPt), ptDijetHi.at(iPt) );
+
+        // Project ref selected distribution onto the reco eta 
+        hRecoEtaRefSel[ iPt ] = dynamic_cast<TH1D*> ( hReco2RefDijetRefSel->Projection(1) );
+        hRecoEtaRefSel[ iPt ]->SetName( Form("hRecoEtaRefSel_%d", iPt) );
+        hRecoEtaRefSel[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hRecoEtaRefSel[ iPt ]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        rescaleEta( hRecoEtaRefSel[iPt] );
+        set1DStyle( hRecoEtaRefSel[iPt], dataType );
+
+        // Project ref selected distributions onto the reco eta 
+        hRefEtaRefSel[ iPt ] = dynamic_cast<TH1D*> ( hReco2RefDijetRefSel->Projection(3) );
+        hRefEtaRefSel[ iPt ]->SetName( Form("hRefEtaRefSel_%d", iPt) );
+        hRefEtaRefSel[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hRefEtaRefSel[ iPt ]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        rescaleEta( hRefEtaRefSel[iPt] );
+        set1DStyle( hRefEtaRefSel[iPt], refType );
+
+        // Ratio to perform closure on the dijet pt and eta factorization
+        hReco2RefRatio14[ iPt ] = dynamic_cast< TH1D* >( hRecoEta[iPt]->Clone() );
+        hReco2RefRatio14[ iPt ]->SetName( Form("hReco2RefRatio14_%d",iPt) );
+        hReco2RefRatio14[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hReco2RefRatio14[ iPt ]->GetYaxis()->SetTitle("Ratio");
+        hReco2RefRatio14[ iPt ]->Divide( hReco2RefRatio14[ iPt ], hRefEtaRefSel[ iPt ], 1., 1. );
+
+        hReco2RefRatio23[ iPt ] = dynamic_cast< TH1D* >( hRecoEtaRefSel[iPt]->Clone() );
+        hReco2RefRatio23[ iPt ]->SetName( Form("hReco2RefRatio23_%d", iPt) );
+        hReco2RefRatio23[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hReco2RefRatio23[ iPt ]->GetYaxis()->SetTitle("Ratio");
+        hReco2RefRatio23[ iPt ]->Divide( hRefEta[ iPt ], hReco2RefRatio23[ iPt ], 1., 1. );
+
+        // Factorization double ratio
+        hDoubleRatio1423[ iPt ] = dynamic_cast< TH1D* > ( hReco2RefRatio14[ iPt ]->Clone() );
+        hDoubleRatio1423[ iPt ]->SetName( Form("hDoubleRatio1423_%d", iPt) );
+        hDoubleRatio1423[ iPt ]->Divide( hDoubleRatio1423[ iPt ], hReco2RefRatio23[ iPt ], 1., 1. );
+        hDoubleRatio1423[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hDoubleRatio1423[ iPt ]->GetYaxis()->SetTitle("#frac{(reco-p_{T}, reco-#eta) / (gen-p_{T}, gen-#eta)}{(reco-p_{T}, gen-#eta) / (gen-p_{T}, reco-#eta)}");
+
+        // Eta resolution check
+        hReco2RefRatio12[ iPt ] = dynamic_cast< TH1D* >( hRecoEta[iPt]->Clone() );
+        hReco2RefRatio12[ iPt ]->SetName( Form("hReco2RefRatio12_%d",iPt) );
+        hReco2RefRatio12[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hReco2RefRatio12[ iPt ]->GetYaxis()->SetTitle("Ratio");
+        hReco2RefRatio12[ iPt ]->Divide( hReco2RefRatio12[ iPt ], hRefEta[ iPt ], 1., 1. );
+
+        hReco2RefRatio34[ iPt ] = dynamic_cast< TH1D* >( hRecoEtaRefSel[iPt]->Clone() );
+        hReco2RefRatio34[ iPt ]->SetName( Form("hReco2RefRatio34_%d",iPt) );
+        hReco2RefRatio34[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hReco2RefRatio34[ iPt ]->GetYaxis()->SetTitle("Ratio");
+        hReco2RefRatio34[ iPt ]->Divide( hReco2RefRatio34[ iPt ], hRefEtaRefSel[ iPt ], 1., 1. );
+
+        // Eta factorization
+        hDoubleRatio1234[ iPt ] = dynamic_cast< TH1D* > ( hReco2RefRatio12[ iPt ]->Clone() );
+        hDoubleRatio1234[ iPt ]->SetName( Form("hDoubleRatio1234_%d", iPt) );
+        hDoubleRatio1234[ iPt ]->Divide( hDoubleRatio1234[ iPt ], hReco2RefRatio34[ iPt ], 1., 1. );
+        hDoubleRatio1234[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hDoubleRatio1234[ iPt ]->GetYaxis()->SetTitle("#frac{(reco-p_{T}, reco-#eta) / (reco-p_{T}, gen-#eta)}{(gen-p_{T}, reco-#eta) / (gen-p_{T}, gen-#eta)}");
+
+        // Pt resolution check
+        hReco2RefRatio13[ iPt ] = dynamic_cast< TH1D* >( hRecoEta[iPt]->Clone() );
+        hReco2RefRatio13[ iPt ]->SetName( Form("hReco2RefRatio13_%d",iPt) );
+        hReco2RefRatio13[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hReco2RefRatio13[ iPt ]->GetYaxis()->SetTitle("Ratio");
+        hReco2RefRatio13[ iPt ]->Divide( hReco2RefRatio13[ iPt ], hRecoEtaRefSel[iPt], 1., 1. );
+
+        hReco2RefRatio24[ iPt ] = dynamic_cast< TH1D* >( hRefEta[ iPt ]->Clone() );
+        hReco2RefRatio24[ iPt ]->SetName( Form("hReco2RefRatio24_%d",iPt) );
+        hReco2RefRatio24[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hReco2RefRatio24[ iPt ]->GetYaxis()->SetTitle("Ratio");
+        hReco2RefRatio24[ iPt ]->Divide( hReco2RefRatio24[ iPt ], hRefEtaRefSel[ iPt ], 1., 1. );
+
+        // Pt factorization
+        hDoubleRatio1324[ iPt ] = dynamic_cast< TH1D* > ( hReco2RefRatio13[ iPt ]->Clone() );
+        hDoubleRatio1324[ iPt ]->SetName( Form("hDoubleRatio1324_%d", iPt) );
+        hDoubleRatio1324[ iPt ]->Divide( hDoubleRatio1324[ iPt ], hReco2RefRatio24[ iPt ], 1., 1. );
+        hDoubleRatio1324[ iPt ]->GetXaxis()->SetTitle("#eta^{dijet}");
+        hDoubleRatio1324[ iPt ]->GetYaxis()->SetTitle("#frac{(reco-p_{T}, reco-#eta) / (gen-p_{T}, reco-#eta)}{(reco-p_{T}, gen-#eta) / (gen-p_{T}, gen-#eta)}");
+
 
         // Retrieve experimental distributions
         if (ptDijetPtValLow.at(iPt) < 80) {
@@ -1501,6 +1628,138 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
                       ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
                       ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
 
+        // Plot individual pt-eta closure  tests
+        canv->cd();
+        setPadStyle();
+        hReco2RefRatio14[iPt]->Draw();
+        hReco2RefRatio23[iPt]->Draw("same");
+        hReco2RefRatio14[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        hReco2RefRatio14[iPt]->GetYaxis()->SetRangeUser(0.85, 1.15);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.25, 0.17, 0.75, 0.35);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hReco2RefRatio14[iPt], Form("(reco-p_{T}, reco-#eta) / (gen-p_{T}, gen-#eta)"), "p");
+        leg->AddEntry(hReco2RefRatio23[iPt], Form("(reco-p_{T}, gen-#eta) / (gen-p_{T}, reco-#eta)"), "p");
+        leg->Draw();
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_ptEtaFactClosure_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Plot individual eta closure tests
+        canv->cd();
+        setPadStyle();
+        hReco2RefRatio12[iPt]->Draw();
+        hReco2RefRatio34[iPt]->Draw("same");
+        hReco2RefRatio12[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        hReco2RefRatio12[iPt]->GetYaxis()->SetRangeUser(0.85, 1.15);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.25, 0.17, 0.75, 0.35);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hReco2RefRatio12[iPt], Form("(reco-p_{T}, reco-#eta) / (reco-p_{T}, gen-#eta)"), "p");
+        leg->AddEntry(hReco2RefRatio34[iPt], Form("(gen-p_{T}, reco-#eta) / (gen-p_{T}, gen-#eta)"), "p");
+        leg->Draw();
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_etaFactClosure_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Plot individual pt closure tests
+        canv->cd();
+        setPadStyle();
+        hReco2RefRatio13[iPt]->Draw();
+        hReco2RefRatio24[iPt]->Draw("same");
+        hReco2RefRatio13[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        hReco2RefRatio13[iPt]->GetYaxis()->SetRangeUser(0.85, 1.15);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.25, 0.17, 0.75, 0.35);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hReco2RefRatio13[iPt], Form("(reco-p_{T}, reco-#eta) / (gen-p_{T}, reco-#eta)"), "p");
+        leg->AddEntry(hReco2RefRatio24[iPt], Form("(reco-p_{T}, gen-#eta) / (gen-p_{T}, gen-#eta)"), "p");
+        leg->Draw();
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_ptFactClosure_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Individual pt-eta closure double ratios
+        canv->cd();
+        setPadStyle();
+        gPad->SetRightMargin(0.05);
+        gPad->SetLeftMargin(0.2);
+        hDoubleRatio1423[ iPt ]->Draw();
+        hDoubleRatio1423[ iPt ]->GetXaxis()->SetRangeUser(-3., 3.);
+        hDoubleRatio1423[ iPt ]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_factClosureDR_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Individual eta closure double ratios
+        canv->cd();
+        setPadStyle();
+        gPad->SetRightMargin(0.05);
+        gPad->SetLeftMargin(0.2);
+        hDoubleRatio1234[ iPt ]->Draw();
+        hDoubleRatio1234[ iPt ]->GetXaxis()->SetRangeUser(-3., 3.);
+        hDoubleRatio1234[ iPt ]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_etaClosureDR_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
+        // Individual pt closure double ratios
+        canv->cd();
+        setPadStyle();
+        gPad->SetRightMargin(0.05);
+        gPad->SetLeftMargin(0.2);
+        hDoubleRatio1324[ iPt ]->Draw();
+        hDoubleRatio1324[ iPt ]->GetXaxis()->SetRangeUser(-3., 3.);
+        hDoubleRatio1324[ iPt ]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+        canv->SaveAs( Form("%s/emb_pPb8160_etaDijet_ptClosureDR_pt_%d_%d_%s.pdf", date.Data(),
+                      ptLow + (ptDijetLow.at(iPt)-1) * ptStep, 
+                      ptLow + ptDijetHi.at(iPt) * ptStep, frame.Data() ) );
+
         // Plot comparisons on a single canvas
         cComp->cd( iPt+1 );
         setPadStyle();
@@ -1570,6 +1829,120 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         line->SetLineStyle(3);
         line->Draw();
 
+        // Plot pt-eta closure tests on one canvas
+        cPtEtaClosure->cd( iPt+1 );
+        setPadStyle();
+        hReco2RefRatio14[iPt]->Draw();
+        hReco2RefRatio23[iPt]->Draw("same");
+        hReco2RefRatio14[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        hReco2RefRatio14[iPt]->GetYaxis()->SetRangeUser(0.85, 1.15);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.25, 0.17, 0.75, 0.35);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hReco2RefRatio14[iPt], Form("(reco-p_{T}, reco-#eta) / (gen-p_{T}, gen-#eta)"), "p");
+        leg->AddEntry(hReco2RefRatio23[iPt], Form("(reco-p_{T}, gen-#eta) / (gen-p_{T}, reco-#eta)"), "p");
+        leg->Draw();
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
+        // Plot eta closure tests on one canvas
+        cEtaClosure->cd( iPt+1 );
+        setPadStyle();
+        hReco2RefRatio12[iPt]->Draw();
+        hReco2RefRatio34[iPt]->Draw("same");
+        hReco2RefRatio12[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        hReco2RefRatio12[iPt]->GetYaxis()->SetRangeUser(0.85, 1.15);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.25, 0.17, 0.75, 0.35);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hReco2RefRatio12[iPt], Form("(reco-p_{T}, reco-#eta) / (reco-p_{T}, gen-#eta)"), "p");
+        leg->AddEntry(hReco2RefRatio34[iPt], Form("(gen-p_{T}, reco-#eta) / (gen-p_{T}, gen-#eta)"), "p");
+        leg->Draw();
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
+        // Plot pt closure tests on one canvas
+        cPtClosure->cd( iPt+1 );
+        setPadStyle();
+        hReco2RefRatio13[iPt]->Draw();
+        hReco2RefRatio24[iPt]->Draw("same");
+        hReco2RefRatio13[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        hReco2RefRatio13[iPt]->GetYaxis()->SetRangeUser(0.85, 1.15);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
+        leg = new TLegend(0.25, 0.17, 0.75, 0.35);
+        leg->SetTextSize(0.04);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hReco2RefRatio13[iPt], Form("(reco-p_{T}, reco-#eta) / (gen-p_{T}, reco-#eta)"), "p");
+        leg->AddEntry(hReco2RefRatio24[iPt], Form("(reco-p_{T}, gen-#eta) / (gen-p_{T}, gen-#eta)"), "p");
+        leg->Draw();
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
+        // Double pt-eta closure ratios on one canvas
+        cPtEtaClosureDR->cd( iPt+1 );
+        setPadStyle();
+        gPad->SetRightMargin(0.05);
+        gPad->SetLeftMargin(0.2);
+        hDoubleRatio1423[ iPt ]->Draw();
+        hDoubleRatio1423[ iPt ]->GetXaxis()->SetRangeUser(-3., 3.);
+        hDoubleRatio1423[ iPt ]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
+        // Plot eta closure double ratios on one canvas
+        cEtaClosureDR->cd( iPt+1 );
+        setPadStyle();
+        gPad->SetRightMargin(0.05);
+        gPad->SetLeftMargin(0.2);
+        hDoubleRatio1234[ iPt ]->Draw();
+        hDoubleRatio1234[ iPt ]->GetXaxis()->SetRangeUser(-3., 3.);
+        hDoubleRatio1234[ iPt ]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
+        // Plot pt closure double ratios on one canvas
+        cPtClosureDR->cd( iPt+1 );
+        setPadStyle();
+        gPad->SetRightMargin(0.05);
+        gPad->SetLeftMargin(0.2);
+        hDoubleRatio1324[ iPt ]->Draw();
+        hDoubleRatio1324[ iPt ]->GetXaxis()->SetRangeUser(-3., 3.);
+        hDoubleRatio1324[ iPt ]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
+        line = new TLine(-3.01, 1., 3.01, 1.);
+        line->SetLineColor(kOcean);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
         // Make ratio of the reco distribution to the neighbor (previous one) in one canvas
         if ( iPt != 0 && iPt != (ptDijetLow.size()-1) ) {
 
@@ -1626,6 +1999,12 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
     cRat->SaveAs( Form("%s/emb_pPb8160_etaDijet_RecoRefGenRat_all_%s.pdf", date.Data(), frame.Data() ) );
     cRatNeighbor->SaveAs( Form("%s/emb_pPb8160_etaDijet_recoRatNeighbor_all_%s.pdf", date.Data(), frame.Data() ) );
     cRatData2Mc->SaveAs( Form("%s/pPb8160_etaDijet_data2embed_all_%s.pdf", date.Data(), frame.Data() ) );
+    cPtEtaClosure->SaveAs( Form("%s/emb_pPb8160_etaDijet_ptEtaFactClosure_all_%s.pdf", date.Data(), frame.Data() ) );
+    cEtaClosure->SaveAs( Form("%s/emb_pPb8160_etaDijet_etaFactClosure_all_%s.pdf", date.Data(), frame.Data() ) );
+    cPtClosure->SaveAs( Form("%s/emb_pPb8160_etaDijet_ptFactClosure_all_%s.pdf", date.Data(), frame.Data() ) );
+    cPtEtaClosureDR->SaveAs( Form("%s/emb_pPb8160_etaDijet_factClosureDR_all_%s.pdf", date.Data(), frame.Data()) );
+    cEtaClosureDR->SaveAs( Form("%s/emb_pPb8160_etaDijet_etaClosureDR_all_%s.pdf", date.Data(), frame.Data()) );
+    cPtClosureDR->SaveAs( Form("%s/emb_pPb8160_etaDijet_ptClosureDR_all_%s.pdf", date.Data(), frame.Data()) );
 }
 
 //________________
@@ -2704,7 +3083,7 @@ void makeMcWeightingMaps(TFile *embFile, TFile *mbFile, TFile *jet60File,
         hMBRecoPtLeadPtSubleadMcReweight->Divide(hMBRecoPtLeadPtSubleadMcReweight, hEmbRecoPtLeadPtSubleadMcReweight, 1., 1.);
     }
 
-    print2DarrayFromHisto(hMBRecoPtLeadPtSublead);
+    // print2DarrayFromHisto(hMBRecoPtLeadPtSublead);
     // print2DarrayFromHisto(hJet60RecoPtLeadPtSublead);
     // print2DarrayFromHisto(hJet80RecoPtLeadPtSublead);
     // print2DarrayFromHisto(hJet100RecoPtLeadPtSublead);
@@ -2785,7 +3164,11 @@ void pPb_qa() {
     gStyle->SetPalette(kBird);
 
     // File names
+    // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root";
     const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightMB_ak4.root";
+    // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightJet60_ak4.root";
+    // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightJet80_ak4.root";
+    // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightJet100_ak4.root";
     const Char_t *mbFileName = "/Users/gnigmat/cernbox/ana/pPb8160/exp/MB_pPb8160_ak4.root";
     const Char_t *jet60FileName = "/Users/gnigmat/cernbox/ana/pPb8160/exp/Jet60_pPb8160_ak4.root";
     const Char_t *jet80FileName = "/Users/gnigmat/cernbox/ana/pPb8160/exp/Jet80_pPb8160_ak4.root";
@@ -2832,7 +3215,7 @@ void pPb_qa() {
     // plotEfficiency(embFile, date);
 
     // Plot dijet distributions
-    // plotDijetDistributions(embFile, mbFile, jet60File, jet80File, jet100File, date);
+    plotDijetDistributions(embFile, mbFile, jet60File, jet80File, jet100File, date);
 
     // Plot reco, reco with matching and calculate fakes
     // plotRecoAndFakes(embFile, date);
@@ -2850,5 +3233,5 @@ void pPb_qa() {
     // plotDijetResponseMatrices(embFile, mbFile, jet60File, jet80File, jet100File, date);
 
     // Build reweighting matrices for the MC w.r.t. data
-    makeMcWeightingMaps(embFile, mbFile, jet60File, jet80File, jet100File, date);
+    // makeMcWeightingMaps(embFile, mbFile, jet60File, jet80File, jet100File, date);
 }
