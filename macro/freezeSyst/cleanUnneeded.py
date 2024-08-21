@@ -1,5 +1,6 @@
 import os
 import glob
+import shutil
 
 fileList = [
     "MB_pPb8160_etaDijet_data_80*", "MB_pPb8160_etaDijet_data_90*", "MB_pPb8160_etaDijet_data_1*", "MB_pPb8160_etaDijet_data_2*", "MB_pPb8160_etaDijet_data_3*", "MB_pPb8160_etaDijet_data_400*", "MB_pPb8160_etaDijet_data_500*",
@@ -17,3 +18,11 @@ for pattern in fileList:
             print(f"{file} deleted")
         else:
             print(f"{file} does not exist")
+
+
+# Copy pileup values from 150-1000 GeV pTave bin to the high-pt bins
+pileup_original = "Jet100_pPb8160_etaDijet_pileupSyst_150_1000_lab.txt"
+copy_pileup_syst = [ "Jet100_pPb8160_etaDijet_pileupSyst_150_160_lab.txt", "Jet100_pPb8160_etaDijet_pileupSyst_160_180_lab.txt", "Jet100_pPb8160_etaDijet_pileupSyst_180_200_lab.txt", "Jet100_pPb8160_etaDijet_pileupSyst_200_240_lab.txt", "Jet100_pPb8160_etaDijet_pileupSyst_240_300_lab.txt", "Jet100_pPb8160_etaDijet_pileupSyst_300_400_lab.txt", "Jet100_pPb8160_etaDijet_pileupSyst_400_500_lab.txt", "Jet100_pPb8160_etaDijet_pileupSyst_500_1000_lab.txt", "Jet100_pPb8160_etaDijet_pileupSyst_300_1000_lab.txt",]
+for f in copy_pileup_syst:
+    shutil.copyfile(pileup_original, f)
+    print(f"cp {pileup_original} {f}")

@@ -151,14 +151,14 @@ void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
         Double_t xVal{0.}, yVal{0.};
         gr->GetPoint(i, xVal, yVal);
 
-        // std::cout << "i: " << i << " x: " << xVal << " y: " << yVal << std::endl;
+        //std::cout << "i: " << i << " x: " << xVal << " y: " << yVal << std::endl;
         if ( TMath::Abs( yVal ) < 0.0001 ) {
             h->SetBinContent(i+1, 0);
         }
         else {
-            h->SetBinContent(i+1, yVal);
+            h->SetBinContent(i+1, TMath::Abs(yVal) );
         }
-        std::cout << "i: " << i << " x: " << h->GetBinCenter(i+1) << " bin width: " << h->GetXaxis()->GetBinWidth(i+1) <<" uncrt [%]: " << h->GetBinContent(i+1) * 100 << std::endl;
+        //std::cout << "i: " << i << " x: " << h->GetBinCenter(i+1) << " bin width: " << h->GetXaxis()->GetBinWidth(i+1) <<" uncrt [%]: " << h->GetBinContent(i+1) * 100 << std::endl;
     } // for (Int_t i{0}; i<gr->GetN(); i++)
 
     //
@@ -178,7 +178,9 @@ void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
         for (Int_t i = 1; i<=h->GetNbinsX(); i++) {
             if ( h->GetBinContent(i) < maxVal) {
                 h->SetBinContent( i, maxVal );
-                gr->SetPointY(i-1, maxVal);
+                if ( gr->GetPointY(i-1) < 0 ) {
+                    gr->SetPointY(i-1, -1. * maxVal);
+                }
             }
         } // for (Int_t i = binLow; i<=binHi; i++)
     } // if ( name.Contains("jeuSyst") || name.Contains("pointingSyst") )
@@ -253,12 +255,120 @@ TGraphErrors *totalSyst(TGraph* jeuSyst = nullptr, TGraph *jerSyst = nullptr,
 }
 
 //________________
-void pPbFinalDijetEtaDistributions() {
+void writeCovPoints(TGraphErrors* grData, TGraph* grSyst, TH1* hSyst, Int_t systSource, Int_t iPt) {
 
-    // Base style
-    gStyle->SetOptStat(0);
-    gStyle->SetOptTitle(0);
-    gStyle->SetPalette(kBird);
+    //
+    // systSource: 
+    // 0 - Data
+    // 1 - JES
+    // 2 - JER
+    // 3 - Pointing
+    // 4 - Pileup
+    // 5 - Total syst
+    //
+
+    //
+    // iPt - corresponds to the pTave bin in the array 
+    //
+
+    // Dijet pT selection
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
+
+    std::vector<Int_t> ptDijetPtLow{};
+    std::vector<Int_t> ptDijetPtHi{};
+
+    for (UInt_t i{0}; i<ptDijetBinLow.size(); i++) {
+        ptDijetPtLow.push_back( ptLow + (ptDijetBinLow.at(i)-1) * ptStep );
+        ptDijetPtHi.push_back( ptLow + ptDijetBinHi.at(i) * ptStep );
+    }
+
+    // Define variables
+    Double_t xDataVal{0}, yDataVal{0}, xDataValErr{0}, yDataValErr{0}, ySystSign{1};
+
+
+    TGraphErrors *gr2write = new TGraphErrors;
+    Int_t iPoint{0};
+    Int_t nPoints2Skip{2};
+
+    TString systText;
+    if ( systSource == 0 ) {
+        systText = "data";
+    }
+    else if ( systSource == 1 ) {
+        systText = "jesSyst";
+    }
+    else if ( systSource == 2 ) {
+        systText = "jerSyst";
+    }
+    else if ( systSource == 3 ) {
+        systText = "pointingSyst";
+    }
+    else if ( systSource == 4 ) {
+        systText = "pileupSyst";
+    }
+    else if ( systSource == 5 ) {
+        systText = "totalSyst";
+    }
+    else {
+        systText = "unknownSyst";
+    }
+
+    // Create file to write points and errors to ASCII file
+    std::ofstream outFile( Form("freezeSyst/covMtx/pPb8160_dijet_%s_pt_%d_%d.txt", systText.Data(), 
+                                ptDijetPtLow.at( iPt ), ptDijetPtHi.at( iPt ) ) );
+
+    if ( outFile.is_open() ) { // Check if file is open
+
+        // Loop over points in TGraph
+        for (Int_t i=nPoints2Skip; i<(grData->GetN()-nPoints2Skip); i++) {
+
+            // Initialize values
+            xDataVal = {0}; yDataVal = {0}; xDataValErr = {0}; yDataValErr = {0}; ySystSign = {1};
+
+            // Retrieve point for the data
+            grData->GetPoint(i, xDataVal, yDataVal);
+
+            //
+            // Retrieve uncertainties
+            //
+            xDataValErr = grData->GetErrorX(i);
+            if ( systSource == 0 ) { // Data
+                yDataValErr = grData->GetErrorY(i);
+            }
+            else { // Other sources
+                xDataValErr /= 2;
+                yDataValErr = hSyst->GetBinContent( i+1 );
+                yDataValErr *= 0.01;
+                yDataValErr *= yDataVal;
+                // std::cout << "Data x: " << xDataVal << " data y: " << yDataVal << " systVal (%): " << hSyst->GetBinContent( i+1 ) << " systUncr: " << yDataValErr << std::endl;
+                if ( systSource < 5 ) { // For all sources, except total
+                    Double_t tmp = grSyst->GetPointY(i);
+                    //std::cout << "tmp: " << tmp << " yDataValErr: " << yDataValErr << std::endl; 
+                    yDataValErr = ( tmp >=0 ) ? yDataValErr : (-1.) * yDataValErr;
+                }  
+            }
+
+            gr2write->SetPoint(iPoint, xDataVal, yDataVal);
+            gr2write->SetPointError(iPoint, xDataValErr, yDataValErr);
+
+            outFile << xDataVal << " " << yDataVal << " " << xDataValErr << " " << yDataValErr << std::endl;
+
+            iPoint++;
+        } // for (Int_t i=0; i<grSyst->GetN(); i++)
+
+        outFile.close();
+    } // if ( outFile.is_open() )
+    else {
+        std::cerr << "[writeCovPoints] Unable to open file for writing" << std::endl;
+    }
+
+}
+
+//________________
+void createValues() {
 
     // Bool_t useDirSyst{kTRUE};
     Bool_t useDirSyst{kFALSE};
@@ -375,13 +485,13 @@ void pPbFinalDijetEtaDistributions() {
         // Retrieve data for the give pT average bin
         grDijetEta[i] = new TGraphErrors( Form("freezeSyst/%s_pPb8160_etaDijet_data_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
 
-        std::cout << "After graph" << std::endl;
-
         grDijetEta[i]->SetName( Form("grDijetEta_%d", i) );
         set1DStyle(grDijetEta[i]);
-        for (Int_t j{0}; j<grDijetEta[i]->GetN(); j++) {
-            std::cout << "Data j: " << j << " x: " << grDijetEta[i]->GetPointX(j) << " y: " << grDijetEta[i]->GetPointY(j) << " ey: " << grDijetEta[i]->GetErrorY(j) << std::endl;
-        }
+        // for (Int_t j{0}; j<grDijetEta[i]->GetN(); j++) {
+        //     std::cout << "Data j: " << j << " x: " << grDijetEta[i]->GetPointX(j) << " y: " << grDijetEta[i]->GetPointY(j) << " ey: " << grDijetEta[i]->GetErrorY(j) << std::endl;
+        // }
+
+        writeCovPoints(grDijetEta[i], nullptr, nullptr, 0, i);
 
         // Create histogram for total realtive systematic uncertainty
         hTotalSyst[i] = new TH1D( Form("hTotalSyst_%d",i), "Total relative systematic uncertainty;#eta^{dijet};Relative uncertainty [%]", 50, -5., 5. );
@@ -404,6 +514,8 @@ void pPbFinalDijetEtaDistributions() {
 
         // Retrieve JEU systematics
         if ( useJeuSyst ) {
+
+            std::cout << "JES systematics" << std::endl;
             grDijetJeuRelSyst[i] = new TGraph(Form("freezeSyst/%s_pPb8160_etaDijet_jeuSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetJeuRelSyst[i]->SetName( Form("grJeuSyst_%d", i) );
             hJeuSyst[i] = new TH1D(  Form("hJeuSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
@@ -412,10 +524,13 @@ void pPbFinalDijetEtaDistributions() {
             relSyst(grDijetJeuRelSyst[i], hJeuSyst[i], jeuType);
             hJeuSyst[i]->Scale(100.);
             hJeuSyst[i]->SetName( Form("hJeuSyst_%d",i) );
+
+            writeCovPoints(grDijetEta[i], grDijetJeuRelSyst[i], hJeuSyst[i], 1, i);
         }
 
         // Retrieve JER systematics
         if ( useJerSyst ) {
+            std::cout << "JER systematics" << std::endl;
             grDijetJerRelSyst[i] = new TGraph(Form("freezeSyst/MB_pPb8160_etaDijet_jerSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetJerRelSyst[i]->SetName( Form("grJerSyst_%d", i) );
             hJerSyst[i] = new TH1D(  Form("hJerSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
@@ -424,10 +539,13 @@ void pPbFinalDijetEtaDistributions() {
             relSyst(grDijetJerRelSyst[i], hJerSyst[i], jerType);
             hJerSyst[i]->Scale(100.);
             hJerSyst[i]->SetName( Form("hJerSyst_%d",i) );
+
+            writeCovPoints(grDijetEta[i], grDijetJerRelSyst[i], hJerSyst[i], 2, i);
         }
 
         // Retrieve pointing resolution systematics
         if ( usePointingSyst ) {
+            std::cout << "Pointing resolution systematics" << std::endl;
             grDijetPointingRelSyst[i] = new TGraph(Form("freezeSyst/MB_pPb8160_etaDijet_pointingSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetPointingRelSyst[i]->SetName( Form("grPointingSyst_%d", i) );
             hPointingSyst[i] = new TH1D(  Form("hPointingSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
@@ -436,10 +554,13 @@ void pPbFinalDijetEtaDistributions() {
             relSyst(grDijetPointingRelSyst[i], hPointingSyst[i], pointingType);
             hPointingSyst[i]->Scale(100.);
             hPointingSyst[i]->SetName( Form("hPointingSyst_%d",i) );
+
+            writeCovPoints(grDijetEta[i], grDijetPointingRelSyst[i], hPointingSyst[i], 3, i);
         }
 
         // Retrieve systematics due to pileup effect
         if ( usePileupSyst ) {
+            std::cout << "Pileup systematics" << std::endl;
             grDijetPileupRelSyst[i] = new TGraph(Form("freezeSyst/%s_pPb8160_etaDijet_pileupSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetPileupRelSyst[i]->SetName( Form("grPileupSyst_%d", i) );
             hPileupSyst[i] = new TH1D(  Form("hPileupSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
@@ -448,10 +569,15 @@ void pPbFinalDijetEtaDistributions() {
             relSyst(grDijetPileupRelSyst[i], hPileupSyst[i], pileupType);
             hPileupSyst[i]->Scale(100.);
             hPileupSyst[i]->SetName( Form("hPileupSyst_%d",i) );
+            writeCovPoints(grDijetEta[i], grDijetPileupRelSyst[i], hPileupSyst[i], 4, i);
         }
 
-        // Calculate total systematic uncertainty for the 
+        //
+        // Calculate total systematic uncertainty
+        //
         addSystSource(hTotalSyst[i], hJeuSyst[i], hJerSyst[i], hPointingSyst[i], hPileupSyst[i]);
+        writeCovPoints(grDijetEta[i], nullptr, hTotalSyst[i], 5, i);
+        
 
         //
         // Create graph with total systematic uncertainties
@@ -645,4 +771,46 @@ void pPbFinalDijetEtaDistributions() {
         grErrTotalSystUncrt[i]->Write();
     } // for (UInt_t i{0}; i<ptDijetBinLow.size(); i++)
     oFile->Close();
+}
+
+//________________
+void plotDistributions() {
+    // Base style
+    gStyle->SetOptStat(0);
+    gStyle->SetOptTitle(0);
+    gStyle->SetPalette(kBird);
+
+    Bool_t useJeuSyst{kTRUE};
+    // Bool_t useJeuSyst{kFALSE};
+
+    Bool_t useJerSyst{kTRUE};
+    // Bool_t useJerSyst{kFALSE};
+
+    Bool_t usePointingSyst{kTRUE};
+    // Bool_t usePointingSyst{kFALSE};
+
+    Bool_t usePileupSyst{kTRUE};
+    // Bool_t usePileupSyst{kFALSE};
+
+    // Dijet pT selection
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
+
+    std::vector<Int_t> ptDijetPtLow{};
+    std::vector<Int_t> ptDijetPtHi{};
+
+    for (UInt_t i{0}; i<ptDijetBinLow.size(); i++) {
+        ptDijetPtLow.push_back( ptLow + (ptDijetBinLow.at(i)-1) * ptStep );
+        ptDijetPtHi.push_back( ptLow + ptDijetBinHi.at(i) * ptStep );
+    }
+}
+
+//________________
+void pPbFinalDijetEtaDistributions() {
+
+    createValues();
+
+    plotDistributions();
 }

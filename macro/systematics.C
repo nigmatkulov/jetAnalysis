@@ -644,6 +644,7 @@ void jeuSystematics(TF1 *jeuUp, TF1 *jeuDown, TH1D *hDef, TGraph* syst) {
         Double_t xVal = hDef->GetBinCenter(i);
 
         Double_t yUp = jeuUp->Eval( xVal );
+        Double_t sign = ( (yUp - 1.) >= 0) ? 1 : -1;
         Double_t yDown = jeuDown->Eval( xVal );
         std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
         Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
@@ -655,7 +656,7 @@ void jeuSystematics(TF1 *jeuUp, TF1 *jeuDown, TH1D *hDef, TGraph* syst) {
 
         std::cout << Form("bin content: %f syst [rel. uncrt.]: %.3f syst [abs. uncrt.]: %.8f\n", hDef->GetBinContent(i), sysYrel * 100., sysYabs );
 
-        syst->SetPoint(i-1, xVal, sysYrel );
+        syst->SetPoint(i-1, xVal, sign * sysYrel );
     } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
 }
 
@@ -775,7 +776,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d", i), "[0]+[1]*(x-0.465)*(x-0.465)", -5., 5.);
         fitRatioUp[i]->SetParameters(0.986138, -0.0026037, 0.0119519);
         fitRatioUp[i]->SetParLimits(2, 0., 1e6);
-        fitRatioUp[i]->SetLineColor(upType);
+        fitRatioUp[i]->SetLineColor(kRed);
         fitRatioUp[i]->SetLineWidth(2);
         hEtaRatioUp[i]->Fit(Form("fitRatioUp_%d", i), "MRE0");
 
@@ -789,7 +790,7 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d", i), "[0]+[1]*(x-0.465)*(x-0.465)", -5., 5.);
         fitRatioDown[i]->SetParameters(1.01234, 0.00637344, -0.0104644);
         fitRatioDown[i]->SetParLimits(2, -1e6, 0);
-        fitRatioDown[i]->SetLineColor(downType);
+        fitRatioDown[i]->SetLineColor(kBlue);
         fitRatioDown[i]->SetLineWidth(2);
         hEtaRatioDown[i]->Fit(Form("fitRatioDown_%d", i), "MRE0");
 
@@ -866,6 +867,8 @@ void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *da
         hEtaRatioUp[i]->Draw();
         hEtaRatioDown[i]->Draw("same");
         if (drawFits) {
+            fitRatioUp[i]->SetLineColor(kRed);
+            fitRatioDown[i]->SetLineColor(kBlue);
             fitRatioUp[i]->Draw("same");
             fitRatioDown[i]->Draw("same");
         }
@@ -944,6 +947,7 @@ void jerSystematics(TF1 *jerUp, TF1 *jerDown, TH1D *hDef, TGraph* syst) {
         Double_t xVal = hDef->GetBinCenter(i);
 
         Double_t yUp = jerUp->Eval( xVal );
+        Double_t sign = ( (yUp - 1.) >= 0 ) ? 1: -1;
         Double_t yDown = jerDown->Eval( xVal );
         std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
         Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
@@ -954,7 +958,7 @@ void jerSystematics(TF1 *jerUp, TF1 *jerDown, TH1D *hDef, TGraph* syst) {
 
         std::cout << Form("bin content: %f syst [perc.]: %.3f syst [abs. val.]: %.8f\n", hDef->GetBinContent(i), sysYrel * 100., sysYabs );
 
-        syst->SetPoint(i-1, xVal, sysYrel );
+        syst->SetPoint(i-1, xVal, sign * sysYrel );
     } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
     std::cout << "JER up chi2/ndf: " << jerUp->GetChisquare() / jerUp->GetNDF() 
               << " JER down chi2/ndf: " << jerDown->GetChisquare() / jerDown->GetNDF()
@@ -1087,7 +1091,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         // fitRatioUp[i]->SetParameters(0., 0.0001);
         fitRatioUp[i]->SetParLimits(2, 0.000001, 1e6);
         fitRatioUp[i]->SetParameters(0.);
-        fitRatioUp[i]->SetLineColor(upType);
+        fitRatioUp[i]->SetLineColor(kRed);
         fitRatioUp[i]->SetLineWidth(2);
 
         fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x +[2]*x*x", -3.5, 3.5);
@@ -1095,7 +1099,7 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         // fitRatioDown[i]->SetParameters(0., 0.0001);
         fitRatioDown[i]->SetParLimits(2, 0.000001, 1e6);
         fitRatioDown[i]->SetParameters(0.);
-        fitRatioDown[i]->SetLineColor(downType);
+        fitRatioDown[i]->SetLineColor(kBlue);
         fitRatioDown[i]->SetLineWidth(2);
 
         // Perform fits
@@ -1152,6 +1156,8 @@ void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString d
         hEtaRatioUp[i]->Draw();
         hEtaRatioDown[i]->Draw("same");
         if (drawFits) {
+            fitRatioUp[i]->SetLineColor(kRed);
+            fitRatioDown[i]->SetLineColor(kBlue);
             fitRatioUp[i]->Draw("same");
             fitRatioDown[i]->Draw("same");
         }
@@ -1229,12 +1235,14 @@ void pointingSystematics(TF1 *fitf, TH1D *h, TGraph* syst) {
     for (Int_t i{1}; i<=h->GetNbinsX(); i++ ) {
         //if ( h->GetBinContent(i) == 0 ) continue;
         Double_t xVal = h->GetXaxis()->GetBinCenter(i);
-        Double_t yVal = TMath::Abs( fitf->Eval( xVal ) - 1.);
+        Double_t yVal = fitf->Eval( xVal );
+        Double_t sign = ( (yVal - 1.) >= 0 ) ? 1 : -1;
+        yVal = TMath::Abs( yVal - 1.);
         // if ( TMath::Abs( h->GetBinContent(i) ) < 0.0001 ) {
         //     yVal = 0.;
         // }
         std::cout << Form("bin content: %f x: %3.2f y [perc.]: %.3f ", h->GetBinContent(i), xVal, yVal * 100.) << std::endl;;
-        syst->SetPoint(i-1, xVal, yVal );
+        syst->SetPoint(i-1, xVal, sign * yVal );
     } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
 }
 
@@ -1498,6 +1506,7 @@ void pileupSystematics(TF1 *pileupUp, TF1 *pileupDown, TH1D *hDef, TGraph* syst)
         std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
         // Will use only gplus as a systematic variation
         Double_t sysYrel = yUp - 1.;
+        // Combination of gplus and vtx1
         // Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
         Double_t sysYabs = sysYrel * hDef->GetBinContent(i);
 
@@ -1625,7 +1634,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         // fitRatioUp[i]->SetParameters(0., 0.0001);
         // fitRatioUp[i]->SetParLimits(2, 0.000001, 1e6);
         fitRatioUp[i]->SetParameters(0.);
-        fitRatioUp[i]->SetLineColor(upType);
+        fitRatioUp[i]->SetLineColor(kRed);
         fitRatioUp[i]->SetLineWidth(2);
 
         fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x", -3.5, 3.5);
@@ -1633,7 +1642,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         // fitRatioDown[i]->SetParameters(0., 0.0001);
         // fitRatioDown[i]->SetParLimits(2, 0.000001, 1e6);
         fitRatioDown[i]->SetParameters(0.);
-        fitRatioDown[i]->SetLineColor(downType);
+        fitRatioDown[i]->SetLineColor(kBlue);
         fitRatioDown[i]->SetLineWidth(2);
 
         // Perform fits
@@ -1690,6 +1699,7 @@ void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString d
         hEtaRatioUp[i]->Draw();
         //hEtaRatioDown[i]->Draw("same");
         if (drawFits) {
+            fitRatioUp[i]->SetLineColor(kBlack);
             fitRatioUp[i]->Draw("same");
             //fitRatioDown[i]->Draw("same");
         }
@@ -2172,7 +2182,7 @@ void systematics() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    Bool_t drawFits = kFALSE;
+    Bool_t drawFits = kTRUE;
 
     Int_t trigVal{0}; // 0-MB, 1-Jet60, 2-Jet80, 3-Jet100
     TString trigName;
@@ -2209,12 +2219,12 @@ void systematics() {
     TString jeuDownFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_jeu_down_ak4.root", path2cernBox.Data(), trigName.Data()) );
     TString embeddingFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_ak4.root", path2cernBox.Data() ) );
 
-    // TString jerDefFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weight%s_ak4.root", path2cernBox.Data(), trigName.Data() ) );
-    // TString jerUpFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_weight%s_ak4.root", path2cernBox.Data(), trigName.Data() ) );
-    // TString jerDownFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDown_weight%s_ak4.root", path2cernBox.Data(), trigName.Data() ) );
-    TString jerDefFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root", path2cernBox.Data() ) );
-    TString jerUpFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_ak4.root", path2cernBox.Data() ) );
-    TString jerDownFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDown_ak4.root", path2cernBox.Data() ) );
+    TString jerDefFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weight%s_ak4.root", path2cernBox.Data(), trigName.Data() ) );
+    TString jerUpFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_weight%s_ak4.root", path2cernBox.Data(), trigName.Data() ) );
+    TString jerDownFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDown_weight%s_ak4.root", path2cernBox.Data(), trigName.Data() ) );
+    // TString jerDefFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root", path2cernBox.Data() ) );
+    // TString jerUpFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_ak4.root", path2cernBox.Data() ) );
+    // TString jerDownFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDown_ak4.root", path2cernBox.Data() ) );
 
     TString pileupGplusFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_gplus_ak4.root", path2cernBox.Data(), trigName.Data()) );
     TString pileupVtx1FileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_vtx1_ak4.root", path2cernBox.Data(), trigName.Data()) );
@@ -2273,11 +2283,11 @@ void systematics() {
 
     // plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, drawFits );
 
-    plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
+    // plotJER(jerDefFile, jerUpFile, jerDownFile, date, drawFits);
 
     // plotPointingResolution( jerDefFile, date, drawFits );
 
-    // plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
+    plotPileup( defaultFile, gplusFile, vtx1File, date, drawFits );
 
     // compareJetCollections( defaultFile, akcs4File, date );
 
