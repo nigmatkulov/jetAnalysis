@@ -25,7 +25,7 @@
 void setPadStyle() {
     gPad->SetTopMargin(0.1);
     gPad->SetBottomMargin(0.15);
-    gPad->SetRightMargin(0.1);
+    gPad->SetRightMargin(0.15);
     gPad->SetLeftMargin(0.15);
 }
 
@@ -458,9 +458,6 @@ void createValues() {
     TCanvas *cSyst = new TCanvas("cSyst", "cSyst", sizeX, sizeY);
     cSyst->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
 
-    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
-    cRat->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
-
     TString triggerName = "MB";
 
     // Loop over pT bins
@@ -483,7 +480,7 @@ void createValues() {
         // std::cout << "Going to open: " <<  Form("freezeSyst/%s_pPb8160_etaDijet_data_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)) << std::endl;
 
         // Retrieve data for the give pT average bin
-        grDijetEta[i] = new TGraphErrors( Form("freezeSyst/%s_pPb8160_etaDijet_data_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grDijetEta[i] = new TGraphErrors( Form("freezeSyst/systematics/%s_pPb8160_etaDijet_data_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
 
         grDijetEta[i]->SetName( Form("grDijetEta_%d", i) );
         set1DStyle(grDijetEta[i]);
@@ -502,7 +499,7 @@ void createValues() {
 
         // Retrieve p-going vs Pb-going systematics
         if ( useDirSyst ) {
-            grDijetDirRelSyst[i] = new TGraph(Form("freezeSyst/pPb8160_etaDijet_dirSyst_%d_%d_lab.txt", 40, 1000), "%lg %lg", " ");
+            grDijetDirRelSyst[i] = new TGraph(Form("freezeSyst/systematics/pPb8160_etaDijet_dirSyst_%d_%d_lab.txt", 40, 1000), "%lg %lg", " ");
             grDijetDirRelSyst[i]->SetName( Form("grDirSyst_%d", i) );
             hDirSyst[i] = new TH1D(  Form("hDirSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hDirSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -516,7 +513,7 @@ void createValues() {
         if ( useJeuSyst ) {
 
             std::cout << "JES systematics" << std::endl;
-            grDijetJeuRelSyst[i] = new TGraph(Form("freezeSyst/%s_pPb8160_etaDijet_jeuSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetJeuRelSyst[i] = new TGraph(Form("freezeSyst/systematics/%s_pPb8160_etaDijet_jeuSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetJeuRelSyst[i]->SetName( Form("grJeuSyst_%d", i) );
             hJeuSyst[i] = new TH1D(  Form("hJeuSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hJeuSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -531,7 +528,7 @@ void createValues() {
         // Retrieve JER systematics
         if ( useJerSyst ) {
             std::cout << "JER systematics" << std::endl;
-            grDijetJerRelSyst[i] = new TGraph(Form("freezeSyst/MB_pPb8160_etaDijet_jerSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetJerRelSyst[i] = new TGraph(Form("freezeSyst/systematics/MB_pPb8160_etaDijet_jerSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetJerRelSyst[i]->SetName( Form("grJerSyst_%d", i) );
             hJerSyst[i] = new TH1D(  Form("hJerSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hJerSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -546,7 +543,7 @@ void createValues() {
         // Retrieve pointing resolution systematics
         if ( usePointingSyst ) {
             std::cout << "Pointing resolution systematics" << std::endl;
-            grDijetPointingRelSyst[i] = new TGraph(Form("freezeSyst/MB_pPb8160_etaDijet_pointingSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetPointingRelSyst[i] = new TGraph(Form("freezeSyst/systematics/MB_pPb8160_etaDijet_pointingSyst_%d_%d_lab.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetPointingRelSyst[i]->SetName( Form("grPointingSyst_%d", i) );
             hPointingSyst[i] = new TH1D(  Form("hPointingSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hPointingSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -561,7 +558,7 @@ void createValues() {
         // Retrieve systematics due to pileup effect
         if ( usePileupSyst ) {
             std::cout << "Pileup systematics" << std::endl;
-            grDijetPileupRelSyst[i] = new TGraph(Form("freezeSyst/%s_pPb8160_etaDijet_pileupSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetPileupRelSyst[i] = new TGraph(Form("freezeSyst/systematics/%s_pPb8160_etaDijet_pileupSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetPileupRelSyst[i]->SetName( Form("grPileupSyst_%d", i) );
             hPileupSyst[i] = new TH1D(  Form("hPileupSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
             hPileupSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -640,32 +637,8 @@ void createValues() {
             leg->AddEntry(hPileupSyst[i], Form("Pileup"), "l");
         }
         leg->Draw();
-        canv->SaveAs( Form("freezeSyst/pPb8160_syst_pt_%d_%d_lab.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
-
-        //
-        // Plot final dijet eta distribution
-        //
-        canv->cd();
-        setPadStyle();
-        setMultiGraphStyle(mgDijetEta[i]);
-        mgDijetEta[i]->Draw("AP");
-        mgDijetEta[i]->GetYaxis()->SetRangeUser(0.005, 0.15);
-        mgDijetEta[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{ave} GeV<%d", 
-                       ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
-        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading}>50 GeV");
-        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading}>40 GeV");
-        t.DrawLatexNDC(0.2, 0.59, "|#eta|<3");
-        t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet}>#frac{5#pi}{6}");
-        plotCMSHeader();
-
-        leg = new TLegend(0.7, 0.7, 0.85, 0.85);
-        leg->SetTextSize(0.05);
-        leg->SetLineWidth(0);
-        leg->AddEntry(grDijetEta[i], "Data", "pl");
-        leg->AddEntry(grErrTotalSystUncrt[i], Form("Syst. ucrt."), "f");
-        leg->Draw();
-        canv->SaveAs( Form("freezeSyst/pPb8160_dijet_pt_%d_%d_lab.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        canv->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_%d_%d_lab.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        canv->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_%d_%d_lab.png", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         
         //
         // Plot systematic uncertainties for all pT bins
@@ -716,36 +689,9 @@ void createValues() {
 
         leg->Draw();
 
-        //
-        // Plot all final plots
-        //
-        cRat->cd(i+1);
-        setPadStyle();
-        mgDijetEta[i]->Draw("AP");
-        mgDijetEta[i]->GetYaxis()->SetRangeUser(0.005, 0.15);
-        mgDijetEta[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        // gPad->SetLogy(1);
-        t.DrawLatexNDC(0.2, 0.83, Form("%d<p_{T}^{ave} GeV<%d", 
-                       ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
-        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading}>50 GeV");
-        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading}>40 GeV");
-        t.DrawLatexNDC(0.2, 0.59, "|#eta|<3");
-        t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet}>#frac{5#pi}{6}");
-        t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
-        t.SetTextSize(0.04);
-        t.DrawLatexNDC(0.57, 0.93, "pPb 174.56 nb^{-1} (8.16 TeV)");
-        t.SetTextSize(0.05);
-
-        leg = new TLegend(0.7, 0.7, 0.85, 0.85);
-        leg->SetTextSize(0.05);
-        leg->SetLineWidth(0);
-        leg->AddEntry(grDijetEta[i], "Data", "pl");
-        leg->AddEntry(grErrTotalSystUncrt[i], Form("Syst. ucrt."), "f");
-        leg->Draw();
-
     } // for (UInt_t i{0}; i<ptDijetBinLow.size(); i++)
-    cSyst->SaveAs( Form("freezeSyst/pPb8160_syst_pt_all_lab.pdf") );
-    cRat->SaveAs( Form("freezeSyst/pPb8160_dijetEta_pt_all_lab.pdf") );
+    cSyst->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_all_lab.pdf") );
+    cSyst->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_all_lab.png") );
 
     TFile *oFile = new TFile("freezeSyst/oSystematics.root", "recreate");
     for (UInt_t i{0}; i<ptDijetBinLow.size(); i++) {
@@ -774,23 +720,7 @@ void createValues() {
 }
 
 //________________
-void plotDistributions() {
-    // Base style
-    gStyle->SetOptStat(0);
-    gStyle->SetOptTitle(0);
-    gStyle->SetPalette(kBird);
-
-    Bool_t useJeuSyst{kTRUE};
-    // Bool_t useJeuSyst{kFALSE};
-
-    Bool_t useJerSyst{kTRUE};
-    // Bool_t useJerSyst{kFALSE};
-
-    Bool_t usePointingSyst{kTRUE};
-    // Bool_t usePointingSyst{kFALSE};
-
-    Bool_t usePileupSyst{kTRUE};
-    // Bool_t usePileupSyst{kFALSE};
+void plotFinalDistributions() {
 
     // Dijet pT selection
     Int_t ptStep {5};
@@ -805,12 +735,288 @@ void plotDistributions() {
         ptDijetPtLow.push_back( ptLow + (ptDijetBinLow.at(i)-1) * ptStep );
         ptDijetPtHi.push_back( ptLow + ptDijetBinHi.at(i) * ptStep );
     }
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    TLegend *leg;
+
+    // Create graphs
+    TGraphErrors *grDijetEta[ ptDijetPtLow.size() ];
+    TGraphErrors *grErrTotalSystUncrt[ ptDijetPtLow.size() ];
+    TMultiGraph *mgDijetEta[ ptDijetPtLow.size() ];
+
+    // Create canvases
+    Int_t sizeX = 1000;
+    Int_t sizeY = 1200;
+    Int_t ptBins = ptDijetPtLow.size();
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    TCanvas *cTot = new TCanvas("cTot", "cTot", sizeX, sizeY);
+    cTot->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
+
+    // Loop over pT bins
+    for (UInt_t i{0}; i<ptDijetPtLow.size(); i++) {
+
+        // Retrieve data for the given pT average bin
+        grDijetEta[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_data_pt_%d_%d.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grDijetEta[i]->SetName( Form("grDijetEta_%d", i) );
+        set1DStyle(grDijetEta[i]);
+
+        // Retrieve total systematic uncertainty for the given pT average bin
+        grErrTotalSystUncrt[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_totalSyst_pt_%d_%d.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grErrTotalSystUncrt[i]->SetName( Form("grDijetEta_%d", i) );
+        set1DStyle(grErrTotalSystUncrt[i]);
+        grErrTotalSystUncrt[i]->SetFillColor(29);
+        grErrTotalSystUncrt[i]->SetFillStyle(1001); // Solid fill
+
+        // Create multigraph with the data and systematic uncertainty
+        mgDijetEta[i] = new TMultiGraph();
+        mgDijetEta[i]->SetName( Form("mgDijetEta_%d",i) );
+        mgDijetEta[i]->Add(grErrTotalSystUncrt[i], "A5");
+        mgDijetEta[i]->Add(grDijetEta[i], "AP");
+
+        //
+        // Plot individual pTave final dijet eta distribution
+        //
+        canv->cd();
+        setPadStyle();
+        setMultiGraphStyle(mgDijetEta[i]);
+        mgDijetEta[i]->Draw("AP");
+        mgDijetEta[i]->GetYaxis()->SetRangeUser(0.001, 0.15);
+        //mgDijetEta[i]->GetXaxis()->SetRangeUser(-3., 3.);
+        t.DrawLatexNDC(0.2, 0.83, Form("%d < p_{T}^{ave} GeV < %d", 
+                       ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.59, "|#eta| < 3");
+        t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
+        plotCMSHeader();
+
+        leg = new TLegend(0.7, 0.7, 0.85, 0.85);
+        leg->SetTextSize(0.05);
+        leg->SetLineWidth(0);
+        leg->AddEntry(grDijetEta[i], "Data", "pl");
+        leg->AddEntry(grErrTotalSystUncrt[i], Form("Syst. ucrt."), "f");
+        leg->Draw();
+        canv->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijet_pt_%d_%d_lab.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        canv->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijet_pt_%d_%d_lab.png", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+
+        //
+        // Plot all final plots
+        //
+        cTot->cd(i+1);
+        setPadStyle();
+        mgDijetEta[i]->Draw("AP");
+        mgDijetEta[i]->GetYaxis()->SetRangeUser(0.005, 0.15);
+        mgDijetEta[i]->GetXaxis()->SetRangeUser(-3., 3.);
+        // gPad->SetLogy(1);
+        t.DrawLatexNDC(0.2, 0.83, Form("%d < p_{T}^{ave} GeV < %d", 
+                       ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.59, "|#eta| < 3");
+        t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
+
+        plotCMSHeader();
+
+        leg = new TLegend(0.7, 0.7, 0.85, 0.85);
+        leg->SetTextSize(0.05);
+        leg->SetLineWidth(0);
+        leg->AddEntry(grDijetEta[i], "Data", "pl");
+        leg->AddEntry(grErrTotalSystUncrt[i], Form("Syst. ucrt."), "f");
+        leg->Draw();
+    } // for (UInt_t i{0}; i<ptDijetPtLow.size(); i++)
+
+    cTot->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijetEta_pt_all_lab.pdf") );
+    cTot->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijetEta_pt_all_lab.png") );
+}
+
+//________________
+void calculateCovMatrix() {
+
+    // Dijet pT selection
+    Int_t ptStep {5};
+    Int_t ptLow {30};
+    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
+
+    std::vector<Int_t> ptDijetPtLow{};
+    std::vector<Int_t> ptDijetPtHi{};
+
+    for (UInt_t i{0}; i<ptDijetBinLow.size(); i++) {
+        ptDijetPtLow.push_back( ptLow + (ptDijetBinLow.at(i)-1) * ptStep );
+        ptDijetPtHi.push_back( ptLow + ptDijetBinHi.at(i) * ptStep );
+    }
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    const Int_t nPtBins = ptDijetPtLow.size();
+
+    // Create graphs
+    TGraphErrors *grData[ ptDijetPtLow.size() ];
+    TGraphErrors *grJES[ ptDijetPtLow.size() ];
+    TGraphErrors *grJER[ ptDijetPtLow.size() ];
+    TGraphErrors *grPileup[ ptDijetPtLow.size() ];
+    TGraphErrors *grPointing[ ptDijetPtLow.size() ];
+
+    // Loop over pT bins to read 
+    for (UInt_t i{0}; i<ptDijetPtLow.size(); i++) {
+        grData[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_data_pt_%d_%d.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grData[i]->SetName( Form("grData_%d", i) );
+        grJES[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_jesSyst_pt_%d_%d.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grJES[i]->SetName( Form("grJES_%d", i) );
+        grJER[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_jerSyst_pt_%d_%d.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grJER[i]->SetName( Form("grJER_%d", i) );
+        grPileup[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_pileupSyst_pt_%d_%d.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grPileup[i]->SetName( Form("grPileup_%d", i) );
+        grPointing[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_pointingSyst_pt_%d_%d.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grPointing[i]->SetName( Form("grPointing_%d", i) );
+    } // for (UInt_t i{0}; i<ptDijetPtLow.size(); i++)
+
+    const Int_t nPoints = grJES[0]->GetN();
+
+    TH2D *hCovMtxData = new TH2D("hCovMtxData", "Covariance matrix for data;N_{p_{T}^{ave}} x N_{#eta^{dijet}};N_{p_{T}^{ave}} x N_{#eta^{dijet}}", 
+                                nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1,
+                                nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1);
+    hCovMtxData->Sumw2();
+    TH2D *hCovMtxJES = new TH2D("hCovMtxJES", "Covariance matrix for the JES source;N_{p_{T}^{ave}} x N_{#eta^{dijet}};N_{p_{T}^{ave}} x N_{#eta^{dijet}}", 
+                                nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1,
+                                nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1);
+    hCovMtxJES->Sumw2();
+    TH2D *hCovMtxJER = new TH2D("hCovMtxJER", "Covariance matrix for the JER source;N_{p_{T}^{ave}} x N_{#eta^{dijet}};N_{p_{T}^{ave}} x N_{#eta^{dijet}}", 
+                                nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1,
+                                nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1);
+    hCovMtxJER->Sumw2();
+    TH2D *hCovMtxPileup = new TH2D("hCovMtxPileup", "Covariance matrix for the pileup source;N_{p_{T}^{ave}} x N_{#eta^{dijet}};N_{p_{T}^{ave}} x N_{#eta^{dijet}}", 
+                                   nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1,
+                                   nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1);
+    hCovMtxPileup->Sumw2();
+    TH2D *hCovMtxPointing = new TH2D("hCovMtxPointing", "Covariance matrix for the pointing resolution source;N_{p_{T}^{ave}} x N_{#eta^{dijet}};N_{p_{T}^{ave}} x N_{#eta^{dijet}}", 
+                                   nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1,
+                                   nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1);
+    hCovMtxPointing->Sumw2();
+    TH2D *hCovMtxFull = new TH2D("hCovMtxFull", "Full covariance matrix;N_{p_{T}^{ave}} x N_{#eta^{dijet}};N_{p_{T}^{ave}} x N_{#eta^{dijet}}", 
+                                 nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1,
+                                 nPoints * ptDijetPtLow.size() + 2, -1, nPoints * ptDijetPtLow.size() + 1);
+    hCovMtxFull->Sumw2();
+
+    Double_t value{0.};
+    // First loop over pT bins to construct covariance matrix
+    for (UInt_t iPt{0}; iPt<ptDijetPtLow.size(); iPt++) {
+        for (Int_t i{0}; i<nPoints; i++) {
+            Double_t iErrJES = grJES[iPt]->GetErrorY(i);
+            Double_t iErrJER = grJER[iPt]->GetErrorY(i);
+            Double_t iErrPileup = grPileup[iPt]->GetErrorY(i);
+            Double_t iErrPointing = grPointing[iPt]->GetErrorY(i);
+
+            // Second loop over pT bins
+            for (Int_t jPt{0}; jPt<ptDijetPtLow.size(); jPt++) {
+                for (Int_t j{0}; j<nPoints; j++) {
+                    Double_t jErrJES = grJES[jPt]->GetErrorY(j);
+                    Double_t jErrJER = grJER[jPt]->GetErrorY(j);
+                    Double_t jErrPileup = grPileup[jPt]->GetErrorY(j);
+                    Double_t jErrPointing = grPointing[jPt]->GetErrorY(j);
+                    hCovMtxJES->Fill(iPt * nPoints + i, jPt * nPoints + j, iErrJES * jErrJES );
+                    hCovMtxJER->Fill(iPt * nPoints + i, jPt * nPoints + j, iErrJER * jErrJER );
+                    hCovMtxPileup->Fill(iPt * nPoints + i, jPt * nPoints + j, iErrPileup * jErrPileup );
+                    hCovMtxPointing->Fill(iPt * nPoints + i, jPt * nPoints + j, iErrPointing * jErrPointing );
+
+                    if ( iPt == jPt && i == j ) {
+                        Double_t iErrData = grData[iPt]->GetErrorY(i);
+                        hCovMtxData->Fill(iPt * nPoints + i, jPt * nPoints + j, iErrData * iErrData );
+                    }
+                } // for (Int_t j{0}; j<nPoints; j++)
+            } // for (Int_t jPt{0}; jPt<ptDijetPtLow.size(); jPt++)
+        } // for (Int_t i{0}; i<nPoints; i++)
+    } // for (UInt_t iPt{0}; iPt<ptDijetPtLow.size(); iPt++)
+
+    hCovMtxFull->Add(hCovMtxJES);
+    hCovMtxFull->Add(hCovMtxJER);
+    hCovMtxFull->Add(hCovMtxPileup);
+    hCovMtxFull->Add(hCovMtxPointing);
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+    setPadStyle();
+    hCovMtxJES->Draw("colz");
+    t.DrawLatexNDC(0.25, 0.93, "Covariance matrix (JES)" );
+    //hCovMtxJES->GetZaxis()->SetRangeUser(-0.001, 0.001);
+    c->SaveAs( Form("freezeSyst/covMtx/pPb8160_dijet_cov_jes_lab.pdf") );
+
+    c->cd();
+    setPadStyle();
+    hCovMtxJER->Draw("colz");
+    t.DrawLatexNDC(0.25, 0.93, "Covariance matrix (JER)" );
+    //hCovMtxJER->GetZaxis()->SetRangeUser(-0.001, 0.001);
+    c->SaveAs( Form("freezeSyst/covMtx/pPb8160_dijet_cov_jer_lab.pdf") );
+
+    c->cd();
+    setPadStyle();
+    hCovMtxPileup->Draw("colz");
+    t.DrawLatexNDC(0.25, 0.93, "Covariance matrix (pileup)" );
+    //hCovMtxPileup->GetZaxis()->SetRangeUser(-0.001, 0.001);
+    c->SaveAs( Form("freezeSyst/covMtx/pPb8160_dijet_cov_pileup_lab.pdf") );
+
+    c->cd();
+    setPadStyle();
+    hCovMtxPointing->Draw("colz");
+    t.DrawLatexNDC(0.25, 0.93, "Covariance matrix (pointing resolution)" );
+    //hCovMtxPointing->GetZaxis()->SetRangeUser(-0.001, 0.001);
+    c->SaveAs( Form("freezeSyst/covMtx/pPb8160_dijet_cov_pointing_lab.pdf") );
+
+    c->cd();
+    setPadStyle();
+    hCovMtxFull->Draw("colz");
+    t.DrawLatexNDC(0.25, 0.93, "Covariance matrix" );
+    //hCovMtxFull->GetZaxis()->SetRangeUser(-0.001, 0.001);    
+    c->SaveAs( Form("freezeSyst/covMtx/pPb8160_dijet_cov_full_lab.pdf") );
+
+    c->cd();
+    setPadStyle();
+    hCovMtxData->Draw("colz");
+    t.DrawLatexNDC(0.25, 0.93, "Covariance matrix (data)" );
+    //hCovMtxData->GetZaxis()->SetRangeUser(-0.001, 0.001);
+    c->SaveAs( Form("freezeSyst/covMtx/pPb8160_dijet_cov_diag_lab.pdf") );
+
+    //
+    // Build correlation matrix
+    //
+    TH2D *hCorrMtx = dynamic_cast<TH2D*>( hCovMtxFull->Clone() );
+    hCorrMtx->SetNameTitle("hCorrMtx", "Correlation matrix");
+
+    hCorrMtx->Add(hCovMtxData); // ?
+
+    for (Int_t i=1; i<=hCovMtxFull->GetNbinsX(); i++) {
+        for (Int_t j=1; j<=hCovMtxFull->GetNbinsY(); j++) {
+            Double_t covVal = hCorrMtx->GetBinContent(i, j);
+            Double_t iDiag = hCorrMtx->GetBinContent(i, i);
+            Double_t jDiag = hCorrMtx->GetBinContent(j, j);
+            hCorrMtx->SetBinContent(i, j, covVal / TMath::Sqrt(iDiag * jDiag) );
+        } // for (Int_t j=1; j<=hCovMtxData->GetNbinsX(); j++)
+    } // for (Int_t i=1; i<=hCovMtxData->GetNbinsX(); i++)
+
+    c->cd();
+    setPadStyle();
+    hCorrMtx->Draw("colz");
+    hCorrMtx->GetZaxis()->SetRangeUser(-1., 1.);
+    t.DrawLatexNDC(0.25, 0.93, "Correlation matrix" );
+    c->SaveAs( Form("freezeSyst/covMtx/pPb8160_dijet_corr_lab.pdf") );
+
 }
 
 //________________
 void pPbFinalDijetEtaDistributions() {
 
+    // Base style
+    gStyle->SetOptStat(0);
+    gStyle->SetOptTitle(0);
+    gStyle->SetPalette(kBird);
+
     createValues();
 
-    plotDistributions();
+    calculateCovMatrix();
+
+    plotFinalDistributions();
 }
