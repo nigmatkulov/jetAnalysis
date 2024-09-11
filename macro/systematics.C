@@ -3532,10 +3532,54 @@ void plotJES(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vec
     plotUp2DownComparison(hMBEtaBFRatio, hJeuMBUpEtaBFRatio, hJeuMBDownEtaBFRatio, &hMBJeuUpToDefEtaBFRatio, &hMBJeuDownToDefEtaBFRatio, 0, 4, date, frame);
     plotUp2DownComparison(hJet60EtaBFRatio, hJeuJet60UpEtaBFRatio, hJeuJet60DownEtaBFRatio, &hJet60JeuUpToDefEtaBFRatio, &hJet60JeuDownToDefEtaBFRatio, 0, 4, date, frame);
     plotUp2DownComparison(hJet80EtaBFRatio, hJeuJet80UpEtaBFRatio, hJeuJet80DownEtaBFRatio, &hJet80JeuUpToDefEtaBFRatio, &hJet80JeuDownToDefEtaBFRatio, 0, 4, date, frame);
-    plotUp2DownComparison(hJet100EtaBFRatio, hJeuJet100UpEtaBFRatio, hJeuJet100DownEtaBFRatio, &hJet100JeuUpToDefEtaBFRatio, &hJet100JeuDownToDefEtaBFRatio, 0, 4, date, frame);
-    
+    plotUp2DownComparison(hJet100EtaBFRatio, hJeuJet100UpEtaBFRatio, hJeuJet100DownEtaBFRatio, &hJet100JeuUpToDefEtaBFRatio, &hJet100JeuDownToDefEtaBFRatio, 0, 4, date, frame);   
 }
 
+//________________
+void plotJER(std::vector< std::vector<TH1D*> > hEmbeddingEtaDist, std::vector< std::vector<TH1D*> > hJerUpEtaDist, 
+             std::vector< std::vector<TH1D*> > hJerDownEtaDist, TString date, Bool_t isCM = kFALSE) {
+
+    TString frame;
+    frame = ( isCM ) ? "cms" : "lab";
+
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    // Data
+
+    std::vector< TH1D* > hEmbeddingEta = hEmbeddingEtaDist.at(0); std::vector< TH1D* > hEmbeddingEtaForward = hEmbeddingEtaDist.at(1); 
+    std::vector< TH1D* > hEmbeddingEtaBackward = hEmbeddingEtaDist.at(2); std::vector< TH1D* > hEmbeddingEtaFBRatio = hEmbeddingEtaDist.at(3);
+    std::vector< TH1D* > hEmbeddingEtaBFRatio = hEmbeddingEtaDist.at(4);
+
+    std::vector< TH1D* > hJerUpEta = hJerUpEtaDist.at(0); std::vector< TH1D* > hJerUpEtaForward = hJerUpEtaDist.at(1);
+    std::vector< TH1D* > hJerUpEtaBackward = hJerUpEtaDist.at(2); std::vector< TH1D* > hJerUpEtaFBRatio = hJerUpEtaDist.at(3);
+    std::vector< TH1D* > hJerUpEtaBFRatio = hJerUpEtaDist.at(4);
+
+    std::vector< TH1D* > hJerDownEta = hJerDownEtaDist.at(0); std::vector< TH1D* > hJerDownEtaForward = hJerDownEtaDist.at(1);
+    std::vector< TH1D* > hJerDownEtaBackward = hJerDownEtaDist.at(2); std::vector< TH1D* > hJerDownEtaFBRatio = hJerDownEtaDist.at(3);
+    std::vector< TH1D* > hJerDownEtaBFRatio = hJerDownEtaDist.at(4);
+
+    std::vector< TH1D* > hEmbeddingJerUpToDefEta;
+    std::vector< TH1D* > hEmbeddingJerDownToDefEta;
+    std::vector< TH1D* > hEmbeddingJerUpToDefEtaForward;
+    std::vector< TH1D* > hEmbeddingJerDownToDefEtaForward;
+    std::vector< TH1D* > hEmbeddingJerUpToDefEtaBackward;
+    std::vector< TH1D* > hEmbeddingJerDownToDefEtaBackward;
+    std::vector< TH1D* > hEmbeddingJerUpToDefEtaFBRatio;
+    std::vector< TH1D* > hEmbeddingJerDownToDefEtaFBRatio;
+    std::vector< TH1D* > hEmbeddingJerUpToDefEtaBFRatio;
+    std::vector< TH1D* > hEmbeddingJerDownToDefEtaBFRatio;
+
+    plotUp2DownComparison(hEmbeddingEta, hJerUpEta, hJerDownEta, &hEmbeddingJerUpToDefEta, &hEmbeddingJerDownToDefEta, 0, 2, date, frame);
+    plotUp2DownComparison(hEmbeddingEtaForward, hJerUpEtaForward, hJerDownEtaForward, &hEmbeddingJerUpToDefEtaForward, &hEmbeddingJerDownToDefEtaForward, 0, 2, date, frame);
+    plotUp2DownComparison(hEmbeddingEtaBackward, hJerUpEtaBackward, hJerDownEtaBackward, &hEmbeddingJerUpToDefEtaBackward, &hEmbeddingJerDownToDefEtaBackward, 0, 2, date, frame);
+    plotUp2DownComparison(hEmbeddingEtaFBRatio, hJerUpEtaFBRatio, hJerDownEtaFBRatio, &hEmbeddingJerUpToDefEtaFBRatio, &hEmbeddingJerDownToDefEtaFBRatio, 0, 2, date, frame);
+    plotUp2DownComparison(hEmbeddingEtaBFRatio, hJerUpEtaBFRatio, hJerDownEtaBFRatio, &hEmbeddingJerUpToDefEtaBFRatio, &hEmbeddingJerDownToDefEtaBFRatio, 0, 2, date, frame);
+
+}
 //________________
 void writeDistributions2RootFile(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vector<TH1D*> > hMBPbGoingEtaDist, 
                                  std::vector< std::vector<TH1D*> > hMBPGoingEtaDist, std::vector< std::vector<TH1D*> > hJet60EtaDist, 
@@ -4083,12 +4127,14 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     oHistoName = returnTrigName(jet100Vtx1File) + "_pPb8160_etaDijet_vtx1";
     std::vector< std::vector<TH1D*> > hJet100Vtx1EtaDist = createDijetEtaHistograms(jet100Vtx1File, histoName.Data(), oHistoName.Data(), isCM, downType);
 
-    plotJES(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist,
-            hJeuMBUpEtaDist, hJeuMBDownEtaDist,
-            hJeuJet60UpEtaDist, hJeuJet60DownEtaDist, 
-            hJeuJet80UpEtaDist, hJeuJet80DownEtaDist,
-            hJeuJet100UpEtaDist, hJeuJet100DownEtaDist, 
-            date, isCM);
+    // plotJES(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist,
+    //         hJeuMBUpEtaDist, hJeuMBDownEtaDist,
+    //         hJeuJet60UpEtaDist, hJeuJet60DownEtaDist, 
+    //         hJeuJet80UpEtaDist, hJeuJet80DownEtaDist,
+    //         hJeuJet100UpEtaDist, hJeuJet100DownEtaDist, 
+    //         date, isCM);
+
+    plotJER(hEmbeddingGenEtaDist, hJerUpEtaDist, hJerDownEtaDist, date, isCM);
 
     // Write default distributions to output file
     writeDistributions2RootFile(hMBEtaDist, hMBPbGoingEtaDist, hMBPGoingEtaDist, 
