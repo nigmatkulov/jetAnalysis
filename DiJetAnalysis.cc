@@ -1312,7 +1312,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             std::cout << Form("Dijet status %s\n", ((fIsDijetJetIdFound) ? "[GOOD]" : "[BAD]") );  
         }
 
-        // Analyze trkMax dijets
+        // Analyze jetId dijets
         if ( fIsDijetJetIdFound ) {
 
             if ( fVerbose ) {

@@ -37,6 +37,9 @@
 # build directory
 build/*
 
+# histograms
+macro/202*
+
 # processing
 processing/input/*
 processing/output/*

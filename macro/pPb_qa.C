@@ -67,7 +67,7 @@ void setPadStyle() {
 //________________
 void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
-    Double_t markerSize = 1.1;
+    Double_t markerSize = 0.9;
     Int_t lineWidth = 2;
     Int_t color = 2;
     if (type == 0) {
@@ -993,7 +993,7 @@ void plotJetIdHistos(TFile *inFile, TString date) {
 
 //________________
 // jetBranch: 0 - akCs4PF, 1 - ak4PF
-void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
+void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 1) {
 
     TString inputFileName( inFile->GetName() );
     TString direction;
@@ -1226,7 +1226,7 @@ void plotJESandJER(TFile *inFile, TString date, Int_t jetBranch = 0) {
 void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
                             TFile *jet80File, TFile *jet100File, TString date) {
 
-    bool useUncrt{true};
+    bool useUncrt{false};
     TFile *uncrtFile;
     if ( useUncrt ) {
         uncrtFile = TFile::Open("freezeSyst/oSystematics.root");
@@ -1249,8 +1249,8 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
     Int_t ptStep {5};
     Int_t ptLow {30};
     // Bin numbers
-    std::vector<Int_t> ptDijetLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
-    std::vector<Int_t> ptDijetHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194};
+    std::vector<Int_t> ptDijetLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
+    std::vector<Int_t> ptDijetHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
     // pTave values
     std::vector<Int_t> ptDijetPtValLow{};
     std::vector<Int_t> ptDijetPtValHi{};
@@ -1342,45 +1342,48 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
     Int_t ptBins = ptDijetLow.size();
 
+    Int_t nPads{4};
+
     TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
-    cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
-    cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cRatData2Mc = new TCanvas("cRatData2Mc", "cRatData2Mc", sizeX, sizeY);
-    cRatData2Mc->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cRatData2Mc->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cRatNeighbor = new TCanvas("cRatNeighbor", "cRatNeighbor", sizeX, sizeY);
-    cRatNeighbor->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cRatNeighbor->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cEtaClosure = new TCanvas("cEtaClosure", "cEtaClosure", sizeX, sizeY);
-    cEtaClosure->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cEtaClosure->Divide( nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cEtaClosureDR = new TCanvas("cEtaClosureDR", "cEtaClosureDR", sizeX, sizeY);
-    cEtaClosureDR->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cEtaClosureDR->Divide( nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cPtClosure = new TCanvas("cPtClosure", "cPtClosure", sizeX, sizeY);
-    cPtClosure->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cPtClosure->Divide( nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cPtClosureDR = new TCanvas("cPtClosureDR", "cPtClosureDR", sizeX, sizeY);
-    cPtClosureDR->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cPtClosureDR->Divide( nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cPtEtaClosure = new TCanvas("cPtEtaClosure", "cPtEtaClosure", sizeX, sizeY);
-    cPtEtaClosure->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cPtEtaClosure->Divide( nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     TCanvas *cPtEtaClosureDR = new TCanvas("cPtEtaClosureDR", "cPtEtaClosureDR", sizeX, sizeY);
-    cPtEtaClosureDR->Divide( 5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
+    cPtEtaClosureDR->Divide( nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
     // Loop over pTave bins
     for ( Int_t iPt{0}; iPt<ptDijetLow.size(); iPt++ ) {
+
+        std::cout << "iPt: " << iPt << std::endl;
 
         // Retrieve gen distribution
         hGenEta[iPt] = dynamic_cast<TH1D*>( hGenDijetPtEtaDphi->ProjectionY( Form("hGenEta_%d", iPt), ptDijetLow.at(iPt), ptDijetHi.at(iPt) ) );
         hGenEta[iPt]->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
         rescaleEta( hGenEta[iPt] );
         set1DStyle( hGenEta[iPt], genType );
-
 
         // Retrieve reco and ref eta distributions for the given reco pTave bin
         hReco2RefDijet->GetAxis(0)->SetRange( ptDijetLow.at(iPt), ptDijetHi.at(iPt) );
@@ -1575,11 +1578,19 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         // Plot ratios of reco and ref to gen
         canv->cd();
         setPadStyle();
-        hRelSystUncrt[iPt]->Draw("E2");
-        hReco2GenRatio[iPt]->Draw("same");
+        if ( useUncrt ) {
+            hRelSystUncrt[iPt]->Draw("E2");
+            hReco2GenRatio[iPt]->Draw("same");
+            hRelSystUncrt[iPt]->GetYaxis()->SetRangeUser(0.8, 1.5);
+            hRelSystUncrt[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        }
+        else {
+            hReco2GenRatio[iPt]->Draw();
+            hReco2GenRatio[iPt]->GetYaxis()->SetRangeUser(0.8, 1.5);
+            hReco2GenRatio[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        }
         hRef2GenRatio[iPt]->Draw("same");
-        hRelSystUncrt[iPt]->GetYaxis()->SetRangeUser(0.8, 1.5);
-        hRelSystUncrt[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
@@ -1601,12 +1612,20 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         // Plot ratios of reco data to reco embedding
         canv->cd();
         setPadStyle();
-        hRelSystUncrt[iPt]->Draw("E2");
-        hRecoData2MCRatio[iPt]->Draw("same");
+        if (useUncrt) {
+            hRelSystUncrt[iPt]->Draw("E2");
+            hRecoData2MCRatio[iPt]->Draw("same");
+            hRelSystUncrt[iPt]->GetYaxis()->SetRangeUser(0.7, 1.5);
+            hRelSystUncrt[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        }
+        else {
+            hRecoData2MCRatio[iPt]->Draw();
+            hRecoData2MCRatio[iPt]->GetYaxis()->SetRangeUser(0.7, 1.5);
+            hRecoData2MCRatio[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        }
+        
         hReco2GenRatio[iPt]->Draw("same");
         hRef2GenRatio[iPt]->Draw("same");
-        hRelSystUncrt[iPt]->GetYaxis()->SetRangeUser(0.7, 1.5);
-        hRelSystUncrt[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
         hRecoData2MCRatio[iPt]->GetYaxis()->SetTitle("Data / Embed");
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
@@ -1617,7 +1636,7 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         leg->AddEntry(hRecoData2MCRatio[iPt], Form("Reco(data) / Reco(MC)"), "p");
         leg->AddEntry(hReco2GenRatio[iPt], Form("Reco(MC) / Gen"), "p");
         leg->AddEntry(hRef2GenRatio[iPt], Form("Ref(Ref axis) / Gen"), "p");
-        leg->AddEntry(hRelSystUncrt[iPt], Form("Syst. uncrt."), "f");
+        if (useUncrt) leg->AddEntry(hRelSystUncrt[iPt], Form("Syst. uncrt."), "f");
         leg->Draw();
         line = new TLine(-3.01, 1., 3.01, 1.);
         line->SetLineColor(kMagenta);
@@ -1805,12 +1824,19 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         // Plot ratios of experimental data over reco MC
         cRatData2Mc->cd( iPt+1 );
         setPadStyle();
-        hRelSystUncrt[iPt]->Draw("E2");
-        hRecoData2MCRatio[iPt]->Draw("same");
+        if (useUncrt) {
+            hRelSystUncrt[iPt]->Draw("E2");
+            hRecoData2MCRatio[iPt]->Draw("same");
+            hRelSystUncrt[iPt]->GetYaxis()->SetRangeUser(0.7, 1.2);
+            hRelSystUncrt[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        }
+        else {
+            hRecoData2MCRatio[iPt]->Draw();
+            hRecoData2MCRatio[iPt]->GetYaxis()->SetRangeUser(0.7, 1.2);
+            hRecoData2MCRatio[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
+        }
         hReco2GenRatio[iPt]->Draw("same");
         hRef2GenRatio[iPt]->Draw("same");
-        hRelSystUncrt[iPt]->GetYaxis()->SetRangeUser(0.7, 1.2);
-        hRelSystUncrt[iPt]->GetXaxis()->SetRangeUser(-3., 3.);
         hRecoData2MCRatio[iPt]->GetYaxis()->SetTitle("Data / MC");
         t.DrawLatexNDC(0.35, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
                        ptLow + (ptDijetLow.at(iPt) - 1) * ptStep, ptLow + ptDijetHi.at(iPt) * ptStep) );
@@ -1821,7 +1847,7 @@ void plotDijetDistributions(TFile *embFile, TFile *mbFile, TFile *jet60File,
         leg->AddEntry(hRecoData2MCRatio[iPt], Form("Reco(data) / Reco(MC)"), "p");
         leg->AddEntry(hReco2GenRatio[iPt], Form("Reco(MC) / Gen"), "p");
         leg->AddEntry(hRef2GenRatio[iPt], Form("Ref(Ref axis) / Gen"), "p");
-        leg->AddEntry(hRelSystUncrt[iPt], Form("Syst. uncrt."), "f");
+        if (useUncrt) leg->AddEntry(hRelSystUncrt[iPt], Form("Syst. uncrt."), "f");
         leg->Draw();
         line = new TLine(-3., 1., 3., 1.);
         line->SetLineColor(kMagenta);
@@ -3165,7 +3191,10 @@ void pPb_qa() {
 
     // File names
     // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root";
-    const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightMB_ak4.root";
+    // const Char_t *embeddingFileName = "../build/oEmbedding_pPb8160_Pbgoing_ak4.root";
+    // const Char_t *embeddingFileName = "../build/oEmbedding_pPb8160_pgoing_ak4.root";
+    const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root";
+    // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightMB_ak4.root";
     // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightJet60_ak4.root";
     // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightJet80_ak4.root";
     // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightJet100_ak4.root";
@@ -3197,7 +3226,7 @@ void pPb_qa() {
     } 
 
 
-    // Int_t branchId{0};
+    // Int_t branchId{1};
     // if ( inputFileName.Contains("akCs4") ) {
     //     branchId = {0};
     // }
@@ -3209,7 +3238,7 @@ void pPb_qa() {
     //plotPtHat(embFile, date);
 
     // Compare inclusive reco, ref and gen transverse momentum spectra
-    //compareInclusiveJetPtSpectra(embFile, date);
+    // compareInclusiveJetPtSpectra(embFile, date);
 
     // Plot jet reconstruction efficiency as a function of acceptance (pT vs eta)
     // plotEfficiency(embFile, date);
@@ -3227,7 +3256,7 @@ void pPb_qa() {
     // plotJetIdHistos(embFile, date);
 
     // Plot JES and JER
-    // plotJESandJER(embFile, date);
+    // plotJESandJER(embFile, date, 1);
 
     // Plot various correlation matrices
     // plotDijetResponseMatrices(embFile, mbFile, jet60File, jet80File, jet100File, date);

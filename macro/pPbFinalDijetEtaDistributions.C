@@ -1014,9 +1014,9 @@ void pPbFinalDijetEtaDistributions() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    createValues();
+    //createValues();
 
     calculateCovMatrix();
 
-    plotFinalDistributions();
+    //plotFinalDistributions();
 }
