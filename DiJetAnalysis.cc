@@ -1286,10 +1286,23 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             fHM->hRecoDijetPtEtaDphiCM->Fill( dijetRecoPt, dijetRecoEtaCM, dijetRecoDphi, 1. );
             fHM->hRecoDijetPtEtaDphiCMWeighted->Fill( dijetRecoPt, dijetRecoEtaCM, dijetRecoDphi, ptHatW * fMcReweight);
 
-            (dijetRecoEta >= 0) ? fHM->hGenDijetPtEtaForward->Fill(dijetRecoPt, dijetRecoEta) : fHM->hGenDijetPtEtaBackward->Fill(dijetRecoPt, TMath::Abs(dijetRecoEta));
-            (dijetRecoEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward->Fill(dijetRecoPt, dijetRecoEtaCM) : fHM->hGenDijetPtEtaCMBackward->Fill(dijetRecoPt, TMath::Abs(dijetRecoEtaCM));
-            (dijetRecoEta >= 0) ? fHM->hGenDijetPtEtaForwardWeighted->Fill(dijetRecoPt, dijetRecoEta, ptHatW * fMcReweight) : fHM->hGenDijetPtEtaBackwardWeighted->Fill(dijetRecoPt, TMath::Abs(dijetRecoEta), ptHatW * fMcReweight);
-            (dijetRecoEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForwardWeighted->Fill(dijetRecoPt, dijetRecoEtaCM, ptHatW * fMcReweight) : fHM->hGenDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPt, TMath::Abs(dijetRecoEtaCM), ptHatW * fMcReweight);
+            if (dijetRecoEta >= 0) {
+                fHM->hGenDijetPtEtaForward->Fill(dijetRecoPt, dijetRecoEta);
+                fHM->hGenDijetPtEtaForwardWeighted->Fill(dijetRecoPt, dijetRecoEta, ptHatW * fMcReweight);
+            }
+            else {
+                fHM->hGenDijetPtEtaBackward->Fill(dijetRecoPt, TMath::Abs(dijetRecoEta));
+                fHM->hGenDijetPtEtaBackwardWeighted->Fill(dijetRecoPt, TMath::Abs(dijetRecoEta), ptHatW * fMcReweight);
+            }
+                
+            if (dijetRecoEtaCM >= 0) {
+                fHM->hRecoDijetPtEtaCMForward->Fill(dijetRecoPt, dijetRecoEtaCM);
+                fHM->hRecoDijetPtEtaCMForwardWeighted->Fill(dijetRecoPt, dijetRecoEtaCM, ptHatW * fMcReweight);
+            }
+            else {
+                fHM->hRecoDijetPtEtaCMBackward->Fill(dijetRecoPt, TMath::Abs(dijetRecoEtaCM));
+                fHM->hRecoDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPt, TMath::Abs(dijetRecoEtaCM), ptHatW * fMcReweight);
+            }
 
             if ( fIsMc ) {
 
@@ -1359,10 +1372,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 fHM->hRefDijetPtEtaDphiCM->Fill( dijetRefPt, dijetRefEtaCM, dijetRefDphi, 1. );
                 fHM->hRefDijetPtEtaDphiCMWeighted->Fill( dijetRefPt, dijetRefEtaCM, dijetRefDphi, ptHatW * fMcReweight );
 
-                (dijetRefEta >= 0) ? fHM->hGenDijetPtEtaForward->Fill(dijetRefPt, dijetRefEta) : fHM->hGenDijetPtEtaBackward->Fill(dijetRefPt, TMath::Abs(dijetRefEta));
-                (dijetRefEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward->Fill(dijetRefPt, dijetRefEtaCM) : fHM->hGenDijetPtEtaCMBackward->Fill(dijetRefPt, TMath::Abs(dijetRefEtaCM));
-                (dijetRefEta >= 0) ? fHM->hGenDijetPtEtaForwardWeighted->Fill(dijetRefPt, dijetRefEta, ptHatW * fMcReweight) : fHM->hGenDijetPtEtaBackwardWeighted->Fill(dijetRefPt, TMath::Abs(dijetRefEta), ptHatW * fMcReweight);
-                (dijetRefEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForwardWeighted->Fill(dijetRefPt, dijetRefEtaCM, ptHatW * fMcReweight) : fHM->hGenDijetPtEtaCMBackwardWeighted->Fill(dijetRefPt, TMath::Abs(dijetRefEtaCM), ptHatW * fMcReweight);
+                (dijetRefEta >= 0) ? fHM->hRefDijetPtEtaForward->Fill(dijetRefPt, dijetRefEta) : fHM->hRefDijetPtEtaBackward->Fill(dijetRefPt, TMath::Abs(dijetRefEta));
+                (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward->Fill(dijetRefPt, dijetRefEtaCM) : fHM->hRefDijetPtEtaCMBackward->Fill(dijetRefPt, TMath::Abs(dijetRefEtaCM));
+                (dijetRefEta >= 0) ? fHM->hRefDijetPtEtaForwardWeighted->Fill(dijetRefPt, dijetRefEta, ptHatW * fMcReweight) : fHM->hRefDijetPtEtaBackwardWeighted->Fill(dijetRefPt, TMath::Abs(dijetRefEta), ptHatW * fMcReweight);
+                (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForwardWeighted->Fill(dijetRefPt, dijetRefEtaCM, ptHatW * fMcReweight) : fHM->hRefDijetPtEtaCMBackwardWeighted->Fill(dijetRefPt, TMath::Abs(dijetRefEtaCM), ptHatW * fMcReweight);
                         
             } // if ( fIsMc )
 
