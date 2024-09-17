@@ -633,8 +633,27 @@ Double_t DiJetAnalysis::boostEta2CM(const Double_t &etaLab) {
             }
         }
     } // if ( fIsPPb )
-
     return etaCM;
+}
+
+//________________
+Double_t DiJetAnalysis::etaLab(const Double_t &eta) {
+    Double_t etaL = eta;
+    if ( fIsPPb) {
+        if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            if (fIsPbGoingDir) {
+                etaL = -etaL;
+            }
+        }
+        else { // For data: p goes to negative, Pb goes to positive
+            if (fIsPbGoingDir) {
+            }
+            else {
+                etaL = -etaL;
+            }
+        }
+    }
+    return etaL;
 }
     
 //________________
@@ -648,23 +667,10 @@ Bool_t DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
 
     if ( fIsPPb && fSelectJetsInCMFrame ) {
 
-        if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
-            if ( fIsPbGoingDir ) {
-                eta = -eta;
-            }
-            else {
-            }
-        }
-        else { // For data: p goes to negative, Pb goes to positive
-            if ( fIsPbGoingDir ) {
-            }
-            else {
-                eta = -eta;
-            }
-        }
+        eta = boostEta2CM( eta );
 
-        etaCut[0] = fEtaShift - 2.5; 
-        etaCut[1] = fEtaShift + 2.5;
+        etaCut[0] = {-2.5}; 
+        etaCut[1] = {+2.5};
     } // if ( fIsPPb )
 
     if ( jet->ptJECCorr() > 20 && etaCut[0] < eta && eta < etaCut[1] ) {
@@ -775,6 +781,7 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
             fHM->hGenPtLeadPtSublead->Fill(ptLead, ptSubLead, ptHatW );
             fHM->hGenEtaLeadEtaSublead->Fill(etaLead, etaSubLead, ptHatW );
+            fHM->hGenEtaCMLeadEtaCMSublead->Fill(boostEta2CM(etaLead), boostEta2CM(etaSubLead), ptHatW );
             fHM->hGenPtLeadPtSubleadMcReweight->Fill(ptLead, ptSubLead, ptHatW * fMcReweight );
             fHM->hGenEtaLeadEtaSubleadMcReweight->Fill(etaLead, etaSubLead, ptHatW * fMcReweight );
 
@@ -783,16 +790,18 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             Double_t dijetDphi = deltaPhi(phiLead, phiSubLead);
             Double_t dijetEtaCM = dijetEta;
 
-            if ( fIsPPb ) {
-                if ( fIsPbGoingDir ) {
-                    dijetEtaCM += fEtaShift;
-                    dijetEtaCM = -dijetEtaCM;
-                    dijetEta = -dijetEta;
-                }
-                else {
-                    dijetEtaCM -= fEtaShift;
-                }
-            } // if ( fIsPPb )  
+            dijetEta = etaLab( dijetEta );
+            dijetEtaCM = boostEta2CM( dijetEtaCM );
+            // if ( fIsPPb ) {
+            //     if ( fIsPbGoingDir ) {
+            //         dijetEtaCM += fEtaShift;
+            //         dijetEtaCM = -dijetEtaCM;
+            //         dijetEta = -dijetEta;
+            //     }
+            //     else {
+            //         dijetEtaCM -= fEtaShift;
+            //     }
+            // } // if ( fIsPPb )  
 
             Double_t genDijetLeadSublead[9] {dijetPt, dijetEta, dijetDphi, 
                                              ptLead, etaLead, phiLead, 
@@ -1055,6 +1064,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             }
         } // if ( passTrkMax )
 
+/*
         //
         // For jetId selection
         //
@@ -1132,7 +1142,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                     }
                 } // if ( fIsMc )
             } // else if ( pt > ptRecoSubLeadJetId )
-        }
+        } // if ( passJetId )
+
+        */
 
         if ( fVerbose ) {
             std::cout << Form("TrkMax selection --> Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d\n", 
@@ -1211,32 +1223,37 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             Double_t dijetRecoEtaCM = dijetRecoEta;
 
             // Apply lab frame boost to CM for the pPb 
-            if ( fIsPPb ) {
-                if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
-                    if ( fIsPbGoingDir ) {
-                        dijetRecoEtaCM += fEtaShift;
-                        dijetRecoEtaCM = -dijetRecoEtaCM;
-                        dijetRecoEta = -dijetRecoEta;
-                    }
-                    else {
-                        dijetRecoEtaCM -= fEtaShift;
-                    }
-                }
-                else { // For data: p goes to negative, Pb goes to positive
-                    if ( fIsPbGoingDir ) {
-                        dijetRecoEtaCM -= fEtaShift;
-                    }
-                    else {
-                        dijetRecoEtaCM += fEtaShift;
-                        dijetRecoEtaCM = -dijetRecoEtaCM;
-                        dijetRecoEta = -dijetRecoEta;
-                    }
-                }
-            } // if ( fIsPPb )
+            dijetRecoEta = etaLab( dijetRecoEta );
+            dijetRecoEtaCM = boostEta2CM( dijetRecoEtaCM );
+
+            // 
+            // if ( fIsPPb ) {
+            //     if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            //         if ( fIsPbGoingDir ) {
+            //             dijetRecoEtaCM += fEtaShift;
+            //             dijetRecoEtaCM = -dijetRecoEtaCM;
+            //             dijetRecoEta = -dijetRecoEta;
+            //         }
+            //         else {
+            //             dijetRecoEtaCM -= fEtaShift;
+            //         }
+            //     }
+            //     else { // For data: p goes to negative, Pb goes to positive
+            //         if ( fIsPbGoingDir ) {
+            //             dijetRecoEtaCM -= fEtaShift;
+            //         }
+            //         else {
+            //             dijetRecoEtaCM += fEtaShift;
+            //             dijetRecoEtaCM = -dijetRecoEtaCM;
+            //             dijetRecoEta = -dijetRecoEta;
+            //         }
+            //     }
+            // } // if ( fIsPPb )
 
             // Correlation between leading and subleading
             fHM->hRecoPtLeadPtSublead->Fill(ptRecoLead, ptRecoSubLead, ptHatW );
             fHM->hRecoEtaLeadEtaSublead->Fill(etaRecoLead, etaRecoSubLead, ptHatW );
+            fHM->hRecoEtaCMLeadEtaCMSublead->Fill(boostEta2CM(etaRecoLead), boostEta2CM(etaRecoSubLead), ptHatW );
             fHM->hRecoPtLeadPtSubleadMcReweight->Fill(ptRecoLead, ptRecoSubLead, ptHatW * fMcReweight);
             fHM->hRecoEtaLeadEtaSubleadMcReweight->Fill(etaRecoLead, etaRecoSubLead, ptHatW * fMcReweight);
 
@@ -1260,16 +1277,19 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                 Double_t dijetRefDphi = deltaPhi(phiRefLead, phiRefSubLead);
                 Double_t dijetRefEtaCM = dijetRefEta;
 
-                if ( fIsPPb ) {
-                    if ( fIsPbGoingDir ) {
-                        dijetRefEtaCM += fEtaShift;
-                        dijetRefEtaCM = -dijetRefEtaCM;
-                        dijetRefEta = -dijetRefEta;
-                    }
-                    else {
-                        dijetRefEtaCM -= fEtaShift;
-                    }
-                } // if ( fIsPPb )       
+                dijetRefEta = etaLab( dijetRefEta );
+                dijetRefEtaCM = boostEta2CM( dijetRefEtaCM );
+
+                // if ( fIsPPb ) {
+                //     if ( fIsPbGoingDir ) {
+                //         dijetRefEtaCM += fEtaShift;
+                //         dijetRefEtaCM = -dijetRefEtaCM;
+                //         dijetRefEta = -dijetRefEta;
+                //     }
+                //     else {
+                //         dijetRefEtaCM -= fEtaShift;
+                //     }
+                // } // if ( fIsPPb )       
 
                 // Leading jet information
                 Double_t correl[5] { ptRecoLead, ptRawRecoLead, ptRefLead, etaRecoLead, etaRefLead };
@@ -1287,6 +1307,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
                 fHM->hRefPtLeadPtSublead->Fill(ptRefLead, ptRefSubLead, ptHatW);
                 fHM->hRefEtaLeadEtaSublead->Fill(ptRefLead, ptRefSubLead, ptHatW);
+                fHM->hRefEtaCMLeadEtaCMSublead->Fill(boostEta2CM(etaRefLead), boostEta2CM(etaRefSubLead), ptHatW);
                 fHM->hRefPtLeadPtSubleadMcReweight->Fill(ptRefLead, ptRefSubLead, ptHatW * fMcReweight);
                 fHM->hRefEtaLeadEtaSubleadMcReweight->Fill(ptRefLead, ptRefSubLead, ptHatW * fMcReweight);
 
@@ -1325,6 +1346,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         } // if ( fIsDijetFound )
     } // if ( idRecoLead>=0 && idRecoSubLead>=0 )
 
+/*
     //
     // JetId dijets
     //
@@ -1426,6 +1448,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         } // if ( fIsDijetJetIdFound )
     } // if ( idRecoLeadJetId>=0 && idRecoSubLeadJetId>=0 )
+
+    */
 
     // Fill matching between the histograms
     if ( fIsDijetFound && fIsDijetJetIdFound ) {
@@ -1581,33 +1605,38 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
             Double_t dijetRefDphi = deltaPhi(phiRefLead, phiRefSubLead);
             Double_t dijetRefEtaCM = dijetRefEta;
 
-            // Apply lab frame boost to CM for the pPb 
-            if ( fIsPPb ) {
-                if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
-                    if ( fIsPbGoingDir ) {
-                        dijetRecoEtaCM += fEtaShift;
-                        dijetRecoEtaCM = -dijetRecoEtaCM;
-                        dijetRefEtaCM += fEtaShift;
-                        dijetRefEtaCM = -dijetRefEtaCM;
-                        dijetRecoEta = -dijetRecoEta;
-                        dijetRefEta = -dijetRefEta;
-                    }
-                    else {
-                        dijetRecoEtaCM -= fEtaShift;
-                        dijetRefEtaCM -= fEtaShift;
-                    }
-                }
-                else { // For data: p goes to negative, Pb goes to positive
-                    if ( fIsPbGoingDir ) {
-                        dijetRecoEtaCM -= fEtaShift;
-                    }
-                    else {
-                        dijetRecoEtaCM += fEtaShift;
-                        dijetRecoEtaCM = -dijetRecoEtaCM;
-                        dijetRefEta = -dijetRefEta;
-                    }
-                }
-            } // if ( fIsPPb )
+            dijetRecoEta = etaLab( dijetRecoEta );
+            dijetRecoEtaCM = boostEta2CM( dijetRecoEtaCM );
+            dijetRefEta = etaLab( dijetRefEta );
+            dijetRefEtaCM = boostEta2CM( dijetRefEtaCM );
+
+            // // Apply lab frame boost to CM for the pPb 
+            // if ( fIsPPb ) {
+            //     if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            //         if ( fIsPbGoingDir ) {
+            //             dijetRecoEtaCM += fEtaShift;
+            //             dijetRecoEtaCM = -dijetRecoEtaCM;
+            //             dijetRefEtaCM += fEtaShift;
+            //             dijetRefEtaCM = -dijetRefEtaCM;
+            //             dijetRecoEta = -dijetRecoEta;
+            //             dijetRefEta = -dijetRefEta;
+            //         }
+            //         else {
+            //             dijetRecoEtaCM -= fEtaShift;
+            //             dijetRefEtaCM -= fEtaShift;
+            //         }
+            //     }
+            //     else { // For data: p goes to negative, Pb goes to positive
+            //         if ( fIsPbGoingDir ) {
+            //             dijetRecoEtaCM -= fEtaShift;
+            //         }
+            //         else {
+            //             dijetRecoEtaCM += fEtaShift;
+            //             dijetRecoEtaCM = -dijetRecoEtaCM;
+            //             dijetRefEta = -dijetRefEta;
+            //         }
+            //     }
+            // } // if ( fIsPPb )
 
             // Dijet reco vs ref for unfolding
             Double_t dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
@@ -1674,7 +1703,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
     if ( fEventCounter >= 50000 ) {
         fCycleCounter++;
         std::cout << Form("DiJetAnalysis::processEvent [INFO] Events processed: %d Sample fraction: %3.2f%%", 
-                          fCycleCounter * 50000, (Double_t)(fCycleCounter * 50000) / fNEventsInSample )
+                          fCycleCounter * 50000, (Double_t)(fCycleCounter * 50000) / fNEventsInSample * 100. )
                   << std::endl;
         fEventCounter = {0};
     }

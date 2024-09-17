@@ -53,6 +53,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hGenInclusiveJetPtEta{nullptr},
   hGenPtLeadPtSublead{nullptr},
   hGenEtaLeadEtaSublead{nullptr},
+  hGenEtaCMLeadEtaCMSublead{nullptr},
   hGenPtLeadPtSubleadMcReweight{nullptr},
   hGenEtaLeadEtaSubleadMcReweight{nullptr},
   hGenDijetEta{nullptr},
@@ -82,6 +83,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRecoInclusiveJetPt{nullptr},
   hRecoPtLeadPtSublead{nullptr},
   hRecoEtaLeadEtaSublead{nullptr},
+  hRecoEtaCMLeadEtaCMSublead{nullptr},
   hRecoPtLeadPtSubleadMcReweight{nullptr},
   hRecoEtaLeadEtaSubleadMcReweight{nullptr},
   hRecoDijetPtEta{nullptr},
@@ -218,6 +220,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hGenInclusiveJetPtEta) delete hGenInclusiveJetPtEta;
         if (hGenPtLeadPtSublead) delete hGenPtLeadPtSublead;
         if (hGenEtaLeadEtaSublead) delete hGenEtaLeadEtaSublead;
+        if (hGenEtaCMLeadEtaCMSublead) delete hGenEtaCMLeadEtaCMSublead;
         if (hGenPtLeadPtSubleadMcReweight) delete hGenPtLeadPtSubleadMcReweight;
         if (hGenEtaLeadEtaSubleadMcReweight) delete hGenEtaLeadEtaSubleadMcReweight;
         if (hGenDijetEta) delete hGenDijetEta;
@@ -282,6 +285,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoInclusiveJetPt) delete hRecoInclusiveJetPt;
     if (hRecoPtLeadPtSublead) delete hRecoPtLeadPtSublead;
     if (hRecoEtaLeadEtaSublead) delete hRecoEtaLeadEtaSublead;
+    if (hRecoEtaCMLeadEtaCMSublead) delete hRecoEtaCMLeadEtaCMSublead;
     if (hRecoPtLeadPtSubleadMcReweight) delete hRecoPtLeadPtSubleadMcReweight;
     if (hRecoEtaLeadEtaSubleadMcReweight) delete hRecoEtaLeadEtaSubleadMcReweight;
     if (hRecoGoodInclusiveJetEtaLabFrame) delete hRecoGoodInclusiveJetEtaLabFrame;
@@ -312,6 +316,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRefInclusiveJetPtEta) delete hRefInclusiveJetPtEta;
         if (hRefPtLeadPtSublead) delete hRefPtLeadPtSublead;
         if (hRefEtaLeadEtaSublead) delete hRefEtaLeadEtaSublead;
+        if (hRefEtaCMLeadEtaCMSublead) delete hRefEtaCMLeadEtaCMSublead;
         if (hRefPtLeadPtSubleadMcReweight) delete hRefPtLeadPtSubleadMcReweight;
         if (hRefEtaLeadEtaSubleadMcReweight) delete hRefEtaLeadEtaSubleadMcReweight;
         if (hRefDijetEta) delete hRefDijetEta;
@@ -535,6 +540,10 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fEtaBins, fEtaRange[0], fEtaRange[1] );
         hGenEtaLeadEtaSublead->Sumw2();
+        hGenEtaCMLeadEtaCMSublead = new TH2D("hGenEtaCMLeadEtaCMSublead","Leading gen jet eta in CM vs subleading gen jet eta in CM;Gen #eta^{Leading}_{CM};Gen #eta^{Subleading}_{CM}",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fEtaBins, fEtaRange[0], fEtaRange[1] );
+        hGenEtaCMLeadEtaCMSublead->Sumw2();
         hGenPtLeadPtSubleadMcReweight = new TH2D("hGenPtLeadPtSubleadMcReweight","Leading gen jet pT vs subleading gen jet pT (MC reweighted to data);Gen p_{T}^{Leading} (GeV/c);Gen p_{T}^{Subleading} (GeV/c)",
                                         fPtBins, fPtRange[0], fPtRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1] );
@@ -849,6 +858,10 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRefEtaLeadEtaSublead->Sumw2();
+        hRefEtaCMLeadEtaCMSublead = new TH2D("hRefEtaCMLeadEtaCMSublead","Ref leading vs subleading #eta in CM;Ref #eta^{Leading}_{CM};Ref #eta^{Subleading}_{CM}",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fEtaBins, fEtaRange[0], fEtaRange[1]);
+        hRefEtaCMLeadEtaCMSublead->Sumw2();
         hRefPtLeadPtSubleadMcReweight = new TH2D("hRefPtLeadPtSubleadMcReweight","Ref leading vs subleading p_{T} (MC reweighted to data);Ref p_{T}^{Leading} (GeV/c);Ref p_{T}^{Subleading} (GeV/c)",
                                         fPtBins, fPtRange[0], fPtRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1]);
@@ -1065,6 +1078,10 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                        fEtaBins, fEtaRange[0], fEtaRange[1],
                                        fEtaBins, fEtaRange[0], fEtaRange[1]);
     hRecoEtaLeadEtaSublead->Sumw2();
+    hRecoEtaCMLeadEtaCMSublead = new TH2D("hRecoEtaCMLeadEtaCMSublead","Reco leading vs subleading #eta in CM;Reco #eta^{Leading}_{CM};Reco #eta^{Subleading}_{CM}",
+                                       fEtaBins, fEtaRange[0], fEtaRange[1],
+                                       fEtaBins, fEtaRange[0], fEtaRange[1]);
+    hRecoEtaCMLeadEtaCMSublead->Sumw2();
     hRecoPtLeadPtSubleadMcReweight = new TH2D("hRecoPtLeadPtSubleadMcReweight","Reco leading vs subleading p_{T} (MC reweighted to data);Reco p_{T}^{Leading} (GeV/c);Reco p_{T}^{Subleading} (GeV/c)",
                                      fPtBins, fPtRange[0], fPtRange[1],
                                      fPtBins, fPtRange[0], fPtRange[1]);
@@ -1172,6 +1189,7 @@ void HistoManagerDiJet::writeOutput() {
         hGenInclusiveJetPtEta->Write();
         hGenPtLeadPtSublead->Write();
         hGenEtaLeadEtaSublead->Write();
+        hGenEtaCMLeadEtaCMSublead->Write();
         hGenPtLeadPtSubleadMcReweight->Write();
         hGenEtaLeadEtaSubleadMcReweight->Write();
         hGenDijetEta->Write();
@@ -1259,6 +1277,7 @@ void HistoManagerDiJet::writeOutput() {
         hRefInclusiveJetPtEta->Write();
         hRefPtLeadPtSublead->Write();
         hRefEtaLeadEtaSublead->Write();
+        hRefEtaCMLeadEtaCMSublead->Write();
         hRefPtLeadPtSubleadMcReweight->Write();
         hRefEtaLeadEtaSubleadMcReweight->Write();
     } // if ( fIsMc )
@@ -1273,6 +1292,7 @@ void HistoManagerDiJet::writeOutput() {
     hRecoInclusiveJetPt->Write();
     hRecoPtLeadPtSublead->Write();
     hRecoEtaLeadEtaSublead->Write();
+    hRecoEtaCMLeadEtaCMSublead->Write();
     hRecoPtLeadPtSubleadMcReweight->Write();
     hRecoEtaLeadEtaSubleadMcReweight->Write();
     hRecoDijetPtEta->Write();

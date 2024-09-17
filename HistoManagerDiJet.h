@@ -101,6 +101,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenInclusiveJetPtEta;
     TH2D *hGenPtLeadPtSublead;
     TH2D *hGenEtaLeadEtaSublead;
+    TH2D *hGenEtaCMLeadEtaCMSublead;
     TH2D *hGenPtLeadPtSubleadMcReweight;
     TH2D *hGenEtaLeadEtaSubleadMcReweight;
     TH1D *hGenDijetEta;
@@ -159,6 +160,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRecoInclusiveJetPt;
     TH2D *hRecoPtLeadPtSublead;
     TH2D *hRecoEtaLeadEtaSublead;
+    TH2D *hRecoEtaCMLeadEtaCMSublead;
     TH2D *hRecoPtLeadPtSubleadMcReweight;
     TH2D *hRecoEtaLeadEtaSubleadMcReweight;
     TH2D *hRecoDijetPtEta;
@@ -275,6 +277,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRefInclusiveJetPtEta;
     TH2D *hRefPtLeadPtSublead;
     TH2D *hRefEtaLeadEtaSublead;
+    TH2D *hRefEtaCMLeadEtaCMSublead;
     TH2D *hRefPtLeadPtSubleadMcReweight;
     TH2D *hRefEtaLeadEtaSubleadMcReweight;
 

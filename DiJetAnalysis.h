@@ -110,6 +110,8 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t isGoodTrkMax(const RecoJet* jet);
     /// @brief Boost eta to the center-of-mass frame
     Double_t boostEta2CM(const Double_t &etaLab);
+    /// @brief Get proper eta in the lab frame depending on beam direction 
+    Double_t etaLab(const Double_t &eta);
 
     /// @brief Print debug information
     Bool_t   fDebug;
