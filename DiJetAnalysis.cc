@@ -934,7 +934,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         // Check selection criteria
         passTrkMax = isGoodTrkMax( (*pfJetIter) );
-        passJetId = isGoodJetId( (*pfJetIter) );
+        // passJetId = isGoodJetId( (*pfJetIter) );
 
         // On MC check reco jet matching to gen
         if ( fIsMc ) {
