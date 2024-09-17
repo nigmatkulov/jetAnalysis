@@ -109,7 +109,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Check if good track max cut
     Bool_t isGoodTrkMax(const RecoJet* jet);
     /// @brief Boost eta to the center-of-mass frame
-    Double_t boostEta2CM(const Double_t &etaLab)
+    Double_t boostEta2CM(const Double_t &etaLab);
 
     /// @brief Print debug information
     Bool_t   fDebug;

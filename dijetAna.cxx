@@ -198,7 +198,7 @@ int main(int argc, char const *argv[]) {
     if ( isMc ) {
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
     }
-    analysis->selectJetsInCMFrame();
+    //analysis->selectJetsInCMFrame();
     //analysis->setVerbose();
     
     // Initialize histogram manager
