@@ -1287,12 +1287,12 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             fHM->hRecoDijetPtEtaDphiCMWeighted->Fill( dijetRecoPt, dijetRecoEtaCM, dijetRecoDphi, ptHatW * fMcReweight);
 
             if (dijetRecoEta >= 0) {
-                fHM->hGenDijetPtEtaForward->Fill(dijetRecoPt, dijetRecoEta);
-                fHM->hGenDijetPtEtaForwardWeighted->Fill(dijetRecoPt, dijetRecoEta, ptHatW * fMcReweight);
+                fHM->hRecoDijetPtEtaForward->Fill(dijetRecoPt, dijetRecoEta);
+                fHM->hRecoDijetPtEtaForwardWeighted->Fill(dijetRecoPt, dijetRecoEta, ptHatW * fMcReweight);
             }
             else {
-                fHM->hGenDijetPtEtaBackward->Fill(dijetRecoPt, TMath::Abs(dijetRecoEta));
-                fHM->hGenDijetPtEtaBackwardWeighted->Fill(dijetRecoPt, TMath::Abs(dijetRecoEta), ptHatW * fMcReweight);
+                fHM->hRecoDijetPtEtaBackward->Fill(dijetRecoPt, TMath::Abs(dijetRecoEta));
+                fHM->hRecoDijetPtEtaBackwardWeighted->Fill(dijetRecoPt, TMath::Abs(dijetRecoEta), ptHatW * fMcReweight);
             }
                 
             if (dijetRecoEtaCM >= 0) {
