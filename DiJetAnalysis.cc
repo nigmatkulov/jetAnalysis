@@ -34,7 +34,7 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fNEventsInSample{1000000},
     fIsDijetFound{kFALSE}, fIsDijetJetIdFound{kFALSE},
     fUseMcReweighting{0}, fJetPtBins{75}, fJetPtLow{20},
-    fJetPtHi{1520}, fJetPtStep{20},
+    fJetPtHi{1520}, fJetPtStep{20}, fSelectJetsInCMFrame{kFALSE},
     fMcReweight{1},
     fEventCounter{0}, fCycleCounter{0} {
 
@@ -436,7 +436,8 @@ void DiJetAnalysis::print() {
               << "ptHat range                 : " << fPtHatRange[0] << "-" << fPtHatRange[1] << std::endl
               << "Leading jet pT              : " << fLeadJetPtLow << std::endl
               << "SubLeading jet pT           : " << fSubleadJetPtLow << std::endl
-              << "Dijet phi cut               : " << fDijetPhiCut << std::endl;
+              << "Dijet phi cut               : " << fDijetPhiCut << std::endl
+              << "Select jets in CM frame     : " << fSelectJetsInCMFrame << std::endl;
     std::cout << "----------------------------------------\n";
 }
 
@@ -614,7 +615,31 @@ Bool_t DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
     Bool_t goodKine{kFALSE};
     Bool_t hasMatching{kFALSE};
 
-    if ( jet->ptJECCorr() > 20 && TMath::Abs( jet->eta() ) < 3.0 ) {
+    Double_t etaCut[2] {-3., 3.}; 
+    Double_t eta = jet->eta();
+
+    if ( fIsPPb && fSelectJetsInCMFrame ) {
+
+        if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            if ( fIsPbGoingDir ) {
+                eta = -eta;
+            }
+            else {
+            }
+        }
+        else { // For data: p goes to negative, Pb goes to positive
+            if ( fIsPbGoingDir ) {
+            }
+            else {
+                eta = -eta;
+            }
+        }
+
+        etaCut[0] = fEtaShift - 2.5; 
+        etaCut[1] = fEtaShift + 2.5;
+    } // if ( fIsPPb )
+
+    if ( jet->ptJECCorr() > 20 && etaCut[0] < eta && eta < etaCut[1] ) {
         goodKine = {kTRUE};
     }
 

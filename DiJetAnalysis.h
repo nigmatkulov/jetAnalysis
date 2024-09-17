@@ -71,6 +71,9 @@ class DiJetAnalysis : public BaseAnalysis {
     void setNEventsInSample(const Int_t& n)  { fNEventsInSample = n; }
     /// @brief Set loose jetId cut
     void setLooseJetIdCut()                  { fIsLooseJetIdCut = {kTRUE}; }
+    /// @brief Select inclusive jets in the center-of-mass frame
+    void selectJetsInCMFrame()               { fSelectJetsInCMFrame = {kTRUE}; }
+
     /// @brief Reweight MC to data (trigger-dependent): 
     /// 0 - do not reweight (default)
     /// 1 - MB
@@ -139,6 +142,8 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t   fIsDijetFound;
     /// @brief Check if dijet passed jetId cut is found
     Bool_t   fIsDijetJetIdFound;
+    /// @brief Select jets in the center-of-mass frame (default: false)
+    Bool_t   fSelectJetsInCMFrame;
     /// @brief Reweight MC to data (trigger-dependent): 
     /// 0 - do not reweight (default)
     /// 1 - MB
