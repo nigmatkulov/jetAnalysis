@@ -62,6 +62,14 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hGenDijetEtaCM{nullptr},
   hGenDijetPtEtaDphiCM{nullptr},
   hGenDijetPtEtaDphiCMWeighted{nullptr},
+  hGenDijetPtEtaForward{nullptr},
+  hGenDijetPtEtaBackward{nullptr},
+  hGenDijetPtEtaCMForward{nullptr},
+  hGenDijetPtEtaCMBackward{nullptr},
+  hGenDijetPtEtaForwardWeighted{nullptr},
+  hGenDijetPtEtaBackwardWeighted{nullptr},
+  hGenDijetPtEtaCMForwardWeighted{nullptr},
+  hGenDijetPtEtaCMBackwardWeighted{nullptr},
 
   hGenGoodInclusiveJetEtaLabFrame{nullptr},
   hGenGoodInclusiveJetEtaCMFrame{nullptr},
@@ -88,6 +96,18 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRecoEtaLeadEtaSubleadMcReweight{nullptr},
   hRecoDijetPtEta{nullptr},
   hRecoDijetPtEtaDphi{nullptr},
+  hRecoDijetPtEtaDphiWeighted{nullptr},
+  hRecoDijetPtEtaDphiCM{nullptr},
+  hRecoDijetPtEtaDphiCMWeighted{nullptr},
+  hRecoDijetPtEtaForward{nullptr},
+  hRecoDijetPtEtaBackward{nullptr},
+  hRecoDijetPtEtaCMForward{nullptr},
+  hRecoDijetPtEtaCMBackward{nullptr},
+  hRecoDijetPtEtaForwardWeighted{nullptr},
+  hRecoDijetPtEtaBackwardWeighted{nullptr},
+  hRecoDijetPtEtaCMForwardWeighted{nullptr},
+  hRecoDijetPtEtaCMBackwardWeighted{nullptr},
+
   hRecoDijetPtEtaDphiJetId{nullptr},
   hRecoInclusiveAllJetPtVsEta{nullptr},
   hRecoInclusiveMatchedJetPtVsEta{nullptr},
@@ -154,6 +174,15 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRefDijetEtaCM{nullptr},
   hRefDijetPtEtaDphiCM{nullptr},
   hRefDijetPtEtaDphiCMWeighted{nullptr},
+  hRefDijetPtEtaForward{nullptr},
+  hRefDijetPtEtaBackward{nullptr},
+  hRefDijetPtEtaCMForward{nullptr},
+  hRefDijetPtEtaCMBackward{nullptr},
+  hRefDijetPtEtaForwardWeighted{nullptr},
+  hRefDijetPtEtaBackwardWeighted{nullptr},
+  hRefDijetPtEtaCMForwardWeighted{nullptr},
+  hRefDijetPtEtaCMBackwardWeighted{nullptr},
+
   hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCM{nullptr},
   hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted{nullptr},
 
@@ -229,6 +258,14 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hGenDijetEtaCM) delete hGenDijetEtaCM;
         if (hGenDijetPtEtaDphiCM) delete hGenDijetPtEtaDphiCM;
         if (hGenDijetPtEtaDphiCMWeighted) delete hGenDijetPtEtaDphiCMWeighted;
+        if (hGenDijetPtEtaForward) delete hGenDijetPtEtaForward;
+        if (hGenDijetPtEtaBackward) delete hGenDijetPtEtaBackward;
+        if (hGenDijetPtEtaCMForward) delete hGenDijetPtEtaCMForward;
+        if (hGenDijetPtEtaCMBackward) delete hGenDijetPtEtaCMBackward;
+        if (hGenDijetPtEtaForwardWeighted) delete hGenDijetPtEtaForwardWeighted;
+        if (hGenDijetPtEtaBackwardWeighted) delete hGenDijetPtEtaBackwardWeighted;
+        if (hGenDijetPtEtaCMForwardWeighted) delete hGenDijetPtEtaCMForwardWeighted;
+        if (hGenDijetPtEtaCMBackwardWeighted) delete hGenDijetPtEtaCMBackwardWeighted;
 
         if (hGenGoodInclusiveJetEtaLabFrame) delete hGenGoodInclusiveJetEtaLabFrame;
         if (hGenGoodInclusiveJetEtaCMFrame) delete hGenGoodInclusiveJetEtaCMFrame;
@@ -297,6 +334,14 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoDijetEtaCM) delete hRecoDijetEtaCM;
     if (hRecoDijetPtEtaDphiCM) delete hRecoDijetPtEtaDphiCM;
     if (hRecoDijetPtEtaDphiCMWeighted) delete hRecoDijetPtEtaDphiCMWeighted;
+    if (hRecoDijetPtEtaForward) delete hRecoDijetPtEtaForward;
+    if (hRecoDijetPtEtaBackward) delete hRecoDijetPtEtaBackward;
+    if (hRecoDijetPtEtaCMForward) delete hRecoDijetPtEtaCMForward;
+    if (hRecoDijetPtEtaCMBackward) delete hRecoDijetPtEtaCMBackward;
+    if (hRecoDijetPtEtaForwardWeighted) delete hRecoDijetPtEtaForwardWeighted;
+    if (hRecoDijetPtEtaBackwardWeighted) delete hRecoDijetPtEtaBackwardWeighted;
+    if (hRecoDijetPtEtaCMForwardWeighted) delete hRecoDijetPtEtaCMForwardWeighted;
+    if (hRecoDijetPtEtaCMBackwardWeighted) delete hRecoDijetPtEtaCMBackwardWeighted;
 
     if (hRecoDijetPtEtaDphiJetId) delete hRecoDijetPtEtaDphiJetId;
 
@@ -322,6 +367,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRefDijetEta) delete hRefDijetEta;
         if (hRefDijetPtEtaDphi) delete hRefDijetPtEtaDphi;
         if (hRefDijetPtEtaDphiWeighted) delete hRefDijetPtEtaDphiWeighted;
+
         if (hRefDijetEtaVsRecoDijetEta) delete hRefDijetEtaVsRecoDijetEta;
         if (hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt) delete hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt;
         if (hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted) delete hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted;
@@ -329,6 +375,16 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRefDijetEtaCM) delete hRefDijetEtaCM;
         if (hRefDijetPtEtaDphiCM) delete hRefDijetPtEtaDphiCM;
         if (hRefDijetPtEtaDphiCMWeighted) delete hRefDijetPtEtaDphiCMWeighted;
+
+        if (hRefDijetPtEtaForward) delete hRefDijetPtEtaForward;
+        if (hRefDijetPtEtaBackward) delete hRefDijetPtEtaBackward;
+        if (hRefDijetPtEtaCMForward) delete hRefDijetPtEtaCMForward;
+        if (hRefDijetPtEtaCMBackward) delete hRefDijetPtEtaCMBackward;
+        if (hRefDijetPtEtaForwardWeighted) delete hRefDijetPtEtaForwardWeighted;
+        if (hRefDijetPtEtaBackwardWeighted) delete hRefDijetPtEtaBackwardWeighted;
+        if (hRefDijetPtEtaCMForwardWeighted) delete hRefDijetPtEtaCMForwardWeighted;
+        if (hRefDijetPtEtaCMBackwardWeighted) delete hRefDijetPtEtaCMBackwardWeighted;
+
         if (hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCM) delete hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCM;
         if (hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted) delete hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted;
 
@@ -355,6 +411,13 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                              1.0,  1.2,  1.4,  1.6,  1.8,  
                                              2.0,  2.2,  2.4,  3.0,  4.0,  
                                              5.0 };
+
+    const Int_t dijetEtaFBBins{13};
+    Double_t dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
+                                                1.0,  1.2,  1.4,  1.6,  1.8,  
+                                                2.0,  2.2,  2.4,  3.0 };
+
+
     const Int_t dijetPtBins{17};
     Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
                                            90., 100.,  110., 120., 130.,
@@ -579,6 +642,44 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                               fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                               fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
         hGenDijetPtEtaDphiCMWeighted->Sumw2();
+
+
+        hGenDijetPtEtaForward = new TH2D("hGenDijetPtEtaForward", "Gen dijet info in lab frame (forward);p_{T}^{ave} (GeV);#eta^{dijet}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenDijetPtEtaForward->Sumw2();
+        hGenDijetPtEtaBackward = new TH2D("hGenDijetPtEtaBackward", "Gen dijet info in lab frame (backward);p_{T}^{ave} (GeV);#eta^{dijet}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenDijetPtEtaBackward->Sumw2();
+        hGenDijetPtEtaCMForward = new TH2D("hGenDijetPtEtaCMForward", "Gen dijet info in CM frame (forward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenDijetPtEtaCMForward->Sumw2();
+        hGenDijetPtEtaCMBackward = new TH2D("hGenDijetPtEtaCMBackward", "Gen dijet info in CM frame (backward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenDijetPtEtaCMBackward->Sumw2();
+
+        hGenDijetPtEtaForwardWeighted = new TH2D("hGenDijetPtEtaForwardWeighted", "Gen dijet info in lab frame (forward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenDijetPtEtaForwardWeighted->Sumw2();
+        hGenDijetPtEtaBackwardWeighted = new TH2D("hGenDijetPtEtaBackwardWeighted", "Gen dijet info in lab frame (backward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenDijetPtEtaBackwardWeighted->Sumw2();
+        hGenDijetPtEtaCMForwardWeighted = new TH2D("hGenDijetPtEtaCMForwardWeighted", "Gen dijet info in CM frame (forward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenDijetPtEtaCMForwardWeighted->Sumw2();
+
+        hGenDijetPtEtaCMBackwardWeighted = new TH2D("hGenDijetPtEtaCMBackwardWeighted", "Gen dijet info in CM frame (backward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenDijetPtEtaCMBackwardWeighted->Sumw2();
+
+
 
         hGenGoodInclusiveJetEtaLabFrame = new TH1D("hGenGoodInclusiveJetEtaLabFrame","Gen good inclusive jet #eta in lab frame;#eta^{Inclusive}",
                                                    fEtaBins, fEtaRange[0], fEtaRange[1]);
@@ -898,7 +999,6 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                             fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
         hRefDijetPtEtaDphiWeighted->Sumw2();
 
-
         hRefDijetEtaCM = new TH1D("hRefDijetEtaCM","Ref dijet #eta in CM;Ref #eta^{dijet}_{CM};Entries",
                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hRefDijetEtaCM->Sumw2();
@@ -922,6 +1022,41 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                             fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
         hRefDijetPtEtaDphiCMWeighted->Sumw2();
+
+        hRefDijetPtEtaForward = new TH2D("hRefDijetPtEtaForward", "Ref dijet info in lab frame (forward);p_{T}^{ave} (GeV);#eta^{dijet}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRefDijetPtEtaForward->Sumw2();
+        hRefDijetPtEtaBackward = new TH2D("hRefDijetPtEtaBackward", "Ref dijet info in lab frame (backward);p_{T}^{ave} (GeV);#eta^{dijet}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRefDijetPtEtaBackward->Sumw2();
+        hRefDijetPtEtaCMForward = new TH2D("hRefDijetPtEtaCMForward", "Ref dijet info in CM frame (forward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRefDijetPtEtaCMForward->Sumw2();
+        hRefDijetPtEtaCMBackward = new TH2D("hRefDijetPtEtaCMBackward", "Ref dijet info in CM frame (backward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRefDijetPtEtaCMBackward->Sumw2();
+        
+        hRefDijetPtEtaForwardWeighted = new TH2D("hRefDijetPtEtaForwardWeighted", "Ref dijet info in lab frame (forward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRefDijetPtEtaForwardWeighted->Sumw2();
+        hRefDijetPtEtaBackwardWeighted = new TH2D("hRefDijetPtEtaBackwardWeighted", "Ref dijet info in lab frame (backward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRefDijetPtEtaBackwardWeighted->Sumw2();
+        hRefDijetPtEtaCMForwardWeighted = new TH2D("hRefDijetPtEtaCMForwardWeighted", "Ref dijet info in CM frame (forward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRefDijetPtEtaCMForwardWeighted->Sumw2();
+
+        hRefDijetPtEtaCMBackwardWeighted = new TH2D("hRefDijetPtEtaCMBackwardWeighted", "Ref dijet info in CM frame (backward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRefDijetPtEtaCMBackwardWeighted->Sumw2();       
 
 
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId = new TH3D("hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId", "Reco dijet #eta vs ref dijet #eta vs reco dijet p_{T} jetId cut;Reco #eta^{dijet};Ref #eta^{dijet}; Reco p_{T}^{dijet} (GeV/c)",
@@ -973,10 +1108,18 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRefSelDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefSelDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefSelDijetPtEtaDphiWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
-
         hRefSelDijetEtaCM->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefSelDijetPtEtaDphiCM->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefSelDijetPtEtaDphiCMWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
+
+        hRefDijetPtEtaForward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hRefDijetPtEtaBackward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hRefDijetPtEtaCMForward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hRefDijetPtEtaCMBackward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hRefDijetPtEtaForwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hRefDijetPtEtaBackwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hRefDijetPtEtaCMForwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hRefDijetPtEtaCMBackwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
 
         hRefDijetPtEtaDphiJetId->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -994,6 +1137,16 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hGenDijetEtaCM->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hGenDijetPtEtaDphiCM->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hGenDijetPtEtaDphiCMWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
+
+        hGenDijetPtEtaForward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hGenDijetPtEtaBackward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hGenDijetPtEtaCMForward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hGenDijetPtEtaCMBackward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hGenDijetPtEtaForwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hGenDijetPtEtaBackwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hGenDijetPtEtaCMForwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hGenDijetPtEtaCMBackwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+
     } // if (fIsMc)
 
     
@@ -1121,6 +1274,43 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                            fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
     hRecoDijetPtEtaDphiCMWeighted->Sumw2();
 
+
+    hRecoDijetPtEtaForward = new TH2D("hRecoDijetPtEtaForward", "Reco dijet info in lab frame (forward);p_{T}^{ave} (GeV);#eta^{dijet}",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEtaForward->Sumw2();
+    hRecoDijetPtEtaBackward = new TH2D("hRecoDijetPtEtaBackward", "Reco dijet info in lab frame (backward);p_{T}^{ave} (GeV);#eta^{dijet}",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEtaBackward->Sumw2();
+    hRecoDijetPtEtaCMForward = new TH2D("hRecoDijetPtEtaCMForward", "Reco dijet info in CM frame (forward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEtaCMForward->Sumw2();
+    hRecoDijetPtEtaCMBackward = new TH2D("hRecoDijetPtEtaCMBackward", "Reco dijet info in CM frame (backward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEtaCMBackward->Sumw2();
+    
+    hRecoDijetPtEtaForwardWeighted = new TH2D("hRecoDijetPtEtaForwardWeighted", "Reco dijet info in lab frame (forward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEtaForwardWeighted->Sumw2();
+    hRecoDijetPtEtaBackwardWeighted = new TH2D("hRecoDijetPtEtaBackwardWeighted", "Reco dijet info in lab frame (backward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEtaBackwardWeighted->Sumw2();
+    hRecoDijetPtEtaCMForwardWeighted = new TH2D("hRecoDijetPtEtaCMForwardWeighted", "Reco dijet info in CM frame (forward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEtaCMForwardWeighted->Sumw2();
+
+    hRecoDijetPtEtaCMBackwardWeighted = new TH2D("hRecoDijetPtEtaCMBackwardWeighted", "Reco dijet info in CM frame (backward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetPtEtaCMBackwardWeighted->Sumw2();
+
+
     hRecoDijetPtEtaDphiJetId  = new TH3D("hRecoDijetPtEtaDphiJetId","Reco dijet info jetId cut;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
                                    fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                    fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
@@ -1150,6 +1340,15 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     hRecoDijetPtEtaDphiCM->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDphiCMWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDphiJetId->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
+
+    hRefDijetPtEtaForward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+    hRefDijetPtEtaBackward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+    hRefDijetPtEtaCMForward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+    hRefDijetPtEtaCMBackward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+    hRefDijetPtEtaForwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+    hRefDijetPtEtaBackwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+    hRefDijetPtEtaCMForwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+    hRefDijetPtEtaCMBackwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
 }
 
 //________________
@@ -1198,6 +1397,14 @@ void HistoManagerDiJet::writeOutput() {
         hGenDijetEtaCM->Write();
         hGenDijetPtEtaDphiCM->Write();
         hGenDijetPtEtaDphiCMWeighted->Write();
+        hGenDijetPtEtaForward->Write();
+        hGenDijetPtEtaBackward->Write();
+        hGenDijetPtEtaCMForward->Write();
+        hGenDijetPtEtaCMBackward->Write();
+        hGenDijetPtEtaForwardWeighted->Write();
+        hGenDijetPtEtaBackwardWeighted->Write();
+        hGenDijetPtEtaCMForwardWeighted->Write();
+        hGenDijetPtEtaCMBackwardWeighted->Write();
 
         hGenGoodInclusiveJetEtaLabFrame->Write();
         hGenGoodInclusiveJetEtaCMFrame->Write();
@@ -1260,6 +1467,15 @@ void HistoManagerDiJet::writeOutput() {
         hRefDijetEtaCM->Write();
         hRefDijetPtEtaDphiCM->Write();
         hRefDijetPtEtaDphiCMWeighted->Write();
+        hRefDijetPtEtaForward->Write();
+        hRefDijetPtEtaBackward->Write();
+        hRefDijetPtEtaCMForward->Write();
+        hRefDijetPtEtaCMBackward->Write();
+        hRefDijetPtEtaForwardWeighted->Write();
+        hRefDijetPtEtaBackwardWeighted->Write();
+        hRefDijetPtEtaCMForwardWeighted->Write();
+        hRefDijetPtEtaCMBackwardWeighted->Write();
+
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCM->Write();
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted->Write();
 
@@ -1302,6 +1518,15 @@ void HistoManagerDiJet::writeOutput() {
     hRecoDijetEtaCM->Write();
     hRecoDijetPtEtaDphiCM->Write();
     hRecoDijetPtEtaDphiCMWeighted->Write();
+    hRecoDijetPtEtaForward->Write();
+    hRecoDijetPtEtaBackward->Write();
+    hRecoDijetPtEtaCMForward->Write();
+    hRecoDijetPtEtaCMBackward->Write();
+    hRecoDijetPtEtaForwardWeighted->Write();
+    hRecoDijetPtEtaBackwardWeighted->Write();
+    hRecoDijetPtEtaCMForwardWeighted->Write();
+    hRecoDijetPtEtaCMBackwardWeighted->Write();
+
 
     hRecoGoodInclusiveJetEtaLabFrame->Write();
     hRecoGoodInclusiveJetEtaCMFrame->Write();

@@ -110,6 +110,14 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hGenDijetEtaCM;
     TH3D *hGenDijetPtEtaDphiCM;
     TH3D *hGenDijetPtEtaDphiCMWeighted;
+    TH2D *hGenDijetPtEtaForward;
+    TH2D *hGenDijetPtEtaBackward;
+    TH2D *hGenDijetPtEtaCMForward;
+    TH2D *hGenDijetPtEtaCMBackward;
+    TH2D *hGenDijetPtEtaForwardWeighted;
+    TH2D *hGenDijetPtEtaBackwardWeighted;
+    TH2D *hGenDijetPtEtaCMForwardWeighted;
+    TH2D *hGenDijetPtEtaCMBackwardWeighted;
 
     TH1D *hGenGoodInclusiveJetEtaLabFrame;
     TH1D *hGenGoodInclusiveJetEtaCMFrame;
@@ -164,6 +172,15 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoPtLeadPtSubleadMcReweight;
     TH2D *hRecoEtaLeadEtaSubleadMcReweight;
     TH2D *hRecoDijetPtEta;
+    TH2D *hRecoDijetPtEtaForward;
+    TH2D *hRecoDijetPtEtaBackward;
+    TH2D *hRecoDijetPtEtaCMForward;
+    TH2D *hRecoDijetPtEtaCMBackward;
+    TH2D *hRecoDijetPtEtaForwardWeighted;
+    TH2D *hRecoDijetPtEtaBackwardWeighted;
+    TH2D *hRecoDijetPtEtaCMForwardWeighted;
+    TH2D *hRecoDijetPtEtaCMBackwardWeighted;
+
     TH3D *hRecoDijetPtEtaDphi;
     TH3D *hRecoDijetPtEtaDphiWeighted;
     TH3D *hRecoDijetPtEtaDphiCM;
@@ -255,6 +272,15 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted;
     TH3D *hRefDijetPtEtaDphi;
     TH3D *hRefDijetPtEtaDphiWeighted;
+
+    TH2D *hRefDijetPtEtaForward;
+    TH2D *hRefDijetPtEtaBackward;
+    TH2D *hRefDijetPtEtaCMForward;
+    TH2D *hRefDijetPtEtaCMBackward;
+    TH2D *hRefDijetPtEtaForwardWeighted;
+    TH2D *hRefDijetPtEtaBackwardWeighted;
+    TH2D *hRefDijetPtEtaCMForwardWeighted;
+    TH2D *hRefDijetPtEtaCMBackwardWeighted;
 
     TH1D *hRefDijetEtaCM;
     TH3D *hRefDijetPtEtaDphiCM;
