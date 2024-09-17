@@ -108,6 +108,8 @@ class DiJetAnalysis : public BaseAnalysis {
     Bool_t isGoodJetId(const RecoJet* jet);
     /// @brief Check if good track max cut
     Bool_t isGoodTrkMax(const RecoJet* jet);
+    /// @brief Boost eta to the center-of-mass frame
+    Double_t boostEta2CM(const Double_t &etaLab)
 
     /// @brief Print debug information
     Bool_t   fDebug;

@@ -608,6 +608,34 @@ Bool_t DiJetAnalysis::isGoodJetId(const RecoJet* jet) {
 		
 	return passJetId;
 }
+
+//________________
+Double_t DiJetAnalysis::boostEta2CM(const Double_t &etaLab) {
+    Double_t etaCM = etaLab;
+    // Apply lab frame boost to CM for the pPb 
+    if ( fIsPPb ) {
+        if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            if ( fIsPbGoingDir ) {
+                etaCM += fEtaShift;
+                etaCM = -etaCM;
+            }
+            else {
+                etaCM -= fEtaShift;
+            }
+        }
+        else { // For data: p goes to negative, Pb goes to positive
+            if ( fIsPbGoingDir ) {
+                etaCM -= fEtaShift;
+            }
+            else {
+                etaCM += fEtaShift;
+                etaCM = -etaCM;
+            }
+        }
+    } // if ( fIsPPb )
+
+    return etaCM;
+}
     
 //________________
 Bool_t DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
@@ -723,6 +751,12 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
             std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f idLead: %d idSubLead: %d\n", 
                               ptLead, ptSubLead, idLead, idSubLead);
         }
+
+        if ( pt > 30. ) {
+            fHM->hGenGoodInclusiveJetEtaLabFrame->Fill(eta, ptHatW);
+            fHM->hGenGoodInclusiveJetEtaCMFrame->Fill(boostEta2CM(eta), ptHatW);
+        }
+
         counter++;
     } // for ( genJetIter = event->genJetCollection()->begin();
 
@@ -955,7 +989,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                     fHM->hRecoInclusiveJetRefPtVsEtaTrkMaxCut->Fill(genEta, genPt, ptHatW);
                     fHM->hRecoInclusiveJetJESPtEtaPhiTrkMaxCut->Fill(res, ptHatW);
                     fHM->hRecoInclusiveJetDEtaPtEtaTrkMaxCut->Fill(dEta, genPt, genEta, ptHatW);
-                } // else
+                } // 
             } // if ( fIsMc )
 
             //
@@ -1014,6 +1048,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
                     }
                 } // if ( fIsMc )
             } // else if ( pt > ptRecoSubLead )
+
+            if ( pt > 30. ) {
+                fHM->hRecoGoodInclusiveJetEtaLabFrame->Fill(eta, ptHatW);
+                fHM->hRecoGoodInclusiveJetEtaCMFrame->Fill(boostEta2CM(eta), ptHatW);
+            }
         } // if ( passTrkMax )
 
         //

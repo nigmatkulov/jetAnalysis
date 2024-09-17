@@ -62,6 +62,9 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hGenDijetPtEtaDphiCM{nullptr},
   hGenDijetPtEtaDphiCMWeighted{nullptr},
 
+  hGenGoodInclusiveJetEtaLabFrame{nullptr},
+  hGenGoodInclusiveJetEtaCMFrame{nullptr},
+
   // Reco jets (single)
   hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen{nullptr},
   hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted{nullptr},
@@ -134,6 +137,10 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted{nullptr},
   // hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHat{nullptr},
   // hJESDijetPtDijetEtaDijetDeltaPhiGenDijetPtEtaDeltaPhiPtHatWeighted{nullptr},
+
+  hRecoGoodInclusiveJetEtaLabFrame{nullptr},
+  hRecoGoodInclusiveJetEtaCMFrame{nullptr},
+
   hRecoDijetEta{nullptr},
   hRecoDijetEtaCM{nullptr},
   hRefDijetEta{nullptr},
@@ -220,6 +227,9 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hGenDijetPtEtaDphiCM) delete hGenDijetPtEtaDphiCM;
         if (hGenDijetPtEtaDphiCMWeighted) delete hGenDijetPtEtaDphiCMWeighted;
 
+        if (hGenGoodInclusiveJetEtaLabFrame) delete hGenGoodInclusiveJetEtaLabFrame;
+        if (hGenGoodInclusiveJetEtaCMFrame) delete hGenGoodInclusiveJetEtaCMFrame;
+
 
         if (hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen) delete hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen;
         if (hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted) delete hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
@@ -274,6 +284,8 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoEtaLeadEtaSublead) delete hRecoEtaLeadEtaSublead;
     if (hRecoPtLeadPtSubleadMcReweight) delete hRecoPtLeadPtSubleadMcReweight;
     if (hRecoEtaLeadEtaSubleadMcReweight) delete hRecoEtaLeadEtaSubleadMcReweight;
+    if (hRecoGoodInclusiveJetEtaLabFrame) delete hRecoGoodInclusiveJetEtaLabFrame;
+    if (hRecoGoodInclusiveJetEtaCMFrame) delete hRecoGoodInclusiveJetEtaCMFrame;
     if (hRecoDijetEta) delete hRecoDijetEta;
     if (hRecoDijetPtEta) delete hRecoDijetPtEta;
     if (hRecoDijetPtEtaDphi) delete hRecoDijetPtEtaDphi;
@@ -558,6 +570,13 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                               fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                               fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
         hGenDijetPtEtaDphiCMWeighted->Sumw2();
+
+        hGenGoodInclusiveJetEtaLabFrame = new TH1D("hGenGoodInclusiveJetEtaLabFrame","Gen good inclusive jet #eta in lab frame;#eta^{Inclusive}",
+                                                   fEtaBins, fEtaRange[0], fEtaRange[1]);
+        hGenGoodInclusiveJetEtaLabFrame->Sumw2();
+        hGenGoodInclusiveJetEtaCMFrame = new TH1D("hGenGoodInclusiveJetEtaCMFrame","Gen good inclusive jet #eta in CM frame;#eta^{Inclusive}_{CM}",
+                                                  fEtaBins, fEtaRange[0], fEtaRange[1]);
+        hGenGoodInclusiveJetEtaCMFrame->Sumw2();
 
 
         //
@@ -995,6 +1014,13 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                            fPtBins, fPtRange[0], fPtRange[1]);
     hRecoInclusiveAllJetPtVsEta->Sumw2();
 
+    hRecoGoodInclusiveJetEtaLabFrame = new TH1D("hRecoGoodInclusiveJetEtaLabFrame","Reco good jet #eta in lab frame;#eta;Entries",
+                                                fEtaBins, fEtaRange[0], fEtaRange[1]);
+    hRecoGoodInclusiveJetEtaLabFrame->Sumw2();
+    hRecoGoodInclusiveJetEtaCMFrame = new TH1D("hRecoGoodInclusiveJetEtaCMFrame","Reco good jet #eta in CM frame;#eta;Entries",
+                                                fEtaBins, fEtaRange[0], fEtaRange[1]);
+    hRecoGoodInclusiveJetEtaCMFrame->Sumw2();
+
     //
     // Reco jet selection algo
     //
@@ -1154,6 +1180,9 @@ void HistoManagerDiJet::writeOutput() {
         hGenDijetEtaCM->Write();
         hGenDijetPtEtaDphiCM->Write();
         hGenDijetPtEtaDphiCMWeighted->Write();
+
+        hGenGoodInclusiveJetEtaLabFrame->Write();
+        hGenGoodInclusiveJetEtaCMFrame->Write();
         
 
         hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Write();
@@ -1254,6 +1283,8 @@ void HistoManagerDiJet::writeOutput() {
     hRecoDijetPtEtaDphiCM->Write();
     hRecoDijetPtEtaDphiCMWeighted->Write();
 
+    hRecoGoodInclusiveJetEtaLabFrame->Write();
+    hRecoGoodInclusiveJetEtaCMFrame->Write();
 
     hRecoDijetPtEtaDphiJetId->Write();
     hRecoTrkMaxToJetIdDijetMatching->Write();

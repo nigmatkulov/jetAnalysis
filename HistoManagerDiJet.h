@@ -110,6 +110,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hGenDijetPtEtaDphiCM;
     TH3D *hGenDijetPtEtaDphiCMWeighted;
 
+    TH1D *hGenGoodInclusiveJetEtaLabFrame;
+    TH1D *hGenGoodInclusiveJetEtaCMFrame;
+
     //
     // Reco jet histograms
     //
@@ -163,7 +166,6 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoDijetPtEtaDphiWeighted;
     TH3D *hRecoDijetPtEtaDphiCM;
     TH3D *hRecoDijetPtEtaDphiCMWeighted;
-
     TH3D *hRecoDijetPtEtaDphiJetId;
 
     TH2D *hRecoInclusiveAllJetPtVsEta;
@@ -239,6 +241,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Ref sublead pt, sublead eta weighted [12]
     THnSparseD *hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
 
+    TH1D *hRecoGoodInclusiveJetEtaLabFrame;
+    TH1D *hRecoGoodInclusiveJetEtaCMFrame;
 
     TH1D *hRecoDijetEta;
     TH1D *hRecoDijetEtaCM;
