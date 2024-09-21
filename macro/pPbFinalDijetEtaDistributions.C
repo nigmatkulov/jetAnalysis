@@ -165,7 +165,7 @@ void relSyst(TGraph *gr, TH1D* h, Int_t style = 0) {
     // Temporary smoothing procedure
     //
     // h->Smooth();
-    if ( name.Contains("JeuSyst") || name.Contains("PointingSyst") ) {
+    if ( ( name.Contains("JeuSyst") || name.Contains("PointingSyst") ) && ( !name.Contains("FB") ) ) {
         Int_t binLow = h->FindBin(-1.2);
         Int_t binHi = h->FindBin(1.2);
         Double_t maxVal{-1};
@@ -193,8 +193,12 @@ void addSystSource(TH1D* hTot, TH1D* hJeu, TH1D* hJer, TH1D* hPointing, TH1D* hP
     for (Int_t i{1}; i <= hTot->GetNbinsX(); i++) {
         yJeu = hJeu->GetBinContent(i);
         yJer = hJer->GetBinContent(i);
-        yPointing = hPointing->GetBinContent(i);
-        yPileup = hPileup->GetBinContent(i);
+        if ( hPointing != nullptr ) {
+            yPointing = hPointing->GetBinContent(i);
+        }
+        if ( hPileup != nullptr ) {
+            yPileup = hPileup->GetBinContent(i);
+        }
         yTot = TMath::Sqrt(yJeu*yJeu + yJer*yJer + yPointing*yPointing + yPileup*yPileup);
         std::cout << "i: " << i << " eta: " << hTot->GetBinCenter(i) << " yJES: " << yJeu << " yJER: " << yJer << " yPoint: " << yPointing
                   << " yPileup: " << yPileup
@@ -274,8 +278,8 @@ void writeCovPoints(TGraphErrors* grData, TGraph* grSyst, TH1* hSyst, Int_t syst
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
-    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
+    std::vector<Int_t> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
+    std::vector<Int_t> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
 
     std::vector<Int_t> ptDijetPtLow{};
     std::vector<Int_t> ptDijetPtHi{};
@@ -292,19 +296,45 @@ void writeCovPoints(TGraphErrors* grData, TGraph* grSyst, TH1* hSyst, Int_t syst
     TGraphErrors *gr2write = new TGraphErrors;
     Int_t iPoint{0};
     Int_t nPoints2Skip{2};
+    TString name = grData->GetName();
+    Bool_t isFB = kFALSE;
+    if ( name.Contains("FB") ) {
+        nPoints2Skip = 0;
+        std::cout << "!!!!! It is FB !!!!!" << std::endl;
+    }
 
     TString systText;
     if ( systSource == 0 ) {
-        systText = "data";
+        if ( isFB ) {
+            systText = "data_fb";
+        }
+        else {
+            systText = "data";
+        }
     }
     else if ( systSource == 1 ) {
-        systText = "jesSyst";
+        if (isFB) {
+            systText = "jes_fb";
+        }
+        else {
+            systText = "jes";
+        }
     }
     else if ( systSource == 2 ) {
-        systText = "jerSyst";
+        if (isFB) {
+            systText = "jer_fb";
+        }
+        else {
+            systText = "jer";
+        }
     }
     else if ( systSource == 3 ) {
-        systText = "pointingSyst";
+        if (isFB) {
+            systText = "pointing_fb";
+        }
+        else {
+            systText = "pointing";
+        }
     }
     else if ( systSource == 4 ) {
         systText = "pileupSyst";
@@ -388,8 +418,8 @@ void createValues() {
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
-    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
+    std::vector<Int_t> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
+    std::vector<Int_t> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
 
     std::vector<Int_t> ptDijetPtLow{};
     std::vector<Int_t> ptDijetPtHi{};
@@ -407,6 +437,12 @@ void createValues() {
                                              1.0,  1.2,  1.4,  1.6,  1.8,  
                                              2.0,  2.2,  2.4,  3.0,  4.0,  
                                              5.0 };
+
+    const Int_t dijetEtaFBBins{15};
+    Double_t dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
+                                                1.0,  1.2,  1.4,  1.6,  1.8,  
+                                                2.0,  2.2,  2.4,  3.0,  4.0,  
+                                                5.0 };
 
     Int_t totalType{2};
     Int_t dirType{0};
@@ -430,6 +466,14 @@ void createValues() {
     TH1D *hTotalSyst[ ptDijetPtLow.size() ];
     TH1D *hTotalSystRel[ ptDijetPtLow.size() ];
 
+    TH1D *hDirSystFB[ ptDijetPtLow.size() ];
+    TH1D *hJeuSystFB[ ptDijetPtLow.size() ];
+    TH1D *hJerSystFB[ ptDijetPtLow.size() ];
+    TH1D *hPointingSystFB[ ptDijetPtLow.size() ];
+    TH1D *hPileupSystFB[ ptDijetPtLow.size() ];
+    TH1D *hTotalSystFB[ ptDijetPtLow.size() ];
+    TH1D *hTotalSystRelFB[ ptDijetPtLow.size() ];
+
     // Create graphs
     TGraphErrors *grDijetEta[ ptDijetPtLow.size() ];
     TGraph *grDijetDirRelSyst[ ptDijetPtLow.size() ];
@@ -437,6 +481,13 @@ void createValues() {
     TGraph *grDijetJerRelSyst[ ptDijetPtLow.size() ];
     TGraph *grDijetPointingRelSyst[ ptDijetPtLow.size() ];
     TGraph *grDijetPileupRelSyst[ ptDijetPtLow.size() ];
+
+    TGraphErrors *grDijetEtaFB[ ptDijetPtLow.size() ];
+    TGraph *grDijetDirRelSystFB[ ptDijetPtLow.size() ];
+    TGraph *grDijetJeuRelSystFB[ ptDijetPtLow.size() ];
+    TGraph *grDijetJerRelSystFB[ ptDijetPtLow.size() ];
+    TGraph *grDijetPointingRelSystFB[ ptDijetPtLow.size() ];
+    TGraph *grDijetPileupRelSystFB[ ptDijetPtLow.size() ];
     for (int i{0}; i<ptDijetPtLow.size(); i++ ) {
         grDijetEta[i] = nullptr;
         grDijetDirRelSyst[i] = nullptr;
@@ -444,19 +495,32 @@ void createValues() {
         grDijetJerRelSyst[i] = nullptr;
         grDijetPointingRelSyst[i] = nullptr;
         grDijetPileupRelSyst[i] = nullptr;
+
+        grDijetEtaFB[i] = nullptr;
+        grDijetDirRelSystFB[i] = nullptr;
+        grDijetJeuRelSystFB[i] = nullptr;
+        grDijetJerRelSystFB[i] = nullptr;
+        grDijetPointingRelSystFB[i] = nullptr;
+        grDijetPileupRelSystFB[i] = nullptr;
     }
+
     TGraphErrors *grErrTotalSystUncrt[ ptDijetPtLow.size() ];
+    TGraphErrors *grErrTotalSystUncrtFB[ ptDijetPtLow.size() ];
     TMultiGraph *mgDijetEta[ ptDijetPtLow.size() ];
+    TMultiGraph *mgDijetEtaFB[ ptDijetPtLow.size() ];
 
     // Create canvases
-    Int_t sizeX = 1000;
-    Int_t sizeY = 1200;
+    Int_t sizeX = 1200;
+    Int_t sizeY = 800;
 
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
     Int_t ptBins = ptDijetPtLow.size();
 
     TCanvas *cSyst = new TCanvas("cSyst", "cSyst", sizeX, sizeY);
     cSyst->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
+
+    TCanvas *cSystFB = new TCanvas("cSystFB", "cSystFB", sizeX, sizeY);
+    cSystFB->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
 
     TString triggerName = "MB";
 
@@ -481,20 +545,29 @@ void createValues() {
 
         // Retrieve data for the give pT average bin
         grDijetEta[i] = new TGraphErrors( Form("freezeSyst/systematics/%s_pPb8160_etaDijet_data_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
-
         grDijetEta[i]->SetName( Form("grDijetEta_%d", i) );
         set1DStyle(grDijetEta[i]);
-        // for (Int_t j{0}; j<grDijetEta[i]->GetN(); j++) {
-        //     std::cout << "Data j: " << j << " x: " << grDijetEta[i]->GetPointX(j) << " y: " << grDijetEta[i]->GetPointY(j) << " ey: " << grDijetEta[i]->GetErrorY(j) << std::endl;
-        // }
+        grDijetEtaFB[i] = new TGraphErrors( Form("freezeSyst/systematics/%s_pPb8160_etaDijet_data_fb_%d_%d_cms.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grDijetEtaFB[i]->SetName( Form("grDijetEtaFB_%d", i) );
+        set1DStyle(grDijetEtaFB[i]);
+    
+        for (Int_t j{0}; j<grDijetEtaFB[i]->GetN(); j++) {
+            std::cout << "Data j: " << j << " x: " << grDijetEtaFB[i]->GetPointX(j) << " y: " << grDijetEtaFB[i]->GetPointY(j) << " ey: " << grDijetEtaFB[i]->GetErrorY(j) << std::endl;
+        }
 
         writeCovPoints(grDijetEta[i], nullptr, nullptr, 0, i);
+        writeCovPoints(grDijetEtaFB[i], nullptr, nullptr, 0, i);
 
         // Create histogram for total realtive systematic uncertainty
         hTotalSyst[i] = new TH1D( Form("hTotalSyst_%d",i), "Total relative systematic uncertainty;#eta^{dijet};Relative uncertainty [%]", 50, -5., 5. );
         hTotalSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hTotalSyst[i]->Sumw2();
         set1DStyle(hTotalSyst[i], 2);
+
+        hTotalSystFB[i] = new TH1D( Form("hTotalSystFB_%d",i), "Total relative systematic uncertainty;#eta^{dijet};Relative uncertainty [%]", 50, 0., 5. );
+        hTotalSystFB[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+        hTotalSystFB[i]->Sumw2();
+        set1DStyle(hTotalSystFB[i], 2);
         //std::cout << "i: " << i << " Nbins: " << hTotalSyst[i]->GetNbinsX() << std::endl;
 
         // Retrieve p-going vs Pb-going systematics
@@ -515,14 +588,24 @@ void createValues() {
             std::cout << "JES systematics" << std::endl;
             grDijetJeuRelSyst[i] = new TGraph(Form("freezeSyst/systematics/%s_pPb8160_etaDijet_jeuSyst_%d_%d_lab.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
             grDijetJeuRelSyst[i]->SetName( Form("grJeuSyst_%d", i) );
-            hJeuSyst[i] = new TH1D(  Form("hJeuSyst_%d",i), "Relative systematic uncertainty [%]", 30, -5., 5.);
+            hJeuSyst[i] = new TH1D(  Form("hJeuSyst_%d",i), "Relative systematic uncertainty [%]", 50, -5., 5.);
             hJeuSyst[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hJeuSyst[i]->Sumw2();
             relSyst(grDijetJeuRelSyst[i], hJeuSyst[i], jeuType);
             hJeuSyst[i]->Scale(100.);
             hJeuSyst[i]->SetName( Form("hJeuSyst_%d",i) );
 
+            grDijetJeuRelSystFB[i] = new TGraph(Form("freezeSyst/systematics/%s_pPb8160_etaDijet_jeuSyst_FB_%d_%d_cms.txt", triggerName.Data(), ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetJeuRelSystFB[i]->SetName( Form("grJeuSystFB_%d", i) );
+            hJeuSystFB[i] = new TH1D(  Form("hJeuSystFB_%d",i), "Relative systematic uncertainty [%]", 50, 0., 5.);
+            hJeuSystFB[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+            hJeuSystFB[i]->Sumw2();
+            relSyst(grDijetJeuRelSystFB[i], hJeuSystFB[i], jeuType);
+            hJeuSyst[i]->Scale(100.);
+            hJeuSystFB[i]->SetName( Form("hJeuSystFB_%d",i) );
+
             writeCovPoints(grDijetEta[i], grDijetJeuRelSyst[i], hJeuSyst[i], 1, i);
+            writeCovPoints(grDijetEtaFB[i], grDijetJeuRelSystFB[i], hJeuSystFB[i], 1, i);
         }
 
         // Retrieve JER systematics
@@ -537,7 +620,18 @@ void createValues() {
             hJerSyst[i]->Scale(100.);
             hJerSyst[i]->SetName( Form("hJerSyst_%d",i) );
 
+            grDijetJerRelSystFB[i] = new TGraph(Form("freezeSyst/systematics/MB_pPb8160_etaDijet_jerSyst_FB_%d_%d_cms.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg", " ");
+            grDijetJerRelSystFB[i]->SetName( Form("grJerSystFB_%d", i) );
+            hJerSystFB[i] = new TH1D(  Form("hJerSystFB_%d",i), "Relative systematic uncertainty [%]", 50, 0., 5.);
+            hJerSystFB[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+            hJerSystFB[i]->Sumw2();
+            relSyst(grDijetJerRelSystFB[i], hJerSystFB[i], jerType);
+            hJerSystFB[i]->Scale(100.);
+            hJerSystFB[i]->SetName( Form("hJerSystFB_%d",i) );
+
+
             writeCovPoints(grDijetEta[i], grDijetJerRelSyst[i], hJerSyst[i], 2, i);
+            writeCovPoints(grDijetEtaFB[i], grDijetJerRelSystFB[i], hJerSystFB[i], 2, i);
         }
 
         // Retrieve pointing resolution systematics
@@ -573,7 +667,9 @@ void createValues() {
         // Calculate total systematic uncertainty
         //
         addSystSource(hTotalSyst[i], hJeuSyst[i], hJerSyst[i], hPointingSyst[i], hPileupSyst[i]);
+        addSystSource(hTotalSystFB[i], hJeuSystFB[i], hJerSystFB[i], nullptr, nullptr);
         writeCovPoints(grDijetEta[i], nullptr, hTotalSyst[i], 5, i);
+        writeCovPoints(grDijetEtaFB[i], nullptr, hTotalSystFB[i], 5, i);
         
 
         //
@@ -585,10 +681,20 @@ void createValues() {
         grErrTotalSystUncrt[i]->SetFillColor(29);
         grErrTotalSystUncrt[i]->SetFillStyle(1001); // Solid fill
 
+        grErrTotalSystUncrtFB[i] = totalSyst( grDijetJeuRelSystFB[i], grDijetJerRelSystFB[i], nullptr, nullptr, grDijetEtaFB[i] /*, grDijetDirRelSystFB[i] */);
+        grErrTotalSystUncrtFB[i]->SetName( Form("grErrTotalSystUncrtFB_%d", i));
+        grErrTotalSystUncrtFB[i]->SetFillColor(29);
+        grErrTotalSystUncrtFB[i]->SetFillStyle(1001); // Solid fill
+
         mgDijetEta[i] = new TMultiGraph();
         mgDijetEta[i]->SetName( Form("mgDijetEta_%d",i) );
         mgDijetEta[i]->Add(grErrTotalSystUncrt[i], "A5");
         mgDijetEta[i]->Add(grDijetEta[i], "AP");
+
+        mgDijetEtaFB[i] = new TMultiGraph();
+        mgDijetEtaFB[i]->SetName( Form("mgDijetEtaFB_%d",i) );
+        mgDijetEtaFB[i]->Add(grErrTotalSystUncrtFB[i], "A5");
+        mgDijetEtaFB[i]->Add(grDijetEtaFB[i], "AP");
 
         //
         // Plot individual uncertainties
@@ -639,6 +745,34 @@ void createValues() {
         leg->Draw();
         canv->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_%d_%d_lab.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         canv->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_%d_%d_lab.png", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+
+        canv->cd();
+        setPadStyle();
+        hTotalSystFB[i]->Draw();
+        if ( useJeuSyst ) {
+            hJeuSystFB[i]->Draw("same");
+            // hJeuSyst[i]->Draw();
+        }
+        if ( useJerSyst ) {
+            hJerSystFB[i]->Draw("same");
+        }
+        hTotalSystFB[i]->GetYaxis()->SetRangeUser(0., 20.);
+        hTotalSystFB[i]->GetXaxis()->SetRangeUser(0., 3.);
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        leg = new TLegend(0.4, 0.65, 0.65, 0.85);
+        leg->SetTextSize(0.05);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hTotalSystFB[i], "Total", "l");
+        if (useJeuSyst) {
+            leg->AddEntry(hJeuSystFB[i], Form("JES"), "l");  
+        }
+        if (useJerSyst) {
+            leg->AddEntry(hJerSystFB[i], Form("JER"), "l");  
+        }
+        leg->Draw();
+        canv->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_%d_%d_cms.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        canv->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_%d_%d_cms.png", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         
         //
         // Plot systematic uncertainties for all pT bins
@@ -686,12 +820,41 @@ void createValues() {
         if ( usePileupSyst ) {
             leg->AddEntry(hPileupSyst[i], Form("Pileup"), "l");  
         }
-
         leg->Draw();
+
+
+        cSystFB->cd(i+1);
+        setPadStyle();
+        hTotalSystFB[i]->Draw();
+        if ( useJeuSyst ) {
+            hJeuSystFB[i]->Draw("same");
+            // hJeuSyst[i]->Draw();
+        }
+        if ( useJerSyst ) {
+            hJerSystFB[i]->Draw("same");
+        }
+        hTotalSystFB[i]->GetYaxis()->SetRangeUser(0., 20.);
+        hTotalSystFB[i]->GetXaxis()->SetRangeUser(0., 3.);
+        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        leg = new TLegend(0.4, 0.65, 0.65, 0.85);
+        leg->SetTextSize(0.05);
+        leg->SetLineWidth(0);
+        leg->AddEntry(hTotalSystFB[i], "Total", "l");
+        if (useJeuSyst) {
+            leg->AddEntry(hJeuSystFB[i], Form("JES"), "l");  
+        }
+        if (useJerSyst) {
+            leg->AddEntry(hJerSystFB[i], Form("JER"), "l");  
+        }
+        leg->Draw();
+
 
     } // for (UInt_t i{0}; i<ptDijetBinLow.size(); i++)
     cSyst->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_all_lab.pdf") );
     cSyst->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_all_lab.png") );
+    cSystFB->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_all_cms.pdf") );
+    cSystFB->SaveAs( Form("freezeSyst/systematics/pPb8160_syst_pt_all_cms.png") );
 
     TFile *oFile = new TFile("freezeSyst/oSystematics.root", "recreate");
     for (UInt_t i{0}; i<ptDijetBinLow.size(); i++) {
@@ -715,6 +878,26 @@ void createValues() {
         hPileupSyst[i]->Write();
         grDijetEta[i]->Write();
         grErrTotalSystUncrt[i]->Write();
+
+        hTotalSystRelFB[i] = dynamic_cast<TH1D*> ( hTotalSystFB[i]->Clone( Form("hTotalSystRelFB_%d", i) ) );
+        //hTotalSystRelFB[i]->Sumw2();
+        hTotalSystRelFB[i]->Scale(1./100);
+        hTotalSystRelFB[i]->SetMarkerStyle(1);
+        hTotalSystRelFB[i]->SetFillColor(41);
+        hTotalSystRelFB[i]->SetMarkerColor(41);
+        hTotalSystRelFB[i]->SetLineColor(41);
+        for (Int_t j=1; j<hTotalSystRelFB[i]->GetNbinsX(); j++) {
+            Double_t uncrt = hTotalSystRelFB[i]->GetBinContent(j);
+            hTotalSystRelFB[i]->SetBinContent(j, 1.);
+            hTotalSystRelFB[i]->SetBinError(j, uncrt);
+        }
+        hTotalSystRelFB[i]->Write();
+        hTotalSystFB[i]->Write();
+        hJeuSystFB[i]->Write();
+        hJerSystFB[i]->Write();
+        hTotalSystFB[i]->Write();
+        grDijetEtaFB[i]->Write();
+        grErrTotalSystUncrtFB[i]->Write();
     } // for (UInt_t i{0}; i<ptDijetBinLow.size(); i++)
     oFile->Close();
 }
@@ -725,8 +908,10 @@ void plotFinalDistributions() {
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
-    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
+    std::vector<Int_t> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
+    std::vector<Int_t> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
+    // std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    // std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
 
     std::vector<Int_t> ptDijetPtLow{};
     std::vector<Int_t> ptDijetPtHi{};
@@ -747,13 +932,19 @@ void plotFinalDistributions() {
     TGraphErrors *grErrTotalSystUncrt[ ptDijetPtLow.size() ];
     TMultiGraph *mgDijetEta[ ptDijetPtLow.size() ];
 
+    TGraphErrors *grDijetEtaFB[ ptDijetPtLow.size() ];
+    TGraphErrors *grErrTotalSystUncrtFB[ ptDijetPtLow.size() ];
+    TMultiGraph *mgDijetEtaFB[ ptDijetPtLow.size() ];
+
     // Create canvases
-    Int_t sizeX = 1000;
-    Int_t sizeY = 1200;
+    Int_t sizeX = 1200;
+    Int_t sizeY = 800;
     Int_t ptBins = ptDijetPtLow.size();
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
     TCanvas *cTot = new TCanvas("cTot", "cTot", sizeX, sizeY);
     cTot->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
+    TCanvas *cTotFB = new TCanvas("cTotFB", "cTotFB", sizeX, sizeY);
+    cTotFB->Divide(4, ( (ptBins % 4) == 0 ) ? (ptBins / 4) : (ptBins / 4 + 1) );
 
     // Loop over pT bins
     for (UInt_t i{0}; i<ptDijetPtLow.size(); i++) {
@@ -763,6 +954,10 @@ void plotFinalDistributions() {
         grDijetEta[i]->SetName( Form("grDijetEta_%d", i) );
         set1DStyle(grDijetEta[i]);
 
+        grDijetEtaFB[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_data_fb_%d_%d_cms.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grDijetEtaFB[i]->SetName( Form("grDijetEtaFB_%d", i) );
+        set1DStyle(grDijetEtaFB[i]);            
+
         // Retrieve total systematic uncertainty for the given pT average bin
         grErrTotalSystUncrt[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_totalSyst_pt_%d_%d.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
         grErrTotalSystUncrt[i]->SetName( Form("grDijetEta_%d", i) );
@@ -770,11 +965,22 @@ void plotFinalDistributions() {
         grErrTotalSystUncrt[i]->SetFillColor(29);
         grErrTotalSystUncrt[i]->SetFillStyle(1001); // Solid fill
 
+        grErrTotalSystUncrtFB[i] = new TGraphErrors( Form("freezeSyst/covMtx/pPb8160_dijet_totalSyst_fb_%d_%d_cms.txt", ptDijetPtLow.at(i), ptDijetPtHi.at(i)), "%lg %lg %lg %lg", "");
+        grErrTotalSystUncrtFB[i]->SetName( Form("grDijetEtaFB_%d", i) );
+        set1DStyle(grErrTotalSystUncrtFB[i]);
+        grErrTotalSystUncrtFB[i]->SetFillColor(29);
+        grErrTotalSystUncrtFB[i]->SetFillStyle(1001); // Solid fill
+
         // Create multigraph with the data and systematic uncertainty
         mgDijetEta[i] = new TMultiGraph();
         mgDijetEta[i]->SetName( Form("mgDijetEta_%d",i) );
         mgDijetEta[i]->Add(grErrTotalSystUncrt[i], "A5");
         mgDijetEta[i]->Add(grDijetEta[i], "AP");
+
+        mgDijetEtaFB[i] = new TMultiGraph();
+        mgDijetEtaFB[i]->SetName( Form("mgDijetEtaFB_%d",i) );
+        mgDijetEtaFB[i]->Add(grErrTotalSystUncrtFB[i], "A5");
+        mgDijetEtaFB[i]->Add(grDijetEtaFB[i], "AP");
 
         //
         // Plot individual pTave final dijet eta distribution
@@ -792,7 +998,6 @@ void plotFinalDistributions() {
         t.DrawLatexNDC(0.2, 0.59, "|#eta| < 3");
         t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
         plotCMSHeader();
-
         leg = new TLegend(0.7, 0.7, 0.85, 0.85);
         leg->SetTextSize(0.05);
         leg->SetLineWidth(0);
@@ -801,6 +1006,29 @@ void plotFinalDistributions() {
         leg->Draw();
         canv->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijet_pt_%d_%d_lab.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
         canv->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijet_pt_%d_%d_lab.png", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+
+        canv->cd();
+        setPadStyle();
+        setMultiGraphStyle(mgDijetEtaFB[i]);
+        mgDijetEtaFB[i]->Draw("AP");
+        mgDijetEtaFB[i]->GetYaxis()->SetRangeUser(0.8, 1.8);
+        mgDijetEta[i]->GetXaxis()->SetRangeUser(0., 3.);
+        t.DrawLatexNDC(0.2, 0.83, Form("%d < p_{T}^{ave} GeV < %d", 
+                       ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.59, "|#eta_{CM}| < 2.5");
+        t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
+        plotCMSHeader();
+        leg = new TLegend(0.7, 0.7, 0.85, 0.85);
+        leg->SetTextSize(0.05);
+        leg->SetLineWidth(0);
+        leg->AddEntry(grDijetEtaFB[i], "Data", "pl");
+        leg->AddEntry(grErrTotalSystUncrtFB[i], Form("Syst. ucrt."), "f");
+        leg->Draw();
+        canv->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijet_fb_pt_%d_%d_cms.pdf", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        canv->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijet_fb_pt_%d_%d_cms.png", ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+
 
         //
         // Plot all final plots
@@ -817,19 +1045,40 @@ void plotFinalDistributions() {
         t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading} > 40 GeV");
         t.DrawLatexNDC(0.2, 0.59, "|#eta| < 3");
         t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
-
         plotCMSHeader();
-
         leg = new TLegend(0.7, 0.7, 0.85, 0.85);
         leg->SetTextSize(0.05);
         leg->SetLineWidth(0);
         leg->AddEntry(grDijetEta[i], "Data", "pl");
         leg->AddEntry(grErrTotalSystUncrt[i], Form("Syst. ucrt."), "f");
         leg->Draw();
+
+        cTotFB->cd(i+1);
+        setPadStyle();
+        mgDijetEtaFB[i]->Draw("AP");
+        mgDijetEtaFB[i]->GetYaxis()->SetRangeUser(0.8, 1.8);
+        mgDijetEtaFB[i]->GetXaxis()->SetRangeUser(0., 3.);
+        // gPad->SetLogy(1);
+        t.DrawLatexNDC(0.2, 0.83, Form("%d < p_{T}^{ave} GeV < %d", 
+                       ptDijetPtLow.at(i), ptDijetPtHi.at(i)) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.67, "p_{T}^{Subleading} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.59, "|#eta_{CM}| < 2.5");
+        t.DrawLatexNDC(0.2, 0.51, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
+        plotCMSHeader();
+        leg = new TLegend(0.7, 0.7, 0.85, 0.85);
+        leg->SetTextSize(0.05);
+        leg->SetLineWidth(0);
+        leg->AddEntry(grDijetEtaFB[i], "Data", "pl");
+        leg->AddEntry(grErrTotalSystUncrtFB[i], Form("Syst. ucrt."), "f");
+        leg->Draw();
+
     } // for (UInt_t i{0}; i<ptDijetPtLow.size(); i++)
 
     cTot->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijetEta_pt_all_lab.pdf") );
     cTot->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijetEta_pt_all_lab.png") );
+    cTotFB->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijetEta_pt_all_cms.pdf") );
+    cTotFB->SaveAs( Form("freezeSyst/finalPlots/pPb8160_dijetEta_pt_all_cms.png") );
 }
 
 //________________
@@ -838,8 +1087,10 @@ void calculateCovMatrix() {
     // Dijet pT selection
     Int_t ptStep {5};
     Int_t ptLow {30};
-    std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
-    std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
+    std::vector<Int_t> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
+    std::vector<Int_t> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
+    // std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55, 75, 95,  55  };
+    // std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 74, 94, 194, 194 };
 
     std::vector<Int_t> ptDijetPtLow{};
     std::vector<Int_t> ptDijetPtHi{};
@@ -1014,9 +1265,9 @@ void pPbFinalDijetEtaDistributions() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    //createValues();
+    createValues();
 
-    calculateCovMatrix();
+    // calculateCovMatrix();
 
-    //plotFinalDistributions();
+    // plotFinalDistributions();
 }

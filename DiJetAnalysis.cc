@@ -1720,7 +1720,7 @@ Bool_t DiJetAnalysis::isGoodDijet(const Double_t& ptLead, const Double_t& ptSubl
     }
 
     if ( fIsMc ) {
-        if ( ptLead > (2 * fPtHatRange[1]) ) {
+        if ( (0.5 * (ptLead + ptSublead) ) > (2 * fPtHatRange[1]) ) {
             isGood = {kFALSE};
         }
     }
