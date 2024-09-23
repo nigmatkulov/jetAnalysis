@@ -813,10 +813,10 @@ std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> h
 
     TString name = hName;
     if ( isForward ) {
-        name += "_forward";
+        name += "_fb";
     }
     else {
-        name += "_backward";
+        name += "_bf";
     }
     std::cout << Form("[Create FB] hName: %s", name.Data() ) << std::endl;
     
@@ -824,6 +824,7 @@ std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> h
     for (Int_t i{0}; i<hBack.size(); i++) {
         if ( isForward ) {
             hFBRatio.push_back( dynamic_cast<TH1D*>( hForw[i]->Clone( Form("%s_%d", name.Data(), i) ) ) );
+            hFBRatio[i]->SetName( Form("%s_%d", name.Data(), i) );
             hFBRatio[i]->Divide( hBack[i] );
             set1DStyle(hFBRatio[i], type);
             if ( isCM ) {
@@ -837,6 +838,7 @@ std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> h
         }
         else {
             hFBRatio.push_back( dynamic_cast<TH1D*>( hBack[i]->Clone( Form("%s_%d", hName, i) ) ) );
+            hFBRatio[i]->SetName( Form("%s_%d", name.Data(), i) );
             hFBRatio[i]->Divide( hForw[i] );
             if ( isCM ) {
                 hFBRatio[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
@@ -881,9 +883,12 @@ std::vector< std::vector<TH1D*> > createDijetDirectionEtaHistogramsFromLab(TFile
     for (Int_t i{0}; i<ptBins; i++) {
         // Make projection on pseudorapidity axis
         hEta.push_back( projectEtaFrom3D(hPtEtaDphi, Form("%s_%d", hName, i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
+        hEta[i]->SetName( Form("%s_%d", hName, i) );
         rescaleEta(hEta[i]);
         hEtaForward.push_back( new TH1D( Form("%s_forward_%d", hName, i), Form("%s_forward_%d", hName, i), 50, 0., 5.) );
+        hEtaForward[i]->SetName( Form("%s_forward_%d", hName, i) );
         hEtaBackward.push_back( new TH1D( Form("%s_backward_%d", hName, i), Form("%s_backward_%d", hName, i), 50, 0., 5.) );
+        hEtaBackward[i]->SetName( Form("%s_backward_%d", hName, i) );
 
         hEtaForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaForward[i]->Sumw2(); set1DStyle(hEtaForward[i], upType);
         hEtaBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaBackward[i]->Sumw2(); set1DStyle(hEtaBackward[i], downType);
@@ -914,8 +919,9 @@ std::vector<TH1D*> createDijetDirectionEtaHistograms(TFile *inFile, const char *
     else {
         name += "_backward";
     }
-    std::cout << Form("[Dir] Direction histogram input histo name : %s", inputHistoName) << std::endl;
-    std::cout << Form("[Dir] Direction histogram output histo name: %s", name.Data()) << std::endl;
+    // std::cout << Form("[Dir] Direction histogram input histo name : %s", inputHistoName) << std::endl;
+    // std::cout << Form("[Dir] Direction histogram output histo name: %s", name.Data()) << std::endl;
+
     // Retreive the histogram
     TH2D* hPtEta = dynamic_cast<TH2D*>( inFile->Get( inputHistoName ) );
     // Reset histogram name
@@ -938,6 +944,7 @@ std::vector<TH1D*> createDijetDirectionEtaHistograms(TFile *inFile, const char *
             
         // Make projection on pseudorapidity axis
         hEtaDir.push_back( projectEtaFrom2D(hPtEta, Form("%s_%d", name.Data(), i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
+        hEtaDir[i]->SetName( Form("%s_%d", name.Data(), i) );
         rescaleEta(hEtaDir[i]); set1DStyle(hEtaDir[i], type);
         if ( isCM ) {
             hEtaDir[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
@@ -973,13 +980,13 @@ std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *input
                                                 Bool_t isCM = kFALSE) {
 
     // Retreive the histogram
-    std::cout << Form("[Full] Input histo name: %s", inputHistoName) << std::endl;
-    std::cout << Form("[Full] Output histo name: %s", hName) << std::endl;
+    // std::cout << Form("[Full] Input histo name: %s", inputHistoName) << std::endl;
+    // std::cout << Form("[Full] Output histo name: %s", hName) << std::endl;
     TH3D* hPtEtaDphi = dynamic_cast<TH3D*>( inFile->Get( inputHistoName ) );
     // Reset histogram name
     hPtEtaDphi->SetName( hName );
 
-    std::cout << Form("\t[Full] hPtEtaDphi entries: %f", hPtEtaDphi->Integral() ) << std::endl;
+    // std::cout << Form("\t[Full] hPtEtaDphi entries: %f", hPtEtaDphi->Integral() ) << std::endl;
 
     Int_t upType{0};
     Int_t downType{1};
@@ -998,6 +1005,7 @@ std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *input
             
         // Make projection on pseudorapidity axis
         hEta.push_back( projectEtaFrom3D(hPtEtaDphi, Form("%s_%d", hName, i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
+        hEta[i]->SetName( Form("%s_%d", hName, i) );
         rescaleEta(hEta[i]); set1DStyle(hEta[i], 2);
         if ( isCM ) {
             hEta[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
@@ -1420,10 +1428,15 @@ std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std:
             
         // Create histograms for ratios
         hEtaVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEta[i]->Clone( Form("%s_%s_%d_%s", hVarEta[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
+        hEtaVar2DefRatio[i]->SetName( Form("%s_%s_%d_%s", hVarEta[i]->GetName(), varStr.Data(), i, frame.Data()) );
         hEtaForwardVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaForward[i]->Clone( Form("%s_%s_forward_%d_%s", hVarEtaForward[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
+        hEtaForwardVar2DefRatio[i]->SetName( Form("%s_%s_forward_%d_%s", hVarEtaForward[i]->GetName(), varStr.Data(), i, frame.Data()) );
         hEtaBackwardVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaBackward[i]->Clone( Form("%s_%s_backward_%d_%s", hVarEtaBackward[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
+        hEtaBackwardVar2DefRatio[i]->SetName( Form("%s_%s_backward_%d_%s", hVarEtaBackward[i]->GetName(), varStr.Data(), i, frame.Data()) );
         hEtaFBRatioVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaFBRatio[i]->Clone( Form("%s_%s_fb_%d_%s", hVarEtaFBRatio[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
+        hEtaFBRatioVar2DefRatio[i]->SetName( Form("%s_%s_fb_%d_%s", hVarEtaFBRatio[i]->GetName(), varStr.Data(), i, frame.Data()) );
         hEtaBFRatioVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaBFRatio[i]->Clone( Form("%s_%s_bf_%d_%s", hVarEtaBFRatio[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
+        hEtaBFRatioVar2DefRatio[i]->SetName( Form("%s_%s_bf_%d_%s", hVarEtaBFRatio[i]->GetName(), varStr.Data(), i, frame.Data()) );
 
         // Build the ratios
         hEtaVar2DefRatio[i]->Divide( hDefEta[i] );
@@ -1471,7 +1484,6 @@ std::vector< std::vector<TH1D*> > createVectorOfUpAndDownRatios(std::vector< std
 
     return hRatios;
 }
-
 
 
 //________________
@@ -4064,6 +4076,13 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
     std::vector< TGraphErrors* > grJet100EtaFBRatioTotalAbsSyst = {};
     std::vector< TGraphErrors* > grJet100EtaBFRatioTotalAbsSyst = {};
 
+    std::vector< TGraphErrors* > grSystUncrt = {};
+    TFile *oSystFile = TFile::Open("freezeSyst/oSystematics.root");
+    for (Int_t i{0}; i<ptBins; i++) {
+        grSystUncrt.push_back( (TGraphErrors*)oSystFile->Get( Form("grErrTotalSystUncrt_%d", i) ) );
+        setGraphStyle(grSystUncrt[i], isCM);
+    }
+
     // Loop over pT bins
     for (Int_t i{0}; i<ptBins; i++) {
         hMBEtaFBRatio[i]->SetLineColor(kBlack);
@@ -4151,12 +4170,16 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
 
             canv->cd();
             setPadStyle();
-            setGraphStyle(grMBEtaTotalAbsSyst[i], isCM);
-            grMBEtaTotalAbsSyst[i]->Draw("AE5");
+            //setGraphStyle(grMBEtaTotalAbsSyst[i], isCM);
+            grSystUncrt[i]->Draw("AE5");
+            // grMBEtaTotalAbsSyst[i]->Draw("AE5");
             hMBEta[i]->Draw("same");
-            grMBEtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grMBEtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            // grMBEtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            // grMBEtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
             t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
+            t.SetTextSize(0.05);
             t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
             t.DrawLatexNDC(0.2, 0.66, "p_{T}^{Subleading} > 40 GeV");
             if ( isCM ) {
@@ -4166,22 +4189,26 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
                 t.DrawLatexNDC(0.2, 0.57, "|#eta| < 3");
             }
             t.DrawLatexNDC(0.2, 0.49, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
+            t.SetTextSize(0.06);
             leg = new TLegend(0.6, 0.65, 0.8, 0.8);
             leg->SetTextSize(0.06);
             leg->SetLineWidth(0);
             leg->AddEntry(hMBEta[i], "Data", "p");
-            leg->AddEntry(grMBEtaTotalAbsSyst[i], "Syst. uncrt.", "f");
+            leg->AddEntry(grSystUncrt[i], "Syst. uncrt.", "f");
             leg->Draw();
             plotCMSHeader();
             canv->SaveAs( Form("%s/data/MB_pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
 
             cEta->cd(i+1);
             setPadStyle();
-            setGraphStyle(grMBEtaTotalAbsSyst[i], isCM);
-            grMBEtaTotalAbsSyst[i]->Draw("AE5");
+            grSystUncrt[i]->Draw("AE5");
+            // setGraphStyle(grMBEtaTotalAbsSyst[i], isCM);
+            // grMBEtaTotalAbsSyst[i]->Draw("AE5");
             hMBEta[i]->Draw("same");
-            grMBEtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grMBEtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            // grMBEtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            // grMBEtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
             t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
             if (i == 0) {
                 t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
@@ -4199,7 +4226,7 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
                 leg->SetTextSize(0.06);
                 leg->SetLineWidth(0);
                 leg->AddEntry(hMBEta[i], "Data", "p");
-                leg->AddEntry(grMBEtaTotalAbsSyst[i], "Syst. uncrt.", "f");
+                leg->AddEntry(grSystUncrt[i], "Syst. uncrt.", "f");
                 leg->Draw();
             }
             plotCMSHeader();
@@ -4311,35 +4338,37 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
         }
         else if (ptDijetHi.at(i) < 100) {
 
-            std::cout << "Ahhhtung 0" << std::endl;
             grJet60EtaTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60Eta[i], hJet60EtaTotalRelSyst[i], "Jet60Eta", i) );
             grJet60EtaForwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaForward[i], hJet60EtaForwardTotalRelSyst[i], "Jet60EtaForward", i) );
             grJet60EtaBackwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaBackward[i], hJet60EtaBackwardTotalRelSyst[i], "Jet60EtaBackward", i) );
             grJet60EtaFBRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaFBRatio[i], hJet60EtaFBRatioTotalRelSyst[i], "Jet60EtaFBRatio", i) );
             grJet60EtaBFRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaBFRatio[i], hJet60EtaBFRatioTotalRelSyst[i], "Jet60EtaBFRatio", i) );
 
-            canv->cd();std::cout << "Ahhhtung  1" << std::endl;
-
             setPadStyle();
-            std::cout << Form("Name: %s", grJet60EtaTotalAbsSyst[i]->GetName()) << std::endl;
-            setGraphStyle(grJet60EtaTotalAbsSyst[i], isCM);
+            // std::cout << Form("Name: %s", grJet60EtaTotalAbsSyst[i]->GetName()) << std::endl;
+            // setGraphStyle(grJet60EtaTotalAbsSyst[i], isCM);
 
-            std::cout << "Ahhhtung" << std::endl;
-            grJet60EtaTotalAbsSyst[i]->Draw("AE5");
+            grSystUncrt[i]->Draw("AE5");
+            // grJet60EtaTotalAbsSyst[i]->Draw("AE5");
             hJet60Eta[i]->Draw("same");
-            grJet60EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grJet60EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            // grJet60EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            // grJet60EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
             t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
             plotCMSHeader();
             canv->SaveAs( Form("%s/data/Jet60_pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
 
             cEta->cd(i+1);
             setPadStyle();
-            setGraphStyle(grJet60EtaTotalAbsSyst[i], isCM);
-            grJet60EtaTotalAbsSyst[i]->Draw("AE5");
+            // setGraphStyle(grJet60EtaTotalAbsSyst[i], isCM);
+            // grJet60EtaTotalAbsSyst[i]->Draw("AE5");
+            grSystUncrt[i]->Draw("AE5");
             hJet60Eta[i]->Draw("same");
-            grJet60EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grJet60EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            // grJet60EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            // grJet60EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
             t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
             plotCMSHeader();
 
@@ -4416,22 +4445,28 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
 
             canv->cd();
             setPadStyle();
-            setGraphStyle(grJet80EtaTotalAbsSyst[i], isCM);
-            grJet80EtaTotalAbsSyst[i]->Draw("AE5");
+            // setGraphStyle(grJet80EtaTotalAbsSyst[i], isCM);
+            // grJet80EtaTotalAbsSyst[i]->Draw("AE5");
+            grSystUncrt[i]->Draw("AE5");
             hJet80Eta[i]->Draw("same");
-            grJet80EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grJet80EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            // grJet80EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            // grJet80EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
             t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
             plotCMSHeader();
             canv->SaveAs( Form("%s/data/Jet80_pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
 
             cEta->cd(i+1);
             setPadStyle();
-            setGraphStyle(grJet80EtaTotalAbsSyst[i], isCM);
-            grJet80EtaTotalAbsSyst[i]->Draw("AE5");
+            // setGraphStyle(grJet80EtaTotalAbsSyst[i], isCM);
+            // grJet80EtaTotalAbsSyst[i]->Draw("AE5");
+            grSystUncrt[i]->Draw("AE5");
             hJet80Eta[i]->Draw("same");
-            grJet80EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grJet80EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            // grJet80EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            // grJet80EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
             t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
             plotCMSHeader();
 
@@ -4498,22 +4533,28 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
 
             canv->cd();
             setPadStyle();
-            setGraphStyle(grJet100EtaTotalAbsSyst[i], isCM);
-            grJet100EtaTotalAbsSyst[i]->Draw("AE5");
+            grSystUncrt[i]->Draw("AE5");
+            // setGraphStyle(grJet100EtaTotalAbsSyst[i], isCM);
+            // grJet100EtaTotalAbsSyst[i]->Draw("AE5");
             hJet100Eta[i]->Draw("same");
-            grJet100EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grJet100EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            // grJet100EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            // grJet100EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
             t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
             plotCMSHeader();
             canv->SaveAs( Form("%s/data/Jet100_pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
 
             cEta->cd(i+1);
             setPadStyle();
-            setGraphStyle(grJet100EtaTotalAbsSyst[i], isCM);
-            grJet100EtaTotalAbsSyst[i]->Draw("AE5");
+            grSystUncrt[i]->Draw("AE5");
+            // setGraphStyle(grJet100EtaTotalAbsSyst[i], isCM);
+            // grJet100EtaTotalAbsSyst[i]->Draw("AE5");
             hJet100Eta[i]->Draw("same");
-            grJet100EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grJet100EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            // grJet100EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            // grJet100EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
             t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
             plotCMSHeader();
 
@@ -6066,7 +6107,8 @@ void applySmoothing(TH1D* h) {
 
 //________________
 TH1D* calculateSystUncrtBinByBin(TH1D *hUp, TH1D *hDown = nullptr, 
-                                const Char_t *setName = "hMB", Int_t systType = 0, Int_t bin = 0) {
+                                const Char_t *setName = "hMB", 
+                                Int_t systType = 0, Int_t bin = 0) {
 
     TString hName = setName;
     TString systSuffix;
