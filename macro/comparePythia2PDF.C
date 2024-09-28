@@ -102,7 +102,6 @@ void makeRatio(TH1* hRat, TH1* hPb, TH1* hPP) {
     hRat->Divide( hPb, hPP );
 }
 
-
 //________________
 void comparePythia2PDF() {
 
@@ -118,7 +117,7 @@ void comparePythia2PDF() {
     fillDijetPtBins(ptDijetLow, ptDijetHi);
     Int_t ptBins = ptDijetLow.size();
     
-    TFile *pythiaFile = TFile::Open("20240921/oSystematics_lab.root");
+    //TFile *pythiaFile = TFile::Open("20240921/oSystematics_lab.root");
     TFile *pdfFile = TFile::Open("epps21/oEPPS21.root");
     TFile *pdfxFile;
     if ( usePDFx ) {

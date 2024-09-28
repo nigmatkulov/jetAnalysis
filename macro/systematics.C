@@ -7013,7 +7013,7 @@ void runNewCalculations(Bool_t isCM = kFALSE) {
     // File names
     //
 
-    TString pathPrefix = "/Users/nigmatkulov/cernbox";
+    TString pathPrefix = "/Users/gnigmat/cernbox";
 
     // Data file names
     TString mbFileName( Form("%s/ana/pPb8160/exp/MB_pPb8160_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
