@@ -283,6 +283,7 @@ void setGraphStyle(TGraph* gr, Bool_t isCM = "kFALSE") {
         gr->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
     }
 }
+
 //________________
 void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
     h->GetYaxis()->SetTitleSize(0.06);
@@ -818,13 +819,20 @@ std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> h
     else {
         name += "_bf";
     }
-    std::cout << Form("[Create FB] hName: %s", name.Data() ) << std::endl;
+
+    // Create vectors with pT values
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    // std::cout << Form("[Create FB] hName: %s", name.Data() ) << std::endl;
     
     std::vector<TH1D*> hFBRatio;
     for (Int_t i{0}; i<hBack.size(); i++) {
         if ( isForward ) {
             hFBRatio.push_back( dynamic_cast<TH1D*>( hForw[i]->Clone( Form("%s_%d", name.Data(), i) ) ) );
-            hFBRatio[i]->SetName( Form("%s_%d", name.Data(), i) );
+            hFBRatio[i]->SetName( Form("%s_pt_%d_%d", name.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) );
             hFBRatio[i]->Divide( hBack[i] );
             set1DStyle(hFBRatio[i], type);
             if ( isCM ) {
@@ -838,7 +846,7 @@ std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> h
         }
         else {
             hFBRatio.push_back( dynamic_cast<TH1D*>( hBack[i]->Clone( Form("%s_%d", hName, i) ) ) );
-            hFBRatio[i]->SetName( Form("%s_%d", name.Data(), i) );
+            hFBRatio[i]->SetName( Form("%s_pt_%d_%d", name.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) );
             hFBRatio[i]->Divide( hForw[i] );
             if ( isCM ) {
                 hFBRatio[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
@@ -857,8 +865,9 @@ std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> h
 std::vector< std::vector<TH1D*> > createDijetDirectionEtaHistogramsFromLab(TFile *inFile, const char *inputHistoName,
                                                                            const char* hName, int type = 2) {
 
-    std::cout << Form("[Dir lab] Direction histogram input histo name : %s", inputHistoName) << std::endl;
-    std::cout << Form("[Dir lab] Direction histogram output histo name: %s", hName) << std::endl;
+    // std::cout << Form("[Dir lab] Direction histogram input histo name : %s", inputHistoName) << std::endl;
+    // std::cout << Form("[Dir lab] Direction histogram output histo name: %s", hName) << std::endl;
+
     // Retreive the histogram
     TH3D *hPtEtaDphi = dynamic_cast<TH3D*>( inFile->Get( inputHistoName ) );
     // Reset histogram name
@@ -881,14 +890,15 @@ std::vector< std::vector<TH1D*> > createDijetDirectionEtaHistogramsFromLab(TFile
 
     // Loop over dijet pT bins
     for (Int_t i{0}; i<ptBins; i++) {
+        
         // Make projection on pseudorapidity axis
         hEta.push_back( projectEtaFrom3D(hPtEtaDphi, Form("%s_%d", hName, i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
-        hEta[i]->SetName( Form("%s_%d", hName, i) );
+        hEta[i]->SetName( Form("%s_pt_%d_%d", hName, ptDijetLow.at(i), ptDijetHi.at(i)) );
         rescaleEta(hEta[i]);
         hEtaForward.push_back( new TH1D( Form("%s_forward_%d", hName, i), Form("%s_forward_%d", hName, i), 50, 0., 5.) );
-        hEtaForward[i]->SetName( Form("%s_forward_%d", hName, i) );
-        hEtaBackward.push_back( new TH1D( Form("%s_backward_%d", hName, i), Form("%s_backward_%d", hName, i), 50, 0., 5.) );
-        hEtaBackward[i]->SetName( Form("%s_backward_%d", hName, i) );
+        hEtaForward[i]->SetName( Form("%s_forward_pt_%d_%d", hName, ptDijetLow.at(i), ptDijetHi.at(i)) );
+        hEtaBackward.push_back( new TH1D( Form("%s_backward_pt_%d", hName, i), Form("%s_backward_%d", hName, i), 50, 0., 5.) );
+        hEtaBackward[i]->SetName( Form("%s_backward_pt_%d_%d", hName, ptDijetLow.at(i), ptDijetHi.at(i)) );
 
         hEtaForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaForward[i]->Sumw2(); set1DStyle(hEtaForward[i], upType);
         hEtaBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaBackward[i]->Sumw2(); set1DStyle(hEtaBackward[i], downType);
@@ -944,7 +954,7 @@ std::vector<TH1D*> createDijetDirectionEtaHistograms(TFile *inFile, const char *
             
         // Make projection on pseudorapidity axis
         hEtaDir.push_back( projectEtaFrom2D(hPtEta, Form("%s_%d", name.Data(), i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
-        hEtaDir[i]->SetName( Form("%s_%d", name.Data(), i) );
+        hEtaDir[i]->SetName( Form("%s_pt_%d_%d", name.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) );
         rescaleEta(hEtaDir[i]); set1DStyle(hEtaDir[i], type);
         if ( isCM ) {
             hEtaDir[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
@@ -1005,7 +1015,7 @@ std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *input
             
         // Make projection on pseudorapidity axis
         hEta.push_back( projectEtaFrom3D(hPtEtaDphi, Form("%s_%d", hName, i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
-        hEta[i]->SetName( Form("%s_%d", hName, i) );
+        hEta[i]->SetName( Form("%s_pt_%d_%d", hName, ptDijetLow.at(i), ptDijetHi.at(i)) );
         rescaleEta(hEta[i]); set1DStyle(hEta[i], 2);
         if ( isCM ) {
             hEta[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
@@ -1016,7 +1026,7 @@ std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *input
             hEta[i]->GetYaxis()->SetTitle("dN/d#eta^{dijet}");
         }
 
-        std::cout << Form("\t[Full] %s integral: %f entries: %f", hEta[i]->GetName(), hEta[i]->Integral(), hEta[i]->GetEntries() ) << std::endl;
+        //std::cout << Form("\t[Full] %s integral: %f entries: %f", hEta[i]->GetName(), hEta[i]->Integral(), hEta[i]->GetEntries() ) << std::endl;
     } // for (Int_t i{0}; i<ptDijetBinLow.size(); i++)
 
     return hEta;
@@ -1024,9 +1034,9 @@ std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *input
 
 //________________
 std::vector< std::vector<TH1D*> > createRatios2MC(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vector<TH1D*> > hJet60EtaDist,
-                                                   std::vector< std::vector<TH1D*> > hJet80EtaDist, std::vector< std::vector<TH1D*> > hJet100EtaDist,
-                                                   std::vector< std::vector<TH1D*> > hEmbeddingEtaDist, std::vector< std::vector<TH1D*> > hGenEtaDist,
-                                                   Bool_t isCM = kFALSE) {
+                                                  std::vector< std::vector<TH1D*> > hJet80EtaDist, std::vector< std::vector<TH1D*> > hJet100EtaDist,
+                                                  std::vector< std::vector<TH1D*> > hEmbeddingEtaDist, std::vector< std::vector<TH1D*> > hGenEtaDist,
+                                                  Bool_t isCM = kFALSE) {
 
     TString frame;
     if ( isCM ) {
@@ -1143,60 +1153,60 @@ std::vector< std::vector<TH1D*> > createRatios2MC(std::vector< std::vector<TH1D*
     for (Int_t i{0}; i<ptBins; i++) {
 
         // Create histograms for ratios to gen
-        hMBEta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hMBEta[i]->Clone( Form("%s_mb2gen_%d_%s", hMBEta[i]->GetName(), i, frame.Data()) ) ) );
-        hMBEtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hMBEtaForward[i]->Clone( Form("%s_mb2gen_forward_%d_%s", hMBEtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hMBEtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hMBEtaBackward[i]->Clone( Form("%s_mb2gen_backward_%d_%s", hMBEtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hMBEtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hMBEtaFBRatio[i]->Clone( Form("%s_mb2gen_fb_%d_%s", hMBEtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hMBEtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hMBEtaBFRatio[i]->Clone( Form("%s_mb2gen_bf_%d_%s", hMBEtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hMBEta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hMBEta[i]->Clone( Form("%s_ratio2gen_%s", hMBEta[i]->GetName(), frame.Data()) ) ) );
+        hMBEtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hMBEtaForward[i]->Clone( Form("%s_ratio2gen_%s", hMBEtaForward[i]->GetName(), frame.Data()) ) ) );
+        hMBEtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hMBEtaBackward[i]->Clone( Form("%s_ratio2gen_%s", hMBEtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hMBEtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hMBEtaFBRatio[i]->Clone( Form("%s_ratio2gen_%s", hMBEtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hMBEtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hMBEtaBFRatio[i]->Clone( Form("%s_ratio2gen_%s", hMBEtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
-        hJet60Eta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hJet60Eta[i]->Clone( Form("%s_jet60_2gen_%d_%s", hJet60Eta[i]->GetName(), i, frame.Data()) ) ) );
-        hJet60EtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaForward[i]->Clone( Form("%s_jet60_2gen_forward_%d_%s", hJet60EtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet60EtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaBackward[i]->Clone( Form("%s_jet60_2gen_backward_%d_%s", hJet60EtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet60EtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaFBRatio[i]->Clone( Form("%s_jet60_2gen_fb_%d_%s", hJet60EtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hJet60EtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaBFRatio[i]->Clone( Form("%s_jet60_2gen_bf_%d_%s", hJet60EtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hJet60Eta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hJet60Eta[i]->Clone( Form("%s_ratio2gen_%s", hJet60Eta[i]->GetName(), frame.Data()) ) ) );
+        hJet60EtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaForward[i]->Clone( Form("%s_ratio2gen_%s", hJet60EtaForward[i]->GetName(), frame.Data()) ) ) );
+        hJet60EtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaBackward[i]->Clone( Form("%s_ratio2gen_%s", hJet60EtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hJet60EtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaFBRatio[i]->Clone( Form("%s_ratio2gen_%s", hJet60EtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hJet60EtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaBFRatio[i]->Clone( Form("%s_ratio2gen_%s", hJet60EtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
-        hJet80Eta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hJet80Eta[i]->Clone( Form("%s_jet80_2gen_%d_%s", hJet80Eta[i]->GetName(), i, frame.Data()) ) ) );
-        hJet80EtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaForward[i]->Clone( Form("%s_jet80_2gen_forward_%d_%s", hJet80EtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet80EtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaBackward[i]->Clone( Form("%s_jet80_2gen_backward_%d_%s", hJet80EtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet80EtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaFBRatio[i]->Clone( Form("%s_jet80_2gen_fb_%d_%s", hJet80EtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hJet80EtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaBFRatio[i]->Clone( Form("%s_jet80_2gen_bf_%d_%s", hJet80EtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hJet80Eta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hJet80Eta[i]->Clone( Form("%s_ratio2gen_%s", hJet80Eta[i]->GetName(), frame.Data()) ) ) );
+        hJet80EtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaForward[i]->Clone( Form("%s_ratio2gen_%s", hJet80EtaForward[i]->GetName(), frame.Data()) ) ) );
+        hJet80EtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaBackward[i]->Clone( Form("%s_ratio2gen_%s", hJet80EtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hJet80EtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaFBRatio[i]->Clone( Form("%s_ratio2gen_%s", hJet80EtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hJet80EtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaBFRatio[i]->Clone( Form("%s_ratio2gen_%s", hJet80EtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
-        hJet100Eta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hJet100Eta[i]->Clone( Form("%s_jet100_2gen_%d_%s", hJet100Eta[i]->GetName(), i, frame.Data()) ) ) );
-        hJet100EtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaForward[i]->Clone( Form("%s_jet100_2gen_forward_%d_%s", hJet100EtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet100EtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaBackward[i]->Clone( Form("%s_jet100_2gen_backward_%d_%s", hJet100EtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet100EtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaFBRatio[i]->Clone( Form("%s_jet100_2gen_fb_%d_%s", hJet100EtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hJet100EtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaBFRatio[i]->Clone( Form("%s_jet100_2gen_bf_%d_%s", hJet100EtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hJet100Eta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hJet100Eta[i]->Clone( Form("%s_ratio2gen_%s", hJet100Eta[i]->GetName(), frame.Data()) ) ) );
+        hJet100EtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaForward[i]->Clone( Form("%s_ratio2gen_%s", hJet100EtaForward[i]->GetName(), frame.Data()) ) ) );
+        hJet100EtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaBackward[i]->Clone( Form("%s_ratio2gen_%s", hJet100EtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hJet100EtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaFBRatio[i]->Clone( Form("%s_ratio2gen_%s", hJet100EtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hJet100EtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaBFRatio[i]->Clone( Form("%s_ratio2gen_%s", hJet100EtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
-        hEmbeddingEta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEta[i]->Clone( Form("%s_embedding_2gen_%d_%s", hEmbeddingEta[i]->GetName(), i, frame.Data()) ) ) );
-        hEmbeddingEtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaForward[i]->Clone( Form("%s_embedding_2gen_forward_%d_%s", hEmbeddingEtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hEmbeddingEtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaBackward[i]->Clone( Form("%s_embedding_2gen_backward_%d_%s", hEmbeddingEtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hEmbeddingEtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaFBRatio[i]->Clone( Form("%s_embedding_2gen_fb_%d_%s", hEmbeddingEtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hEmbeddingEtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaBFRatio[i]->Clone( Form("%s_embedding_2gen_bf_%d_%s", hEmbeddingEtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hEmbeddingEta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEta[i]->Clone( Form("%s_ratio2gen_%s", hEmbeddingEta[i]->GetName(), frame.Data()) ) ) );
+        hEmbeddingEtaForward2GenEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaForward[i]->Clone( Form("%s_ratio2gen_%s", hEmbeddingEtaForward[i]->GetName(), frame.Data()) ) ) );
+        hEmbeddingEtaBackward2GenEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaBackward[i]->Clone( Form("%s_ratio2gen_%s", hEmbeddingEtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hEmbeddingEtaFBRatio2GenEtaFBRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaFBRatio[i]->Clone( Form("%s_ratio2gen_%s", hEmbeddingEtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hEmbeddingEtaBFRatio2GenEtaBFRatio.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaBFRatio[i]->Clone( Form("%s_ratio2gen_%s", hEmbeddingEtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
         // Create histograms for ratios to embedding
-        hMBEta2EmbeddingEtaRatio.push_back( dynamic_cast<TH1D*>( hMBEta[i]->Clone( Form("%s_mb2embedding_%d_%s", hMBEta[i]->GetName(), i, frame.Data()) ) ) );
-        hMBEtaForward2EmbeddingEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hMBEtaForward[i]->Clone( Form("%s_mb2embedding_forward_%d_%s", hMBEtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hMBEtaBackward2EmbeddingEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hMBEtaBackward[i]->Clone( Form("%s_mb2embedding_backward_%d_%s", hMBEtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hMBEtaFBRatio2EmbeddingEtaFBRatio.push_back( dynamic_cast<TH1D*>( hMBEtaFBRatio[i]->Clone( Form("%s_mb2embedding_fb_%d_%s", hMBEtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hMBEtaBFRatio2EmbeddingEtaBFRatio.push_back( dynamic_cast<TH1D*>( hMBEtaBFRatio[i]->Clone( Form("%s_mb2embedding_bf_%d_%s", hMBEtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hMBEta2EmbeddingEtaRatio.push_back( dynamic_cast<TH1D*>( hMBEta[i]->Clone( Form("%s_ratio2embedding_%s", hMBEta[i]->GetName(), frame.Data()) ) ) );
+        hMBEtaForward2EmbeddingEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hMBEtaForward[i]->Clone( Form("%s_ratio2embedding_%s", hMBEtaForward[i]->GetName(), frame.Data()) ) ) );
+        hMBEtaBackward2EmbeddingEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hMBEtaBackward[i]->Clone( Form("%s_ratio2embedding_%s", hMBEtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hMBEtaFBRatio2EmbeddingEtaFBRatio.push_back( dynamic_cast<TH1D*>( hMBEtaFBRatio[i]->Clone( Form("%s_ratio2embedding_%s", hMBEtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hMBEtaBFRatio2EmbeddingEtaBFRatio.push_back( dynamic_cast<TH1D*>( hMBEtaBFRatio[i]->Clone( Form("%s_ratio2embedding_%s", hMBEtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
-        hJet60Eta2EmbeddingEtaRatio.push_back( dynamic_cast<TH1D*>( hJet60Eta[i]->Clone( Form("%s_jet60_2embedding_%d_%s", hJet60Eta[i]->GetName(), i, frame.Data()) ) ) );
-        hJet60EtaForward2EmbeddingEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaForward[i]->Clone( Form("%s_jet60_2embedding_forward_%d_%s", hJet60EtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet60EtaBackward2EmbeddingEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaBackward[i]->Clone( Form("%s_jet60_2embedding_backward_%d_%s", hJet60EtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet60EtaFBRatio2EmbeddingEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaFBRatio[i]->Clone( Form("%s_jet60_2embedding_fb_%d_%s", hJet60EtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hJet60EtaBFRatio2EmbeddingEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaBFRatio[i]->Clone( Form("%s_jet60_2embedding_bf_%d_%s", hJet60EtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hJet60Eta2EmbeddingEtaRatio.push_back( dynamic_cast<TH1D*>( hJet60Eta[i]->Clone( Form("%s_ratio2embedding_%s", hJet60Eta[i]->GetName(), frame.Data()) ) ) );
+        hJet60EtaForward2EmbeddingEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaForward[i]->Clone( Form("%s_ratio2embedding_%s", hJet60EtaForward[i]->GetName(), frame.Data()) ) ) );
+        hJet60EtaBackward2EmbeddingEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaBackward[i]->Clone( Form("%s_ratio2embedding_p%s", hJet60EtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hJet60EtaFBRatio2EmbeddingEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaFBRatio[i]->Clone( Form("%s_ratio2embedding_%s", hJet60EtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hJet60EtaBFRatio2EmbeddingEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet60EtaBFRatio[i]->Clone( Form("%s_ratio2embedding_%s", hJet60EtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
-        hJet80Eta2EmbeddingEtaRatio.push_back( dynamic_cast<TH1D*>( hJet80Eta[i]->Clone( Form("%s_jet80_2embedding_%d_%s", hJet80Eta[i]->GetName(), i, frame.Data()) ) ) );
-        hJet80EtaForward2EmbeddingEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaForward[i]->Clone( Form("%s_jet80_2embedding_forward_%d_%s", hJet80EtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet80EtaBackward2EmbeddingEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaBackward[i]->Clone( Form("%s_jet80_2embedding_backward_%d_%s", hJet80EtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet80EtaFBRatio2EmbeddingEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaFBRatio[i]->Clone( Form("%s_jet80_2embedding_fb_%d_%s", hJet80EtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hJet80EtaBFRatio2EmbeddingEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaBFRatio[i]->Clone( Form("%s_jet80_2embedding_bf_%d_%s", hJet80EtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hJet80Eta2EmbeddingEtaRatio.push_back( dynamic_cast<TH1D*>( hJet80Eta[i]->Clone( Form("%s_ratio2embedding_%s", hJet80Eta[i]->GetName(), frame.Data()) ) ) );
+        hJet80EtaForward2EmbeddingEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaForward[i]->Clone( Form("%s_ratio2embedding_%s", hJet80EtaForward[i]->GetName(), frame.Data()) ) ) );
+        hJet80EtaBackward2EmbeddingEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaBackward[i]->Clone( Form("%s_ratio2embedding_%s", hJet80EtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hJet80EtaFBRatio2EmbeddingEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaFBRatio[i]->Clone( Form("%s_ratio2embedding_%s", hJet80EtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hJet80EtaBFRatio2EmbeddingEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet80EtaBFRatio[i]->Clone( Form("%s_ratio2embedding_%s", hJet80EtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
-        hJet100Eta2EmbeddingEtaRatio.push_back( dynamic_cast<TH1D*>( hJet100Eta[i]->Clone( Form("%s_jet100_2embedding_%d_%s", hJet100Eta[i]->GetName(), i, frame.Data()) ) ) );
-        hJet100EtaForward2EmbeddingEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaForward[i]->Clone( Form("%s_jet100_2embedding_forward_%d_%s", hJet100EtaForward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet100EtaBackward2EmbeddingEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaBackward[i]->Clone( Form("%s_jet100_2embedding_backward_%d_%s", hJet100EtaBackward[i]->GetName(), i, frame.Data()) ) ) );
-        hJet100EtaFBRatio2EmbeddingEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaFBRatio[i]->Clone( Form("%s_jet100_2embedding_fb_%d_%s", hJet100EtaFBRatio[i]->GetName(), i, frame.Data()) ) ) );
-        hJet100EtaBFRatio2EmbeddingEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaBFRatio[i]->Clone( Form("%s_jet100_2embedding_bf_%d_%s", hJet100EtaBFRatio[i]->GetName(), i, frame.Data()) ) ) );
+        hJet100Eta2EmbeddingEtaRatio.push_back( dynamic_cast<TH1D*>( hJet100Eta[i]->Clone( Form("%s_ratio2embedding_%s", hJet100Eta[i]->GetName(), frame.Data()) ) ) );
+        hJet100EtaForward2EmbeddingEtaForwardRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaForward[i]->Clone( Form("%s_ratio2embedding_t_%s", hJet100EtaForward[i]->GetName(), frame.Data()) ) ) );
+        hJet100EtaBackward2EmbeddingEtaBackwardRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaBackward[i]->Clone( Form("%s_ratio2embedding_%s", hJet100EtaBackward[i]->GetName(), frame.Data()) ) ) );
+        hJet100EtaFBRatio2EmbeddingEtaFBRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaFBRatio[i]->Clone( Form("%s_ratio2embedding_%s", hJet100EtaFBRatio[i]->GetName(), frame.Data()) ) ) );
+        hJet100EtaBFRatio2EmbeddingEtaBFRatio.push_back( dynamic_cast<TH1D*>( hJet100EtaBFRatio[i]->Clone( Form("%s_ratio2embedding_%s", hJet100EtaBFRatio[i]->GetName(), frame.Data()) ) ) );
 
 
         // Build the ratios
@@ -1412,8 +1422,7 @@ std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std:
     std::vector<Int_t> ptDijetHi{};
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
-    TString varStr = "up2def_ratio";
-    if (varType == 1) varStr = "down2def_ratio";
+    TString varStr = "ratio2def";
 
     Int_t style = 2;
     if (varType == 0) {
@@ -1427,16 +1436,16 @@ std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std:
     for (Int_t i{0}; i<ptBins; i++) {
             
         // Create histograms for ratios
-        hEtaVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEta[i]->Clone( Form("%s_%s_%d_%s", hVarEta[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
-        hEtaVar2DefRatio[i]->SetName( Form("%s_%s_%d_%s", hVarEta[i]->GetName(), varStr.Data(), i, frame.Data()) );
-        hEtaForwardVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaForward[i]->Clone( Form("%s_%s_forward_%d_%s", hVarEtaForward[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
-        hEtaForwardVar2DefRatio[i]->SetName( Form("%s_%s_forward_%d_%s", hVarEtaForward[i]->GetName(), varStr.Data(), i, frame.Data()) );
-        hEtaBackwardVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaBackward[i]->Clone( Form("%s_%s_backward_%d_%s", hVarEtaBackward[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
-        hEtaBackwardVar2DefRatio[i]->SetName( Form("%s_%s_backward_%d_%s", hVarEtaBackward[i]->GetName(), varStr.Data(), i, frame.Data()) );
-        hEtaFBRatioVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaFBRatio[i]->Clone( Form("%s_%s_fb_%d_%s", hVarEtaFBRatio[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
-        hEtaFBRatioVar2DefRatio[i]->SetName( Form("%s_%s_fb_%d_%s", hVarEtaFBRatio[i]->GetName(), varStr.Data(), i, frame.Data()) );
-        hEtaBFRatioVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaBFRatio[i]->Clone( Form("%s_%s_bf_%d_%s", hVarEtaBFRatio[i]->GetName(), varStr.Data(), i, frame.Data()) ) ) );
-        hEtaBFRatioVar2DefRatio[i]->SetName( Form("%s_%s_bf_%d_%s", hVarEtaBFRatio[i]->GetName(), varStr.Data(), i, frame.Data()) );
+        hEtaVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEta[i]->Clone( Form("%s_%s_%s", hVarEta[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
+        hEtaVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEta[i]->GetName(), varStr.Data(), frame.Data()) );
+        hEtaForwardVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaForward[i]->Clone( Form("%s_%s_%s", hVarEtaForward[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
+        hEtaForwardVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEtaForward[i]->GetName(), varStr.Data(), frame.Data()) );
+        hEtaBackwardVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaBackward[i]->Clone( Form("%s_%s_%s", hVarEtaBackward[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
+        hEtaBackwardVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEtaBackward[i]->GetName(), varStr.Data(), frame.Data()) );
+        hEtaFBRatioVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaFBRatio[i]->Clone( Form("%s_%s_%s", hVarEtaFBRatio[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
+        hEtaFBRatioVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEtaFBRatio[i]->GetName(), varStr.Data(), frame.Data()) );
+        hEtaBFRatioVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaBFRatio[i]->Clone( Form("%s_%s_%s", hVarEtaBFRatio[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
+        hEtaBFRatioVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEtaBFRatio[i]->GetName(), varStr.Data(), frame.Data()) );
 
         // Build the ratios
         hEtaVar2DefRatio[i]->Divide( hDefEta[i] );
@@ -1535,8 +1544,8 @@ std::vector< std::vector<TH1D*> > createUpAndDown2Def(std::vector< std::vector<T
 /*
 * Create a vector of histograms with dijet eta distributions from a 3D histogram for the given file
 */
- std::vector< std::vector<TH1D*> >createDijetEtaHistograms(TFile* inFile, const char* inputHistoName, 
-                                                           const char* hName, bool isCM = false, int defType = 2) {
+std::vector< std::vector<TH1D*> >createDijetEtaHistograms(TFile* inFile, const char* inputHistoName, 
+                                                          const char* hName, bool isCM = false, int defType = 2) {
 
     TString baseHistoName = inputHistoName;
     TString fullEtaHistName = baseHistoName;
@@ -1553,9 +1562,9 @@ std::vector< std::vector<TH1D*> > createUpAndDown2Def(std::vector< std::vector<T
         backwardEtaHistName += "BackwardWeighted";
     }
 
-    std::cout << "[Main creator] Input histo name: " << inputHistoName << std::endl;
-    std::cout << "[Main creator] Output histo name: " << hName << std::endl;
-    std::cout << Form("\tFull: %s \n\tForward: %s \n\tBackward: %s", fullEtaHistName.Data(), forwardEtaHistName.Data(), backwardEtaHistName.Data() ) << std::endl;
+    // std::cout << "[Main creator] Input histo name: " << inputHistoName << std::endl;
+    // std::cout << "[Main creator] Output histo name: " << hName << std::endl;
+    // std::cout << Form("\tFull: %s \n\tForward: %s \n\tBackward: %s", fullEtaHistName.Data(), forwardEtaHistName.Data(), backwardEtaHistName.Data() ) << std::endl;
 
     Int_t upType{0};
     Int_t downType{1};
@@ -6621,10 +6630,10 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist = createTotalRelSystUncrt(hJet100JeuRelSystDist, hEmbeddingJerRelSystDist, hJet100PileupRelSystDist, "hJet100");
 
     // Plot final distributions
-    plotFinalEtaDistributions(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, 
-                              hMBTotalRelSystDist, hJet60TotalRelSystDist, 
-                              hJet80TotalRelSystDist, hJet100TotalRelSystDist, 
-                              date, isCM);
+    // plotFinalEtaDistributions(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, 
+    //                           hMBTotalRelSystDist, hJet60TotalRelSystDist, 
+    //                           hJet80TotalRelSystDist, hJet100TotalRelSystDist, 
+    //                           date, isCM);
 
     // Plot comparison of data and Monte Carlo
     // plotData2McComparison(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, hEmbeddingEtaDist, hEmbeddingGenEtaDist, hRatios2McDist, date, isCM);
