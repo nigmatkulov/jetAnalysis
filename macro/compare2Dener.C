@@ -6,6 +6,7 @@
 #include "TLatex.h"
 #include "TLegend.h"
 #include "TStyle.h"
+#include "THnSparse.h"
 
 //________________
 void rescaleEta(TH1* h) {
@@ -153,26 +154,31 @@ void compare2Dener() {
                                             2.0,  2.2,  2.4,  3.0,  4.0,  
                                             5.0 };
 
-    TFile *inDenerFile = TFile::Open("fromDener/etadijet5060.root");
+    TFile *inDenerFile = TFile::Open("fromDener/output_Dener.root");
     TFile *inMyFile = TFile::Open("fromDener/oMB_pPb8160_Pbgoing_comp2Dener.root");
 
     TH3D *hMyPtEtaDphi = dynamic_cast<TH3D*>(inMyFile->Get("hRecoDijetPtEtaDphiWeighted"));
     TH1D *hMyEta = dynamic_cast<TH1D*>( hMyPtEtaDphi->ProjectionY("hMyEtaProj", ptDijetBinLow.at(0), ptDijetBinHi.at(0)) );
     cout << "hMyEta->Integral() = " << hMyEta->Integral() << endl;
-    rescaleEta(hMyEta);
+    //rescaleEta(hMyEta);
     set1DStyle(hMyEta, 0);
 
-    TH1D *hEtaTmp = dynamic_cast<TH1D*>(inDenerFile->Get("etadijet5060"));
+    THnSparse *hDener = dynamic_cast<THnSparse*>( inDenerFile->Get("dijet_histograms/hist_etaDijet_reco") );
+    hDener->GetAxis(4)->SetRange(21, 31);
+    hDener->GetAxis(8)->SetRange(6, 6);
+    TH1D *hEtaTmp = dynamic_cast<TH1D*>(hDener->Projection(0));
     TH1D *hDenerEta = new TH1D("hDenerEta", "hDenerEta", dijetEtaBins, dijetEtaVals);
     hDenerEta->Sumw2();
     for (Int_t i=1; i<=hEtaTmp->GetNbinsX(); i++) {
         Double_t binCenter = hEtaTmp->GetBinCenter(i);
         Int_t bin = hDenerEta->FindBin(binCenter);
-        hDenerEta->SetBinContent(bin, hEtaTmp->GetBinContent(i));
-        hDenerEta->SetBinError(bin, hEtaTmp->GetBinError(i));
+        Int_t binContent = hEtaTmp->GetBinContent(i);
+        binContent += hDenerEta->GetBinContent(bin);
+        hDenerEta->SetBinContent(bin, binContent);
+        hDenerEta->SetBinError(bin, TMath::Sqrt(binContent));
     }
     cout << "hDenerEta->Integral() = " << hDenerEta->Integral() << endl;
-    rescaleEta(hDenerEta);
+    //rescaleEta(hDenerEta);
     set1DStyle(hDenerEta, 1);
 
     TH1D *hMy2DenerRatio = dynamic_cast<TH1D*>( hMyEta->Clone("hMy2DenerRatio") );
