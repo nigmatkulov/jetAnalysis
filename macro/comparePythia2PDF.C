@@ -115,24 +115,35 @@ void comparePythia2PDF() {
     // std::vector<Int_t> ptDijetLow = {};
     // std::vector<Int_t> ptDijetHi = {};
 
-    std::vector<Int_t> ptDijetLow =  { 50, 60, 100, 140, 300 };
-    std::vector<Int_t> ptDijetHi =   { 60, 70, 110, 150, 500 };
+    std::vector<Int_t> ptDijetLow =  { 50, 60, 100, 140};
+    std::vector<Int_t> ptDijetHi =   { 60, 70, 110, 150};
 
-    TString pdfName = "epps21";
-    // TString pdfName = "ncteq15hq";
+    Int_t pdfSetNum = 1;     // 0 - EPPS21, 1 - nCTEQ15HQ
+    TString npdfName;
+    TString pdfName;
+    Int_t nErrorSets = 100;
+    if ( pdfSetNum == 0 ) {
+        npdfName = "EPPS21";
+        pdfName = "CT18";
+    }
+    else {
+        npdfName = "nCTEQ15HQ";
+    }
     TString frame = "lab";
 
     //fillDijetPtBins(ptDijetLow, ptDijetHi);
     Int_t ptBins = ptDijetLow.size();
     Int_t nPtBins2Proc = ptDijetLow.size();
     
+    TString pdfInFileName = npdfName;
+    pdfInFileName.ToLower();
+
     TFile *pythiaFile = TFile::Open( Form("20241008/oSystematics_%s.root", frame.Data()) );
-    TFile *pdfFile = TFile::Open( Form("%s/%s_pPb8160.root", pdfName.Data()) );
+    TFile *pdfFile = TFile::Open( Form("epps21/%s_pPb8160.root", pdfInFileName.Data()) );
     TFile *pdfxFile;
     if ( usePDFx ) {
         pdfxFile = TFile::Open("epps21/oEPPS21x.root");
     }
-    
 
     TH1D *hPP_Pythia[ptDijetLow.size()];
     TH1D *hPP_PDF[ptDijetLow.size()];
@@ -160,17 +171,17 @@ void comparePythia2PDF() {
     TLegend *leg;
 
 
-    TCanvas *canv = new TCanvas("canv", "canv", 1800, 800);
+    TCanvas *canv = new TCanvas("canv", "canv", 1800, 600);
     canv->Divide( nPtBins2Proc, 2 );
 
-    TCanvas *canv2 = new TCanvas("canv2", "canv2", 1800, 800);
+    TCanvas *canv2 = new TCanvas("canv2", "canv2", 1800, 600);
     canv2->Divide( nPtBins2Proc, 2 );
 
-    TCanvas *canv4 = new TCanvas("canv4", "canv4", 1800, 800);
-    canv4->Divide( nPtBins2Proc, 2 );
+    // TCanvas *canv4 = new TCanvas("canv4", "canv4", 1800, 600);
+    // canv4->Divide( nPtBins2Proc, 2 );
 
-    TCanvas *canv3 = new TCanvas("canv3", "canv3", 1800, 800);
-    canv3->Divide( nPtBins2Proc, 1 );
+    TCanvas *canv3 = new TCanvas("canv3", "canv3", 1800, 600);
+    canv3->Divide( nPtBins2Proc, 2 );
 
     // Loop over pt bins and read histograms
     for (Int_t i{0}; i<nPtBins2Proc; i++) {
@@ -214,14 +225,14 @@ void comparePythia2PDF() {
         hPb_nPDF[i] = dynamic_cast<TH1D*> ( pdfFile->Get( Form("pPbLab_pt_%d_%d_0", ptDijetLow.at(i), ptDijetHi.at(i) ) ) );
         hPb_nPDF[i]->SetName( Form("npdf_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_nPDF[i], 1);
 
-        hPb_fb_data[i] = dynamic_cast<TH1D*> ( pythiaFile->Get( Form("%s_pPb8160_etaDijet_fb_pt_%d_%d", trgName.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) ) );
-        hPb_fb_data[i]->SetName( Form("pPb_fb_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_fb_data[i], 0);
+        // hPb_fb_data[i] = dynamic_cast<TH1D*> ( pythiaFile->Get( Form("%s_pPb8160_etaDijet_fb_pt_%d_%d", trgName.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) ) );
+        // hPb_fb_data[i]->SetName( Form("pPb_fb_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_fb_data[i], 0);
 
-        hPb_fb_nPDF[i] = dynamic_cast<TH1D*> ( pdfFile->Get( Form("pPbCM_fb_pt_%d_%d_0", ptDijetLow.at(i), ptDijetHi.at(i) ) ) );
-        hPb_fb_nPDF[i]->SetName( Form("npdf_fb_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_fb_nPDF[i], 1);
+        // hPb_fb_nPDF[i] = dynamic_cast<TH1D*> ( pdfFile->Get( Form("pPbCM_fb_pt_%d_%d_0", ptDijetLow.at(i), ptDijetHi.at(i) ) ) );
+        // hPb_fb_nPDF[i]->SetName( Form("npdf_fb_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_fb_nPDF[i], 1);
 
-        hPb_fb_ratio[i] = dynamic_cast<TH1D*> ( hPb_fb_data[i]->Clone( Form("fb2npdf_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) );
-        hPb_fb_ratio[i]->SetName( Form("fb2npdf_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_fb_ratio[i], 2);
+        // hPb_fb_ratio[i] = dynamic_cast<TH1D*> ( hPb_fb_data[i]->Clone( Form("fb2npdf_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) );
+        // hPb_fb_ratio[i]->SetName( Form("fb2npdf_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_fb_ratio[i], 2);
 
         hRatio_pPb[i] = dynamic_cast<TH1D*> ( hPb_data[i]->Clone( Form("data2npdf_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) );
         hRatio_pPb[i]->SetName( Form("data2npdf_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hRatio_pPb[i], 2);
@@ -264,7 +275,12 @@ void comparePythia2PDF() {
         t.DrawLatexNDC(0.35, 0.92, Form("%d < p_{T}^{ave} GeV < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
         leg = new TLegend(0.4, 0.75, 0.85, 0.85);
         leg->AddEntry(hPP_Pythia[i], "PYTHIA8", "p");
-        leg->AddEntry(hPP_PDF[i], "CT18", "p");
+        if ( pdfSetNum == 0 ) {
+            leg->AddEntry(hPP_PDF[i], "EPPS21 x CT18", "p");
+        }
+        else {
+            leg->AddEntry(hPP_PDF[i], "nCTEQ15HQ", "p");
+        }
         leg->SetBorderSize(0);
         leg->SetTextSize(0.05);
         leg->Draw();
@@ -285,7 +301,12 @@ void comparePythia2PDF() {
         t.DrawLatexNDC(0.35, 0.92, Form("%d < p_{T}^{ave} GeV < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
         leg = new TLegend(0.4, 0.75, 0.85, 0.85);
         leg->AddEntry(hPb_data[i], "pPb (CMS)", "p");
-        leg->AddEntry(hPb_nPDF[i], "EPPS21 x CT18", "p");
+        if ( pdfSetNum == 0 ) {
+            leg->AddEntry(hPb_nPDF[i], "EPPS21 x CT18", "p");
+        }
+        else {
+            leg->AddEntry(hPb_nPDF[i], "nCTEQ15HQ", "p");
+        }
         leg->SetBorderSize(0);
         leg->SetTextSize(0.05);
         leg->Draw();
@@ -301,43 +322,64 @@ void comparePythia2PDF() {
         setPadStyle();
         hData2Pythia[i]->Draw();
         hData2PDF[i]->Draw("same");
-        hNPDF2Pythia[i]->Draw("same");
-        hNPDF2PDF[i]->Draw("same");
         hData2Pythia[i]->GetXaxis()->SetRangeUser(-3., 3.);
         hData2Pythia[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
         t.DrawLatexNDC(0.35, 0.92, Form("%d < p_{T}^{ave} GeV < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-        leg = new TLegend(0.35, 0.2, 0.65, 0.4);
+        leg = new TLegend(0.25, 0.75, 0.65, 0.85);
         leg->AddEntry(hData2Pythia[i], "pPb (CMS) / PYTHIA8", "p");
-        leg->AddEntry(hData2PDF[i], "pPb (CMS) / CT18", "p");
-        leg->AddEntry(hNPDF2Pythia[i], "EPPS21 x CT18 / PYTHIA", "p");
-        leg->AddEntry(hNPDF2PDF[i], "EPPS21 x CT18 / CT18", "p");
+        if ( pdfSetNum == 0 ) {
+            leg->AddEntry(hData2PDF[i], "pPb (CMS) / EPPS21 x CT18", "p");
+        }
+        else {
+            leg->AddEntry(hData2PDF[i], "pPb (CMS) / nCTEQ15HQ", "p");
+        }
         leg->SetBorderSize(0);
         leg->SetTextSize(0.05);
         leg->Draw();
 
-        cout << "There 2" << endl;
-
-        // Forward-backward ratios
-        canv4->cd( i + 1 );
-        setPadStyle();
-        hPb_fb_data[i]->Draw();
-        hPb_fb_nPDF[i]->Draw("same");
-        hPb_fb_data[i]->GetXaxis()->SetRangeUser( 0., 3. );
-        hPb_fb_data[i]->GetYaxis()->SetRangeUser( 0.65, 1.35 );
-        t.DrawLatexNDC(0.35, 0.92, Form("%d < p_{T}^{ave} GeV < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-        leg = new TLegend(0.35, 0.7, 0.85, 0.85);
-        leg->AddEntry(hPb_fb_data[i], "pPb (CMS)", "p");
-        leg->AddEntry(hPb_fb_nPDF[i], "EPPS21 x CT18", "p");
+        canv3->cd( nPtBins2Proc + i + 1 );
+        hNPDF2Pythia[i]->Draw();
+        hNPDF2PDF[i]->Draw("same");
+        hNPDF2Pythia[i]->GetXaxis()->SetRangeUser(-3., 3.);
+        hNPDF2Pythia[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
+        leg = new TLegend(0.25, 0.75, 0.65, 0.85);
+        if ( pdfSetNum == 0 ) {
+            leg->AddEntry(hNPDF2Pythia[i], "EPPS21 x CT18 / PYTHIA", "p");
+            leg->AddEntry(hNPDF2PDF[i], "EPPS21 x CT18 / CT18", "p");
+        }
+        else {
+            leg->AddEntry(hNPDF2Pythia[i], "nCTEQ15HQ / PYTHIA", "p");
+            leg->AddEntry(hNPDF2PDF[i], "nCTEQ15HQ", "p");
+        }
         leg->SetBorderSize(0);
         leg->SetTextSize(0.05);
         leg->Draw();
 
-        canv4->cd( nPtBins2Proc + i + 1 );
-        setPadStyle();
-        hPb_fb_ratio[i]->Draw();
-        hPb_fb_ratio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hPb_fb_ratio[i]->GetYaxis()->SetRangeUser( 0.85, 1.15 );
+        // // Forward-backward ratios
+        // canv4->cd( i + 1 );
+        // setPadStyle();
+        // hPb_fb_data[i]->Draw();
+        // hPb_fb_nPDF[i]->Draw("same");
+        // hPb_fb_data[i]->GetXaxis()->SetRangeUser( 0., 3. );
+        // hPb_fb_data[i]->GetYaxis()->SetRangeUser( 0.65, 1.35 );
+        // t.DrawLatexNDC(0.35, 0.92, Form("%d < p_{T}^{ave} GeV < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
+        // leg = new TLegend(0.35, 0.7, 0.85, 0.85);
+        // leg->AddEntry(hPb_fb_data[i], "pPb (CMS)", "p");
+        // leg->AddEntry(hPb_fb_nPDF[i], "EPPS21 x CT18", "p");
+        // leg->SetBorderSize(0);
+        // leg->SetTextSize(0.05);
+        // leg->Draw();
+
+        // canv4->cd( nPtBins2Proc + i + 1 );
+        // setPadStyle();
+        // hPb_fb_ratio[i]->Draw();
+        // hPb_fb_ratio[i]->GetXaxis()->SetRangeUser(0., 3.);
+        // hPb_fb_ratio[i]->GetYaxis()->SetRangeUser( 0.85, 1.15 );
 
     } // 
+
+    canv->SaveAs( Form("epps21/%s_pdf2pythiaComp_%s.pdf", npdfName.Data(), frame.Data()) );
+    canv2->SaveAs( Form("epps21/%s_data2npdfComp_%s.pdf", npdfName.Data(), frame.Data()) );
+    canv3->SaveAs( Form("epps21/%s_pPb2ppComp_%s.pdf", npdfName.Data(), frame.Data()) );
 
 }

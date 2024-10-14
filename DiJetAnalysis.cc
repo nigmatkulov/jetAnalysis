@@ -610,12 +610,12 @@ Bool_t DiJetAnalysis::isGoodJetId(const RecoJet* jet) {
     passJetId = passNHF && passNEF && passNumOfConstituents && passMuonFrac && 
                 passChargedFrac && passChargedMult && passChargedEmFrac && passNeutralMult;
 
-    if ( fVerbose ) {
-        std::cout << "JetId selection results: " << ( (passJetId) ? "[passed]" : "[failed]" ) << " Reasons ";
-        std::cout << Form("passNHF: %d \tpassNEF: %d \tpassNumConst: %d \tpassMuonFrac: %d \tpassChFrac: %d \tpassChMult: %d \tpassChEmFrac: %d \tpassNeutMult: %d\n", 
-                          passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
-                          passChargedMult , passChargedEmFrac , passNeutralMult);
-    }
+    // if ( fVerbose ) {
+    //     std::cout << "JetId selection results: " << ( (passJetId) ? "[passed]" : "[failed]" ) << " Reasons ";
+    //     std::cout << Form("passNHF: %d \tpassNEF: %d \tpassNumConst: %d \tpassMuonFrac: %d \tpassChFrac: %d \tpassChMult: %d \tpassChEmFrac: %d \tpassNeutMult: %d\n", 
+    //                       passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
+    //                       passChargedMult , passChargedEmFrac , passNeutralMult);
+    // }
 		
 	return passJetId;
 }
@@ -1517,7 +1517,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
     if ( fVerbose ) {
         std::cout << "TrkMax dijet found: " << ( (fIsDijetFound) ? "[true]" : "[false]" ) << std::endl;
-        std::cout << "JetId  dijet found: " << ( (fIsDijetJetIdFound) ? "[true]" : "[false]" ) << std::endl;
+        // std::cout << "JetId  dijet found: " << ( (fIsDijetJetIdFound) ? "[true]" : "[false]" ) << std::endl;
         std::cout << "Reporting from DiJetAnalysis::processRecoJets - [DONE]" << std::endl;
     }
 }
