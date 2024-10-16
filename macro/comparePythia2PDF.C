@@ -118,7 +118,7 @@ void comparePythia2PDF() {
     std::vector<Int_t> ptDijetLow =  { 50, 60, 100, 140};
     std::vector<Int_t> ptDijetHi =   { 60, 70, 110, 150};
 
-    Int_t pdfSetNum = 1;     // 0 - EPPS21, 1 - nCTEQ15HQ
+    Int_t pdfSetNum = 0;     // 0 - EPPS21, 1 - nCTEQ15HQ
     TString npdfName;
     TString pdfName;
     Int_t nErrorSets = 100;
@@ -276,10 +276,10 @@ void comparePythia2PDF() {
         leg = new TLegend(0.4, 0.75, 0.85, 0.85);
         leg->AddEntry(hPP_Pythia[i], "PYTHIA8", "p");
         if ( pdfSetNum == 0 ) {
-            leg->AddEntry(hPP_PDF[i], "EPPS21 x CT18", "p");
+            leg->AddEntry(hPP_PDF[i], "CT18", "p");
         }
         else {
-            leg->AddEntry(hPP_PDF[i], "nCTEQ15HQ", "p");
+            leg->AddEntry(hPP_PDF[i], "nCTEQ15HQ pp", "p");
         }
         leg->SetBorderSize(0);
         leg->SetTextSize(0.05);
@@ -289,7 +289,7 @@ void comparePythia2PDF() {
         setPadStyle();
         hRatio_pp[i]->Draw();
         hRatio_pp[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        hRatio_pp[i]->GetYaxis()->SetRangeUser( 0.85, 1.15 );
+        hRatio_pp[i]->GetYaxis()->SetRangeUser( 0.8, 1.15 );
 
         // proton-lead
         canv2->cd( i + 1 );
@@ -315,7 +315,7 @@ void comparePythia2PDF() {
         setPadStyle();
         hRatio_pPb[i]->Draw();
         hRatio_pPb[i]->GetXaxis()->SetRangeUser(-3., 3.);
-        hRatio_pPb[i]->GetYaxis()->SetRangeUser( 0.85, 1.15 );
+        hRatio_pPb[i]->GetYaxis()->SetRangeUser( 0.8, 1.15 );
 
         // Compare different pPb to pp ratios
         canv3->cd( i + 1 );
@@ -328,10 +328,10 @@ void comparePythia2PDF() {
         leg = new TLegend(0.25, 0.75, 0.65, 0.85);
         leg->AddEntry(hData2Pythia[i], "pPb (CMS) / PYTHIA8", "p");
         if ( pdfSetNum == 0 ) {
-            leg->AddEntry(hData2PDF[i], "pPb (CMS) / EPPS21 x CT18", "p");
+            leg->AddEntry(hData2PDF[i], "pPb (CMS) / CT18", "p");
         }
         else {
-            leg->AddEntry(hData2PDF[i], "pPb (CMS) / nCTEQ15HQ", "p");
+            leg->AddEntry(hData2PDF[i], "pPb (CMS) / nCTEQ15HQ pp", "p");
         }
         leg->SetBorderSize(0);
         leg->SetTextSize(0.05);
@@ -349,7 +349,7 @@ void comparePythia2PDF() {
         }
         else {
             leg->AddEntry(hNPDF2Pythia[i], "nCTEQ15HQ / PYTHIA", "p");
-            leg->AddEntry(hNPDF2PDF[i], "nCTEQ15HQ", "p");
+            leg->AddEntry(hNPDF2PDF[i], "nCTEQ15HQ / PDF", "p");
         }
         leg->SetBorderSize(0);
         leg->SetTextSize(0.05);

@@ -189,4 +189,9 @@ void compare2Dener() {
     TCanvas *c = new TCanvas("c", "c", 800, 1200);
     c->Divide(1, 2);
     plotComparison(c, hMyEta, hDenerEta, hMy2DenerRatio, "My", "Dener", 50, 60);
+
+    TFile *oFile = TFile::Open("fromDener/compare2Dener.root", "recreate");
+    hMyEta->Write();
+    hDenerEta->Write();
+    oFile->Close();
 }
