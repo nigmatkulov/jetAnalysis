@@ -403,14 +403,21 @@ HistoManagerDiJet::~HistoManagerDiJet() {
 //________________
 void HistoManagerDiJet::init(const Bool_t& isMc) {
 
-    const Int_t dijetEtaBins{30};
-    Double_t dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
-                                            -2.0, -1.8, -1.6, -1.4, -1.2, 
-                                            -1.0, -0.8, -0.6, -0.4, -0.2,  
-                                             0.0,  0.2,  0.4,  0.6,  0.8,  
-                                             1.0,  1.2,  1.4,  1.6,  1.8,  
-                                             2.0,  2.2,  2.4,  3.0,  4.0,  
-                                             5.0 };
+    // const Int_t dijetEtaBins{30};
+    // Double_t dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
+    //                                         -2.0, -1.8, -1.6, -1.4, -1.2, 
+    //                                         -1.0, -0.8, -0.6, -0.4, -0.2,  
+    //                                          0.0,  0.2,  0.4,  0.6,  0.8,  
+    //                                          1.0,  1.2,  1.4,  1.6,  1.8,  
+    //                                          2.0,  2.2,  2.4,  3.0,  4.0,  
+    //                                          5.0 };
+
+    const Int_t dijetEtaBins{18}; 
+     Double_t dijetEtaVals[dijetEtaBins+1] = { -2.915, -2.63333333333, -2.07,          -1.78833333333, -1.50666666667,
+                                              -1.225,  -0.94333333333, -0.66166666666, -0.38,          -0.09833333333,
+                                              0.18333333333, 0.465, 0.74666666666, 1.02833333333, 1.31,
+                                              1.59166666667, 1.87333333333, 2.43666666667, 3.};
+
 
     const Int_t dijetEtaFBBins{13};
     Double_t dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
