@@ -40,6 +40,8 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
 
     fPtHatRange[0] = {15.};
     fPtHatRange[1] = {30.};
+    fVzWeight = new TF1("fVzWeight", "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x+[5]*x*x*x*x*x+[6]*x*x*x*x*x*x", -20., 20.);
+    fVzWeight->SetParameters(0.973941, 0.00310622, 0.000711664, -1.83098e-06, 6.9346e-07, 0., 0.);
     for (Int_t i=0; i<fJetPtBins; i++) {
         for (Int_t j=0; j<fJetPtBins; j++) {
             fJetPtLeadPtSubleadReweightMatrix[i][j] = 1;
@@ -296,6 +298,17 @@ Double_t DiJetAnalysis::dijetEtaInFrame(const Double_t& eta1, const Double_t& et
         etaDijet = etaLab( etaDijet );
     }
     return etaDijet;
+}
+
+//________________
+Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb, 
+                                    const Double_t& ptHatW, const Double_t& vz) {
+    Double_t weight{1.};
+    if ( isMc ) {
+        Double_t vzWeight = fVzWeight->Eval(vz);
+        weight = vzWeight * ptHatW;
+    }
+    return weight;
 }
 
 //________________
@@ -1249,7 +1262,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
     Double_t ptHatW{1.};
     // Check correct MC sample
     if ( fIsMc ) {
-        ptHatW = event->ptHatWeight();
+        ptHatW = eventWeight(kTRUE, kFALSE, event->ptHatWeight(), vz);
     }
 
     // Process and analyze reco jets

@@ -17,6 +17,7 @@
 #include "TString.h"
 #include "Rtypes.h"
 #include "TChain.h"
+#include "TF1.h"
 
 // Jet analysis headers
 #include "BaseAnalysis.h"
@@ -115,6 +116,12 @@ class DiJetAnalysis : public BaseAnalysis {
 
     /// @brief Dijet eta calculation
     Double_t dijetEtaInFrame(const Double_t& eta1, const Double_t& eta2, Bool_t isCM = kFALSE);
+
+    /// @brief Vz weight to match PYTHIA 2 pp data
+    TF1 *fVzWeight;
+
+    /// @brief Dijet ptAve weight (to match PYTHIA 2 pp data)
+    TF1 *fDijetPtAveWeight;
 
     /// @brief Print debug information
     Bool_t   fDebug;
