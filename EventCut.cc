@@ -37,6 +37,8 @@ EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fPVertexFilterCutdz1p0{kFALSE},
     fPVertexFilterCutGplus{kFALSE},
     fPVertexFilterCutVtx1{kFALSE},
+    fHLT_HIAK4CaloJet60_v1{kFALSE},
+    fHLT_HIAK4CaloJet80_v1{kFALSE},
     fHLT_HIPuAK4CaloJet80Eta5p1_v1{kFALSE},
     fHLT_PAAK4PFJet60_Eta5p1_v4{kFALSE},
     fHLT_PAAK4PFJet80_Eta5p1_v3{kFALSE},
@@ -209,6 +211,22 @@ Bool_t EventCut::pass(const Event* ev) {
     }
 
     Bool_t goodTrigger{kTRUE};
+    if ( fHLT_HIAK4CaloJet60_v1 ) {
+        if ( ev->trigAndSkim()->HLT_HIAK4CaloJet60_v1() == 0 ) {
+            goodTrigger = { kFALSE };
+            if ( fVerbose ) {
+                std::cout << Form("Bad trigger: HLT_HIAK4CaloJet60_v1\n");
+            }
+        }
+    }
+    if ( fHLT_HIAK4CaloJet80_v1 ) {
+        if ( ev->trigAndSkim()->HLT_HIAK4CaloJet80_v1() == 0 ) {
+            goodTrigger = { kFALSE };
+            if ( fVerbose ) {
+                std::cout << Form("Bad trigger: HLT_HIAK4CaloJet80_v1\n");
+            }
+        }
+    }
     if ( fHLT_HIPuAK4CaloJet80Eta5p1_v1 ) {
         if ( ev->trigAndSkim()->HLT_HIPuAK4CaloJet80Eta5p1_v1() == 0 ) {
             goodTrigger = { kFALSE };

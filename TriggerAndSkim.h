@@ -29,7 +29,8 @@ class TriggerAndSkim : public TObject {
     //
 
     // Set HLT flags
-
+    void setHLT_HIAK4CaloJet60_v1(const Int_t& b) { fHLT_HIAK4CaloJet60_v1 = (Char_t)b; }
+    void setHLT_HIAK4CaloJet80_v1(const Int_t& b) { fHLT_HIAK4CaloJet80_v1 = (Char_t)b; }
     void setHLT_PAAK4CaloJet60_Eta5p1_v3(const Int_t& b) { fHLT_PAAK4CaloJet60_Eta5p1_v3 = (Char_t)b; }
     void setHLT_PAAK4CaloJet80_Eta5p1_v3(const Int_t& b) { fHLT_PAAK4CaloJet80_Eta5p1_v3 = (Char_t)b; }
     void setHLT_PAAK4CaloJet100_Eta5p1_v3(const Int_t& b) { fHLT_PAAK4CaloJet100_Eta5p1_v3 = (Char_t)b; }
@@ -98,6 +99,8 @@ class TriggerAndSkim : public TObject {
     //
 
     // HLT flags
+    Int_t HLT_HIAK4CaloJet60_v1() const { return (Int_t)fHLT_HIAK4CaloJet60_v1; }
+    Int_t HLT_HIAK4CaloJet80_v1() const { return (Int_t)fHLT_HIAK4CaloJet80_v1; }
     Int_t HLT_PAAK4CaloJet60_Eta5p1_v3() const { return (Int_t)fHLT_PAAK4CaloJet60_Eta5p1_v3; }
     Int_t HLT_PAAK4CaloJet80_Eta5p1_v3() const { return (Int_t)fHLT_PAAK4CaloJet80_Eta5p1_v3; }
     Int_t HLT_PAAK4CaloJet100_Eta5p1_v3() const { return (Int_t)fHLT_PAAK4CaloJet100_Eta5p1_v3; }
@@ -165,6 +168,8 @@ class TriggerAndSkim : public TObject {
   private:
 
     // HLT part
+    Char_t fHLT_HIAK4CaloJet60_v1;
+    Char_t fHLT_HIAK4CaloJet80_v1;
     Char_t fHLT_PAAK4CaloJet60_Eta5p1_v3;
     Char_t fHLT_PAAK4CaloJet80_Eta5p1_v3;
     Char_t fHLT_PAAK4CaloJet100_Eta5p1_v3;

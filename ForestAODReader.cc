@@ -227,6 +227,8 @@ void ForestAODReader::clearVariables() {
     fNCaloGenJets = {0};
     fNTracks = {0};
 
+    fHLT_HIAK4CaloJet60_v1 = {0};
+    fHLT_HIAK4CaloJet80_v1 = {0};
     fHLT_PAAK4CaloJet60_Eta5p1_v3 = {0};
     fHLT_PAAK4CaloJet80_Eta5p1_v3 = {0};
     fHLT_PAAK4CaloJet100_Eta5p1_v3 = {0};
@@ -587,31 +589,31 @@ Float_t ForestAODReader::eventWeight(const Bool_t &isMC, const Bool_t &use_centr
     // JetTriggerWeightFunction is derived from the turn on plots as function of leading jet pT --> RECO only
     // weighttree is the pthat weight --> MC only 
 
-	if (isMC && !use_centrality && system == "pp" && 
-        energy == 5020 && year == 2017) {
+	// if (isMC && !use_centrality && system == "pp" && 
+    //     energy == 5020 && year == 2017) {
 
-		TF1 *VzWeightFunction = new TF1("VzWeightFunction", "pol6", -15.0, 15.0);
-		VzWeightFunction->SetParameters(0.973805, 0.00339418, 0.000757544, -1.37331e-06, -2.82953e-07, -3.06778e-10, 3.48615e-09);
-		vzweight = VzWeightFunction->Eval(vz);
+	// 	TF1 *VzWeightFunction = new TF1("VzWeightFunction", "pol6", -15.0, 15.0);
+	// 	VzWeightFunction->SetParameters(0.973805, 0.00339418, 0.000757544, -1.37331e-06, -2.82953e-07, -3.06778e-10, 3.48615e-09);
+	// 	vzweight = VzWeightFunction->Eval(vz);
 
-		TF1 *MultCentWeightFunction = new TF1("MultCentWeightFunction", "pol0", 0.0, 500.0);
-		MultCentWeightFunction->SetParameter(0,1.0);
-		multweight = MultCentWeightFunction->Eval(mult);
+	// 	TF1 *MultCentWeightFunction = new TF1("MultCentWeightFunction", "pol0", 0.0, 500.0);
+	// 	MultCentWeightFunction->SetParameter(0,1.0);
+	// 	multweight = MultCentWeightFunction->Eval(mult);
 
-		TF1 *MultTriggerWeightFunction = new TF1("MultTriggerWeightFunction", "pol0", 0.0, 500.0); // fitted from turn on curves
-		MultTriggerWeightFunction->SetParameter(0,1.0);
-		Float_t multtrigweight = 1.0;
-		multtrigweight = MultTriggerWeightFunction->Eval(mult);
-		multefficiency = 1./multtrigweight;
+	// 	TF1 *MultTriggerWeightFunction = new TF1("MultTriggerWeightFunction", "pol0", 0.0, 500.0); // fitted from turn on curves
+	// 	MultTriggerWeightFunction->SetParameter(0,1.0);
+	// 	Float_t multtrigweight = 1.0;
+	// 	multtrigweight = MultTriggerWeightFunction->Eval(mult);
+	// 	multefficiency = 1./multtrigweight;
 
-		TF1 *JetTriggerWeightFunction = new TF1("JetTriggerWeightFunction", "pol0", 0.0, 500.0); // fitted from turn on curves
-		JetTriggerWeightFunction->SetParameter(0,1.0);
-		Float_t jettrigweight = 1.0;
-		jettrigweight = JetTriggerWeightFunction->Eval(leadjetpt);
-		jetefficiency = 1./jettrigweight;
+	// 	TF1 *JetTriggerWeightFunction = new TF1("JetTriggerWeightFunction", "pol0", 0.0, 500.0); // fitted from turn on curves
+	// 	JetTriggerWeightFunction->SetParameter(0,1.0);
+	// 	Float_t jettrigweight = 1.0;
+	// 	jettrigweight = JetTriggerWeightFunction->Eval(leadjetpt);
+	// 	jetefficiency = 1./jettrigweight;
 
-		evtweight = weighttree;
-	}
+	// 	evtweight = weighttree;
+	// }
 
 	totalweight = evtweight * multweight * vzweight * multefficiency * jetefficiency;
 	return totalweight;
@@ -807,6 +809,8 @@ void ForestAODReader::setupBranches() {
     if ( fUseHltBranch ) {
 
         // Status
+        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet60_v1", 1);
+        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet80_v1", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet60_Eta5p1_v3", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet80_Eta5p1_v3", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet100_Eta5p1_v3", 1);
@@ -850,6 +854,8 @@ void ForestAODReader::setupBranches() {
         fHltTree->SetBranchStatus("HLT_HIPuAK4CaloJet100Eta5p1_v1", 1);
 
         // Address
+        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet60_v1", &fHLT_HIAK4CaloJet60_v1);
+        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet80_v1", &fHLT_HIAK4CaloJet80_v1);
         fHltTree->SetBranchAddress("HLT_PAAK4CaloJet60_Eta5p1_v3", &fHLT_PAAK4CaloJet60_Eta5p1_v3);
         fHltTree->SetBranchAddress("HLT_PAAK4CaloJet80_Eta5p1_v3", &fHLT_PAAK4CaloJet80_Eta5p1_v3);
         fHltTree->SetBranchAddress("HLT_PAAK4CaloJet100_Eta5p1_v3", &fHLT_PAAK4CaloJet100_Eta5p1_v3);
