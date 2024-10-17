@@ -1,0 +1,16 @@
+universe   = vanilla
+getenv     = True
+executable = run_test_dijetAna.sh
++JobFlavour  = "longlunch"
+requirements = ((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
+transfer_input_files  = voms_proxy.txt
+environment = "X509_USER_PROXY=voms_proxy.txt"
+RequestCpus = 1
+
+log        = condor/log/comp2Dener.log
+output     = condor/log/comp2Dener.out
+error      = condor/log/comp2Dener.err
+arguments  = /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing/input/pPb8160/comparison2Dener.list /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing/oMB_pPb8160_Pbgoing_comp2Dener.root 0 1 15 5000
+queue
+
+
