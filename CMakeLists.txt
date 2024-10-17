@@ -119,9 +119,9 @@ add_executable(jetAna jetAna.cxx)
 target_link_libraries(jetAna ${libname})
 
 # Create main executable (to call from the command line)
-add_executable(dijetAna dijetAna.cxx)
+add_executable(dijetAna_pp5020 dijetAna_pp5020.cxx)
 # Link created libraries
-target_link_libraries(dijetAna ${libname})
+target_link_libraries(dijetAna_pp5020 ${libname})
 
 # Include directories 
 #target_include_directories(jetAna PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})

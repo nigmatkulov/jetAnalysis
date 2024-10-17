@@ -113,6 +113,9 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Get proper eta in the lab frame depending on beam direction 
     Double_t etaLab(const Double_t &eta);
 
+    /// @brief Dijet eta calculation
+    Double_t dijetEtaInFrame(const Double_t& eta1, const Double_t& eta2, Bool_t isCM = kFALSE);
+
     /// @brief Print debug information
     Bool_t   fDebug;
     /// @brief Centrality weight

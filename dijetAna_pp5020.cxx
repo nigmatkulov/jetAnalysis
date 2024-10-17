@@ -30,8 +30,8 @@ int main(int argc, char const *argv[]) {
     Bool_t isCentWeightCalc{kFALSE};
     Bool_t isPbGoingDir{};
     TString inFileName{};
-    Int_t   collEnergyGeV{8160};
-    TString collSystem{"pPb"};
+    Int_t   collEnergyGeV{5020};
+    TString collSystem{"pp"};
     Int_t   collYear{2016};
     //TString pfBranchName{"akCs4PFJetAnalyzer"};
     TString pfBranchName{"ak4PFJetAnalyzer"};
@@ -42,7 +42,7 @@ int main(int argc, char const *argv[]) {
     TString path2JEC = "..";
     Double_t ptHatCut[2] {15., 30.};
     Int_t   useJEU{0};
-    Int_t   useJERSyst{0}; //0-default, 1-JER+, -1-JER-
+    Int_t   useJERSyst{5}; //0-default, 1-JER+, -1-JER-, other - not use
     Double_t etaShift = 0.465;
 
     // Sequence of command line arguments:
@@ -78,25 +78,15 @@ int main(int argc, char const *argv[]) {
               << "Use centrality weight : " << isCentWeightCalc << std::endl
               << std::endl;
 
-    if (isMc) {
-        if (isPbGoingDir) {
-            JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
-        }
-        else {
-            JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
-        }
+
+    if ( isMc ) {
+        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
     }
     else {
-        if (isPbGoingDir) { // Remember to flip to p-going for data
-            JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
-            
-        }
-        else {
-            JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
-        }
-        JECFileDataName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt";
-        JEUFileName = "Summer16_23Sep2016HV4_DATA_Uncertainty_AK4PF.txt";
-    } // else
+        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
+        JECFileDataName = "/Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
+        JEUFileName = "Spring18_ppRef5TeV_V6_DATA_Uncertainty_AK4PF.txt";
+    }
 
     // Initialize package manager
     Manager *manager = new Manager{};
@@ -108,9 +98,10 @@ int main(int argc, char const *argv[]) {
     eventCut->usePBeamScrapingFilter();
     eventCut->usePPAprimaryVertexFilter();
     eventCut->useHBHENoiseFilterResultRun2Loose();
-    eventCut->usePhfCoincFilter();
+    //eventCut->usePhfCoincFilter();
+
     // Default cut
-    eventCut->usePVertexFilterCutdz1p0();
+    //eventCut->usePVertexFilterCutdz1p0();
     // Pile-up systematics
     // eventCut->usePVertexFilterCutGplus();
     // Pile-up systematics
