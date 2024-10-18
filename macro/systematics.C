@@ -20,8 +20,8 @@
 #include <iostream>
 #include <vector>
                                // 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 180, 200, 250, 300, 500,  extra: 95 -- 115
-std::vector<Int_t> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55, 14 };
-std::vector<Int_t> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94, 17 };
+std::vector<Int_t> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
+std::vector<Int_t> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
 
 const Int_t dijetEtaBins{30};
 Double_t dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
@@ -76,9 +76,9 @@ bool checkFileIsGood(TFile *inFile) {
 void plotCMSHeader() {
     TLatex t;
     t.SetTextFont(42);
-    t.SetTextSize(0.06);
-    t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
     t.SetTextSize(0.05);
+    t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
+    t.SetTextSize(0.04);
     t.DrawLatexNDC(0.5, 0.93, "pPb 174.56 nb^{-1} (8.16 TeV)");
     t.SetTextSize(0.05);
 }
@@ -3993,24 +3993,115 @@ TGraphErrors* retrieveTotalAbsSystUncrt(TH1D *hDef, TH1D *hRelSyst, const Char_t
 }
 
 //________________
-void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vector<TH1D*> > hJet60EtaDist, 
-                               std::vector< std::vector<TH1D*> > hJet80EtaDist, std::vector< std::vector<TH1D*> > hJet100EtaDist,
-                               std::vector< std::vector<TH1D*> > hMBTotalRelSystDist, std::vector< std::vector<TH1D*> > hJet60TotalRelSystDist,
-                               std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist, std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist,
-                               TString date, Bool_t isCM = kFALSE) {
+void plotDistributionWithUncrt(TCanvas *c, TH1D *h1, TH1D *h2, 
+                              int ptLow = 50, int ptHi = 60,
+                              Bool_t isCM = kFALSE, Int_t fbType = 0) {
 
-    TString frame;
-    frame = ( isCM ) ? "cms" : "lab";
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
 
+    // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
     Double_t xRange[2] = {-3., 3.};
     Double_t yRange[2] = {0.001, 0.12};
 
-    Double_t xRangeForward[2] = {0., 3.};
-    Double_t yRangeForward[2] = {0.001, 0.2};
+    if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.001;
+        yRange[1] = 0.2;
+    }
+    else if ( fbType == 3 ) {               // Forward/backward
+        xRange[0] = 0.;
+        xRange[1] = 2.4;
+        yRange[0] = 0.75;
+        yRange[1] = 1.5;
+    }
+    else if ( fbType == 4 ) {               // Backward/forward
+        xRange[0] = 0.;
+        xRange[1] = 2.4;
+        yRange[0] = 0.4;
+        yRange[1] = 1.15;
+    }
 
-    Double_t xRangeFB[2] = {0., 2.4};
-    Double_t yRangeFB[2] = {0.75, 1.5};
-    Double_t yRangeBF[2] = {0.4, 1.15};
+    // Set style for the data points
+    h1->SetMarkerStyle(20);
+    h1->SetMarkerSize(1.3);
+    h1->SetMarkerColor(kBlack);
+    h1->SetLineColor(kBlack);
+    h1->SetLineWidth(2);
+
+    // Set style for systematic uncertainty
+    h2->SetFillColorAlpha(29, 0.55);
+    h2->SetLineColor(29);
+    h2->SetLineWidth(0);
+    h2->SetFillStyle(1001);           // Solid fill
+
+    // Create pad
+    TLegend *leg;
+
+    // Set pad style
+    setPadStyle();
+
+    // Draw histograms
+    h2->Draw("E2");
+    h1->Draw("same");
+    h2->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    h2->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    t.DrawLatexNDC(0.35, 0.83, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi ) );
+    
+    t.SetTextSize(0.05);
+    t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
+    t.DrawLatexNDC(0.2, 0.66, "p_{T}^{Subleading} > 40 GeV");
+    if ( isCM ) {
+        t.DrawLatexNDC(0.2, 0.57, "|#eta_{CM}| < 2.4");
+    }
+    else {
+        t.DrawLatexNDC(0.2, 0.57, "|#eta| < 3");
+    }
+    t.DrawLatexNDC(0.2, 0.49, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
+    t.SetTextSize(0.06);
+
+    leg = new TLegend(0.6, 0.65, 0.8, 0.8);
+    leg->SetTextSize(0.06);
+    leg->SetLineWidth(0);
+    leg->AddEntry(h1, "Data", "lep");
+    leg->AddEntry(h2, "Syst. uncrt.", "f");
+    leg->Draw();
+
+    plotCMSHeader();
+}
+
+//________________
+void plotManyDistributionsOnCanvas(TCanvas *c, std::vector< TH1D* > hData, std::vector< TH1D* > hSyst, 
+                                   Bool_t isCM = kFALSE, Int_t fbType = 0) {
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0.001, 0.12};
+
+    if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.001;
+        yRange[1] = 0.2;
+    }
+    else if ( fbType == 3 ) {               // Forward/backward
+        xRange[0] = 0.;
+        xRange[1] = 2.4;
+        yRange[0] = 0.75;
+        yRange[1] = 1.5;
+    }
+    else if ( fbType == 4 ) {               // Backward/forward
+        xRange[0] = 0.;
+        xRange[1] = 2.4;
+        yRange[0] = 0.4;
+        yRange[1] = 1.15;
+    }
 
     // Dijet pT selection
     std::vector<Int_t> ptDijetLow{};
@@ -4018,119 +4109,105 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
     Int_t ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
-    // Data
-    std::vector< TH1D* > hMBEta = hMBEtaDist.at(0); std::vector< TH1D* > hMBEtaForward = hMBEtaDist.at(1); 
-    std::vector< TH1D* > hMBEtaBackward = hMBEtaDist.at(2); std::vector< TH1D* > hMBEtaFBRatio = hMBEtaDist.at(3);
-    std::vector< TH1D* > hMBEtaBFRatio = hMBEtaDist.at(4);
+    // Set style for the data points
+    for (Int_t i{0}; i<hData.size(); i++) {
+        hData.at(i)->SetMarkerStyle(20);
+        hData.at(i)->SetMarkerSize(1.3);
+        hData.at(i)->SetMarkerColor(kBlack);
+        hData.at(i)->SetLineColor(kBlack);
+        hData.at(i)->SetLineWidth(2);
 
-    std::vector< TH1D* > hJet60Eta = hJet60EtaDist.at(0); std::vector< TH1D* > hJet60EtaForward = hJet60EtaDist.at(1);
-    std::vector< TH1D* > hJet60EtaBackward = hJet60EtaDist.at(2); std::vector< TH1D* > hJet60EtaFBRatio = hJet60EtaDist.at(3);
-    std::vector< TH1D* > hJet60EtaBFRatio = hJet60EtaDist.at(4);
-
-    std::vector< TH1D* > hJet80Eta = hJet80EtaDist.at(0); std::vector< TH1D* > hJet80EtaForward = hJet80EtaDist.at(1);
-    std::vector< TH1D* > hJet80EtaBackward = hJet80EtaDist.at(2); std::vector< TH1D* > hJet80EtaFBRatio = hJet80EtaDist.at(3);
-    std::vector< TH1D* > hJet80EtaBFRatio = hJet80EtaDist.at(4);
-
-    std::vector< TH1D* > hJet100Eta = hJet100EtaDist.at(0); std::vector< TH1D* > hJet100EtaForward = hJet100EtaDist.at(1);
-    std::vector< TH1D* > hJet100EtaBackward = hJet100EtaDist.at(2); std::vector< TH1D* > hJet100EtaFBRatio = hJet100EtaDist.at(3);
-    std::vector< TH1D* > hJet100EtaBFRatio = hJet100EtaDist.at(4);
-
-    // Systematics (relative systematic uncertainty)
-    std::vector< TH1D* > hMBEtaTotalRelSyst = hMBTotalRelSystDist.at(0);
-    std::vector< TH1D* > hMBEtaForwardTotalRelSyst = hMBTotalRelSystDist.at(1);
-    std::vector< TH1D* > hMBEtaBackwardTotalRelSyst = hMBTotalRelSystDist.at(2);
-    std::vector< TH1D* > hMBEtaFBRatioTotalRelSyst = hMBTotalRelSystDist.at(3);
-    std::vector< TH1D* > hMBEtaBFRatioTotalRelSyst = hMBTotalRelSystDist.at(4);
-
-    std::vector< TH1D* > hJet60EtaTotalRelSyst = hJet60TotalRelSystDist.at(0);
-    std::vector< TH1D* > hJet60EtaForwardTotalRelSyst = hJet60TotalRelSystDist.at(1);
-    std::vector< TH1D* > hJet60EtaBackwardTotalRelSyst = hJet60TotalRelSystDist.at(2);
-    std::vector< TH1D* > hJet60EtaFBRatioTotalRelSyst = hJet60TotalRelSystDist.at(3);
-    std::vector< TH1D* > hJet60EtaBFRatioTotalRelSyst = hJet60TotalRelSystDist.at(4);
-
-    std::vector< TH1D* > hJet80EtaTotalRelSyst = hJet80TotalRelSystDist.at(0);
-    std::vector< TH1D* > hJet80EtaForwardTotalRelSyst = hJet80TotalRelSystDist.at(1);
-    std::vector< TH1D* > hJet80EtaBackwardTotalRelSyst = hJet80TotalRelSystDist.at(2);
-    std::vector< TH1D* > hJet80EtaFBRatioTotalRelSyst = hJet80TotalRelSystDist.at(3);
-    std::vector< TH1D* > hJet80EtaBFRatioTotalRelSyst = hJet80TotalRelSystDist.at(4);
-
-    std::vector< TH1D* > hJet100EtaTotalRelSyst = hJet100TotalRelSystDist.at(0);
-    std::vector< TH1D* > hJet100EtaForwardTotalRelSyst = hJet100TotalRelSystDist.at(1);
-    std::vector< TH1D* > hJet100EtaBackwardTotalRelSyst = hJet100TotalRelSystDist.at(2);
-    std::vector< TH1D* > hJet100EtaFBRatioTotalRelSyst = hJet100TotalRelSystDist.at(3);
-    std::vector< TH1D* > hJet100EtaBFRatioTotalRelSyst = hJet100TotalRelSystDist.at(4);
-
-    // Create TGraphErrors with total absolute systematic uncertainty
-    std::vector< TGraphErrors* > grMBEtaTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grMBEtaForwardTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grMBEtaBackwardTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grMBEtaFBRatioTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grMBEtaBFRatioTotalAbsSyst = {};
-
-    std::vector< TGraphErrors* > grJet60EtaTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet60EtaForwardTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet60EtaBackwardTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet60EtaFBRatioTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet60EtaBFRatioTotalAbsSyst = {};
-
-    std::vector< TGraphErrors* > grJet80EtaTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet80EtaForwardTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet80EtaBackwardTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet80EtaFBRatioTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet80EtaBFRatioTotalAbsSyst = {};
-
-    std::vector< TGraphErrors* > grJet100EtaTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet100EtaForwardTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet100EtaBackwardTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet100EtaFBRatioTotalAbsSyst = {};
-    std::vector< TGraphErrors* > grJet100EtaBFRatioTotalAbsSyst = {};
-
-    std::vector< TGraphErrors* > grSystUncrt = {};
-    TFile *oSystFile = TFile::Open("freezeSyst/oSystematics.root");
-    for (Int_t i{0}; i<ptBins; i++) {
-        grSystUncrt.push_back( (TGraphErrors*)oSystFile->Get( Form("grErrTotalSystUncrt_%d", i) ) );
-        setGraphStyle(grSystUncrt[i], isCM);
+        hSyst.at(i)->SetFillColorAlpha(29, 0.55);
+        hSyst.at(i)->SetLineColor(29);
+        hSyst.at(i)->SetLineWidth(0);
+        hSyst.at(i)->SetFillStyle(1001);           // Solid fill
     }
 
-    // Loop over pT bins
+    // Create legend
+    TLegend *leg;
+
+    // Loop over dijet pT bins
     for (Int_t i{0}; i<ptBins; i++) {
-        hMBEtaFBRatio[i]->SetLineColor(kBlack);
-        hMBEtaFBRatio[i]->SetMarkerColor(kBlack);
-        hMBEtaFBRatio[i]->SetMarkerStyle(20);
-        hMBEtaBFRatio[i]->SetLineColor(kBlack);
-        hMBEtaBFRatio[i]->SetMarkerColor(kBlack);
-        hMBEtaBFRatio[i]->SetMarkerStyle(20);
 
-        hJet60EtaFBRatio[i]->SetLineColor(kBlack);
-        hJet60EtaFBRatio[i]->SetMarkerColor(kBlack);
-        hJet60EtaFBRatio[i]->SetMarkerStyle(20);
-        hJet60EtaBFRatio[i]->SetLineColor(kBlack);
-        hJet60EtaBFRatio[i]->SetMarkerColor(kBlack);
-        hJet60EtaBFRatio[i]->SetMarkerStyle(20);
-
-        hJet80EtaFBRatio[i]->SetLineColor(kBlack);
-        hJet80EtaFBRatio[i]->SetMarkerColor(kBlack);
-        hJet80EtaFBRatio[i]->SetMarkerStyle(20);
-        hJet80EtaBFRatio[i]->SetLineColor(kBlack);
-        hJet80EtaBFRatio[i]->SetMarkerColor(kBlack);
-        hJet80EtaBFRatio[i]->SetMarkerStyle(20);
+        c->cd(i+1);
+        setPadStyle();
+        hSyst.at(i)->Draw("E2");
+        hData.at(i)->Draw("same");
+        // hData.at(i)->Draw();
+        // hSyst.at(i)->Draw("E2 same");
+        hSyst.at(i)->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+        hSyst.at(i)->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+        t.DrawLatexNDC(0.33, 0.83, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptDijetLow.at(i), ptDijetHi.at(i) ) );
         
-        hJet100EtaFBRatio[i]->SetLineColor(kBlack);
-        hJet100EtaFBRatio[i]->SetMarkerColor(kBlack);
-        hJet100EtaFBRatio[i]->SetMarkerStyle(20);
-        hJet100EtaBFRatio[i]->SetLineColor(kBlack);
-        hJet100EtaBFRatio[i]->SetMarkerColor(kBlack);
-        hJet100EtaBFRatio[i]->SetMarkerStyle(20);
-    }
+        if ( i == 0 ) {
+            t.SetTextSize(0.05);
+            t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
+            t.DrawLatexNDC(0.2, 0.66, "p_{T}^{Subleading} > 40 GeV");
 
+            if ( isCM ) {
+                t.DrawLatexNDC(0.2, 0.57, "|#eta_{CM}| < 2.4");
+            }
+            else {
+                t.DrawLatexNDC(0.2, 0.57, "|#eta| < 3");
+            }
+
+            t.DrawLatexNDC(0.2, 0.49, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
+            t.SetTextSize(0.06);
+        }
+
+        if ( i == 1 ) {
+            leg = new TLegend(0.6, 0.65, 0.8, 0.8);
+            leg->SetTextSize(0.06);
+            leg->SetLineWidth(0);
+            leg->AddEntry(hData.at(i), "Data", "lep");
+            leg->AddEntry(hSyst.at(i), "Syst. uncrt.", "f");
+            leg->Draw();
+        }
+
+        plotCMSHeader();
+    } // for (Int_t i{0}; i<ptBins; i++)
+}
+
+//________________
+void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist, 
+                               std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist,
+                               TString date, Bool_t isCM = kFALSE) {
+
+    TString frame;
+    frame = ( isCM ) ? "cms" : "lab";
+
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    // Obtain vectors with distributions
+    std::vector< TH1D* > hEtaDist = hFinalDist.at(0);
+    std::vector< TH1D* > hEtaForwardDist = hFinalDist.at(1);
+    std::vector< TH1D* > hEtaBackwardDist = hFinalDist.at(2);
+    std::vector< TH1D* > hEtaFBRatioDist = hFinalDist.at(3);
+    std::vector< TH1D* > hEtaBFRatioDist = hFinalDist.at(4);
+
+    std::vector< TH1D* > hEtaAbsSystUncrtDist = hFinalAbsSystUncrtDist.at(0);
+    std::vector< TH1D* > hEtaForwardAbsSystUncrtDist = hFinalAbsSystUncrtDist.at(1);
+    std::vector< TH1D* > hEtaBackwardAbsSystUncrtDist = hFinalAbsSystUncrtDist.at(2);
+    std::vector< TH1D* > hEtaFBRatioAbsSystUncrtDist = hFinalAbsSystUncrtDist.at(3);
+    std::vector< TH1D* > hEtaBFRatioAbsSystUncrtDist = hFinalAbsSystUncrtDist.at(4);
+
+    // Create canvases
     Int_t sizeX{1200}, sizeY{1200};
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
 
     TCanvas *cEta = new TCanvas("cEta", "cEta", sizeX, sizeY);
     cEta->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
 
-    TCanvas *cEtaForwardAndBackward = new TCanvas("cEtaForwardAndBackward", "cEtaForwardAndBackward", sizeX, sizeY);
-    cEtaForwardAndBackward->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
+    TCanvas *cEtaForward = new TCanvas("cEtaForward", "cEtaForward", sizeX, sizeY);
+    cEtaForward->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
+
+    TCanvas *cEtaBackward = new TCanvas("cEtaBackward", "cEtaBackward", sizeX, sizeY);
+    cEtaBackward->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
 
     TCanvas *cEtaFB = new TCanvas("cEtaFB", "cEtaFB", sizeX, sizeY);
     cEtaFB->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
@@ -4138,496 +4215,44 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, std
     TCanvas *cEtaBF = new TCanvas("cEtaBF", "cEtaBF", sizeX, sizeY);
     cEtaBF->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
 
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.07);
-
-    TLegend *leg;
-
-    Double_t drawPt[2] = {0.35, 0.83};
-
     // Plot distributions on canvases
     for (Int_t i=0; i<ptBins; i++) {
 
+        // Full eta
+        canv->cd();
+        plotDistributionWithUncrt(canv, hEtaDist.at(i), hEtaAbsSystUncrtDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 0);
+        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
 
-        grMBEtaTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hMBEta[i], hMBEtaTotalRelSyst[i], "MBEta", i) );
-        grMBEtaForwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hMBEtaForward[i], hMBEtaForwardTotalRelSyst[i], "MBEtaForward", i) );
-        grMBEtaBackwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hMBEtaBackward[i], hMBEtaBackwardTotalRelSyst[i], "MBEtaBackward", i) );
-        grMBEtaFBRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hMBEtaFBRatio[i], hMBEtaFBRatioTotalRelSyst[i], "MBEtaFBRatio", i) );
-        grMBEtaBFRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hMBEtaBFRatio[i], hMBEtaBFRatioTotalRelSyst[i], "MBEtaBFRatio", i) );
+        // Forward eta
+        canv->cd();
+        plotDistributionWithUncrt(canv, hEtaForwardDist.at(i), hEtaForwardAbsSystUncrtDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 1);
+        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_forward_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
+        
+        // Backward eta
+        canv->cd();
+        plotDistributionWithUncrt(canv, hEtaBackwardDist.at(i), hEtaBackwardAbsSystUncrtDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 2);
+        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_backward_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
 
-        grJet60EtaTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60Eta[i], hJet60EtaTotalRelSyst[i], "Jet60Eta", i) );
-        grJet60EtaForwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaForward[i], hJet60EtaForwardTotalRelSyst[i], "Jet60EtaForward", i) );
-        grJet60EtaBackwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaBackward[i], hJet60EtaBackwardTotalRelSyst[i], "Jet60EtaBackward", i) );
-        grJet60EtaFBRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaFBRatio[i], hJet60EtaFBRatioTotalRelSyst[i], "Jet60EtaFBRatio", i) );
+        // Forward/backward ratio
+        canv->cd();
+        plotDistributionWithUncrt(canv, hEtaFBRatioDist.at(i), hEtaFBRatioAbsSystUncrtDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 3);
+        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_fbRatio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
 
-        grJet80EtaTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80Eta[i], hJet80EtaTotalRelSyst[i], "Jet80Eta", i) );
-        grJet80EtaForwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80EtaForward[i], hJet80EtaForwardTotalRelSyst[i], "Jet80EtaForward", i) );
-        grJet80EtaBackwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80EtaBackward[i], hJet80EtaBackwardTotalRelSyst[i], "Jet80EtaBackward", i) );
-        grJet80EtaFBRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80EtaFBRatio[i], hJet80EtaFBRatioTotalRelSyst[i], "Jet80EtaFBRatio", i) );
-        grJet80EtaBFRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80EtaBFRatio[i], hJet80EtaBFRatioTotalRelSyst[i], "Jet80EtaBFRatio", i) );
-
-        grJet100EtaTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100Eta[i], hJet100EtaTotalRelSyst[i], "Jet100Eta", i) );
-        grJet100EtaForwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100EtaForward[i], hJet100EtaForwardTotalRelSyst[i], "Jet100EtaForward", i) );
-        grJet100EtaBackwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100EtaBackward[i], hJet100EtaBackwardTotalRelSyst[i], "Jet100EtaBackward", i) );
-        grJet100EtaFBRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100EtaFBRatio[i], hJet100EtaFBRatioTotalRelSyst[i], "Jet100EtaFBRatio", i) );
-        grJet100EtaBFRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100EtaBFRatio[i], hJet100EtaBFRatioTotalRelSyst[i], "Jet100EtaBFRatio", i) );
-
-        if (ptDijetHi.at(i) < 80) {
-
-
-
-            canv->cd();
-            setPadStyle();
-            //setGraphStyle(grMBEtaTotalAbsSyst[i], isCM);
-            grSystUncrt[i]->Draw("AE5");
-            // grMBEtaTotalAbsSyst[i]->Draw("AE5");
-            hMBEta[i]->Draw("same");
-            // grMBEtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            // grMBEtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            t.SetTextSize(0.05);
-            t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
-            t.DrawLatexNDC(0.2, 0.66, "p_{T}^{Subleading} > 40 GeV");
-            if ( isCM ) {
-                t.DrawLatexNDC(0.2, 0.57, "|#eta_{CM}| < 2.4");
-            }
-            else {
-                t.DrawLatexNDC(0.2, 0.57, "|#eta| < 3");
-            }
-            t.DrawLatexNDC(0.2, 0.49, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
-            t.SetTextSize(0.06);
-            leg = new TLegend(0.6, 0.65, 0.8, 0.8);
-            leg->SetTextSize(0.06);
-            leg->SetLineWidth(0);
-            leg->AddEntry(hMBEta[i], "Data", "p");
-            leg->AddEntry(grSystUncrt[i], "Syst. uncrt.", "f");
-            leg->Draw();
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/MB_pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEta->cd(i+1);
-            setPadStyle();
-            grSystUncrt[i]->Draw("AE5");
-            // setGraphStyle(grMBEtaTotalAbsSyst[i], isCM);
-            // grMBEtaTotalAbsSyst[i]->Draw("AE5");
-            hMBEta[i]->Draw("same");
-            // grMBEtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            // grMBEtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            if (i == 0) {
-                t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
-                t.DrawLatexNDC(0.2, 0.65, "p_{T}^{Subleading} > 40 GeV");
-                if ( isCM ) {
-                    t.DrawLatexNDC(0.2, 0.57, "|#eta_{CM}| < 2.4");
-                }
-                else {
-                    t.DrawLatexNDC(0.2, 0.57, "|#eta| < 3");
-                }
-                t.DrawLatexNDC(0.2, 0.49, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
-            }
-            if ( i == 1 ) {
-                leg = new TLegend(0.6, 0.65, 0.8, 0.8);
-                leg->SetTextSize(0.06);
-                leg->SetLineWidth(0);
-                leg->AddEntry(hMBEta[i], "Data", "p");
-                leg->AddEntry(grSystUncrt[i], "Syst. uncrt.", "f");
-                leg->Draw();
-            }
-            plotCMSHeader();
-
-            canv->cd();
-            setPadStyle();
-            hMBEtaForward[i]->Draw();
-            hMBEtaBackward[i]->Draw("same");
-            hMBEtaForward[i]->GetXaxis()->SetRangeUser(xRangeForward[0], xRangeForward[1]);
-            hMBEtaForward[i]->GetYaxis()->SetRangeUser(yRangeForward[0], yRangeForward[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            leg = new TLegend(0.6, 0.65, 0.8, 0.8);
-            leg->SetTextSize(0.06);
-            leg->SetLineWidth(0);
-            leg->AddEntry(hMBEtaForward[i], "Forward", "p");
-            leg->AddEntry(hMBEtaBackward[i], "Backward", "p");
-            leg->Draw();
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/MB_pPb8160_etaDijet_forward_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaForwardAndBackward->cd(i+1);
-            setPadStyle();
-            hMBEtaForward[i]->Draw();
-            hMBEtaBackward[i]->Draw("same");
-            hMBEtaForward[i]->GetXaxis()->SetRangeUser(xRangeForward[0], xRangeForward[1]);
-            hMBEtaForward[i]->GetYaxis()->SetRangeUser(yRangeForward[0], yRangeForward[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            if (i==0) {
-                leg = new TLegend(0.6, 0.65, 0.8, 0.8);
-                leg->SetTextSize(0.06);
-                leg->SetLineWidth(0);
-                leg->AddEntry(hMBEtaForward[i], "Forward", "p");
-                leg->AddEntry(hMBEtaBackward[i], "Backward", "p");
-                leg->Draw();
-            }
-            plotCMSHeader();
-
-            canv->cd();
-            setPadFBStyle();
-            setGraphStyle(grMBEtaFBRatioTotalAbsSyst[i], isCM);
-            grMBEtaFBRatioTotalAbsSyst[i]->Draw("AE5");
-            hMBEtaFBRatio[i]->Draw("same");
-            grMBEtaFBRatioTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            grMBEtaFBRatioTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRangeFB[0], yRangeFB[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            t.DrawLatexNDC(0.3, 0.75, "p_{T}^{Leading} > 50 GeV");
-            t.DrawLatexNDC(0.3, 0.65, "p_{T}^{Subleading} > 40 GeV");
-            if ( isCM ) {
-                t.DrawLatexNDC(0.3, 0.57, "|#eta_{CM}| < 2.4");
-            }
-            else {
-                t.DrawLatexNDC(0.3, 0.57, "|#eta| < 3");
-            }
-            t.DrawLatexNDC(0.3, 0.49, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
-            leg = new TLegend(0.3, 0.2, 0.5, 0.4);
-            leg->SetTextSize(0.06);
-            leg->SetLineWidth(0);
-            leg->AddEntry(hMBEtaFBRatio[i], "Data", "p");
-            leg->AddEntry(grMBEtaFBRatioTotalAbsSyst[i], "Syst. uncrt.", "f");
-            leg->Draw();
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/MB_pPb8160_etaDijet_fb_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaFB->cd(i+1);
-            setPadFBStyle();
-            setGraphStyle(grMBEtaFBRatioTotalAbsSyst[i], isCM);
-            grMBEtaFBRatioTotalAbsSyst[i]->Draw("AE5");
-            hMBEtaFBRatio[i]->Draw("same");
-            grMBEtaFBRatioTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            grMBEtaFBRatioTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRangeFB[0], yRangeFB[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            if (i == 0) {
-                t.DrawLatexNDC(0.3, 0.75, "p_{T}^{Leading} > 50 GeV");
-                t.DrawLatexNDC(0.3, 0.65, "p_{T}^{Subleading} > 40 GeV");
-                if ( isCM ) {
-                    t.DrawLatexNDC(0.3, 0.57, "|#eta_{CM}| < 2.4");
-                }
-                else {
-                    t.DrawLatexNDC(0.3, 0.57, "|#eta| < 3");
-                }
-                t.DrawLatexNDC(0.3, 0.49, "#Delta#phi^{dijet} > #frac{5#pi}{6}");
-            }
-            if ( i == 1 ) {
-                leg = new TLegend(0.3, 0.2, 0.5, 0.4);
-                leg->SetTextSize(0.06);
-                leg->SetLineWidth(0);
-                leg->AddEntry(hMBEtaFBRatio[i], "Data", "p");
-                leg->AddEntry(grMBEtaFBRatioTotalAbsSyst[i], "Syst. uncrt.", "f");
-                leg->Draw();
-            }
-            plotCMSHeader();
-
-            canv->cd();
-            setPadFBStyle();
-            hMBEtaBFRatio[i]->Draw();
-            hMBEtaBFRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hMBEtaBFRatio[i]->GetYaxis()->SetRangeUser(yRangeBF[0], yRangeBF[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/MB_pPb8160_etaDijet_bf_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaBF->cd(i+1);
-            setPadFBStyle();
-            hMBEtaBFRatio[i]->Draw();
-            hMBEtaBFRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hMBEtaBFRatio[i]->GetYaxis()->SetRangeUser(yRangeBF[0], yRangeBF[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-        }
-        else if (ptDijetHi.at(i) < 100) {
-
-            grJet60EtaTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60Eta[i], hJet60EtaTotalRelSyst[i], "Jet60Eta", i) );
-            grJet60EtaForwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaForward[i], hJet60EtaForwardTotalRelSyst[i], "Jet60EtaForward", i) );
-            grJet60EtaBackwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaBackward[i], hJet60EtaBackwardTotalRelSyst[i], "Jet60EtaBackward", i) );
-            grJet60EtaFBRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaFBRatio[i], hJet60EtaFBRatioTotalRelSyst[i], "Jet60EtaFBRatio", i) );
-            grJet60EtaBFRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet60EtaBFRatio[i], hJet60EtaBFRatioTotalRelSyst[i], "Jet60EtaBFRatio", i) );
-
-            setPadStyle();
-            // std::cout << Form("Name: %s", grJet60EtaTotalAbsSyst[i]->GetName()) << std::endl;
-            // setGraphStyle(grJet60EtaTotalAbsSyst[i], isCM);
-
-            grSystUncrt[i]->Draw("AE5");
-            // grJet60EtaTotalAbsSyst[i]->Draw("AE5");
-            hJet60Eta[i]->Draw("same");
-            // grJet60EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            // grJet60EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet60_pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEta->cd(i+1);
-            setPadStyle();
-            // setGraphStyle(grJet60EtaTotalAbsSyst[i], isCM);
-            // grJet60EtaTotalAbsSyst[i]->Draw("AE5");
-            grSystUncrt[i]->Draw("AE5");
-            hJet60Eta[i]->Draw("same");
-            // grJet60EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            // grJet60EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadStyle();
-            hJet60EtaForward[i]->Draw();
-            hJet60EtaForward[i]->Draw("same");
-            hJet60EtaForward[i]->GetXaxis()->SetRangeUser(xRangeForward[0], xRangeForward[1]);
-            hJet60EtaForward[i]->GetYaxis()->SetRangeUser(yRangeForward[0], yRangeForward[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            leg = new TLegend(0.6, 0.65, 0.8, 0.8);
-            leg->SetTextSize(0.06);
-            leg->SetLineWidth(0);
-            leg->AddEntry(hJet60EtaForward[i], "Forward", "p");
-            leg->AddEntry(hJet60EtaBackward[i], "Backward", "p");
-            leg->Draw();
-            canv->SaveAs( Form("%s/data/Jet60_pPb8160_etaDijet_forward_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaForwardAndBackward->cd(i+1);
-            setPadStyle();
-            hJet60EtaForward[i]->Draw();
-            hJet60EtaForward[i]->Draw("same");
-            hJet60EtaForward[i]->GetXaxis()->SetRangeUser(xRangeForward[0], xRangeForward[1]);
-            hJet60EtaForward[i]->GetYaxis()->SetRangeUser(yRangeForward[0], yRangeForward[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadFBStyle();
-            setGraphStyle(grJet60EtaFBRatioTotalAbsSyst[i], isCM);
-            grJet60EtaFBRatioTotalAbsSyst[i]->Draw("AE5");
-            hJet60EtaFBRatio[i]->Draw("same");
-            grJet60EtaFBRatioTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            grJet60EtaFBRatioTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRangeFB[0], yRangeFB[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet60_pPb8160_etaDijet_fb_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaFB->cd(i+1);
-            setPadFBStyle();
-            setGraphStyle(grJet60EtaFBRatioTotalAbsSyst[i], isCM);
-            grJet60EtaFBRatioTotalAbsSyst[i]->Draw("AE5");
-            hJet60EtaFBRatio[i]->Draw("same");
-            grJet60EtaFBRatioTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            grJet60EtaFBRatioTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRangeFB[0], yRangeFB[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadFBStyle();
-            hJet60EtaBFRatio[i]->Draw();
-            hJet60EtaBFRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hJet60EtaBFRatio[i]->GetYaxis()->SetRangeUser(yRangeBF[0], yRangeBF[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet60_pPb8160_etaDijet_bf_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaBF->cd(i+1);
-            setPadFBStyle();
-            hJet60EtaBFRatio[i]->Draw();
-            hJet60EtaBFRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hJet60EtaBFRatio[i]->GetYaxis()->SetRangeUser(yRangeBF[0], yRangeBF[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-        }
-        else if (ptDijetHi.at(i) < 120) {
-
-            grJet80EtaTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80Eta[i], hJet80EtaTotalRelSyst[i], "Jet80Eta", i) );
-            grJet80EtaForwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80EtaForward[i], hJet80EtaForwardTotalRelSyst[i], "Jet80EtaForward", i) );
-            grJet80EtaBackwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80EtaBackward[i], hJet80EtaBackwardTotalRelSyst[i], "Jet80EtaBackward", i) );
-            grJet80EtaFBRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80EtaFBRatio[i], hJet80EtaFBRatioTotalRelSyst[i], "Jet80EtaFBRatio", i) );
-            grJet80EtaBFRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet80EtaBFRatio[i], hJet80EtaBFRatioTotalRelSyst[i], "Jet80EtaBFRatio", i) );
-
-            canv->cd();
-            setPadStyle();
-            // setGraphStyle(grJet80EtaTotalAbsSyst[i], isCM);
-            // grJet80EtaTotalAbsSyst[i]->Draw("AE5");
-            grSystUncrt[i]->Draw("AE5");
-            hJet80Eta[i]->Draw("same");
-            // grJet80EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            // grJet80EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet80_pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEta->cd(i+1);
-            setPadStyle();
-            // setGraphStyle(grJet80EtaTotalAbsSyst[i], isCM);
-            // grJet80EtaTotalAbsSyst[i]->Draw("AE5");
-            grSystUncrt[i]->Draw("AE5");
-            hJet80Eta[i]->Draw("same");
-            // grJet80EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            // grJet80EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadStyle();
-            hJet80EtaForward[i]->Draw();
-            hJet80EtaBackward[i]->Draw("same");
-            hJet80EtaForward[i]->GetXaxis()->SetRangeUser(xRangeForward[0], xRangeForward[1]);
-            hJet80EtaForward[i]->GetYaxis()->SetRangeUser(yRangeForward[0], yRangeForward[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet80_pPb8160_etaDijet_forward_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-            
-            cEtaForwardAndBackward->cd(i+1);
-            setPadStyle();
-            hJet80EtaForward[i]->Draw();
-            hJet80EtaBackward[i]->Draw("same");
-            hJet80EtaForward[i]->GetXaxis()->SetRangeUser(xRangeForward[0], xRangeForward[1]);
-            hJet80EtaForward[i]->GetYaxis()->SetRangeUser(yRangeForward[0], yRangeForward[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadFBStyle();
-            hJet80EtaFBRatio[i]->Draw();
-            hJet80EtaFBRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hJet80EtaFBRatio[i]->GetYaxis()->SetRangeUser(yRangeFB[0], yRangeFB[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet80_pPb8160_etaDijet_fb_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaFB->cd(i+1);
-            setPadFBStyle();
-            hJet80EtaFBRatio[i]->Draw();
-            hJet80EtaFBRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hJet80EtaFBRatio[i]->GetYaxis()->SetRangeUser(yRangeFB[0], yRangeFB[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadFBStyle();
-            hJet80EtaBFRatio[i]->Draw();
-            hJet80EtaBFRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hJet80EtaBFRatio[i]->GetYaxis()->SetRangeUser(yRangeBF[0], yRangeBF[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet80_pPb8160_etaDijet_bf_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaBF->cd(i+1);
-            setPadFBStyle();
-            hJet80EtaBFRatio[i]->Draw();
-            hJet80EtaBFRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hJet80EtaBFRatio[i]->GetYaxis()->SetRangeUser(yRangeBF[0], yRangeBF[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-        }
-        else {
-
-            grJet100EtaTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100Eta[i], hJet100EtaTotalRelSyst[i], "Jet100Eta", i) );
-            grJet100EtaForwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100EtaForward[i], hJet100EtaForwardTotalRelSyst[i], "Jet100EtaForward", i) );
-            grJet100EtaBackwardTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100EtaBackward[i], hJet100EtaBackwardTotalRelSyst[i], "Jet100EtaBackward", i) );
-            grJet100EtaFBRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100EtaFBRatio[i], hJet100EtaFBRatioTotalRelSyst[i], "Jet100EtaFBRatio", i) );
-            grJet100EtaBFRatioTotalAbsSyst.push_back( retrieveTotalAbsSystUncrt(hJet100EtaBFRatio[i], hJet100EtaBFRatioTotalRelSyst[i], "Jet100EtaBFRatio", i) );
-
-            canv->cd();
-            setPadStyle();
-            grSystUncrt[i]->Draw("AE5");
-            // setGraphStyle(grJet100EtaTotalAbsSyst[i], isCM);
-            // grJet100EtaTotalAbsSyst[i]->Draw("AE5");
-            hJet100Eta[i]->Draw("same");
-            // grJet100EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            // grJet100EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet100_pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEta->cd(i+1);
-            setPadStyle();
-            grSystUncrt[i]->Draw("AE5");
-            // setGraphStyle(grJet100EtaTotalAbsSyst[i], isCM);
-            // grJet100EtaTotalAbsSyst[i]->Draw("AE5");
-            hJet100Eta[i]->Draw("same");
-            // grJet100EtaTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            // grJet100EtaTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            grSystUncrt[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-            grSystUncrt[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadStyle();
-            hJet100EtaForward[i]->Draw();
-            hJet100EtaBackward[i]->Draw("same");
-            hJet100EtaForward[i]->GetXaxis()->SetRangeUser(xRangeForward[0], xRangeForward[1]);
-            hJet100EtaForward[i]->GetYaxis()->SetRangeUser(yRangeForward[0], yRangeForward[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet100_pPb8160_etaDijet_forward_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaForwardAndBackward->cd(i+1);
-            setPadStyle();
-            hJet100EtaForward[i]->Draw();
-            hJet100EtaBackward[i]->Draw("same");
-            hJet100EtaForward[i]->GetXaxis()->SetRangeUser(xRangeForward[0], xRangeForward[1]);
-            hJet100EtaForward[i]->GetYaxis()->SetRangeUser(yRangeForward[0], yRangeForward[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadFBStyle();
-            setGraphStyle(grJet100EtaFBRatioTotalAbsSyst[i], isCM);
-            grJet100EtaFBRatioTotalAbsSyst[i]->Draw("AE5");
-            hJet100EtaFBRatio[i]->Draw("same");
-            grJet100EtaFBRatioTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            grJet100EtaFBRatioTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRangeFB[0], yRangeFB[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet100_pPb8160_etaDijet_fb_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaFB->cd(i+1);
-            setPadFBStyle();
-            setGraphStyle(grJet100EtaFBRatioTotalAbsSyst[i], isCM);
-            grJet100EtaFBRatioTotalAbsSyst[i]->Draw("AE5");
-            hJet100EtaFBRatio[i]->Draw("same");
-            grJet100EtaFBRatioTotalAbsSyst[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            grJet100EtaFBRatioTotalAbsSyst[i]->GetYaxis()->SetRangeUser(yRangeFB[0], yRangeFB[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-
-            canv->cd();
-            setPadFBStyle();
-            hJet100EtaBFRatio[i]->Draw();
-            hJet100EtaBFRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hJet100EtaBFRatio[i]->GetYaxis()->SetRangeUser(yRangeBF[0], yRangeBF[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-            canv->SaveAs( Form("%s/data/Jet100_pPb8160_etaDijet_bf_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-            cEtaBF->cd(i+1);
-            setPadFBStyle();
-            hJet100EtaBFRatio[i]->Draw();
-            hJet100EtaBFRatio[i]->GetXaxis()->SetRangeUser(xRangeFB[0], xRangeFB[1]);
-            hJet100EtaBFRatio[i]->GetYaxis()->SetRangeUser(yRangeBF[0], yRangeBF[1]);
-            t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
-            plotCMSHeader();
-        }
-
+        // Backward/forward ratio
+        canv->cd();
+        plotDistributionWithUncrt(canv, hEtaBFRatioDist.at(i), hEtaBFRatioAbsSystUncrtDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 4);
+        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_bfRatio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
     } // for (Int_t i=0; i<ptBins; i++)
+
+    plotManyDistributionsOnCanvas(cEta, hEtaDist, hEtaAbsSystUncrtDist, isCM, 0);
+    plotManyDistributionsOnCanvas(cEtaForward, hEtaForwardDist, hEtaForwardAbsSystUncrtDist, isCM, 1);
+    plotManyDistributionsOnCanvas(cEtaBackward, hEtaBackwardDist, hEtaBackwardAbsSystUncrtDist, isCM, 2);
+    plotManyDistributionsOnCanvas(cEtaFB, hEtaFBRatioDist, hEtaFBRatioAbsSystUncrtDist, isCM, 3);
+    plotManyDistributionsOnCanvas(cEtaBF, hEtaBFRatioDist, hEtaBFRatioAbsSystUncrtDist, isCM, 4);
+
     cEta->SaveAs( Form("%s/data/pPb8160_etaDijet_all_%s.pdf", date.Data(), frame.Data() ) );
-    cEtaForwardAndBackward->SaveAs( Form("%s/data/pPb8160_etaDijet_forward_all_%s.pdf", date.Data(), frame.Data() ) );
+    cEtaForward->SaveAs( Form("%s/data/pPb8160_etaDijet_forward_all_%s.pdf", date.Data(), frame.Data() ) );
+    cEtaBackward->SaveAs( Form("%s/data/pPb8160_etaDijet_backward_all_%s.pdf", date.Data(), frame.Data() ) );
     cEtaFB->SaveAs( Form("%s/data/pPb8160_etaDijet_fb_all_%s.pdf", date.Data(), frame.Data() ) );
     cEtaBF->SaveAs( Form("%s/data/pPb8160_etaDijet_bf_all_%s.pdf", date.Data(), frame.Data() ) );
 }
@@ -6021,6 +5646,8 @@ void writeDistributions2RootFile(std::vector< std::vector<TH1D*> > hMBEtaDist, s
                                  std::vector< std::vector<TH1D*> > hJet80PileupRelSystDist, std::vector< std::vector<TH1D*> > hJet100PileupRelSystDist,
                                  std::vector< std::vector<TH1D*> > hMBTotalRelSystDist, std::vector< std::vector<TH1D*> > hJet60TotalRelSystDist,
                                  std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist, std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist,
+                                 std::vector< std::vector<TH1D*> > hFinalDist, std::vector< std::vector<TH1D*> > hFinalRelSystUncrtDist, 
+                                 std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist,
                                  TString date, Bool_t isCM = kFALSE) {
 
     TString frame;
@@ -6085,6 +5712,10 @@ void writeDistributions2RootFile(std::vector< std::vector<TH1D*> > hMBEtaDist, s
     writeVectors2RootFile(hJet60TotalRelSystDist);
     writeVectors2RootFile(hJet80TotalRelSystDist);
     writeVectors2RootFile(hJet100TotalRelSystDist);
+
+    writeVectors2RootFile(hFinalDist);
+    writeVectors2RootFile(hFinalRelSystUncrtDist);
+    writeVectors2RootFile(hFinalAbsSystUncrtDist);
 
     oFile->Write();
     oFile->Close();
@@ -6292,6 +5923,465 @@ std::vector< std::vector<TH1D*> > createTotalRelSystUncrt(std::vector< std::vect
 
     return hTotalRelSystUncrt;
 }
+
+//________________
+std::vector< std::vector<TH1D*> > makeFinalDistributions(std::vector< std::vector<TH1D*> > hMBEtaDist, 
+                                                         std::vector< std::vector<TH1D*> > hJet60EtaDist,
+                                                         std::vector< std::vector<TH1D*> > hJet80EtaDist, 
+                                                         std::vector< std::vector<TH1D*> > hJet100EtaDist,
+                                                         std::vector< std::vector<TH1D*> > hGenEtaDist,
+                                                         std::vector< std::vector<TH1D*> > hEmbeddingEtaDist,
+                                                         std::vector< std::vector<TH1D*> > hRatios2McDist) {
+
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    //
+    // Vectors to fill
+    //
+    std::vector< std::vector<TH1D*> > hFinalDistributions{};
+
+    // Data to fill
+    std::vector< TH1D* > hEtaFinal;                     // 0
+    std::vector< TH1D* > hEtaForwardFinal;              // 1
+    std::vector< TH1D* > hEtaBackwardFinal;             // 2
+    std::vector< TH1D* > hEtaFBRatioFinal;              // 3
+    std::vector< TH1D* > hEtaBFRatioFinal;              // 4
+    std::vector< TH1D* > hEtaFinalGen;                  // 5
+    std::vector< TH1D* > hEtaForwardFinalGen;           // 6
+    std::vector< TH1D* > hEtaBackwardFinalGen;          // 7
+    std::vector< TH1D* > hEtaFBRatioFinalGen;           // 8
+    std::vector< TH1D* > hEtaBFRatioFinalGen;           // 9
+    std::vector< TH1D* > hEtaFinalEmbedding;            // 10
+    std::vector< TH1D* > hEtaForwardFinalEmbedding;     // 11
+    std::vector< TH1D* > hEtaBackwardFinalEmbedding;    // 12
+    std::vector< TH1D* > hEtaFBRatioFinalEmbedding;     // 13
+    std::vector< TH1D* > hEtaBFRatioFinalEmbedding;     // 14
+
+    // Ratios to Monte Carlo to fill
+    std::vector< TH1D* > hEtaData2GenRatioFinal;               // 15
+    std::vector< TH1D* > hEtaForwardData2GenRatioFinal;        // 16
+    std::vector< TH1D* > hEtaBackwardData2GenRatioFinal;       // 17
+    std::vector< TH1D* > hEtaFBRatioData2GenRatioFinal;        // 18
+    std::vector< TH1D* > hEtaBFRatioData2GenRatioFinal;        // 19
+
+    std::vector< TH1D* > hEtaEmedding2GenRatioFinal;           // 20
+    std::vector< TH1D* > hEtaForwardEmbedding2GenRatioFinal;   // 21
+    std::vector< TH1D* > hEtaBackwardEmbedding2GenRatioFinal;  // 22
+    std::vector< TH1D* > hEtaFBRatioEmbedding2GenRatioFinal;   // 23
+    std::vector< TH1D* > hEtaBFRatioEmbedding2GenRatioFinal;   // 24
+
+    std::vector< TH1D* > hEtaData2EmbeddingRatioFinal;         // 25
+    std::vector< TH1D* > hEtaForwardData2EmbeddingRatioFinal;  // 26
+    std::vector< TH1D* > hEtaBackwardData2EmbeddingRatioFinal; // 27
+    std::vector< TH1D* > hEtaFBRatioData2EmbeddingRatioFinal;  // 28
+    std::vector< TH1D* > hEtaBFRatioData2EmbeddingRatioFinal;  // 29
+    
+    //
+    // Read input vectors
+    //
+
+    // Data
+    std::vector< TH1D* > hMBEta = hMBEtaDist.at(0); std::vector< TH1D* > hMBEtaForward = hMBEtaDist.at(1); 
+    std::vector< TH1D* > hMBEtaBackward = hMBEtaDist.at(2); std::vector< TH1D* > hMBEtaFBRatio = hMBEtaDist.at(3);
+    std::vector< TH1D* > hMBEtaBFRatio = hMBEtaDist.at(4);
+
+    std::vector< TH1D* > hJet60Eta = hJet60EtaDist.at(0); std::vector< TH1D* > hJet60EtaForward = hJet60EtaDist.at(1);
+    std::vector< TH1D* > hJet60EtaBackward = hJet60EtaDist.at(2); std::vector< TH1D* > hJet60EtaFBRatio = hJet60EtaDist.at(3);
+    std::vector< TH1D* > hJet60EtaBFRatio = hJet60EtaDist.at(4);
+
+    std::vector< TH1D* > hJet80Eta = hJet80EtaDist.at(0); std::vector< TH1D* > hJet80EtaForward = hJet80EtaDist.at(1);
+    std::vector< TH1D* > hJet80EtaBackward = hJet80EtaDist.at(2); std::vector< TH1D* > hJet80EtaFBRatio = hJet80EtaDist.at(3);
+    std::vector< TH1D* > hJet80EtaBFRatio = hJet80EtaDist.at(4);
+
+    std::vector< TH1D* > hJet100Eta = hJet100EtaDist.at(0); std::vector< TH1D* > hJet100EtaForward = hJet100EtaDist.at(1);
+    std::vector< TH1D* > hJet100EtaBackward = hJet100EtaDist.at(2); std::vector< TH1D* > hJet100EtaFBRatio = hJet100EtaDist.at(3);
+    std::vector< TH1D* > hJet100EtaBFRatio = hJet100EtaDist.at(4);
+
+    // Gen
+    std::vector< TH1D* > hGenEta = hGenEtaDist.at(0); std::vector< TH1D* > hGenEtaForward = hGenEtaDist.at(1);
+    std::vector< TH1D* > hGenEtaBackward = hGenEtaDist.at(2); std::vector< TH1D* > hGenEtaFBRatio = hGenEtaDist.at(3);
+    std::vector< TH1D* > hGenEtaBFRatio = hGenEtaDist.at(4);
+
+    // Embedding
+    std::vector< TH1D* > hEmbeddingEta = hEmbeddingEtaDist.at(0); std::vector< TH1D* > hEmbeddingEtaForward = hEmbeddingEtaDist.at(1);
+    std::vector< TH1D* > hEmbeddingEtaBackward = hEmbeddingEtaDist.at(2); std::vector< TH1D* > hEmbeddingEtaFBRatio = hEmbeddingEtaDist.at(3);
+    std::vector< TH1D* > hEmbeddingEtaBFRatio = hEmbeddingEtaDist.at(4);
+
+    // Ratios to Monte Carlo
+    std::vector<TH1D*> hMBEta2GenEtaRatio = hRatios2McDist.at(0);
+    std::vector<TH1D*> hMBEtaForward2GenEtaRatio = hRatios2McDist.at(1);
+    std::vector<TH1D*> hMBEtaBackward2GenEtaRatio = hRatios2McDist.at(2);
+    std::vector<TH1D*> hMBEtaFBRatio2GenEtaRatio = hRatios2McDist.at(3);
+    std::vector<TH1D*> hMBEtaBFRatio2GenEtaRatio = hRatios2McDist.at(4);
+
+    std::vector<TH1D*> hJet60Eta2GenEtaRatio = hRatios2McDist.at(5);
+    std::vector<TH1D*> hJet60EtaForward2GenEtaRatio = hRatios2McDist.at(6);
+    std::vector<TH1D*> hJet60EtaBackward2GenEtaRatio = hRatios2McDist.at(7);
+    std::vector<TH1D*> hJet60EtaFBRatio2GenEtaRatio = hRatios2McDist.at(8);
+    std::vector<TH1D*> hJet60EtaBFRatio2GenEtaRatio = hRatios2McDist.at(9);
+
+    std::vector<TH1D*> hJet80Eta2GenEtaRatio = hRatios2McDist.at(10);
+    std::vector<TH1D*> hJet80EtaForward2GenEtaRatio = hRatios2McDist.at(11);
+    std::vector<TH1D*> hJet80EtaBackward2GenEtaRatio = hRatios2McDist.at(12);
+    std::vector<TH1D*> hJet80EtaFBRatio2GenEtaRatio = hRatios2McDist.at(13);
+    std::vector<TH1D*> hJet80EtaBFRatio2GenEtaRatio = hRatios2McDist.at(14);
+
+    std::vector<TH1D*> hJet100Eta2GenEtaRatio = hRatios2McDist.at(15);
+    std::vector<TH1D*> hJet100EtaForward2GenEtaRatio = hRatios2McDist.at(16);
+    std::vector<TH1D*> hJet100EtaBackward2GenEtaRatio = hRatios2McDist.at(17);
+    std::vector<TH1D*> hJet100EtaFBRatio2GenEtaRatio = hRatios2McDist.at(18);
+    std::vector<TH1D*> hJet100EtaBFRatio2GenEtaRatio = hRatios2McDist.at(19);
+
+    std::vector<TH1D*> hEmbedding2GenEtaRatio = hRatios2McDist.at(20);
+    std::vector<TH1D*> hEmbedding2GenEtaForwardRatio = hRatios2McDist.at(21);
+    std::vector<TH1D*> hEmbedding2GenEtaBackwardRatio = hRatios2McDist.at(22);
+    std::vector<TH1D*> hEmbedding2GenEtaFBRatio = hRatios2McDist.at(23);
+    std::vector<TH1D*> hEmbedding2GenEtaBFRatio = hRatios2McDist.at(24);
+
+    std::vector<TH1D*> hMBEta2EmbeddingEtaRatio = hRatios2McDist.at(25);
+    std::vector<TH1D*> hMBEtaForward2EmbeddingEtaRatio = hRatios2McDist.at(26);
+    std::vector<TH1D*> hMBEtaBackward2EmbeddingEtaRatio = hRatios2McDist.at(27);
+    std::vector<TH1D*> hMBEtaFBRatio2EmbeddingEtaRatio = hRatios2McDist.at(28);
+    std::vector<TH1D*> hMBEtaBFRatio2EmbeddingEtaRatio = hRatios2McDist.at(29);
+
+    std::vector<TH1D*> hJet60Eta2EmbeddingEtaRatio = hRatios2McDist.at(30);
+    std::vector<TH1D*> hJet60EtaForward2EmbeddingEtaRatio = hRatios2McDist.at(31);
+    std::vector<TH1D*> hJet60EtaBackward2EmbeddingEtaRatio = hRatios2McDist.at(32);
+    std::vector<TH1D*> hJet60EtaFBRatio2EmbeddingEtaRatio = hRatios2McDist.at(33);
+    std::vector<TH1D*> hJet60EtaBFRatio2EmbeddingEtaRatio = hRatios2McDist.at(34);
+
+    std::vector<TH1D*> hJet80Eta2EmbeddingEtaRatio = hRatios2McDist.at(35);
+    std::vector<TH1D*> hJet80EtaForward2EmbeddingEtaRatio = hRatios2McDist.at(36);
+    std::vector<TH1D*> hJet80EtaBackward2EmbeddingEtaRatio = hRatios2McDist.at(37);
+    std::vector<TH1D*> hJet80EtaFBRatio2EmbeddingEtaRatio = hRatios2McDist.at(38);
+    std::vector<TH1D*> hJet80EtaBFRatio2EmbeddingEtaRatio = hRatios2McDist.at(39);
+
+    std::vector<TH1D*> hJet100Eta2EmbeddingEtaRatio = hRatios2McDist.at(40);
+    std::vector<TH1D*> hJet100EtaForward2EmbeddingEtaRatio = hRatios2McDist.at(41);
+    std::vector<TH1D*> hJet100EtaBackward2EmbeddingEtaRatio = hRatios2McDist.at(42);
+    std::vector<TH1D*> hJet100EtaFBRatio2EmbeddingEtaRatio = hRatios2McDist.at(43);
+    std::vector<TH1D*> hJet100EtaBFRatio2EmbeddingEtaRatio = hRatios2McDist.at(44);
+
+
+    // Create final distributions
+    for (Int_t i = 0; i < ptBins; i++) {
+        if ( ptDijetLow.at(i) < 80 ) {
+            hEtaFinal.push_back( dynamic_cast<TH1D*>( hMBEta.at(i)->Clone( Form("hData_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardFinal.push_back( dynamic_cast<TH1D*>( hMBEtaForward.at(i)->Clone( Form("hData_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardFinal.push_back( dynamic_cast<TH1D*>( hMBEtaBackward.at(i)->Clone( Form("hData_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaFBRatio.at(i)->Clone( Form("hData_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaBFRatio.at(i)->Clone( Form("hData_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+
+            hEtaData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEta2GenEtaRatio.at(i)->Clone( Form("hData2Gen_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaForward2GenEtaRatio.at(i)->Clone( Form("hData2Gen_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaBackward2GenEtaRatio.at(i)->Clone( Form("hData2Gen_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaFBRatio2GenEtaRatio.at(i)->Clone( Form("hData2Gen_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaBFRatio2GenEtaRatio.at(i)->Clone( Form("hData2Gen_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+
+            hEtaEmedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaRatio.at(i)->Clone( Form("hEmbedding2Gen_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardEmbedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaForwardRatio.at(i)->Clone( Form("hEmbedding2Gen_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardEmbedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaBackwardRatio.at(i)->Clone( Form("hEmbedding2Gen_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioEmbedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaFBRatio.at(i)->Clone( Form("hEmbedding2Gen_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioEmbedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaBFRatio.at(i)->Clone( Form("hEmbedding2Gen_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+
+            hEtaData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEta2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaForward2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaBackward2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaFBRatio2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hMBEtaBFRatio2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        }
+        else if ( ptDijetLow.at(i) < 100 ) {
+            hEtaFinal.push_back( dynamic_cast<TH1D*>( hJet60Eta.at(i)->Clone( Form("hData_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaForward.at(i)->Clone( Form("hData_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaBackward.at(i)->Clone( Form("hData_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaFBRatio.at(i)->Clone( Form("hData_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaBFRatio.at(i)->Clone( Form("hData_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+
+            hEtaData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60Eta2GenEtaRatio.at(i)->Clone( Form("hData2Gen_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaForward2GenEtaRatio.at(i)->Clone( Form("hData2Gen_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaBackward2GenEtaRatio.at(i)->Clone( Form("hData2Gen_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaFBRatio2GenEtaRatio.at(i)->Clone( Form("hData2Gen_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioData2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaBFRatio2GenEtaRatio.at(i)->Clone( Form("hData2Gen_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        
+            hEtaEmedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaRatio.at(i)->Clone( Form("hEmbedding2Gen_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardEmbedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaForwardRatio.at(i)->Clone( Form("hEmbedding2Gen_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardEmbedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaBackwardRatio.at(i)->Clone( Form("hEmbedding2Gen_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioEmbedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaFBRatio.at(i)->Clone( Form("hEmbedding2Gen_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioEmbedding2GenRatioFinal.push_back( dynamic_cast<TH1D*>( hEmbedding2GenEtaBFRatio.at(i)->Clone( Form("hEmbedding2Gen_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+
+            hEtaData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60Eta2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaForward2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaBackward2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaFBRatio2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioData2EmbeddingRatioFinal.push_back( dynamic_cast<TH1D*>( hJet60EtaBFRatio2EmbeddingEtaRatio.at(i)->Clone( Form("hData2Embedding_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        }
+        else if ( ptDijetLow.at(i) < 120) {
+            hEtaFinal.push_back( dynamic_cast<TH1D*>( hJet80Eta.at(i)->Clone( Form("hData_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardFinal.push_back( dynamic_cast<TH1D*>( hJet80EtaForward.at(i)->Clone( Form("hData_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardFinal.push_back( dynamic_cast<TH1D*>( hJet80EtaBackward.at(i)->Clone( Form("hData_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioFinal.push_back( dynamic_cast<TH1D*>( hJet80EtaFBRatio.at(i)->Clone( Form("hData_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioFinal.push_back( dynamic_cast<TH1D*>( hJet80EtaBFRatio.at(i)->Clone( Form("hData_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        }
+        else {
+            hEtaFinal.push_back( dynamic_cast<TH1D*>( hJet100Eta.at(i)->Clone( Form("hData_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaForwardFinal.push_back( dynamic_cast<TH1D*>( hJet100EtaForward.at(i)->Clone( Form("hData_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBackwardFinal.push_back( dynamic_cast<TH1D*>( hJet100EtaBackward.at(i)->Clone( Form("hData_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaFBRatioFinal.push_back( dynamic_cast<TH1D*>( hJet100EtaFBRatio.at(i)->Clone( Form("hData_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+            hEtaBFRatioFinal.push_back( dynamic_cast<TH1D*>( hJet100EtaBFRatio.at(i)->Clone( Form("hData_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        }
+
+        // Gen
+        hEtaFinalGen.push_back( dynamic_cast<TH1D*>( hGenEta.at(i)->Clone( Form("hPythia_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        hEtaForwardFinalGen.push_back( dynamic_cast<TH1D*>( hGenEtaForward.at(i)->Clone( Form("hPythia_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        hEtaBackwardFinalGen.push_back( dynamic_cast<TH1D*>( hGenEtaBackward.at(i)->Clone( Form("hPythia_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        hEtaFBRatioFinalGen.push_back( dynamic_cast<TH1D*>( hGenEtaFBRatio.at(i)->Clone( Form("hPythia_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        hEtaBFRatioFinalGen.push_back( dynamic_cast<TH1D*>( hGenEtaBFRatio.at(i)->Clone( Form("hPythia_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+
+        // Embedding
+        hEtaFinalEmbedding.push_back( dynamic_cast<TH1D*>( hEmbeddingEta.at(i)->Clone( Form("hEmbedding_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        hEtaForwardFinalEmbedding.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaForward.at(i)->Clone( Form("hEmbedding_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        hEtaBackwardFinalEmbedding.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaBackward.at(i)->Clone( Form("hEmbedding_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        hEtaFBRatioFinalEmbedding.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaFBRatio.at(i)->Clone( Form("hEmbedding_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+        hEtaBFRatioFinalEmbedding.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaBFRatio.at(i)->Clone( Form("hEmbedding_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
+    } // for (Int_t i = 0; i < ptBins; i++)
+
+    hFinalDistributions.push_back(hEtaFinal);                       // 0
+    hFinalDistributions.push_back(hEtaForwardFinal);                // 1
+    hFinalDistributions.push_back(hEtaBackwardFinal);               // 2
+    hFinalDistributions.push_back(hEtaFBRatioFinal);                // 3
+    hFinalDistributions.push_back(hEtaBFRatioFinal);                // 4
+
+    hFinalDistributions.push_back(hEtaFinalGen);                    // 5
+    hFinalDistributions.push_back(hEtaForwardFinalGen);             // 6
+    hFinalDistributions.push_back(hEtaBackwardFinalGen);            // 7
+    hFinalDistributions.push_back(hEtaFBRatioFinalGen);             // 8
+    hFinalDistributions.push_back(hEtaBFRatioFinalGen);             // 9
+
+    hFinalDistributions.push_back(hEtaFinalEmbedding);              // 10
+    hFinalDistributions.push_back(hEtaForwardFinalEmbedding);       // 11
+    hFinalDistributions.push_back(hEtaBackwardFinalEmbedding);      // 12
+    hFinalDistributions.push_back(hEtaFBRatioFinalEmbedding);       // 13
+    hFinalDistributions.push_back(hEtaBFRatioFinalEmbedding);       // 14
+
+    hFinalDistributions.push_back(hEtaData2GenRatioFinal);          // 15
+    hFinalDistributions.push_back(hEtaForwardData2GenRatioFinal);   // 16
+    hFinalDistributions.push_back(hEtaBackwardData2GenRatioFinal);  // 17
+    hFinalDistributions.push_back(hEtaFBRatioData2GenRatioFinal);   // 18
+    hFinalDistributions.push_back(hEtaBFRatioData2GenRatioFinal);   // 19
+
+    hFinalDistributions.push_back(hEtaEmedding2GenRatioFinal);      // 20
+    hFinalDistributions.push_back(hEtaForwardEmbedding2GenRatioFinal);   // 21
+    hFinalDistributions.push_back(hEtaBackwardEmbedding2GenRatioFinal);  // 22
+    hFinalDistributions.push_back(hEtaFBRatioEmbedding2GenRatioFinal);   // 23
+    hFinalDistributions.push_back(hEtaBFRatioEmbedding2GenRatioFinal);   // 24
+
+    hFinalDistributions.push_back(hEtaData2EmbeddingRatioFinal);    // 25
+    hFinalDistributions.push_back(hEtaForwardData2EmbeddingRatioFinal); // 26
+    hFinalDistributions.push_back(hEtaBackwardData2EmbeddingRatioFinal); // 27
+    hFinalDistributions.push_back(hEtaFBRatioData2EmbeddingRatioFinal); // 28
+    hFinalDistributions.push_back(hEtaBFRatioData2EmbeddingRatioFinal); // 29
+
+    return hFinalDistributions;
+}
+
+//________________
+std::vector< std::vector<TH1D*> > makeFinalRelSystUncrt(std::vector< std::vector<TH1D*> > hMBTotalRelSystDist, 
+                                                        std::vector< std::vector<TH1D*> > hJet60TotalRelSystDist, 
+                                                        std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist, 
+                                                        std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist) {
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    //
+    // Vectors to fill
+    //
+    std::vector< std::vector<TH1D*> > hFinalDistributions{};
+
+    // Vectors for uncertainties
+    std::vector<TH1D*> hEtaFinalRelSystUncrt{};
+    std::vector<TH1D*> hEtaForwardFinalRelSystUncrt{};
+    std::vector<TH1D*> hEtaBackwardFinalRelSystUncrt{};
+    std::vector<TH1D*> hEtaFBRatioFinalRelSystUncrt{};
+    std::vector<TH1D*> hEtaBFRatioFinalRelSystUncrt{};
+
+    // Vectors with incoming uncertainties
+    std::vector< TH1D* > hMBEtaRelSystUncrt = hMBTotalRelSystDist.at(0);
+    std::vector< TH1D* > hMBEtaForwardRelSystUncrt = hMBTotalRelSystDist.at(1);
+    std::vector< TH1D* > hMBEtaBackwardRelSystUncrt = hMBTotalRelSystDist.at(2);
+    std::vector< TH1D* > hMBEtaFBRatioRelSystUncrt = hMBTotalRelSystDist.at(3);
+    std::vector< TH1D* > hMBEtaBFRatioRelSystUncrt = hMBTotalRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet60EtaRelSystUncrt = hJet60TotalRelSystDist.at(0);
+    std::vector< TH1D* > hJet60EtaForwardRelSystUncrt = hJet60TotalRelSystDist.at(1);
+    std::vector< TH1D* > hJet60EtaBackwardRelSystUncrt = hJet60TotalRelSystDist.at(2);
+    std::vector< TH1D* > hJet60EtaFBRatioRelSystUncrt = hJet60TotalRelSystDist.at(3);
+    std::vector< TH1D* > hJet60EtaBFRatioRelSystUncrt = hJet60TotalRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet80EtaRelSystUncrt = hJet80TotalRelSystDist.at(0);
+    std::vector< TH1D* > hJet80EtaForwardRelSystUncrt = hJet80TotalRelSystDist.at(1);
+    std::vector< TH1D* > hJet80EtaBackwardRelSystUncrt = hJet80TotalRelSystDist.at(2);
+    std::vector< TH1D* > hJet80EtaFBRatioRelSystUncrt = hJet80TotalRelSystDist.at(3);
+    std::vector< TH1D* > hJet80EtaBFRatioRelSystUncrt = hJet80TotalRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet100EtaRelSystUncrt = hJet100TotalRelSystDist.at(0);
+    std::vector< TH1D* > hJet100EtaForwardRelSystUncrt = hJet100TotalRelSystDist.at(1);
+    std::vector< TH1D* > hJet100EtaBackwardRelSystUncrt = hJet100TotalRelSystDist.at(2);
+    std::vector< TH1D* > hJet100EtaFBRatioRelSystUncrt = hJet100TotalRelSystDist.at(3);
+    std::vector< TH1D* > hJet100EtaBFRatioRelSystUncrt = hJet100TotalRelSystDist.at(4);
+
+    // Loop over pT bins
+    for (Int_t i{0}; i<ptBins; i++) {
+
+        if ( ptDijetLow.at(i) < 80 ) {
+            hEtaFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hMBEtaRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaForwardFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hMBEtaForwardRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBackwardFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hMBEtaBackwardRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaFBRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hMBEtaFBRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBFRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hMBEtaBFRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+        }
+        else if ( ptDijetLow.at(i) < 100 ) {
+            hEtaFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet60EtaRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaForwardFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet60EtaForwardRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBackwardFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet60EtaBackwardRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaFBRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet60EtaFBRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBFRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet60EtaBFRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+        }
+        else if ( ptDijetLow.at(i) < 120 ) {
+            hEtaFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet80EtaRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaForwardFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet80EtaForwardRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBackwardFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet80EtaBackwardRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaFBRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet80EtaFBRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBFRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet80EtaBFRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+        }
+        else {
+            hEtaFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet100EtaRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaForwardFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet100EtaForwardRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBackwardFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet100EtaBackwardRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaFBRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet100EtaFBRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBFRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet100EtaBFRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+        }
+    } // for (Int_t i{0}; i<ptBins; i++)
+
+    hFinalDistributions.push_back(hEtaFinalRelSystUncrt);                       // 0
+    hFinalDistributions.push_back(hEtaForwardFinalRelSystUncrt);                // 1
+    hFinalDistributions.push_back(hEtaBackwardFinalRelSystUncrt);               // 2
+    hFinalDistributions.push_back(hEtaFBRatioFinalRelSystUncrt);                // 3
+    hFinalDistributions.push_back(hEtaBFRatioFinalRelSystUncrt);                // 4
+
+    return hFinalDistributions;
+}
+
+//________________
+std::vector< std::vector<TH1D*> > makeFinalAbsSystUncrt(std::vector< std::vector<TH1D*> > hFinalDist, 
+                                                        std::vector< std::vector<TH1D*> > hFinalRelSystUncrtDist) {
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    //
+    // Vectors to fill
+    //
+    std::vector< std::vector<TH1D*> > hFinalDistributions{};
+
+    // Vectors for uncertainties
+    std::vector<TH1D*> hEtaFinalAbsSystUncrt{};
+    std::vector<TH1D*> hEtaForwardFinalAbsSystUncrt{};
+    std::vector<TH1D*> hEtaBackwardFinalAbsSystUncrt{};
+    std::vector<TH1D*> hEtaFBRatioFinalAbsSystUncrt{};
+    std::vector<TH1D*> hEtaBFRatioFinalAbsSystUncrt{};
+
+    // Vectors with incoming uncertainties
+    std::vector< TH1D* > hEtaFinal = hFinalDist.at(0);
+    std::vector< TH1D* > hEtaForwardFinal = hFinalDist.at(1);
+    std::vector< TH1D* > hEtaBackwardFinal = hFinalDist.at(2);
+    std::vector< TH1D* > hEtaFBRatioFinal = hFinalDist.at(3);
+    std::vector< TH1D* > hEtaBFRatioFinal = hFinalDist.at(4);
+
+    std::vector< TH1D* > hEtaFinalRelSystUncrt = hFinalRelSystUncrtDist.at(0);
+    std::vector< TH1D* > hEtaForwardFinalRelSystUncrt = hFinalRelSystUncrtDist.at(1);
+    std::vector< TH1D* > hEtaBackwardFinalRelSystUncrt = hFinalRelSystUncrtDist.at(2);
+    std::vector< TH1D* > hEtaFBRatioFinalRelSystUncrt = hFinalRelSystUncrtDist.at(3);
+    std::vector< TH1D* > hEtaBFRatioFinalRelSystUncrt = hFinalRelSystUncrtDist.at(4);
+
+    // Loop over pT bins
+    for (Int_t i{0}; i<ptBins; i++) {
+            
+            hEtaFinalAbsSystUncrt.push_back( dynamic_cast<TH1D*>( hEtaFinal.at(i)->Clone( Form("hDataAbsSystUncrt_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaForwardFinalAbsSystUncrt.push_back( dynamic_cast<TH1D*>( hEtaForwardFinal.at(i)->Clone( Form("hDataAbsSystUncrt_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBackwardFinalAbsSystUncrt.push_back( dynamic_cast<TH1D*>( hEtaBackwardFinal.at(i)->Clone( Form("hDataAbsSystUncrt_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaFBRatioFinalAbsSystUncrt.push_back( dynamic_cast<TH1D*>( hEtaFBRatioFinal.at(i)->Clone( Form("hDataAbsSystUncrt_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+            hEtaBFRatioFinalAbsSystUncrt.push_back( dynamic_cast<TH1D*>( hEtaBFRatioFinal.at(i)->Clone( Form("hDataAbsSystUncrt_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
+    
+            // Absolute uncertainties for full eta
+            for (Int_t j{1}; j<hEtaFinalAbsSystUncrt.at(i)->GetNbinsX()+1; j++) {
+                Double_t xVal{-999.};
+                Double_t yVal{-999.};
+                Double_t relUncrt{0.};
+                Double_t absUncrt{0.};
+
+                xVal = hEtaFinalAbsSystUncrt.at(i)->GetBinCenter(j);
+                yVal = hEtaFinal.at(i)->GetBinContent(j);
+                relUncrt = hEtaFinalRelSystUncrt.at(i)->GetBinContent(j); // Check if it is in percent or absolute value
+                absUncrt = hEtaFinal.at(i)->GetBinContent(j) * relUncrt;
+                hEtaFinalAbsSystUncrt.at(i)->SetBinContent(j, yVal);
+                hEtaFinalAbsSystUncrt.at(i)->SetBinError(j, absUncrt);
+            } //  for (Int_t j{1}; j< hEtaFinalAbsSystUncrt.at(i)->GetNbinsX()+1; j++)
+
+            for (Int_t j{1}; j<hEtaForwardFinalAbsSystUncrt.at(i)->GetNbinsX()+1; j++) {
+                Double_t xVal{-999.};
+                Double_t yVal{-999.};
+                Double_t relUncrt{0.};
+                Double_t absUncrt{0.};
+
+                xVal = hEtaForwardFinalAbsSystUncrt.at(i)->GetBinCenter(j);
+                yVal = hEtaForwardFinal.at(i)->GetBinContent(j);
+                relUncrt = hEtaForwardFinalRelSystUncrt.at(i)->GetBinContent(j); 
+                absUncrt = hEtaForwardFinal.at(i)->GetBinContent(j) * relUncrt;
+                hEtaForwardFinalAbsSystUncrt.at(i)->SetBinContent(j, yVal);
+                hEtaForwardFinalAbsSystUncrt.at(i)->SetBinError(j, absUncrt);
+
+                xVal = hEtaBackwardFinalAbsSystUncrt.at(i)->GetBinCenter(j);
+                yVal = hEtaBackwardFinal.at(i)->GetBinContent(j);
+                relUncrt = hEtaBackwardFinalRelSystUncrt.at(i)->GetBinContent(j);
+                absUncrt = hEtaBackwardFinal.at(i)->GetBinContent(j) * relUncrt;
+                hEtaBackwardFinalAbsSystUncrt.at(i)->SetBinContent(j, yVal);
+                hEtaBackwardFinalAbsSystUncrt.at(i)->SetBinError(j, absUncrt);
+
+                xVal = hEtaFBRatioFinalAbsSystUncrt.at(i)->GetBinCenter(j);
+                yVal = hEtaFBRatioFinal.at(i)->GetBinContent(j);
+                relUncrt = hEtaFBRatioFinalRelSystUncrt.at(i)->GetBinContent(j);
+                absUncrt = hEtaFBRatioFinal.at(i)->GetBinContent(j) * relUncrt;
+                hEtaFBRatioFinalAbsSystUncrt.at(i)->SetBinContent(j, yVal);
+                hEtaFBRatioFinalAbsSystUncrt.at(i)->SetBinError(j, absUncrt);
+
+                xVal = hEtaBFRatioFinalAbsSystUncrt.at(i)->GetBinCenter(j);
+                yVal = hEtaBFRatioFinal.at(i)->GetBinContent(j);
+                relUncrt = hEtaBFRatioFinalRelSystUncrt.at(i)->GetBinContent(j);
+                absUncrt = hEtaBFRatioFinal.at(i)->GetBinContent(j) * relUncrt;
+                hEtaBFRatioFinalAbsSystUncrt.at(i)->SetBinContent(j, yVal);
+                hEtaBFRatioFinalAbsSystUncrt.at(i)->SetBinError(j, absUncrt);
+            } //  for (Int_t j{1}; j< hEtaForwardFinalAbsSystUncrt.at(i)->GetNbinsX()+1; j++)
+
+    } // for (Int_t i{0}; i<ptBins; i++)
+
+    hFinalDistributions.push_back(hEtaFinalAbsSystUncrt);                       // 0
+    hFinalDistributions.push_back(hEtaForwardFinalAbsSystUncrt);                // 1
+    hFinalDistributions.push_back(hEtaBackwardFinalAbsSystUncrt);               // 2
+    hFinalDistributions.push_back(hEtaFBRatioFinalAbsSystUncrt);                // 3
+    hFinalDistributions.push_back(hEtaBFRatioFinalAbsSystUncrt);                // 4
+
+    return hFinalDistributions;
+}
+
 
 //________________
 void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingFile, 
@@ -6629,11 +6719,28 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist = createTotalRelSystUncrt(hJet80JeuRelSystDist, hEmbeddingJerRelSystDist, hJet80PileupRelSystDist, "hJet80");
     std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist = createTotalRelSystUncrt(hJet100JeuRelSystDist, hEmbeddingJerRelSystDist, hJet100PileupRelSystDist, "hJet100");
 
+    std::cout << "Creating final distributions" << std::endl;
+    // Make final distributions
+    std::vector< std::vector<TH1D*> > hFinalDist = makeFinalDistributions(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, 
+                                                                          hEmbeddingGenEtaDist, hEmbeddingEtaDist, hRatios2McDist);
+
+    std::cout << "Creating final relative systematic uncertainties" << std::endl;
+    // Make final systematic uncertainty
+    std::vector< std::vector<TH1D*> > hFinalRelSystUncrtDist = makeFinalRelSystUncrt(hMBTotalRelSystDist, hJet60TotalRelSystDist, hJet80TotalRelSystDist, hJet100TotalRelSystDist); 
+
+    std::cout << "Creating final absolute systematic uncertainties" << std::endl;
+    // Make final absolute systematic uncertainty
+    std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist = makeFinalAbsSystUncrt(hFinalDist, hFinalRelSystUncrtDist);
+    std::cout << "Number of vectors with histos: " << hFinalAbsSystUncrtDist.size() << std::endl;
+    std::cout << "Number of histos in first vector: " << hFinalAbsSystUncrtDist.at(0).size() << std::endl;
+    std::cout << "Number of histos in second vector: " << hFinalAbsSystUncrtDist.at(1).size() << std::endl;
+    std::cout << "Number of histos in third vector: " << hFinalAbsSystUncrtDist.at(2).size() << std::endl;
+    std::cout << "Number of histos in fourth vector: " << hFinalAbsSystUncrtDist.at(3).size() << std::endl;
+    std::cout << "Number of histos in fifth vector: " << hFinalAbsSystUncrtDist.at(4).size() << std::endl;   
+
+    std::cout << "Plotting final distributions" << std::endl;
     // Plot final distributions
-    // plotFinalEtaDistributions(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, 
-    //                           hMBTotalRelSystDist, hJet60TotalRelSystDist, 
-    //                           hJet80TotalRelSystDist, hJet100TotalRelSystDist, 
-    //                           date, isCM);
+    plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
 
     // Plot comparison of data and Monte Carlo
     // plotData2McComparison(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, hEmbeddingEtaDist, hEmbeddingGenEtaDist, hRatios2McDist, date, isCM);
@@ -6678,6 +6785,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
                                 hEmbeddingJerRelSystDist,
                                 hMBPileupRelSystDist, hJet60PileupRelSystDist, hJet80PileupRelSystDist, hJet100PileupRelSystDist,
                                 hMBTotalRelSystDist, hJet60TotalRelSystDist, hJet80TotalRelSystDist, hJet100TotalRelSystDist,
+                                hFinalDist, hFinalRelSystUncrtDist, hFinalAbsSystUncrtDist,
                                 date, isCM);
 
 }
@@ -7182,8 +7290,8 @@ void systematics() {
     gStyle->SetPalette(kBird);
 
     // CMS or Lab frame
-    // Bool_t isCM{kTRUE};
-    Bool_t isCM{kFALSE};
+    Bool_t isCM{kTRUE};
+    // Bool_t isCM{kFALSE};
 
     // Run old calculations
     // runOldCalculations(isCM);
