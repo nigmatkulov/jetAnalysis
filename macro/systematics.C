@@ -99,6 +99,7 @@ void createDirectory(const char* directoryPath) {
     TString pointingPath = directoryPath;
     TString dataPath = directoryPath;
     TString data2mcPath = directoryPath;
+    TString systematicsPath = directoryPath;
     jeuPath += "/jes";
     jeuOldPath += "/jeu";
     jerPath += "/jer";
@@ -106,6 +107,7 @@ void createDirectory(const char* directoryPath) {
     pointingPath += "/pointing";
     dataPath += "/data";
     data2mcPath += "/data2mc";
+    systematicsPath += "/systematics";
 
     if ( !directoryExists( jeuPath.Data() ) ) {
         if (mkdir(jeuPath, S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
@@ -164,6 +166,15 @@ void createDirectory(const char* directoryPath) {
     if ( !directoryExists( data2mcPath.Data() ) ) {
         if (mkdir(data2mcPath, S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
             std::cout << "data2mc directory created successfully." << std::endl;
+        } 
+        else {
+            std::cerr << "Failed to create directory." << std::endl;
+        }
+    }
+
+    if ( !directoryExists( systematicsPath.Data() ) ) {
+        if (mkdir(systematicsPath, S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
+            std::cout << "systematics directory created successfully." << std::endl;
         } 
         else {
             std::cerr << "Failed to create directory." << std::endl;
@@ -323,7 +334,8 @@ void makeProjectionsFrom2D(TH2D *h2D, TH1D *hProjX[], TH1D *hProjY[],
 }
 
 //________________
-void make1DRatio(TH1D *hRat, TH1D *hDen, const Char_t *ratioName = "Ratio to default", Int_t style = 0, Bool_t isBinomial = kFALSE) {
+void make1DRatio(TH1D *hRat, TH1D *hDen, const Char_t *ratioName = "Ratio to default", Int_t style = 0, 
+                 Bool_t isBinomial = kFALSE) {
 
     if ( !hDen ) {
         std::cout << "Denominator does not exist" << std::endl;
@@ -1385,12 +1397,32 @@ void appendVectorOfVectors(std::vector< std::vector<TH1D*> > &orig, std::vector<
 }
 
 //________________
+std::vector< TH1D* > ratio2def(std::vector< TH1D* > hDef, std::vector< TH1D* > hSyst, 
+                               Int_t style = 2, Bool_t isCM = kFALSE) {
+    TString frame = (isCM) ? "cm" : "lab";
+    std::vector< TH1D* > hRatio{};
+    for (Int_t i{0}; i<hDef.size(); i++) {
+        TH1D *h = dynamic_cast<TH1D*>( hSyst.at(i)->Clone( Form("%s_ratio2def_%s", hSyst.at(i)->GetName(), frame.Data()) ) );
+        make1DRatio(h, hDef.at(i), Form("%s_ratio2def_%s", hSyst.at(i)->GetName(), frame.Data()) );
+        set1DStyle(h, style);
+        hRatio.push_back(h);
+    }
+    return hRatio;
+}
+
+//________________
 std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std::vector<TH1D*> > hDefDist, 
                                                                std::vector< std::vector<TH1D*> > hVarDist,
                                                                Bool_t isCM = kFALSE, Int_t varType = 0) {
 
-    TString frame = "lab";
-    if (isCM) frame = "cm";
+    // Set the style
+    Int_t style = 2;
+    if (varType == 0) {
+        style = 0;
+    }
+    else {
+        style = 1;
+    }
 
     // Create vector of histograms to return
     std::vector< std::vector< TH1D* > > hRatios;
@@ -1410,57 +1442,11 @@ std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std:
     std::vector< TH1D* > hVarEtaBFRatio = hVarDist.at(4);
 
     // Create histograms for ratios
-    std::vector< TH1D* > hEtaVar2DefRatio;
-    std::vector< TH1D* > hEtaForwardVar2DefRatio;
-    std::vector< TH1D* > hEtaBackwardVar2DefRatio;
-    std::vector< TH1D* > hEtaFBRatioVar2DefRatio;
-    std::vector< TH1D* > hEtaBFRatioVar2DefRatio;
-
-    // Dijet pT selection
-    Int_t ptBins = ptDijetBinLow.size();
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    fillDijetPtBins(ptDijetLow, ptDijetHi);
-
-    TString varStr = "ratio2def";
-
-    Int_t style = 2;
-    if (varType == 0) {
-        style = 0;
-    }
-    else {
-        style = 1;
-    }
-
-    // Loop over pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
-            
-        // Create histograms for ratios
-        hEtaVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEta[i]->Clone( Form("%s_%s_%s", hVarEta[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
-        hEtaVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEta[i]->GetName(), varStr.Data(), frame.Data()) );
-        hEtaForwardVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaForward[i]->Clone( Form("%s_%s_%s", hVarEtaForward[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
-        hEtaForwardVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEtaForward[i]->GetName(), varStr.Data(), frame.Data()) );
-        hEtaBackwardVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaBackward[i]->Clone( Form("%s_%s_%s", hVarEtaBackward[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
-        hEtaBackwardVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEtaBackward[i]->GetName(), varStr.Data(), frame.Data()) );
-        hEtaFBRatioVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaFBRatio[i]->Clone( Form("%s_%s_%s", hVarEtaFBRatio[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
-        hEtaFBRatioVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEtaFBRatio[i]->GetName(), varStr.Data(), frame.Data()) );
-        hEtaBFRatioVar2DefRatio.push_back( dynamic_cast<TH1D*>( hVarEtaBFRatio[i]->Clone( Form("%s_%s_%s", hVarEtaBFRatio[i]->GetName(), varStr.Data(), frame.Data()) ) ) );
-        hEtaBFRatioVar2DefRatio[i]->SetName( Form("%s_%s_%s", hVarEtaBFRatio[i]->GetName(), varStr.Data(), frame.Data()) );
-
-        // Build the ratios
-        hEtaVar2DefRatio[i]->Divide( hDefEta[i] );
-        hEtaForwardVar2DefRatio[i]->Divide( hDefEtaForward[i] );
-        hEtaBackwardVar2DefRatio[i]->Divide( hDefEtaBackward[i] );
-        hEtaFBRatioVar2DefRatio[i]->Divide( hDefEtaFBRatio[i] );
-        hEtaBFRatioVar2DefRatio[i]->Divide( hDefEtaBFRatio[i] );
-
-        // Set the style
-        set1DStyle(hEtaVar2DefRatio[i], style);
-        set1DStyle(hEtaForwardVar2DefRatio[i], style);
-        set1DStyle(hEtaBackwardVar2DefRatio[i], style);
-        set1DStyle(hEtaFBRatioVar2DefRatio[i], style);
-        set1DStyle(hEtaBFRatioVar2DefRatio[i], style);
-    } // for (Int_t i{0}; i<ptBins; i++)
+    std::vector< TH1D* > hEtaVar2DefRatio = ratio2def(hDefEta, hVarEta, style, isCM);
+    std::vector< TH1D* > hEtaForwardVar2DefRatio = ratio2def(hDefEtaForward, hVarEtaForward, style, isCM);
+    std::vector< TH1D* > hEtaBackwardVar2DefRatio = ratio2def(hDefEtaBackward, hVarEtaBackward, style, isCM);
+    std::vector< TH1D* > hEtaFBRatioVar2DefRatio = ratio2def(hDefEtaFBRatio, hVarEtaFBRatio, style, isCM);
+    std::vector< TH1D* > hEtaBFRatioVar2DefRatio = ratio2def(hDefEtaBFRatio, hVarEtaBFRatio, style, isCM);
 
     hRatios.push_back( hEtaVar2DefRatio );
     hRatios.push_back( hEtaForwardVar2DefRatio );
@@ -1476,20 +1462,22 @@ std::vector< std::vector<TH1D*> > createVectorOfUpAndDownRatios(std::vector< std
                                                                 std::vector< std::vector<TH1D*> > hUpDist, 
                                                                 std::vector< std::vector<TH1D*> > hDownDist,
                                                                 Bool_t isCM = kFALSE) {
-
-    TString frame = "lab";
-    if (isCM) frame = "cm";                                                                    
-
+                                                                  
     // Create vector of histograms to return
     std::vector< std::vector< TH1D* > > hRatios;
 
     // Vectors of default
     std::vector< std::vector<TH1D* > > hUp2DefRatios = createVectorOfVariationRatio(hDefDist, hUpDist, isCM, 0);
-    std::vector< std::vector<TH1D* > > hDown2DefRatios = createVectorOfVariationRatio(hDefDist, hDownDist, isCM, 1);
+    std::vector< std::vector<TH1D* > > hDown2DefRatios = {};
+    if ( !hDownDist.empty() ) {
+        hDown2DefRatios = createVectorOfVariationRatio(hDefDist, hDownDist, isCM, 1);
+    }
     
     // Append the vectors
     appendVectorOfVectors(hRatios, hUp2DefRatios);
-    appendVectorOfVectors(hRatios, hDown2DefRatios);
+    if ( !hDownDist.empty() ) {
+        appendVectorOfVectors(hRatios, hDown2DefRatios);
+    }
 
     return hRatios;
 }
@@ -1524,17 +1512,17 @@ std::vector< std::vector<TH1D*> > createUpAndDown2Def(std::vector< std::vector<T
     std::vector< std::vector<TH1D*> > hJet100Pileup = createVectorOfUpAndDownRatios(hJet100EtaDist, hJet100GplusEtaDist, hJet100Vtx1EtaDist, isCM);
 
     // Append the vectors
-    appendVectorOfVectors(hRatios, hMBEtaJeuRatios);
-    appendVectorOfVectors(hRatios, hJet60EtaJeuRatios);
-    appendVectorOfVectors(hRatios, hJet80EtaJeuRatios);
-    appendVectorOfVectors(hRatios, hJet100EtaJeuRatios);
+    appendVectorOfVectors(hRatios, hMBEtaJeuRatios);      // 0
+    appendVectorOfVectors(hRatios, hJet60EtaJeuRatios);   // 10
+    appendVectorOfVectors(hRatios, hJet80EtaJeuRatios);   // 20
+    appendVectorOfVectors(hRatios, hJet100EtaJeuRatios);  // 30
 
-    appendVectorOfVectors(hRatios, hEmbeddingJerRatios);
+    appendVectorOfVectors(hRatios, hEmbeddingJerRatios);  // 40
 
-    appendVectorOfVectors(hRatios, hMBPileup);
-    appendVectorOfVectors(hRatios, hJet60Pileup);
-    appendVectorOfVectors(hRatios, hJet80Pileup);
-    appendVectorOfVectors(hRatios, hJet100Pileup);
+    appendVectorOfVectors(hRatios, hMBPileup);            // 50
+    appendVectorOfVectors(hRatios, hJet60Pileup);         // 60
+    appendVectorOfVectors(hRatios, hJet80Pileup);         // 70
+    appendVectorOfVectors(hRatios, hJet100Pileup);        // 80
 
     return hRatios;
 }
@@ -4258,9 +4246,181 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
 }
 
 //________________
-void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std::vector<TH1D*> hDown,
-                           std::vector<TH1D*> *hRatioUp, std::vector<TH1D*> *hRatioDown,
-                           Int_t systematics, Int_t fitType, TString date, TString frame) {
+void plotIndividualUpDownDefComparison(TCanvas *c, TH1D *hDef, TH1D *hUp, TH1D *hDown,
+                                       Int_t ptLow = 50, Int_t ptHi = 60, 
+                                       Bool_t isCM = kFALSE, Int_t fbType = 0) {
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0.001, 0.12};
+    Double_t legX[2] = {0.27, 0.47};
+    Double_t legY[2] = {0.65, 0.85};
+
+    if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.001;
+        yRange[1] = 0.2;
+    }
+    else if ( fbType == 3 ) {               // Forward/backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.75;
+        yRange[1] = 1.5;
+    }
+    else if ( fbType == 4 ) {               // Backward/forward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.4;
+        yRange[1] = 1.15;
+        
+        legY[0] = 0.27;
+        legY[1] = 0.47;
+    }
+
+    // Set style for the data points
+    Int_t defType{2};
+    Int_t upType{0};
+    Int_t downType{1};
+    set1DStyle( hDef, defType );
+    set1DStyle( hUp, upType );
+    if ( hDown ) {
+        set1DStyle( hDown, downType );
+    }
+
+    // Create pad
+    TLegend *leg;
+    TLine *line;
+
+    //
+    // Plot comparison
+    //
+    c->cd();
+
+    // Set pad style
+    if ( fbType == 0 ) {
+        setPadStyle();
+    }
+    else {
+        setPadFBStyle();
+    }
+
+    // Draw histograms
+    hDef->Draw();
+    hUp->Draw("same");
+    if ( hDown) {
+        hDown->Draw("same");
+    }
+    hDef->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    hDef->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi ) );
+    
+    leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    leg->SetTextSize(0.04);
+    leg->SetLineWidth(0);
+    leg->AddEntry(hDef, "Default", "p");
+    leg->AddEntry(hUp, "Up", "p");
+    if ( hDown ) {
+        leg->AddEntry(hDown, "Down", "p");
+    }
+    leg->Draw();
+}
+
+//________________
+void plotIndividualUpDownDefRatio(TCanvas *c, TH1D *hRatioUp, TH1D *hRatioDown,
+                                  Int_t ptLow = 50, Int_t ptHi = 60, 
+                                  Bool_t isCM = kFALSE, Int_t fbType = 0) {
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0.75, 1.25};
+    Double_t legX[2] = {0.27, 0.47};
+    Double_t legY[2] = {0.65, 0.85};
+
+    if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.001;
+        yRange[1] = 0.2;
+    }
+    else if ( fbType == 3 ) {               // Forward/backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.75;
+        yRange[1] = 1.5;
+    }
+    else if ( fbType == 4 ) {               // Backward/forward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.4;
+        yRange[1] = 1.15;
+        
+        legY[0] = 0.27;
+        legY[1] = 0.47;
+    }
+
+    // Set style for the data points
+    Int_t defType{2};
+    Int_t upType{0};
+    Int_t downType{1};
+    set1DStyle( hRatioUp, upType );
+    if ( hRatioDown ) {
+        set1DStyle( hRatioDown, downType );
+    }
+
+    // Create pad
+    TLegend *leg;
+    TLine *line;
+
+    //
+    // Plot ratios
+    //
+    c->cd();
+
+    // Set pad style
+    if ( fbType == 0 ) {
+        setPadStyle();
+    }
+    else {
+        setPadFBStyle();
+    }
+
+    // Draw histograms
+    hRatioUp->Draw();
+    if ( hRatioDown ) {
+        hRatioDown->Draw("same");
+    }
+    hRatioUp->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    hRatioUp->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi ) );
+    leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    leg->SetTextSize(0.04);
+    leg->SetLineWidth(0);
+    leg->AddEntry(hRatioUp, "Up/Def", "p");
+    if ( hRatioDown ) {
+        leg->AddEntry(hRatioDown, "Down/Def", "p");
+    }
+    leg->Draw();
+    line = new TLine(xRange[0], 1., xRange[1], 1.);
+    line->SetLineColor(kMagenta);
+    line->SetLineWidth(3);
+    line->SetLineStyle(3);
+    line->Draw();
+}
+
+//________________
+void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, 
+                        std::vector<TH1D*> hUp, 
+                        std::vector<TH1D*> hDown,
+                        Int_t fbType = 0) {
 
     // Dijet pT selection
     std::vector<Int_t> ptDijetLow{};
@@ -4271,17 +4431,260 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
     TLatex t;
     t.SetTextFont(42);
     t.SetTextSize(0.06);
+
+    // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0.001, 0.12};
+    Double_t legX[2] = {0.27, 0.47};
+    Double_t legY[2] = {0.65, 0.85};
+
+    if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.001;
+        yRange[1] = 0.2;
+    }
+    else if ( fbType == 3 ) {               // Forward/backward
+        xRange[0] = 0.;
+        xRange[1] = 2.4;
+        yRange[0] = 0.75;
+        yRange[1] = 1.5;
+    }
+    else if ( fbType == 4 ) {               // Backward/forward
+        xRange[0] = 0.;
+        xRange[1] = 2.4;
+        yRange[0] = 0.4;
+        yRange[1] = 1.15;
+
+        legY[0] = 0.27;
+        legY[1] = 0.47;
+    }
+
+    Int_t defType{2};
+    Int_t upType{0};
+    Int_t downType{1};
+
+    TLegend *leg;
+
+    // std::cout << "hDef.size() = " << hDef.size() << std::endl;
+    // std::cout << "hUp.size() = " << hUp.size() << std::endl;
+    // if ( !hDown.empty() ) {
+    //     std::cout << "hDown.size() = " << hDown.size() << std::endl;
+    // }
+
+    // Plot comparison
+    for (Int_t i{0}; i<hDef.size(); i++) {
+
+        // std::cout << "i = " << i << std::endl;
+        // std::cout << "hDef.at(i) name = " << hDef.at(i)->GetName() << std::endl;
+        // std::cout << "hUp.at(i) name = " << hUp.at(i)->GetName() << std::endl;
+        // if ( !hDown.empty() ) {
+        //     std::cout << "hDown.at(i) name = " << hDown.at(i)->GetName() << std::endl;
+        // }
+
+        c->cd(i+1);
+
+        if ( fbType == 0 ) {
+            setPadStyle();
+        }
+        else {
+            setPadFBStyle();
+        }
+
+        set1DStyle( hDef.at(i), defType );
+        set1DStyle( hUp.at(i), upType );
+        if ( !hDown.empty() ) {
+            set1DStyle( hDown.at(i), downType );
+        }
+
+        hDef.at(i)->Draw();
+        hUp.at(i)->Draw("same");
+        if ( !hDown.empty() ) {
+            hDown.at(i)->Draw("same");
+        }
+        hDef.at(i)->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+        hDef.at(i)->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+        t.DrawLatexNDC( 0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
+
+        if ( i == 0 ) {
+            TLegend *leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+            leg->SetTextSize(0.04);
+            leg->SetLineWidth(0);
+            leg->AddEntry(hDef.at(i), "Default", "p");
+            leg->AddEntry(hUp.at(i), "Up", "p");
+            if ( !hDown.empty() ) {
+                leg->AddEntry(hDown.at(i), "Down", "p");
+            }
+            leg->Draw();
+        }
+    } // for (Int_t i{0}; i<hDef.size(); i++)
+}
+
+//________________
+void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> hRatioDown, Int_t fbType = 0) {
+    
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0.7, 1.3};
+
+    if ( fbType != 0 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.75;
+        yRange[1] = 1.25;
+    }
+
+    Int_t upType{0};
+    Int_t downType{1};
+
     TLegend *leg;
     TLine *line;
 
-    Bool_t drawFits{kFALSE};
-    // 0 - symmetric, 1 - forward, backward, fb, bf
-    Int_t etaType{0}; 
-    // Ranges for plotting
-    Double_t xMin{-3.}, xMax{3.};
-    Double_t yMin{0.001}, yMax{0.15};
-    Double_t legXmin{0.27}, legXmax{0.42}, legYmin{0.65}, legYmax{0.85};
+    // std::cout << "hRatioUp.size() = " << hRatioUp.size() << std::endl;
+    // if ( !hRatioDown.empty() ) {
+    //     std::cout << "hRatioDown.size() = " << hRatioDown.size() << std::endl;
+    // }
 
+    // Plot comparison
+    for (Int_t i{0}; i<hRatioUp.size(); i++) {
+
+        // std::cout << "i = " << i << std::endl;
+        // std::cout << "hRatioUp.at(i) name = " << hRatioUp.at(i)->GetName() << std::endl;
+        // if ( !hRatioDown.empty() ) {
+        //     std::cout << "hRatioDown.at(i) name = " << hRatioDown.at(i)->GetName() << std::endl;
+        // }
+
+        // Switch to the pad
+        c->cd(i+1);
+
+        // Set pad style
+        if ( fbType == 0 ) {
+            setPadStyle();
+        }
+        else {
+            setPadFBStyle();
+        }
+
+        // Set histogram style
+        set1DStyle( hRatioUp.at(i), upType );
+        if ( !hRatioDown.empty() ) {
+            set1DStyle( hRatioDown.at(i), downType );
+        }
+
+        // Draw histograms
+        hRatioUp.at(i)->Draw();
+        if ( !hRatioDown.empty() ) {
+            hRatioDown.at(i)->Draw("same");
+        }
+        // Adjust ranges
+        hRatioUp.at(i)->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+        hRatioUp.at(i)->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+        hRatioUp.at(i)->GetYaxis()->SetTitle("Ratio to default");
+        // Draw pT range
+        t.DrawLatexNDC( 0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", ptDijetLow.at(i), ptDijetHi.at(i) ) );
+
+        // Draw line at y=1
+        line = new TLine(xRange[0], 1., xRange[1], 1.);
+        line->SetLineColor(kMagenta);
+        line->SetLineWidth(3);
+        line->SetLineStyle(3);
+        line->Draw();
+
+        // Draw legend in the first pad
+        if ( i == 0 ) {
+            TLegend *leg = new TLegend(0.27, 0.7, 0.47, 0.85);
+            leg->SetTextSize(0.04);
+            leg->SetLineWidth(0);
+            leg->AddEntry(hRatioUp.at(i), "Up/Def", "p");
+            if ( !hRatioDown.empty() ) {
+                leg->AddEntry(hRatioDown.at(i), "Down/Def", "p");
+            }
+            leg->Draw();
+        }
+    } // for (Int_t i{0}; i<hRatioUp.size(); i++)
+}
+
+//________________
+std::vector< TF1* > fitSystRatio(std::vector< TH1D* > hSyst, Bool_t isUp = kTRUE, 
+                                 Int_t fitType = 2, Int_t etaType = 0, Bool_t drawFits = kTRUE) {
+
+    std::vector< TF1* > fitFunc( hSyst.size() );
+    Double_t xMin{-3.}, xMax{3.};
+    if (etaType != 0) {
+        xMin = 0.0001;
+        xMax = 3.;
+    }
+
+    // For all histograms in the vector
+    for (Int_t i{0}; i<hSyst.size(); i++) {
+
+        // Choose fit function
+        if ( fitType == 0 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]", xMin, xMax);
+        }
+        else if ( fitType == 1 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x", xMin, xMax);
+        }
+        else if ( fitType == 2 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x+[2]*x*x", xMin, xMax);
+        }
+        else if ( fitType == 3 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x", xMin, xMax);
+        }
+        else if ( fitType == 4 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", xMin, xMax);
+        }
+        else {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x", xMin, xMax);
+        }
+
+        if ( isUp ) {
+            fitFunc.at(i)->SetLineColor(kRed);
+        }
+        else {
+            fitFunc.at(i)->SetLineColor(kBlue); 
+        }
+        fitFunc.at(i)->SetLineWidth(2);
+
+        if ( drawFits ) {
+            hSyst.at(i)->Fit( fitFunc.at(i), "MRE" );
+        }
+        else {
+            hSyst.at(i)->Fit( fitFunc.at(i), "MRE0" );
+        }
+
+        std::cout << Form("Fit function for %s: %s. chi2/ndf = %f", hSyst.at(i)->GetName(), fitFunc.at(i)->GetExpFormula().Data(), fitFunc.at(i)->GetChisquare() / fitFunc.at(i)->GetNDF() ) << std::endl;
+    }
+
+    return fitFunc;
+}
+
+//________________
+void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std::vector<TH1D*> hDown,
+                           std::vector<TH1D*> hRatioUp, std::vector<TH1D*> hRatioDown,
+                           Int_t systematics, Int_t etaType, Int_t fitType, TString date, 
+                           Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+
+    TString frame;
+    frame = ( isCM ) ? "cms" : "lab";
+
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    // Read systematics type
     TString systType;
     if ( systematics == 0 ) {
         systType = "jes";
@@ -4292,42 +4695,39 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
     else if ( systematics == 2 ) {
         systType = "pileup";
     }
+    else if ( systematics == 3 ) {
+        systType = "pointinResolution";
+    }
     else {
         drawFits = kFALSE;
         systType = "data2mc";
     }
 
-    TString hDefName = hDef.at(0)->GetName();
+    // Direction name
     TString dirName;
-    if ( hDefName.Contains("Forward") || hDefName.Contains("Backward") || hDefName.Contains("FB") || hDefName.Contains("BF") ) {
-        etaType = 1;
-        xMin = 0.;
-        drawFits = kFALSE;
-        if ( hDefName.Contains("Forward") ) {
-            dirName = "forward_";
-        }
-        if ( hDefName.Contains("Backward") ) {
-            dirName = "backward_";
-        }
-        if ( hDefName.Contains("FBRatio") ) {
-            dirName = "fb_";
-            yMin = 0.001; yMax = 1.2;
-            legYmin = 0.3; legYmax = 0.5;
-        }
-        if ( hDefName.Contains("BFRatio") ) {
-            dirName = "bf_";
-            yMin = 0.9; yMax = 5.1;
-            // legXmin = 0.6; legXmax = 0.8; legYmin = 0.3; legYmax = 0.5;
-        }
+    // 0 - symmetric, 1 - forward, backward, fb, bf
+    if (etaType == 0) {
+        dirName = "";
+    }
+    else if (etaType == 1) {
+        dirName = "forward";
+    }
+    else if (etaType == 2) {
+        dirName = "backward";
+    }
+    else if (etaType == 3) {
+        dirName = "fb";
+    }
+    else if (etaType == 4) {
+        dirName = "bf";
     }
 
-    Int_t defType{2};
-    Int_t upType{0};
-    Int_t downType{1};
-
     // Fits (Fit type: 0 -constant, 1 - linear, 2 - quadratic, 3 - cubic, 4 - quartic)
-    std::vector<TF1*> fitUp( ptDijetBinLow.size() );
-    std::vector<TF1*> fitDown( ptDijetBinLow.size() );
+    std::vector<TF1*> fitUp = fitSystRatio(hRatioUp, kTRUE, fitType, etaType, drawFits);
+    std::vector<TF1*> fitDown = {};
+    if ( !hRatioDown.empty() ) {
+        fitDown = fitSystRatio(hRatioDown, kFALSE, fitType, etaType, drawFits);
+    }
 
     // Create canvas
     Int_t sizeX{1200};
@@ -4344,205 +4744,43 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
                                 sizeX, sizeY);
     cRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
 
-    // Loop over pT average bins
-    for (Int_t i{0}; i<ptDijetBinLow.size(); i++) {
+    // Fill canvases with many histograms
+    plotSystComparison(cComp, hDef, hUp, hDown, etaType);
+    plotSystRatio(cRat, hRatioUp, hRatioDown, etaType);
 
-        set1DStyle(hDef.at(i), defType);
-        set1DStyle(hUp.at(i), upType);
-        if ( !hDown.empty() ) {
-            set1DStyle(hDown.at(i), downType);
-        }
-
-        // Make ratio histograms
-        hRatioUp->push_back( dynamic_cast<TH1D*>( hUp.at(i)->Clone( Form("%s_%s_ratioUp", hUp.at(i)->GetName(), systType.Data() ) ) ) );
-        make1DRatio(hRatioUp->at(i), hDef.at(i), Form("%s_%s_ratioUp", hUp.at(i)->GetName(), systType.Data() ) );
-        hRatioUp->at(i)->GetYaxis()->SetTitle( Form("%s variation / def", systType.Data() ) );
-        set1DStyle(hRatioUp->at(i), upType);
-
-        if ( !hDown.empty() ) {
-            hRatioDown->push_back( dynamic_cast<TH1D*>( hDown.at(i)->Clone( Form("%s_%s_ratioDown", hDown.at(i)->GetName(), systType.Data() ) ) ) );
-            make1DRatio(hRatioDown->at(i), hDef.at(i), Form("%s_%s_ratioDown", hDown.at(i)->GetName(), systType.Data() ) );
-            hRatioDown->at(i)->GetYaxis()->SetTitle( Form("%s variation / def", systType.Data() ) );
-            set1DStyle(hRatioDown->at(i), downType);
-        }
-
-        if ( fitType == 0 ) {
-            fitUp.at(i) = new TF1(Form("fitUp_%d",i), "[0]", xMin, xMax);
-            fitDown.at(i) = new TF1(Form("fitDown_%d",i), "[0]", xMin, xMax);
-        }
-        else if ( fitType == 1 ) {
-            fitUp.at(i) = new TF1(Form("fitUp_%d",i), "[0]+[1]*x", xMin, xMax);
-            fitDown.at(i) = new TF1(Form("fitDown_%d",i), "[0]+[1]*x", xMin, xMax);
-        }
-        else if ( fitType == 2 ) {
-            fitUp.at(i) = new TF1(Form("fitUp_%d",i), "[0]+[1]*x+[2]*x*x", xMin, xMax);
-            fitDown.at(i) = new TF1(Form("fitDown_%d",i), "[0]+[1]*x+[2]*x*x", xMin, xMax);
-        }
-        else if ( fitType == 3 ) {
-            fitUp.at(i) = new TF1(Form("fitUp_%d",i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x", xMin, xMax);
-            fitDown.at(i) = new TF1(Form("fitDown_%d",i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x", xMin, xMax);
-        }
-        else if ( fitType == 4 ) {
-            fitUp.at(i) = new TF1(Form("fitUp_%d",i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", xMin, xMax);
-            fitDown.at(i) = new TF1(Form("fitDown_%d",i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", xMin, xMax);
-        }
-        else {
-            fitUp.at(i) = new TF1(Form("fitUp_%d",i), "[0]+[1]*x", xMin, xMax);
-            fitDown.at(i) = new TF1(Form("fitDown_%d",i), "[0]+[1]*x", xMin, xMax);
-        }
-
-        fitUp.at(i)->SetLineColor(kRed); fitUp.at(i)->SetLineWidth(2);
-        fitDown.at(i)->SetLineColor(kBlue); fitDown.at(i)->SetLineWidth(2);
-
-        // Perform fits
-        if ( drawFits ) {
-            hRatioUp->at(i)->Fit(Form("fitUp_%d",i), "MRE0");
-            if ( !hDown.empty() ) {
-                hRatioDown->at(i)->Fit(Form("fitDown_%d",i), "MRE0");
-            }
-        }
-
-        // std::cout << "chi2/ndf up: " << fitUp.at(i)->GetChisquare() / fitUp.at(i)->GetNDF() << std::endl;
-        // std::cout << "chi2/ndf down: " << fitDown.at(i)->GetChisquare() / fitDown.at(i)->GetNDF() << std::endl;
-
-        // Plot comparison
-        canv->cd();
-        setPadFBStyle();
-        hDef.at(i)->Draw();
-        hUp.at(i)->Draw("same");
-        if ( !hDown.empty() ) {
-            hDown.at(i)->Draw("same");
-        }
-        hDef.at(i)->GetYaxis()->SetRangeUser(yMin, yMax);
-        hDef.at(i)->GetXaxis()->SetRangeUser(xMin, xMax);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptDijetLow.at(i), ptDijetHi.at(i) ) );
-        //t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-
-        leg = new TLegend(legXmin, legYmin, legXmax, legYmax);
-
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hDef.at(i), "Default", "p");
-        leg->AddEntry(hUp.at(i), "Up", "p");
-        if ( !hDown.empty() ) {
-            leg->AddEntry(hDown.at(i), "Down", "p");
-        }
-        leg->Draw();
-        // canv->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sComp_%spt_%d_%d_%s.pdf", date.Data(), systType.Data(), 
-        //                   returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
-        //                   ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-        canv->Print( Form("%s/%s/%s_pPb8160_etaDijet_%sComp_%spt_%d_%d_%s.pdf", date.Data(), systType.Data(), 
-                          returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
-                          ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-        // Plot ratios
-        canv->cd();
-        setPadFBStyle();
-        hRatioUp->at(i)->Draw();
-        if ( drawFits ) {
-            fitUp.at(i)->Draw("same");
-        }
-        if ( !hDown.empty() ) {
-            hRatioDown->at(i)->Draw("same");
-            if ( drawFits ) {
-                fitDown.at(i)->Draw("same");
-            }
-        }
-        hRatioUp->at(i)->GetXaxis()->SetRangeUser(xMin, xMax);
-        hRatioUp->at(i)->GetYaxis()->SetRangeUser(0.85, 1.15);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptDijetLow.at(i), ptDijetHi.at(i) ) );
-        //t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hRatioUp->at(i), "Up / Default", "p");
-        if ( !hDown.empty() ) {
-            leg->AddEntry(hRatioDown->at(i), "Down / Default", "p");
-        }
-        leg->Draw();
-        if ( etaType == 0 ) {
-            line = new TLine(-3., 1., 3., 1.);
-        }
-        else {
-            line = new TLine(0., 1., 3., 1.);
-        }
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-        // canv->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sRat_%spt_%d_%d_%s.pdf", date.Data(), systType.Data(), 
-        //                   returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
-        //                   ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-        canv->Print( Form("%s/%s/%s_pPb8160_etaDijet_%sRat_%spt_%d_%d_%s.pdf", date.Data(), systType.Data(), 
-                          returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
-                          ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-
-        // Plot all comparisons on one canvas
-        cComp->cd(i+1);
-        setPadFBStyle();
-        hDef.at(i)->Draw();
-        hUp.at(i)->Draw("same");
-        if ( !hDown.empty() ) {
-            hDown.at(i)->Draw("same");
-        }
-        hDef.at(i)->GetYaxis()->SetRangeUser(yMin, yMax);
-        hDef.at(i)->GetXaxis()->SetRangeUser(xMin, xMax);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptDijetLow.at(i), ptDijetHi.at(i) ) );
-        leg = new TLegend(legXmin, legYmin, legXmax, legYmax);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hDef.at(i), "Default", "p");
-        leg->AddEntry(hUp.at(i), "Up", "p");
-        if ( !hDown.empty() ) {
-            leg->AddEntry(hDown.at(i), "Down", "p");
-        }
-        leg->Draw();
-
-        // Plot all ratios on one canvas
-        cRat->cd(i+1);
-        setPadFBStyle();
-        hRatioUp->at(i)->Draw();
-        if ( drawFits ) {
-            fitUp.at(i)->Draw("same");
-        }
-        if ( !hDown.empty() ) {
-            hRatioDown->at(i)->Draw("same");
-            if ( drawFits ) {
-                fitDown.at(i)->Draw("same");
-            }
-        }
-        hRatioUp->at(i)->GetXaxis()->SetRangeUser(xMin, xMax);
-        hRatioUp->at(i)->GetYaxis()->SetRangeUser(0.85, 1.15);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptDijetLow.at(i), ptDijetHi.at(i) ) );
-        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hRatioUp->at(i), "Up / Default", "p");
-        if ( !hDown.empty() ) {
-            leg->AddEntry(hRatioDown->at(i), "Down / Default", "p");
-        }
-        leg->Draw();
-        if ( etaType == 0 ) {
-            line = new TLine(-3., 1., 3., 1.);
-        }
-        else {
-            line = new TLine(0., 1., 3., 1.);
-        }
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-
-    } // for (Int_t i{0}; i<ptDijetBinLow.size(); i++)
-
+    // Save canvases
     cComp->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sComp_%sall_%s.pdf", date.Data(), systType.Data(),  
                    returnTrigName( hDef.at(0)->GetName() ).Data(), systType.Data(), dirName.Data(), frame.Data() ) );
     cRat->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sRat_%sall_%s.pdf", date.Data(), systType.Data(), 
                    returnTrigName( hDef.at(0)->GetName() ).Data(), systType.Data(), dirName.Data(), frame.Data() ) );
+
+    // Loop over pT average bins
+    for (Int_t i{0}; i<ptDijetBinLow.size(); i++) {
+
+        TH1D *hDownIndividual = nullptr;
+        if ( !hDown.empty() ) {
+            hDownIndividual = hDown.at(i);
+        }
+
+        // Plot and save individual comparisons
+        plotIndividualUpDownDefComparison(canv, hDef.at(i), hUp.at(i), hDownIndividual, 
+                                          ptDijetLow.at(i), ptDijetHi.at(i), kFALSE, etaType);
+        canv->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sComp_%s_pt_%d_%d_%s.pdf", date.Data(), systType.Data(), 
+                           returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
+                           ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
+
+        hDownIndividual = nullptr;
+        if ( !hRatioDown.empty() ) {
+            hDownIndividual = hRatioDown.at(i);
+        }
+
+        // Plot and save individual ratios
+        plotIndividualUpDownDefRatio(canv, hRatioUp.at(i), hDownIndividual, 
+                                     ptDijetLow.at(i), ptDijetHi.at(i), kFALSE, etaType);
+        canv->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sRat_%s_pt_%d_%d_%s.pdf", date.Data(), systType.Data(), 
+                           returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
+                           ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
+    } // for (Int_t i{0}; i<ptDijetBinLow.size(); i++)
 }
 
 //________________
@@ -5312,10 +5550,11 @@ void plotJES(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vec
              std::vector< std::vector<TH1D*> > hJeuJet60UpEtaDist, std::vector< std::vector<TH1D*> > hJeuJet60DownEtaDist, 
              std::vector< std::vector<TH1D*> > hJeuJet80UpEtaDist, std::vector< std::vector<TH1D*> > hJeuJet80DownEtaDist, 
              std::vector< std::vector<TH1D*> > hJeuJet100UpEtaDist, std::vector< std::vector<TH1D*> > hJeuJet100DownEtaDist,
-             TString date, Bool_t isCM = kFALSE) {
-
-    TString frame;
-    frame = ( isCM ) ? "cms" : "lab";
+             std::vector< std::vector<TH1D*> > hMBEtaJeuUp2DefDist, std::vector< std::vector<TH1D*> > hMBEtaJeuDown2DefDist,
+             std::vector< std::vector<TH1D*> > hJet60EtaJeuUp2DefDist, std::vector< std::vector<TH1D*> > hJet60EtaJeuDown2DefDist,
+             std::vector< std::vector<TH1D*> > hJet80EtaJeuUp2DefDist, std::vector< std::vector<TH1D*> > hJet80EtaJeuDown2DefDist, 
+             std::vector< std::vector<TH1D*> > hJet100EtaJeuUp2DefDist, std::vector< std::vector<TH1D*> > hJet100EtaJeuDown2DefDist,
+             TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
     // Dijet pT selection
     std::vector<Int_t> ptDijetLow{};
@@ -5324,7 +5563,6 @@ void plotJES(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vec
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Data
-
     std::vector< TH1D* > hMBEta = hMBEtaDist.at(0); std::vector< TH1D* > hMBEtaForward = hMBEtaDist.at(1); 
     std::vector< TH1D* > hMBEtaBackward = hMBEtaDist.at(2); std::vector< TH1D* > hMBEtaFBRatio = hMBEtaDist.at(3);
     std::vector< TH1D* > hMBEtaBFRatio = hMBEtaDist.at(4);
@@ -5342,7 +5580,6 @@ void plotJES(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vec
     std::vector< TH1D* > hJet100EtaBFRatio = hJet100EtaDist.at(4);
 
     // Jet energy scale
-
     std::vector< TH1D* > hJeuMBUpEta = hJeuMBUpEtaDist.at(0); std::vector< TH1D* > hJeuMBUpEtaForward = hJeuMBUpEtaDist.at(1);
     std::vector< TH1D* > hJeuMBUpEtaBackward = hJeuMBUpEtaDist.at(2); std::vector< TH1D* > hJeuMBUpEtaFBRatio = hJeuMBUpEtaDist.at(3);
     std::vector< TH1D* > hJeuMBUpEtaBFRatio = hJeuMBUpEtaDist.at(4);
@@ -5375,80 +5612,268 @@ void plotJES(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vec
     std::vector< TH1D* > hJeuJet100DownEtaBackward = hJeuJet100DownEtaDist.at(2); std::vector< TH1D* > hJeuJet100DownEtaFBRatio = hJeuJet100DownEtaDist.at(3);
     std::vector< TH1D* > hJeuJet100DownEtaBFRatio = hJeuJet100DownEtaDist.at(4);
 
-    std::vector< TH1D* > hMBJeuUpToDefEta;
-    std::vector< TH1D* > hMBJeuDownToDefEta;
-    std::vector< TH1D* > hJet60JeuUpToDefEta;
-    std::vector< TH1D* > hJet60JeuDownToDefEta;
-    std::vector< TH1D* > hJet80JeuUpToDefEta;
-    std::vector< TH1D* > hJet80JeuDownToDefEta;
-    std::vector< TH1D* > hJet100JeuUpToDefEta;
-    std::vector< TH1D* > hJet100JeuDownToDefEta;
+    // Ratios
+    std::vector< TH1D* > hMBJeuUpToDefEta = hMBEtaJeuUp2DefDist.at(0); std::vector< TH1D* > hMBJeuUpToDefEtaForward = hMBEtaJeuUp2DefDist.at(1);
+    std::vector< TH1D* > hMBJeuUpToDefEtaBackward = hMBEtaJeuUp2DefDist.at(2); std::vector< TH1D* > hMBJeuUpToDefEtaFBRatio = hMBEtaJeuUp2DefDist.at(3);
+    std::vector< TH1D* > hMBJeuUpToDefEtaBFRatio = hMBEtaJeuUp2DefDist.at(4);
 
-    std::vector< TH1D* > hMBJeuUpToDefEtaForward;
-    std::vector< TH1D* > hMBJeuDownToDefEtaForward;
-    std::vector< TH1D* > hJet60JeuUpToDefEtaForward;
-    std::vector< TH1D* > hJet60JeuDownToDefEtaForward;
-    std::vector< TH1D* > hJet80JeuUpToDefEtaForward;
-    std::vector< TH1D* > hJet80JeuDownToDefEtaForward;
-    std::vector< TH1D* > hJet100JeuUpToDefEtaForward;
-    std::vector< TH1D* > hJet100JeuDownToDefEtaForward;
+    std::vector< TH1D* > hMBJeuDownToDefEta = hMBEtaJeuDown2DefDist.at(0); std::vector< TH1D* > hMBJeuDownToDefEtaForward = hMBEtaJeuDown2DefDist.at(1);
+    std::vector< TH1D* > hMBJeuDownToDefEtaBackward = hMBEtaJeuDown2DefDist.at(2); std::vector< TH1D* > hMBJeuDownToDefEtaFBRatio = hMBEtaJeuDown2DefDist.at(3);
+    std::vector< TH1D* > hMBJeuDownToDefEtaBFRatio = hMBEtaJeuDown2DefDist.at(4);
 
-    std::vector< TH1D* > hMBJeuUpToDefEtaBackward;
-    std::vector< TH1D* > hMBJeuDownToDefEtaBackward;
-    std::vector< TH1D* > hJet60JeuUpToDefEtaBackward;
-    std::vector< TH1D* > hJet60JeuDownToDefEtaBackward;
-    std::vector< TH1D* > hJet80JeuUpToDefEtaBackward;
-    std::vector< TH1D* > hJet80JeuDownToDefEtaBackward;
-    std::vector< TH1D* > hJet100JeuUpToDefEtaBackward;
-    std::vector< TH1D* > hJet100JeuDownToDefEtaBackward;
+    std::vector< TH1D* > hJet60JeuUpToDefEta = hJet60EtaJeuUp2DefDist.at(0); std::vector< TH1D* > hJet60JeuUpToDefEtaForward = hJet60EtaJeuUp2DefDist.at(1);
+    std::vector< TH1D* > hJet60JeuUpToDefEtaBackward = hJet60EtaJeuUp2DefDist.at(2); std::vector< TH1D* > hJet60JeuUpToDefEtaFBRatio = hJet60EtaJeuUp2DefDist.at(3);
+    std::vector< TH1D* > hJet60JeuUpToDefEtaBFRatio = hJet60EtaJeuUp2DefDist.at(4);
 
-    std::vector< TH1D* > hMBJeuUpToDefEtaFBRatio;
-    std::vector< TH1D* > hMBJeuDownToDefEtaFBRatio;
-    std::vector< TH1D* > hJet60JeuUpToDefEtaFBRatio;
-    std::vector< TH1D* > hJet60JeuDownToDefEtaFBRatio;
-    std::vector< TH1D* > hJet80JeuUpToDefEtaFBRatio;
-    std::vector< TH1D* > hJet80JeuDownToDefEtaFBRatio;
-    std::vector< TH1D* > hJet100JeuUpToDefEtaFBRatio;
-    std::vector< TH1D* > hJet100JeuDownToDefEtaFBRatio;
+    std::vector< TH1D* > hJet60JeuDownToDefEta = hJet60EtaJeuDown2DefDist.at(0); std::vector< TH1D* > hJet60JeuDownToDefEtaForward = hJet60EtaJeuDown2DefDist.at(1);
+    std::vector< TH1D* > hJet60JeuDownToDefEtaBackward = hJet60EtaJeuDown2DefDist.at(2); std::vector< TH1D* > hJet60JeuDownToDefEtaFBRatio = hJet60EtaJeuDown2DefDist.at(3);
+    std::vector< TH1D* > hJet60JeuDownToDefEtaBFRatio = hJet60EtaJeuDown2DefDist.at(4);
 
-    std::vector< TH1D* > hMBJeuUpToDefEtaBFRatio;
-    std::vector< TH1D* > hMBJeuDownToDefEtaBFRatio;
-    std::vector< TH1D* > hJet60JeuUpToDefEtaBFRatio;
-    std::vector< TH1D* > hJet60JeuDownToDefEtaBFRatio;
-    std::vector< TH1D* > hJet80JeuUpToDefEtaBFRatio;
-    std::vector< TH1D* > hJet80JeuDownToDefEtaBFRatio;
-    std::vector< TH1D* > hJet100JeuUpToDefEtaBFRatio;
-    std::vector< TH1D* > hJet100JeuDownToDefEtaBFRatio;
+    std::vector< TH1D* > hJet80JeuUpToDefEta = hJet80EtaJeuUp2DefDist.at(0); std::vector< TH1D* > hJet80JeuUpToDefEtaForward = hJet80EtaJeuUp2DefDist.at(1);
+    std::vector< TH1D* > hJet80JeuUpToDefEtaBackward = hJet80EtaJeuUp2DefDist.at(2); std::vector< TH1D* > hJet80JeuUpToDefEtaFBRatio = hJet80EtaJeuUp2DefDist.at(3);
+    std::vector< TH1D* > hJet80JeuUpToDefEtaBFRatio = hJet80EtaJeuUp2DefDist.at(4);
 
-    plotUp2DownComparison(hMBEta, hJeuMBUpEta, hJeuMBDownEta, &hMBJeuUpToDefEta, &hMBJeuDownToDefEta, 0, 4, date, frame);
-    plotUp2DownComparison(hJet60Eta, hJeuJet60UpEta, hJeuJet60DownEta, &hJet60JeuUpToDefEta, &hJet60JeuDownToDefEta, 0, 4, date, frame);
-    plotUp2DownComparison(hJet80Eta, hJeuJet80UpEta, hJeuJet80DownEta, &hJet80JeuUpToDefEta, &hJet80JeuDownToDefEta, 0, 4, date, frame);
-    plotUp2DownComparison(hJet100Eta, hJeuJet100UpEta, hJeuJet100DownEta, &hJet100JeuUpToDefEta, &hJet100JeuDownToDefEta, 0, 4, date, frame);
+    std::vector< TH1D* > hJet80JeuDownToDefEta = hJet80EtaJeuDown2DefDist.at(0); std::vector< TH1D* > hJet80JeuDownToDefEtaForward = hJet80EtaJeuDown2DefDist.at(1);
+    std::vector< TH1D* > hJet80JeuDownToDefEtaBackward = hJet80EtaJeuDown2DefDist.at(2); std::vector< TH1D* > hJet80JeuDownToDefEtaFBRatio = hJet80EtaJeuDown2DefDist.at(3);
+    std::vector< TH1D* > hJet80JeuDownToDefEtaBFRatio = hJet80EtaJeuDown2DefDist.at(4);
 
-    plotUp2DownComparison(hMBEtaForward, hJeuMBUpEtaForward, hJeuMBDownEtaForward, &hMBJeuUpToDefEtaForward, &hMBJeuDownToDefEtaForward, 0, 4, date, frame);
-    plotUp2DownComparison(hJet60EtaForward, hJeuJet60UpEtaForward, hJeuJet60DownEtaForward, &hJet60JeuUpToDefEtaForward, &hJet60JeuDownToDefEtaForward, 0, 4, date, frame);
-    plotUp2DownComparison(hJet80EtaForward, hJeuJet80UpEtaForward, hJeuJet80DownEtaForward, &hJet80JeuUpToDefEtaForward, &hJet80JeuDownToDefEtaForward, 0, 4, date, frame);
-    plotUp2DownComparison(hJet100EtaForward, hJeuJet100UpEtaForward, hJeuJet100DownEtaForward, &hJet100JeuUpToDefEtaForward, &hJet100JeuDownToDefEtaForward, 0, 4, date, frame);
+    std::vector< TH1D* > hJet100JeuUpToDefEta = hJet100EtaJeuUp2DefDist.at(0); std::vector< TH1D* > hJet100JeuUpToDefEtaForward = hJet100EtaJeuUp2DefDist.at(1);
+    std::vector< TH1D* > hJet100JeuUpToDefEtaBackward = hJet100EtaJeuUp2DefDist.at(2); std::vector< TH1D* > hJet100JeuUpToDefEtaFBRatio = hJet100EtaJeuUp2DefDist.at(3);
+    std::vector< TH1D* > hJet100JeuUpToDefEtaBFRatio = hJet100EtaJeuUp2DefDist.at(4);
 
-    plotUp2DownComparison(hMBEtaBackward, hJeuMBUpEtaBackward, hJeuMBDownEtaBackward, &hMBJeuUpToDefEtaBackward, &hMBJeuDownToDefEtaBackward, 0, 4, date, frame);
-    plotUp2DownComparison(hJet60EtaBackward, hJeuJet60UpEtaBackward, hJeuJet60DownEtaBackward, &hJet60JeuUpToDefEtaBackward, &hJet60JeuDownToDefEtaBackward, 0, 4, date, frame);
-    plotUp2DownComparison(hJet80EtaBackward, hJeuJet80UpEtaBackward, hJeuJet80DownEtaBackward, &hJet80JeuUpToDefEtaBackward, &hJet80JeuDownToDefEtaBackward, 0, 4, date, frame);
-    plotUp2DownComparison(hJet100EtaBackward, hJeuJet100UpEtaBackward, hJeuJet100DownEtaBackward, &hJet100JeuUpToDefEtaBackward, &hJet100JeuDownToDefEtaBackward, 0, 4, date, frame);
+    std::vector< TH1D* > hJet100JeuDownToDefEta = hJet100EtaJeuDown2DefDist.at(0); std::vector< TH1D* > hJet100JeuDownToDefEtaForward = hJet100EtaJeuDown2DefDist.at(1);
+    std::vector< TH1D* > hJet100JeuDownToDefEtaBackward = hJet100EtaJeuDown2DefDist.at(2); std::vector< TH1D* > hJet100JeuDownToDefEtaFBRatio = hJet100EtaJeuDown2DefDist.at(3);
+    std::vector< TH1D* > hJet100JeuDownToDefEtaBFRatio = hJet100EtaJeuDown2DefDist.at(4);
 
-    plotUp2DownComparison(hMBEtaFBRatio, hJeuMBUpEtaFBRatio, hJeuMBDownEtaFBRatio, &hMBJeuUpToDefEtaFBRatio, &hMBJeuDownToDefEtaFBRatio, 0, 4, date, frame);
-    plotUp2DownComparison(hJet60EtaFBRatio, hJeuJet60UpEtaFBRatio, hJeuJet60DownEtaFBRatio, &hJet60JeuUpToDefEtaFBRatio, &hJet60JeuDownToDefEtaFBRatio, 0, 4, date, frame);
-    plotUp2DownComparison(hJet80EtaFBRatio, hJeuJet80UpEtaFBRatio, hJeuJet80DownEtaFBRatio, &hJet80JeuUpToDefEtaFBRatio, &hJet80JeuDownToDefEtaFBRatio, 0, 4, date, frame);
-    plotUp2DownComparison(hJet100EtaFBRatio, hJeuJet100UpEtaFBRatio, hJeuJet100DownEtaFBRatio, &hJet100JeuUpToDefEtaFBRatio, &hJet100JeuDownToDefEtaFBRatio, 0, 4, date, frame);
+    Int_t etaTypeDef = 0;
+    Int_t etaTypeForward = 1;
+    Int_t etaTypeBackward = 2;
+    Int_t etaTypeFB = 3;
+    Int_t etaTypeBF = 4;
 
-    plotUp2DownComparison(hMBEtaBFRatio, hJeuMBUpEtaBFRatio, hJeuMBDownEtaBFRatio, &hMBJeuUpToDefEtaBFRatio, &hMBJeuDownToDefEtaBFRatio, 0, 4, date, frame);
-    plotUp2DownComparison(hJet60EtaBFRatio, hJeuJet60UpEtaBFRatio, hJeuJet60DownEtaBFRatio, &hJet60JeuUpToDefEtaBFRatio, &hJet60JeuDownToDefEtaBFRatio, 0, 4, date, frame);
-    plotUp2DownComparison(hJet80EtaBFRatio, hJeuJet80UpEtaBFRatio, hJeuJet80DownEtaBFRatio, &hJet80JeuUpToDefEtaBFRatio, &hJet80JeuDownToDefEtaBFRatio, 0, 4, date, frame);
-    plotUp2DownComparison(hJet100EtaBFRatio, hJeuJet100UpEtaBFRatio, hJeuJet100DownEtaBFRatio, &hJet100JeuUpToDefEtaBFRatio, &hJet100JeuDownToDefEtaBFRatio, 0, 4, date, frame);   
+    plotUp2DownComparison(hMBEta, hJeuMBUpEta, hJeuMBDownEta, hMBJeuUpToDefEta, hMBJeuDownToDefEta, 0, etaTypeDef, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet60Eta, hJeuJet60UpEta, hJeuJet60DownEta, hJet60JeuUpToDefEta, hJet60JeuDownToDefEta, 0, etaTypeDef, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet80Eta, hJeuJet80UpEta, hJeuJet80DownEta, hJet80JeuUpToDefEta, hJet80JeuDownToDefEta, 0, etaTypeDef, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet100Eta, hJeuJet100UpEta, hJeuJet100DownEta, hJet100JeuUpToDefEta, hJet100JeuDownToDefEta, 0, etaTypeDef, 4, date, isCM, drawFits);
+
+    plotUp2DownComparison(hMBEtaForward, hJeuMBUpEtaForward, hJeuMBDownEtaForward, hMBJeuUpToDefEtaForward, hMBJeuDownToDefEtaForward, 0, etaTypeForward, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet60EtaForward, hJeuJet60UpEtaForward, hJeuJet60DownEtaForward, hJet60JeuUpToDefEtaForward, hJet60JeuDownToDefEtaForward, 0, etaTypeForward, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet80EtaForward, hJeuJet80UpEtaForward, hJeuJet80DownEtaForward, hJet80JeuUpToDefEtaForward, hJet80JeuDownToDefEtaForward, 0, etaTypeForward, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet100EtaForward, hJeuJet100UpEtaForward, hJeuJet100DownEtaForward, hJet100JeuUpToDefEtaForward, hJet100JeuDownToDefEtaForward, 0, etaTypeForward, 4, date, isCM, drawFits);
+
+    plotUp2DownComparison(hMBEtaBackward, hJeuMBUpEtaBackward, hJeuMBDownEtaBackward, hMBJeuUpToDefEtaBackward, hMBJeuDownToDefEtaBackward, 0, etaTypeBackward, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet60EtaBackward, hJeuJet60UpEtaBackward, hJeuJet60DownEtaBackward, hJet60JeuUpToDefEtaBackward, hJet60JeuDownToDefEtaBackward, 0, etaTypeBackward, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet80EtaBackward, hJeuJet80UpEtaBackward, hJeuJet80DownEtaBackward, hJet80JeuUpToDefEtaBackward, hJet80JeuDownToDefEtaBackward, 0, etaTypeBackward, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet100EtaBackward, hJeuJet100UpEtaBackward, hJeuJet100DownEtaBackward, hJet100JeuUpToDefEtaBackward, hJet100JeuDownToDefEtaBackward, 0, etaTypeBackward, 4, date, isCM, drawFits);
+
+    plotUp2DownComparison(hMBEtaFBRatio, hJeuMBUpEtaFBRatio, hJeuMBDownEtaFBRatio, hMBJeuUpToDefEtaFBRatio, hMBJeuDownToDefEtaFBRatio, 0, etaTypeFB, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet60EtaFBRatio, hJeuJet60UpEtaFBRatio, hJeuJet60DownEtaFBRatio, hJet60JeuUpToDefEtaFBRatio, hJet60JeuDownToDefEtaFBRatio, 0, etaTypeFB, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet80EtaFBRatio, hJeuJet80UpEtaFBRatio, hJeuJet80DownEtaFBRatio, hJet80JeuUpToDefEtaFBRatio, hJet80JeuDownToDefEtaFBRatio, 0, etaTypeFB, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet100EtaFBRatio, hJeuJet100UpEtaFBRatio, hJeuJet100DownEtaFBRatio, hJet100JeuUpToDefEtaFBRatio, hJet100JeuDownToDefEtaFBRatio, 0, etaTypeFB, 4, date, isCM, drawFits);
+
+    plotUp2DownComparison(hMBEtaBFRatio, hJeuMBUpEtaBFRatio, hJeuMBDownEtaBFRatio, hMBJeuUpToDefEtaBFRatio, hMBJeuDownToDefEtaBFRatio, 0, etaTypeBF, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet60EtaBFRatio, hJeuJet60UpEtaBFRatio, hJeuJet60DownEtaBFRatio, hJet60JeuUpToDefEtaBFRatio, hJet60JeuDownToDefEtaBFRatio, 0, etaTypeBF, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet80EtaBFRatio, hJeuJet80UpEtaBFRatio, hJeuJet80DownEtaBFRatio, hJet80JeuUpToDefEtaBFRatio, hJet80JeuDownToDefEtaBFRatio, 0, etaTypeBF, 4, date, isCM, drawFits);
+    plotUp2DownComparison(hJet100EtaBFRatio, hJeuJet100UpEtaBFRatio, hJeuJet100DownEtaBFRatio, hJet100JeuUpToDefEtaBFRatio, hJet100JeuDownToDefEtaBFRatio, 0, etaTypeBF, 4, date, isCM, drawFits);
+}
+
+//________________
+void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vector<TH1D*> hPileup, 
+                      std::vector<TH1D*> hPointingRes, std::vector<TH1D*> hTotal, 
+                      Int_t etaType, TString date, Bool_t isCM) {
+
+    // Frame name
+    TString frame;
+    frame = ( isCM ) ? "cms" : "lab";
+
+
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    // Direction name
+    TString dirName;
+    // 0 - symmetric, 1 - forward, backward, fb, bf
+    if (etaType == 0) {
+        dirName = "";
+    }
+    else if (etaType == 1) {
+        dirName = "forward";
+    }
+    else if (etaType == 2) {
+        dirName = "backward";
+    }
+    else if (etaType == 3) {
+        dirName = "fb";
+    }
+    else if (etaType == 4) {
+        dirName = "bf";
+    }
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0., 0.3};
+    Double_t legX[2] = {0.35, 0.75};
+    Double_t legY[2] = {0.65, 0.85};
+
+    if ( etaType != 0 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.0;
+        yRange[1] = 0.3;
+    }
+
+    // Create canvas
+    Int_t sizeX{1200};
+    Int_t sizeY{800};
+    TCanvas *cSyst = new TCanvas(Form("%s_%s_relSystUncrt", returnTrigName( hTotal.at(0)->GetName() ).Data(), dirName.Data() ), 
+                                 Form("%s_%s_relSystUncrt", returnTrigName( hTotal.at(0)->GetName() ).Data(), dirName.Data() ), 
+                                 sizeX, sizeY);
+    cSyst->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
+
+    // Loop over pT bins
+    for (Int_t i{0}; i<ptBins; i++) {
+
+        // Switch to pad
+        cSyst->cd(i+1);
+        if ( etaType == 0 ) {
+            setPadStyle();
+        }
+        else {
+            setPadFBStyle();
+        }
+
+        // Set colors
+        hTotal.at(i)->SetLineColor(kBlack); hTotal.at(i)->SetLineWidth(2);
+        hJeu.at(i)->SetLineColor(kRed); hJeu.at(i)->SetLineWidth(2);
+        hJer.at(i)->SetLineColor(kBlue); hJer.at(i)->SetLineWidth(2);
+        hPileup.at(i)->SetLineColor(kGreen); hPileup.at(i)->SetLineWidth(2);
+        if ( !hPointingRes.empty() ) {
+            hPointingRes.at(i)->SetLineColor(kMagenta); hPointingRes.at(i)->SetLineWidth(2);
+        }
+
+        // Draw histograms
+        hTotal.at(i)->Draw();
+        hJeu.at(i)->Draw("same");
+        hJer.at(i)->Draw("same");
+        hPileup.at(i)->Draw("same");
+        if ( !hPointingRes.empty() ) {
+            hPointingRes.at(i)->Draw("same");
+        }
+        hTotal.at(i)->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+        hTotal.at(i)->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+        hTotal.at(i)->GetYaxis()->SetTitle("Rel. syst. uncrt. [%]");
+
+        // Draw legend
+        TLegend *leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+        leg->SetBorderSize(0);
+        leg->SetFillStyle(0);
+        leg->AddEntry(hTotal.at(i), "Total", "l");
+        leg->AddEntry(hJeu.at(i), "JES", "l");
+        leg->AddEntry(hJer.at(i), "JER", "l");
+        leg->AddEntry(hPileup.at(i), "Pileup", "l");
+        if ( !hPointingRes.empty() ) {
+            leg->AddEntry(hPointingRes.at(i), "Pointing resolution", "l");
+        }
+        leg->Draw();
+    } // for (Int_t i{0}; i<ptBins; i++)
+
+    cSyst->SaveAs( Form("%s/systematics/%s_%s_relSystUncrt_%s.pdf", date.Data(), returnTrigName( hTotal.at(0)->GetName() ).Data(), dirName.Data(), frame.Data() ) );
+}
+
+//________________
+void plotRelativeSystematicUncertainties(std::vector< std::vector<TH1D*> > hMBJeuRelSystDist, std::vector< std::vector<TH1D*> > hJet60JeuRelSystDist, 
+                                         std::vector< std::vector<TH1D*> > hJet80JeuRelSystDist, std::vector< std::vector<TH1D*> > hJet100JeuRelSystDist,
+                                         std::vector< std::vector<TH1D*> > hEmbeddingJerRelSystDist,
+                                         std::vector< std::vector<TH1D*> > hMBPileupRelSystDist, std::vector< std::vector<TH1D*> > hJet60PileupRelSystDist, 
+                                         std::vector< std::vector<TH1D*> > hJet80PileupRelSystDist, std::vector< std::vector<TH1D*> > hJet100PileupRelSystDist,
+                                         std::vector< std::vector<TH1D*> > hMBTotalRelSystDist, std::vector< std::vector<TH1D*> > hJet60TotalRelSystDist, 
+                                         std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist, std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist, 
+                                         TString date, Bool_t isCM) {
+    // Retrieve individual systematic uncertainties
+    std::vector< TH1D* > hMBEtaJeuRelSyst = hMBJeuRelSystDist.at(0); std::vector< TH1D* > hMBEtaForwardJeuRelSyst = hMBJeuRelSystDist.at(1);
+    std::vector< TH1D* > hMBEtaBackwardJeuRelSyst = hMBJeuRelSystDist.at(2); std::vector< TH1D* > hMBEtaFBJeuRelSyst = hMBJeuRelSystDist.at(3);
+    std::vector< TH1D* > hMBEtaBFJeuRelSyst = hMBJeuRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet60EtaJeuRelSyst = hJet60JeuRelSystDist.at(0); std::vector< TH1D* > hJet60EtaForwardJeuRelSyst = hJet60JeuRelSystDist.at(1);
+    std::vector< TH1D* > hJet60EtaBackwardJeuRelSyst = hJet60JeuRelSystDist.at(2); std::vector< TH1D* > hJet60EtaFBJeuRelSyst = hJet60JeuRelSystDist.at(3);
+    std::vector< TH1D* > hJet60EtaBFJeuRelSyst = hJet60JeuRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet80EtaJeuRelSyst = hJet80JeuRelSystDist.at(0); std::vector< TH1D* > hJet80EtaForwardJeuRelSyst = hJet80JeuRelSystDist.at(1);
+    std::vector< TH1D* > hJet80EtaBackwardJeuRelSyst = hJet80JeuRelSystDist.at(2); std::vector< TH1D* > hJet80EtaFBJeuRelSyst = hJet80JeuRelSystDist.at(3);
+    std::vector< TH1D* > hJet80EtaBFJeuRelSyst = hJet80JeuRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet100EtaJeuRelSyst = hJet100JeuRelSystDist.at(0); std::vector< TH1D* > hJet100EtaForwardJeuRelSyst = hJet100JeuRelSystDist.at(1);
+    std::vector< TH1D* > hJet100EtaBackwardJeuRelSyst = hJet100JeuRelSystDist.at(2); std::vector< TH1D* > hJet100EtaFBJeuRelSyst = hJet100JeuRelSystDist.at(3);
+    std::vector< TH1D* > hJet100EtaBFJeuRelSyst = hJet100JeuRelSystDist.at(4);
+
+    std::vector< TH1D* > hEmbeddingEtaJerRelSyst = hEmbeddingJerRelSystDist.at(0); std::vector< TH1D* > hEmbeddingEtaForwardJerRelSyst = hEmbeddingJerRelSystDist.at(1);
+    std::vector< TH1D* > hEmbeddingEtaBackwardJerRelSyst = hEmbeddingJerRelSystDist.at(2); std::vector< TH1D* > hEmbeddingEtaFBJerRelSyst = hEmbeddingJerRelSystDist.at(3);
+    std::vector< TH1D* > hEmbeddingEtaBFJerRelSyst = hEmbeddingJerRelSystDist.at(4);
+
+    std::vector< TH1D* > hMBEtaPileupRelSyst = hMBPileupRelSystDist.at(0); std::vector< TH1D* > hMBEtaForwardPileupRelSyst = hMBPileupRelSystDist.at(1);
+    std::vector< TH1D* > hMBEtaBackwardPileupRelSyst = hMBPileupRelSystDist.at(2); std::vector< TH1D* > hMBEtaFBPileupRelSyst = hMBPileupRelSystDist.at(3);
+    std::vector< TH1D* > hMBEtaBFPileupRelSyst = hMBPileupRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet60EtaPileupRelSyst = hJet60PileupRelSystDist.at(0); std::vector< TH1D* > hJet60EtaForwardPileupRelSyst = hJet60PileupRelSystDist.at(1);
+    std::vector< TH1D* > hJet60EtaBackwardPileupRelSyst = hJet60PileupRelSystDist.at(2); std::vector< TH1D* > hJet60EtaFBPileupRelSyst = hJet60PileupRelSystDist.at(3);
+    std::vector< TH1D* > hJet60EtaBFPileupRelSyst = hJet60PileupRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet80EtaPileupRelSyst = hJet80PileupRelSystDist.at(0); std::vector< TH1D* > hJet80EtaForwardPileupRelSyst = hJet80PileupRelSystDist.at(1);
+    std::vector< TH1D* > hJet80EtaBackwardPileupRelSyst = hJet80PileupRelSystDist.at(2); std::vector< TH1D* > hJet80EtaFBPileupRelSyst = hJet80PileupRelSystDist.at(3);
+    std::vector< TH1D* > hJet80EtaBFPileupRelSyst = hJet80PileupRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet100EtaPileupRelSyst = hJet100PileupRelSystDist.at(0); std::vector< TH1D* > hJet100EtaForwardPileupRelSyst = hJet100PileupRelSystDist.at(1);
+    std::vector< TH1D* > hJet100EtaBackwardPileupRelSyst = hJet100PileupRelSystDist.at(2); std::vector< TH1D* > hJet100EtaFBPileupRelSyst = hJet100PileupRelSystDist.at(3);
+    std::vector< TH1D* > hJet100EtaBFPileupRelSyst = hJet100PileupRelSystDist.at(4);
+
+    std::vector< TH1D* > hEmbeddingEtaPointingResRelSyst = {};
+    std::vector< TH1D* > hEmbeddingEtaForwardPointingResRelSyst = {};
+    std::vector< TH1D* > hEmbeddingEtaBackwardPointingResRelSyst = {};
+    std::vector< TH1D* > hEmbeddingEtaFBPointingResRelSyst = {};
+    std::vector< TH1D* > hEmbeddingEtaBFPointingResRelSyst = {};
+
+    std::vector< TH1D* > hMBTotalEtaRelSyst = hMBTotalRelSystDist.at(0); std::vector< TH1D* > hMBTotalEtaForwardRelSyst = hMBTotalRelSystDist.at(1);
+    std::vector< TH1D* > hMBTotalEtaBackwardRelSyst = hMBTotalRelSystDist.at(2); std::vector< TH1D* > hMBTotalEtaFBRelSyst = hMBTotalRelSystDist.at(3);
+    std::vector< TH1D* > hMBTotalEtaBFRelSyst = hMBTotalRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet60TotalEtaRelSyst = hJet60TotalRelSystDist.at(0); std::vector< TH1D* > hJet60TotalEtaForwardRelSyst = hJet60TotalRelSystDist.at(1);
+    std::vector< TH1D* > hJet60TotalEtaBackwardRelSyst = hJet60TotalRelSystDist.at(2); std::vector< TH1D* > hJet60TotalEtaFBRelSyst = hJet60TotalRelSystDist.at(3);
+    std::vector< TH1D* > hJet60TotalEtaBFRelSyst = hJet60TotalRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet80TotalEtaRelSyst = hJet80TotalRelSystDist.at(0); std::vector< TH1D* > hJet80TotalEtaForwardRelSyst = hJet80TotalRelSystDist.at(1);
+    std::vector< TH1D* > hJet80TotalEtaBackwardRelSyst = hJet80TotalRelSystDist.at(2); std::vector< TH1D* > hJet80TotalEtaFBRelSyst = hJet80TotalRelSystDist.at(3);
+    std::vector< TH1D* > hJet80TotalEtaBFRelSyst = hJet80TotalRelSystDist.at(4);
+
+    std::vector< TH1D* > hJet100TotalEtaRelSyst = hJet100TotalRelSystDist.at(0); std::vector< TH1D* > hJet100TotalEtaForwardRelSyst = hJet100TotalRelSystDist.at(1);
+    std::vector< TH1D* > hJet100TotalEtaBackwardRelSyst = hJet100TotalRelSystDist.at(2); std::vector< TH1D* > hJet100TotalEtaFBRelSyst = hJet100TotalRelSystDist.at(3);
+    std::vector< TH1D* > hJet100TotalEtaBFRelSyst = hJet100TotalRelSystDist.at(4);
+
+
+    Int_t etaTypeDef = 0;
+    Int_t etaTypeForward = 1;
+    Int_t etaTypeBackward = 2;
+    Int_t etaTypeFB = 3;
+    Int_t etaTypeBF = 4;
+
+    // Plot relative systematic uncertainties
+    plotRelSystUncrt(hMBEtaJeuRelSyst, hJet80EtaJeuRelSyst, hMBEtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hMBTotalEtaRelSyst, etaTypeDef, date, isCM);
+    plotRelSystUncrt(hJet60EtaJeuRelSyst, hJet80EtaJeuRelSyst, hJet60EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet60TotalEtaRelSyst, etaTypeDef, date, isCM);
+    plotRelSystUncrt(hJet80EtaJeuRelSyst, hJet80EtaJeuRelSyst, hJet80EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet80TotalEtaRelSyst, etaTypeDef, date, isCM);
+    plotRelSystUncrt(hJet100EtaJeuRelSyst, hJet80EtaJeuRelSyst, hJet100EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet100TotalEtaRelSyst, etaTypeDef, date, isCM);
 }
 
 //________________
 void plotJER(std::vector< std::vector<TH1D*> > hEmbeddingEtaDist, std::vector< std::vector<TH1D*> > hJerUpEtaDist, 
-             std::vector< std::vector<TH1D*> > hJerDownEtaDist, TString date, Bool_t isCM = kFALSE) {
+             std::vector< std::vector<TH1D*> > hJerDownEtaDist, 
+             std::vector< std::vector<TH1D*> > hEmbeddingEtaJerUpToDefDist, std::vector< std::vector<TH1D*> > hEmbeddingEtaJerDownToDefDist,
+             TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
@@ -5473,22 +5898,25 @@ void plotJER(std::vector< std::vector<TH1D*> > hEmbeddingEtaDist, std::vector< s
     std::vector< TH1D* > hJerDownEtaBackward = hJerDownEtaDist.at(2); std::vector< TH1D* > hJerDownEtaFBRatio = hJerDownEtaDist.at(3);
     std::vector< TH1D* > hJerDownEtaBFRatio = hJerDownEtaDist.at(4);
 
-    std::vector< TH1D* > hEmbeddingJerUpToDefEta;
-    std::vector< TH1D* > hEmbeddingJerDownToDefEta;
-    std::vector< TH1D* > hEmbeddingJerUpToDefEtaForward;
-    std::vector< TH1D* > hEmbeddingJerDownToDefEtaForward;
-    std::vector< TH1D* > hEmbeddingJerUpToDefEtaBackward;
-    std::vector< TH1D* > hEmbeddingJerDownToDefEtaBackward;
-    std::vector< TH1D* > hEmbeddingJerUpToDefEtaFBRatio;
-    std::vector< TH1D* > hEmbeddingJerDownToDefEtaFBRatio;
-    std::vector< TH1D* > hEmbeddingJerUpToDefEtaBFRatio;
-    std::vector< TH1D* > hEmbeddingJerDownToDefEtaBFRatio;
+    std::vector< TH1D* > hEmbeddingJerUpToDefEta = hEmbeddingEtaJerUpToDefDist.at(0); std::vector< TH1D* > hEmbeddingJerUpToDefEtaForward = hEmbeddingEtaJerUpToDefDist.at(1);
+    std::vector< TH1D* > hEmbeddingJerUpToDefEtaBackward = hEmbeddingEtaJerUpToDefDist.at(2); std::vector< TH1D* > hEmbeddingJerUpToDefEtaFBRatio = hEmbeddingEtaJerUpToDefDist.at(3);
+    std::vector< TH1D* > hEmbeddingJerUpToDefEtaBFRatio = hEmbeddingEtaJerUpToDefDist.at(4);
 
-    plotUp2DownComparison(hEmbeddingEta, hJerUpEta, hJerDownEta, &hEmbeddingJerUpToDefEta, &hEmbeddingJerDownToDefEta, 1, 2, date, frame);
-    plotUp2DownComparison(hEmbeddingEtaForward, hJerUpEtaForward, hJerDownEtaForward, &hEmbeddingJerUpToDefEtaForward, &hEmbeddingJerDownToDefEtaForward, 1, 2, date, frame);
-    plotUp2DownComparison(hEmbeddingEtaBackward, hJerUpEtaBackward, hJerDownEtaBackward, &hEmbeddingJerUpToDefEtaBackward, &hEmbeddingJerDownToDefEtaBackward, 1, 2, date, frame);
-    plotUp2DownComparison(hEmbeddingEtaFBRatio, hJerUpEtaFBRatio, hJerDownEtaFBRatio, &hEmbeddingJerUpToDefEtaFBRatio, &hEmbeddingJerDownToDefEtaFBRatio, 1, 2, date, frame);
-    plotUp2DownComparison(hEmbeddingEtaBFRatio, hJerUpEtaBFRatio, hJerDownEtaBFRatio, &hEmbeddingJerUpToDefEtaBFRatio, &hEmbeddingJerDownToDefEtaBFRatio, 1, 2, date, frame);
+    std::vector< TH1D* > hEmbeddingJerDownToDefEta = hEmbeddingEtaJerDownToDefDist.at(0); std::vector< TH1D* > hEmbeddingJerDownToDefEtaForward = hEmbeddingEtaJerDownToDefDist.at(1);
+    std::vector< TH1D* > hEmbeddingJerDownToDefEtaBackward = hEmbeddingEtaJerDownToDefDist.at(2); std::vector< TH1D* > hEmbeddingJerDownToDefEtaFBRatio = hEmbeddingEtaJerDownToDefDist.at(3);
+    std::vector< TH1D* > hEmbeddingJerDownToDefEtaBFRatio = hEmbeddingEtaJerDownToDefDist.at(4);
+
+    Int_t etaTypeDef = 0;
+    Int_t etaTypeForward = 1;
+    Int_t etaTypeBackward = 2;
+    Int_t etaTypeFB = 3;
+    Int_t etaTypeBF = 4;
+
+    plotUp2DownComparison(hEmbeddingEta, hJerUpEta, hJerDownEta, hEmbeddingJerUpToDefEta, hEmbeddingJerDownToDefEta, 1, etaTypeDef, 2, date, frame, drawFits);
+    plotUp2DownComparison(hEmbeddingEtaForward, hJerUpEtaForward, hJerDownEtaForward, hEmbeddingJerUpToDefEtaForward, hEmbeddingJerDownToDefEtaForward, 1, etaTypeForward, 2, date, frame, drawFits);
+    plotUp2DownComparison(hEmbeddingEtaBackward, hJerUpEtaBackward, hJerDownEtaBackward, hEmbeddingJerUpToDefEtaBackward, hEmbeddingJerDownToDefEtaBackward, 1, etaTypeBackward, 2, date, frame, drawFits);
+    plotUp2DownComparison(hEmbeddingEtaFBRatio, hJerUpEtaFBRatio, hJerDownEtaFBRatio, hEmbeddingJerUpToDefEtaFBRatio, hEmbeddingJerDownToDefEtaFBRatio, 1, etaTypeFB, 2, date, frame, drawFits);
+    plotUp2DownComparison(hEmbeddingEtaBFRatio, hJerUpEtaBFRatio, hJerDownEtaBFRatio, hEmbeddingJerUpToDefEtaBFRatio, hEmbeddingJerDownToDefEtaBFRatio, 1, etaTypeBF, 2, date, frame, drawFits);
 }
 
 //________________
@@ -5497,8 +5925,12 @@ void plotPileup(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::
                 std::vector< std::vector<TH1D*> > hJet60GplusEtaDist, std::vector< std::vector<TH1D*> > hJet60Vtx1EtaDist, 
                 std::vector< std::vector<TH1D*> > hJet80EtaDist, std::vector< std::vector<TH1D*> > hJet80GplusEtaDist, 
                 std::vector< std::vector<TH1D*> > hJet80Vtx1EtaDist, std::vector< std::vector<TH1D*> > hJet100EtaDist, 
-                std::vector< std::vector<TH1D*> > hJet100GplusEtaDist, std::vector< std::vector<TH1D*> > hJet100Vtx1EtaDist, 
-                TString date, Bool_t isCM = kFALSE) {
+                std::vector< std::vector<TH1D*> > hJet100GplusEtaDist, std::vector< std::vector<TH1D*> > hJet100Vtx1EtaDist,
+                std::vector< std::vector<TH1D*> > hMBEtaGplus2DefDist, std::vector< std::vector<TH1D*> > hMBEtaVtxOne2DefDist,
+                std::vector< std::vector<TH1D*> > hJet60EtaGplus2DefDist, std::vector< std::vector<TH1D*> > hJet60EtaVtxOne2DefDist,
+                std::vector< std::vector<TH1D*> > hJet80EtaGplus2DefDist, std::vector< std::vector<TH1D*> > hJet80EtaVtxOne2DefDist,
+                std::vector< std::vector<TH1D*> > hJet100EtaGplus2DefDist, std::vector< std::vector<TH1D*> > hJet100EtaVtxOne2DefDist,
+                TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
@@ -5519,9 +5951,15 @@ void plotPileup(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::
     std::vector< TH1D* > hMBGplusEtaBackward = hMBGplusEtaDist.at(2); std::vector< TH1D* > hMBGplusEtaFBRatio = hMBGplusEtaDist.at(3);
     std::vector< TH1D* > hMBGplusEtaBFRatio = hMBGplusEtaDist.at(4);
 
-    std::vector< TH1D* > hMBVtx1Eta = hMBVtx1EtaDist.at(0); std::vector< TH1D* > hMBVtx1EtaForward = hMBVtx1EtaDist.at(1);
-    std::vector< TH1D* > hMBVtx1EtaBackward = hMBVtx1EtaDist.at(2); std::vector< TH1D* > hMBVtx1EtaFBRatio = hMBVtx1EtaDist.at(3);
-    std::vector< TH1D* > hMBVtx1EtaBFRatio = hMBVtx1EtaDist.at(4);
+    std::vector< TH1D* > hMBVtx1Eta = {};
+    std::vector< TH1D* > hMBVtx1EtaForward = {};
+    std::vector< TH1D* > hMBVtx1EtaBackward = {};
+    std::vector< TH1D* > hMBVtx1EtaFBRatio = {};
+    std::vector< TH1D* > hMBVtx1EtaBFRatio = {};
+    
+    // std::vector< TH1D* > hMBVtx1Eta = hMBVtx1EtaDist.at(0); std::vector< TH1D* > hMBVtx1EtaForward = hMBVtx1EtaDist.at(1);
+    // std::vector< TH1D* > hMBVtx1EtaBackward = hMBVtx1EtaDist.at(2); std::vector< TH1D* > hMBVtx1EtaFBRatio = hMBVtx1EtaDist.at(3);
+    // std::vector< TH1D* > hMBVtx1EtaBFRatio = hMBVtx1EtaDist.at(4);
 
     std::vector< TH1D* > hJet60Eta = hJet60EtaDist.at(0); std::vector< TH1D* > hJet60EtaForward = hJet60EtaDist.at(1);
     std::vector< TH1D* > hJet60EtaBackward = hJet60EtaDist.at(2); std::vector< TH1D* > hJet60EtaFBRatio = hJet60EtaDist.at(3);
@@ -5531,9 +5969,15 @@ void plotPileup(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::
     std::vector< TH1D* > hJet60GplusEtaBackward = hJet60GplusEtaDist.at(2); std::vector< TH1D* > hJet60GplusEtaFBRatio = hJet60GplusEtaDist.at(3);
     std::vector< TH1D* > hJet60GplusEtaBFRatio = hJet60GplusEtaDist.at(4);
 
-    std::vector< TH1D* > hJet60Vtx1Eta = hJet60Vtx1EtaDist.at(0); std::vector< TH1D* > hJet60Vtx1EtaForward = hJet60Vtx1EtaDist.at(1);
-    std::vector< TH1D* > hJet60Vtx1EtaBackward = hJet60Vtx1EtaDist.at(2); std::vector< TH1D* > hJet60Vtx1EtaFBRatio = hJet60Vtx1EtaDist.at(3);
-    std::vector< TH1D* > hJet60Vtx1EtaBFRatio = hJet60Vtx1EtaDist.at(4);
+    std::vector< TH1D* > hJet60Vtx1Eta = {};
+    std::vector< TH1D* > hJet60Vtx1EtaForward = {};
+    std::vector< TH1D* > hJet60Vtx1EtaBackward = {};
+    std::vector< TH1D* > hJet60Vtx1EtaFBRatio = {};
+    std::vector< TH1D* > hJet60Vtx1EtaBFRatio = {};
+
+    // std::vector< TH1D* > hJet60Vtx1Eta = hJet60Vtx1EtaDist.at(0); std::vector< TH1D* > hJet60Vtx1EtaForward = hJet60Vtx1EtaDist.at(1);
+    // std::vector< TH1D* > hJet60Vtx1EtaBackward = hJet60Vtx1EtaDist.at(2); std::vector< TH1D* > hJet60Vtx1EtaFBRatio = hJet60Vtx1EtaDist.at(3);
+    // std::vector< TH1D* > hJet60Vtx1EtaBFRatio = hJet60Vtx1EtaDist.at(4);
     
     std::vector< TH1D* > hJet80Eta = hJet80EtaDist.at(0); std::vector< TH1D* > hJet80EtaForward = hJet80EtaDist.at(1);
     std::vector< TH1D* > hJet80EtaBackward = hJet80EtaDist.at(2); std::vector< TH1D* > hJet80EtaFBRatio = hJet80EtaDist.at(3);
@@ -5543,9 +5987,15 @@ void plotPileup(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::
     std::vector< TH1D* > hJet80GplusEtaBackward = hJet80GplusEtaDist.at(2); std::vector< TH1D* > hJet80GplusEtaFBRatio = hJet80GplusEtaDist.at(3);
     std::vector< TH1D* > hJet80GplusEtaBFRatio = hJet80GplusEtaDist.at(4);
 
-    std::vector< TH1D* > hJet80Vtx1Eta = hJet80Vtx1EtaDist.at(0); std::vector< TH1D* > hJet80Vtx1EtaForward = hJet80Vtx1EtaDist.at(1);
-    std::vector< TH1D* > hJet80Vtx1EtaBackward = hJet80Vtx1EtaDist.at(2); std::vector< TH1D* > hJet80Vtx1EtaFBRatio = hJet80Vtx1EtaDist.at(3);
-    std::vector< TH1D* > hJet80Vtx1EtaBFRatio = hJet80Vtx1EtaDist.at(4);
+    std::vector< TH1D* > hJet80Vtx1Eta = {};
+    std::vector< TH1D* > hJet80Vtx1EtaForward = {};
+    std::vector< TH1D* > hJet80Vtx1EtaBackward = {};
+    std::vector< TH1D* > hJet80Vtx1EtaFBRatio = {};
+    std::vector< TH1D* > hJet80Vtx1EtaBFRatio = {};
+
+    // std::vector< TH1D* > hJet80Vtx1Eta = hJet80Vtx1EtaDist.at(0); std::vector< TH1D* > hJet80Vtx1EtaForward = hJet80Vtx1EtaDist.at(1);
+    // std::vector< TH1D* > hJet80Vtx1EtaBackward = hJet80Vtx1EtaDist.at(2); std::vector< TH1D* > hJet80Vtx1EtaFBRatio = hJet80Vtx1EtaDist.at(3);
+    // std::vector< TH1D* > hJet80Vtx1EtaBFRatio = hJet80Vtx1EtaDist.at(4);
 
     std::vector< TH1D* > hJet100Eta = hJet100EtaDist.at(0); std::vector< TH1D* > hJet100EtaForward = hJet100EtaDist.at(1);
     std::vector< TH1D* > hJet100EtaBackward = hJet100EtaDist.at(2); std::vector< TH1D* > hJet100EtaFBRatio = hJet100EtaDist.at(3);
@@ -5555,59 +6005,96 @@ void plotPileup(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::
     std::vector< TH1D* > hJet100GplusEtaBackward = hJet100GplusEtaDist.at(2); std::vector< TH1D* > hJet100GplusEtaFBRatio = hJet100GplusEtaDist.at(3);
     std::vector< TH1D* > hJet100GplusEtaBFRatio = hJet100GplusEtaDist.at(4);
 
-    std::vector< TH1D* > hJet100Vtx1Eta = hJet100Vtx1EtaDist.at(0); std::vector< TH1D* > hJet100Vtx1EtaForward = hJet100Vtx1EtaDist.at(1);
-    std::vector< TH1D* > hJet100Vtx1EtaBackward = hJet100Vtx1EtaDist.at(2); std::vector< TH1D* > hJet100Vtx1EtaFBRatio = hJet100Vtx1EtaDist.at(3);
-    std::vector< TH1D* > hJet100Vtx1EtaBFRatio = hJet100Vtx1EtaDist.at(4);
+    std::vector< TH1D* > hJet100Vtx1Eta = {};
+    std::vector< TH1D* > hJet100Vtx1EtaForward = {};
+    std::vector< TH1D* > hJet100Vtx1EtaBackward = {};
+    std::vector< TH1D* > hJet100Vtx1EtaFBRatio = {};
+    std::vector< TH1D* > hJet100Vtx1EtaBFRatio = {};
 
-    std::vector< TH1D* > hMBGplusToDefEta;
-    std::vector< TH1D* > hMBVtx1ToDefEta;
-    std::vector< TH1D* > hJet60GplusToDefEta;
-    std::vector< TH1D* > hJet60Vtx1ToDefEta;
-    std::vector< TH1D* > hJet80GplusToDefEta;
-    std::vector< TH1D* > hJet80Vtx1ToDefEta;
-    std::vector< TH1D* > hJet100GplusToDefEta;
-    std::vector< TH1D* > hJet100Vtx1ToDefEta;
-    
-    std::vector< TH1D* > hMBGplusToDefEtaForward;
-    std::vector< TH1D* > hMBVtx1ToDefEtaForward;
-    std::vector< TH1D* > hJet60GplusToDefEtaForward;
-    std::vector< TH1D* > hJet60Vtx1ToDefEtaForward;
-    std::vector< TH1D* > hJet80GplusToDefEtaForward;
-    std::vector< TH1D* > hJet80Vtx1ToDefEtaForward;
-    std::vector< TH1D* > hJet100GplusToDefEtaForward;
-    std::vector< TH1D* > hJet100Vtx1ToDefEtaForward;
+    // std::vector< TH1D* > hJet100Vtx1Eta = hJet100Vtx1EtaDist.at(0); std::vector< TH1D* > hJet100Vtx1EtaForward = hJet100Vtx1EtaDist.at(1);
+    // std::vector< TH1D* > hJet100Vtx1EtaBackward = hJet100Vtx1EtaDist.at(2); std::vector< TH1D* > hJet100Vtx1EtaFBRatio = hJet100Vtx1EtaDist.at(3);
+    // std::vector< TH1D* > hJet100Vtx1EtaBFRatio = hJet100Vtx1EtaDist.at(4);
 
-    std::vector< TH1D* > hMBGplusToDefEtaBackward;
-    std::vector< TH1D* > hMBVtx1ToDefEtaBackward;
-    std::vector< TH1D* > hJet60GplusToDefEtaBackward;
-    std::vector< TH1D* > hJet60Vtx1ToDefEtaBackward;
-    std::vector< TH1D* > hJet80GplusToDefEtaBackward;
-    std::vector< TH1D* > hJet80Vtx1ToDefEtaBackward;
-    std::vector< TH1D* > hJet100GplusToDefEtaBackward;
-    std::vector< TH1D* > hJet100Vtx1ToDefEtaBackward;
+    // Ratios
+    std::vector< TH1D* > hMBGplusToDefEta = hMBEtaGplus2DefDist.at(0); std::vector< TH1D* > hMBGplusToDefEtaForward = hMBEtaGplus2DefDist.at(1);
+    std::vector< TH1D* > hMBGplusToDefEtaBackward = hMBEtaGplus2DefDist.at(2); std::vector< TH1D* > hMBGplusToDefEtaFBRatio = hMBEtaGplus2DefDist.at(3);
+    std::vector< TH1D* > hMBGplusToDefEtaBFRatio = hMBEtaGplus2DefDist.at(4);
 
-    std::vector< TH1D* > hMBGplusToDefEtaFBRatio;
-    std::vector< TH1D* > hMBVtx1ToDefEtaFBRatio;
-    std::vector< TH1D* > hJet60GplusToDefEtaFBRatio;
-    std::vector< TH1D* > hJet60Vtx1ToDefEtaFBRatio;
-    std::vector< TH1D* > hJet80GplusToDefEtaFBRatio;
-    std::vector< TH1D* > hJet80Vtx1ToDefEtaFBRatio;
-    std::vector< TH1D* > hJet100GplusToDefEtaFBRatio;
-    std::vector< TH1D* > hJet100Vtx1ToDefEtaFBRatio;
+    std::vector< TH1D* > hMBVtx1ToDefEta = {}; std::vector< TH1D* > hMBVtx1ToDefEtaForward = {};
+    std::vector< TH1D* > hMBVtx1ToDefEtaBackward = {}; std::vector< TH1D* > hMBVtx1ToDefEtaFBRatio = {};
+    std::vector< TH1D* > hMBVtx1ToDefEtaBFRatio = {};
 
-    std::vector< TH1D* > hMBGplusToDefEtaBFRatio;
-    std::vector< TH1D* > hMBVtx1ToDefEtaBFRatio;
-    std::vector< TH1D* > hJet60GplusToDefEtaBFRatio;
-    std::vector< TH1D* > hJet60Vtx1ToDefEtaBFRatio;
-    std::vector< TH1D* > hJet80GplusToDefEtaBFRatio;
-    std::vector< TH1D* > hJet80Vtx1ToDefEtaBFRatio;
-    std::vector< TH1D* > hJet100GplusToDefEtaBFRatio;
-    std::vector< TH1D* > hJet100Vtx1ToDefEtaBFRatio;
+    // std::vector< TH1D* > hMBVtx1ToDefEta = hMBEtaVtxOne2DefDist.at(0); std::vector< TH1D* > hMBVtx1ToDefEtaForward = hMBEtaVtxOne2DefDist.at(1);
+    // std::vector< TH1D* > hMBVtx1ToDefEtaBackward = hMBEtaVtxOne2DefDist.at(2); std::vector< TH1D* > hMBVtx1ToDefEtaFBRatio = hMBEtaVtxOne2DefDist.at(3);
+    // std::vector< TH1D* > hMBVtx1ToDefEtaBFRatio = hMBEtaVtxOne2DefDist.at(4);
 
-    plotUp2DownComparison(hMBEta, hMBGplusEta, hMBVtx1Eta, &hMBGplusToDefEta, &hMBVtx1ToDefEta, 2, 1, date, frame);
-    plotUp2DownComparison(hJet60Eta, hJet60GplusEta, hJet60Vtx1Eta, &hJet60GplusToDefEta, &hJet60Vtx1ToDefEta, 2, 1, date, frame);
-    plotUp2DownComparison(hJet80Eta, hJet80GplusEta, hJet80Vtx1Eta, &hJet80GplusToDefEta, &hJet80Vtx1ToDefEta, 2, 1, date, frame);
-    plotUp2DownComparison(hJet100Eta, hJet100GplusEta, hJet100Vtx1Eta, &hJet100GplusToDefEta, &hJet100Vtx1ToDefEta, 2, 1, date, frame);
+    std::vector< TH1D* > hJet60GplusToDefEta = hJet60EtaGplus2DefDist.at(0); std::vector< TH1D* > hJet60GplusToDefEtaForward = hJet60EtaGplus2DefDist.at(1);
+    std::vector< TH1D* > hJet60GplusToDefEtaBackward = hJet60EtaGplus2DefDist.at(2); std::vector< TH1D* > hJet60GplusToDefEtaFBRatio = hJet60EtaGplus2DefDist.at(3);
+    std::vector< TH1D* > hJet60GplusToDefEtaBFRatio = hJet60EtaGplus2DefDist.at(4);
+
+    std::vector< TH1D* > hJet60Vtx1ToDefEta = {}; std::vector< TH1D* > hJet60Vtx1ToDefEtaForward = {};
+    std::vector< TH1D* > hJet60Vtx1ToDefEtaBackward = {}; std::vector< TH1D* > hJet60Vtx1ToDefEtaFBRatio = {};
+    std::vector< TH1D* > hJet60Vtx1ToDefEtaBFRatio = {};
+
+    // std::vector< TH1D* > hJet60Vtx1ToDefEta = hJet60EtaVtxOne2DefDist.at(0); std::vector< TH1D* > hJet60Vtx1ToDefEtaForward = hJet60EtaVtxOne2DefDist.at(1);
+    // std::vector< TH1D* > hJet60Vtx1ToDefEtaBackward = hJet60EtaVtxOne2DefDist.at(2); std::vector< TH1D* > hJet60Vtx1ToDefEtaFBRatio = hJet60EtaVtxOne2DefDist.at(3);
+    // std::vector< TH1D* > hJet60Vtx1ToDefEtaBFRatio = hJet60EtaVtxOne2DefDist.at(4);
+
+    std::vector< TH1D* > hJet80GplusToDefEta = hJet80EtaGplus2DefDist.at(0); std::vector< TH1D* > hJet80GplusToDefEtaForward = hJet80EtaGplus2DefDist.at(1);
+    std::vector< TH1D* > hJet80GplusToDefEtaBackward = hJet80EtaGplus2DefDist.at(2); std::vector< TH1D* > hJet80GplusToDefEtaFBRatio = hJet80EtaGplus2DefDist.at(3);
+    std::vector< TH1D* > hJet80GplusToDefEtaBFRatio = hJet80EtaGplus2DefDist.at(4);
+
+    std::vector< TH1D* > hJet80Vtx1ToDefEta = {}; std::vector< TH1D* > hJet80Vtx1ToDefEtaForward = {};
+    std::vector< TH1D* > hJet80Vtx1ToDefEtaBackward = {}; std::vector< TH1D* > hJet80Vtx1ToDefEtaFBRatio = {};
+    std::vector< TH1D* > hJet80Vtx1ToDefEtaBFRatio = {};
+
+    // std::vector< TH1D* > hJet80Vtx1ToDefEta = hJet80EtaVtxOne2DefDist.at(0); std::vector< TH1D* > hJet80Vtx1ToDefEtaForward = hJet80EtaVtxOne2DefDist.at(1);
+    // std::vector< TH1D* > hJet80Vtx1ToDefEtaBackward = hJet80EtaVtxOne2DefDist.at(2); std::vector< TH1D* > hJet80Vtx1ToDefEtaFBRatio = hJet80EtaVtxOne2DefDist.at(3);
+    // std::vector< TH1D* > hJet80Vtx1ToDefEtaBFRatio = hJet80EtaVtxOne2DefDist.at(4);
+
+    std::vector< TH1D* > hJet100GplusToDefEta = hJet100EtaGplus2DefDist.at(0); std::vector< TH1D* > hJet100GplusToDefEtaForward = hJet100EtaGplus2DefDist.at(1);
+    std::vector< TH1D* > hJet100GplusToDefEtaBackward = hJet100EtaGplus2DefDist.at(2); std::vector< TH1D* > hJet100GplusToDefEtaFBRatio = hJet100EtaGplus2DefDist.at(3);
+    std::vector< TH1D* > hJet100GplusToDefEtaBFRatio = hJet100EtaGplus2DefDist.at(4);
+
+    std::vector< TH1D* > hJet100Vtx1ToDefEta = {}; std::vector< TH1D* > hJet100Vtx1ToDefEtaForward = {};
+    std::vector< TH1D* > hJet100Vtx1ToDefEtaBackward = {}; std::vector< TH1D* > hJet100Vtx1ToDefEtaFBRatio = {};
+    std::vector< TH1D* > hJet100Vtx1ToDefEtaBFRatio = {};
+
+    // std::vector< TH1D* > hJet100Vtx1ToDefEta = hJet100EtaVtxOne2DefDist.at(0); std::vector< TH1D* > hJet100Vtx1ToDefEtaForward = hJet100EtaVtxOne2DefDist.at(1);
+    // std::vector< TH1D* > hJet100Vtx1ToDefEtaBackward = hJet100EtaVtxOne2DefDist.at(2); std::vector< TH1D* > hJet100Vtx1ToDefEtaFBRatio = hJet100EtaVtxOne2DefDist.at(3);
+    // std::vector< TH1D* > hJet100Vtx1ToDefEtaBFRatio = hJet100EtaVtxOne2DefDist.at(4);
+
+    Int_t etaTypeDef = 0;
+    Int_t etaTypeForward = 1;
+    Int_t etaTypeBackward = 2;
+    Int_t etaTypeFB = 3;
+    Int_t etaTypeBF = 4;
+
+    // Plotting
+    plotUp2DownComparison(hMBEta, hMBGplusEta, hMBVtx1Eta, hMBGplusToDefEta, hMBVtx1ToDefEta, 2, etaTypeDef, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet60Eta, hJet60GplusEta, hJet60Vtx1Eta, hJet60GplusToDefEta, hJet60Vtx1ToDefEta, 2, etaTypeDef, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet80Eta, hJet80GplusEta, hJet80Vtx1Eta, hJet80GplusToDefEta, hJet80Vtx1ToDefEta, 2, etaTypeDef, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet100Eta, hJet100GplusEta, hJet100Vtx1Eta, hJet100GplusToDefEta, hJet100Vtx1ToDefEta, 2, etaTypeDef, 1, date, frame, drawFits);
+
+    plotUp2DownComparison(hMBEtaForward, hMBGplusEtaForward, hMBVtx1EtaForward, hMBGplusToDefEtaForward, hMBVtx1ToDefEtaForward, 2, etaTypeForward, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet60EtaForward, hJet60GplusEtaForward, hJet60Vtx1EtaForward, hJet60GplusToDefEtaForward, hJet60Vtx1ToDefEtaForward, 2, etaTypeForward, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet80EtaForward, hJet80GplusEtaForward, hJet80Vtx1EtaForward, hJet80GplusToDefEtaForward, hJet80Vtx1ToDefEtaForward, 2, etaTypeForward, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet100EtaForward, hJet100GplusEtaForward, hJet100Vtx1EtaForward, hJet100GplusToDefEtaForward, hJet100Vtx1ToDefEtaForward, 2, etaTypeForward, 1, date, frame, drawFits);
+
+    plotUp2DownComparison(hMBEtaBackward, hMBGplusEtaBackward, hMBVtx1EtaBackward, hMBGplusToDefEtaBackward, hMBVtx1ToDefEtaBackward, 2, etaTypeBackward, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet60EtaBackward, hJet60GplusEtaBackward, hJet60Vtx1EtaBackward, hJet60GplusToDefEtaBackward, hJet60Vtx1ToDefEtaBackward, 2, etaTypeBackward, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet80EtaBackward, hJet80GplusEtaBackward, hJet80Vtx1EtaBackward, hJet80GplusToDefEtaBackward, hJet80Vtx1ToDefEtaBackward, 2, etaTypeBackward, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet100EtaBackward, hJet100GplusEtaBackward, hJet100Vtx1EtaBackward, hJet100GplusToDefEtaBackward, hJet100Vtx1ToDefEtaBackward, 2, etaTypeBackward, 1, date, frame, drawFits);
+
+    plotUp2DownComparison(hMBEtaFBRatio, hMBGplusEtaFBRatio, hMBVtx1EtaFBRatio, hMBGplusToDefEtaFBRatio, hMBVtx1ToDefEtaFBRatio, 2, etaTypeFB, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet60EtaFBRatio, hJet60GplusEtaFBRatio, hJet60Vtx1EtaFBRatio, hJet60GplusToDefEtaFBRatio, hJet60Vtx1ToDefEtaFBRatio, 2, etaTypeFB, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet80EtaFBRatio, hJet80GplusEtaFBRatio, hJet80Vtx1EtaFBRatio, hJet80GplusToDefEtaFBRatio, hJet80Vtx1ToDefEtaFBRatio, 2, etaTypeFB, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet100EtaFBRatio, hJet100GplusEtaFBRatio, hJet100Vtx1EtaFBRatio, hJet100GplusToDefEtaFBRatio, hJet100Vtx1ToDefEtaFBRatio, 2, etaTypeFB, 1, date, frame, drawFits);
+
+    plotUp2DownComparison(hMBEtaBFRatio, hMBGplusEtaBFRatio, hMBVtx1EtaBFRatio, hMBGplusToDefEtaBFRatio, hMBVtx1ToDefEtaBFRatio, 2, etaTypeBF, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet60EtaBFRatio, hJet60GplusEtaBFRatio, hJet60Vtx1EtaBFRatio, hJet60GplusToDefEtaBFRatio, hJet60Vtx1ToDefEtaBFRatio, 2, etaTypeBF, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet80EtaBFRatio, hJet80GplusEtaBFRatio, hJet80Vtx1EtaBFRatio, hJet80GplusToDefEtaBFRatio, hJet80Vtx1ToDefEtaBFRatio, 2, etaTypeBF, 1, date, frame, drawFits);
+    plotUp2DownComparison(hJet100EtaBFRatio, hJet100GplusEtaBFRatio, hJet100Vtx1EtaBFRatio, hJet100GplusToDefEtaBFRatio, hJet100Vtx1ToDefEtaBFRatio, 2, etaTypeBF, 1, date, frame, drawFits);
 }
 
 //________________
@@ -6398,7 +6885,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
                            TFile *jet60GplusFile, TFile *jet60Vtx1File,
                            TFile *jet80GplusFile, TFile *jet80Vtx1File,
                            TFile *jet100GplusFile, TFile *jet100Vtx1File, 
-                           TString date, Bool_t isCM = kFALSE) {
+                           TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
@@ -6565,153 +7052,153 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
                                                                                hMBGplusEtaDist, hMBVtx1EtaDist,
                                                                                hJet60GplusEtaDist, hJet60Vtx1EtaDist,
                                                                                hJet80GplusEtaDist, hJet80Vtx1EtaDist,
-                                                                               hJet100GplusEtaDist, hJet100Vtx1EtaDist);
+                                                                               hJet100GplusEtaDist, hJet100Vtx1EtaDist, isCM);
     
     
     // Create JEU up and down histograms
-    std::vector< std::vector< TH1D* > > hMBEtaJeuUpDist;
-    hMBEtaJeuUpDist.push_back( hUpAndDown2DefDist.at(0) );
-    hMBEtaJeuUpDist.push_back( hUpAndDown2DefDist.at(1) );
-    hMBEtaJeuUpDist.push_back( hUpAndDown2DefDist.at(2) );
-    hMBEtaJeuUpDist.push_back( hUpAndDown2DefDist.at(3) );
-    hMBEtaJeuUpDist.push_back( hUpAndDown2DefDist.at(4) );
+    std::vector< std::vector< TH1D* > > hMBEtaJeuUp2DefDist;
+    hMBEtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(0) );
+    hMBEtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(1) );
+    hMBEtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(2) );
+    hMBEtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(3) );
+    hMBEtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(4) );
 
-    std::vector< std::vector< TH1D* > > hMBEtaJeuDownDist;
-    hMBEtaJeuDownDist.push_back( hUpAndDown2DefDist.at(5) );
-    hMBEtaJeuDownDist.push_back( hUpAndDown2DefDist.at(6) );
-    hMBEtaJeuDownDist.push_back( hUpAndDown2DefDist.at(7) );
-    hMBEtaJeuDownDist.push_back( hUpAndDown2DefDist.at(8) );
-    hMBEtaJeuDownDist.push_back( hUpAndDown2DefDist.at(9) );
+    std::vector< std::vector< TH1D* > > hMBEtaJeuDown2DefDist;
+    hMBEtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(5) );
+    hMBEtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(6) );
+    hMBEtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(7) );
+    hMBEtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(8) );
+    hMBEtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(9) );
 
-    std::vector< std::vector< TH1D* > > hJet60EtaJeuUpDist;
-    hJet60EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(10) );
-    hJet60EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(11) );
-    hJet60EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(12) );
-    hJet60EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(13) );
-    hJet60EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(14) );
+    std::vector< std::vector< TH1D* > > hJet60EtaJeuUp2DefDist;
+    hJet60EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(10) );
+    hJet60EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(11) );
+    hJet60EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(12) );
+    hJet60EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(13) );
+    hJet60EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(14) );
 
-    std::vector< std::vector< TH1D* > > hJet60EtaJeuDownDist;
-    hJet60EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(15) );
-    hJet60EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(16) );
-    hJet60EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(17) );
-    hJet60EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(18) );
-    hJet60EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(19) );
+    std::vector< std::vector< TH1D* > > hJet60EtaJeuDown2DefDist;
+    hJet60EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(15) );
+    hJet60EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(16) );
+    hJet60EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(17) );
+    hJet60EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(18) );
+    hJet60EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(19) );
 
-    std::vector< std::vector< TH1D* > > hJet80EtaJeuUpDist;
-    hJet80EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(20) );
-    hJet80EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(21) );
-    hJet80EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(22) );
-    hJet80EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(23) );
-    hJet80EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(24) );
+    std::vector< std::vector< TH1D* > > hJet80EtaJeuUp2DefDist;
+    hJet80EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(20) );
+    hJet80EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(21) );
+    hJet80EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(22) );
+    hJet80EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(23) );
+    hJet80EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(24) );
 
-    std::vector< std::vector< TH1D* > > hJet80EtaJeuDownDist;
-    hJet80EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(25) );
-    hJet80EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(26) );
-    hJet80EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(27) );
-    hJet80EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(28) );
-    hJet80EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(29) );
+    std::vector< std::vector< TH1D* > > hJet80EtaJeuDown2DefDist;
+    hJet80EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(25) );
+    hJet80EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(26) );
+    hJet80EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(27) );
+    hJet80EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(28) );
+    hJet80EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(29) );
 
-    std::vector< std::vector< TH1D* > > hJet100EtaJeuUpDist;
-    hJet100EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(30) );
-    hJet100EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(31) );
-    hJet100EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(32) );
-    hJet100EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(33) );
-    hJet100EtaJeuUpDist.push_back( hUpAndDown2DefDist.at(34) );
+    std::vector< std::vector< TH1D* > > hJet100EtaJeuUp2DefDist;
+    hJet100EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(30) );
+    hJet100EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(31) );
+    hJet100EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(32) );
+    hJet100EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(33) );
+    hJet100EtaJeuUp2DefDist.push_back( hUpAndDown2DefDist.at(34) );
 
-    std::vector< std::vector< TH1D* > > hJet100EtaJeuDownDist;
-    hJet100EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(35) );
-    hJet100EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(36) );
-    hJet100EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(37) );
-    hJet100EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(38) );
-    hJet100EtaJeuDownDist.push_back( hUpAndDown2DefDist.at(39) );
+    std::vector< std::vector< TH1D* > > hJet100EtaJeuDown2DefDist;
+    hJet100EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(35) );
+    hJet100EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(36) );
+    hJet100EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(37) );
+    hJet100EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(38) );
+    hJet100EtaJeuDown2DefDist.push_back( hUpAndDown2DefDist.at(39) );
 
     // Create JER up and down histograms
-    std::vector< std::vector<TH1D*> > hEmbeddingJerUpDist;
-    hEmbeddingJerUpDist.push_back( hUpAndDown2DefDist.at(40) );
-    hEmbeddingJerUpDist.push_back( hUpAndDown2DefDist.at(41) );
-    hEmbeddingJerUpDist.push_back( hUpAndDown2DefDist.at(42) );
-    hEmbeddingJerUpDist.push_back( hUpAndDown2DefDist.at(43) );
-    hEmbeddingJerUpDist.push_back( hUpAndDown2DefDist.at(44) );
+    std::vector< std::vector<TH1D*> > hEmbeddingJerUp2DefDist;
+    hEmbeddingJerUp2DefDist.push_back( hUpAndDown2DefDist.at(40) );
+    hEmbeddingJerUp2DefDist.push_back( hUpAndDown2DefDist.at(41) );
+    hEmbeddingJerUp2DefDist.push_back( hUpAndDown2DefDist.at(42) );
+    hEmbeddingJerUp2DefDist.push_back( hUpAndDown2DefDist.at(43) );
+    hEmbeddingJerUp2DefDist.push_back( hUpAndDown2DefDist.at(44) );
 
-    std::vector< std::vector<TH1D*> > hEmbeddingJerDownDist;
-    hEmbeddingJerDownDist.push_back( hUpAndDown2DefDist.at(45) );
-    hEmbeddingJerDownDist.push_back( hUpAndDown2DefDist.at(46) );
-    hEmbeddingJerDownDist.push_back( hUpAndDown2DefDist.at(47) );
-    hEmbeddingJerDownDist.push_back( hUpAndDown2DefDist.at(48) );
-    hEmbeddingJerDownDist.push_back( hUpAndDown2DefDist.at(49) );
+    std::vector< std::vector<TH1D*> > hEmbeddingJerDown2DefDist;
+    hEmbeddingJerDown2DefDist.push_back( hUpAndDown2DefDist.at(45) );
+    hEmbeddingJerDown2DefDist.push_back( hUpAndDown2DefDist.at(46) );
+    hEmbeddingJerDown2DefDist.push_back( hUpAndDown2DefDist.at(47) );
+    hEmbeddingJerDown2DefDist.push_back( hUpAndDown2DefDist.at(48) );
+    hEmbeddingJerDown2DefDist.push_back( hUpAndDown2DefDist.at(49) );
 
     // Create pileup up and down histograms
-    std::vector< std::vector<TH1D*> > hMBPileupGplusDist;
-    hMBPileupGplusDist.push_back( hUpAndDown2DefDist.at(50) );
-    hMBPileupGplusDist.push_back( hUpAndDown2DefDist.at(51) );
-    hMBPileupGplusDist.push_back( hUpAndDown2DefDist.at(52) );
-    hMBPileupGplusDist.push_back( hUpAndDown2DefDist.at(53) );
-    hMBPileupGplusDist.push_back( hUpAndDown2DefDist.at(54) );
+    std::vector< std::vector<TH1D*> > hMBPileupGplus2DefDist;
+    hMBPileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(50) );
+    hMBPileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(51) );
+    hMBPileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(52) );
+    hMBPileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(53) );
+    hMBPileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(54) );
 
-    std::vector< std::vector<TH1D*> > hMBPileupVtx1Dist;
-    hMBPileupVtx1Dist.push_back( hUpAndDown2DefDist.at(55) );
-    hMBPileupVtx1Dist.push_back( hUpAndDown2DefDist.at(56) );
-    hMBPileupVtx1Dist.push_back( hUpAndDown2DefDist.at(57) );
-    hMBPileupVtx1Dist.push_back( hUpAndDown2DefDist.at(58) );
-    hMBPileupVtx1Dist.push_back( hUpAndDown2DefDist.at(59) );
+    std::vector< std::vector<TH1D*> > hMBPileupVtxOne2DefDist;
+    hMBPileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(55) );
+    hMBPileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(56) );
+    hMBPileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(57) );
+    hMBPileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(58) );
+    hMBPileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(59) );
 
-    std::vector< std::vector<TH1D*> > hJet60PileupGplusDist;
-    hJet60PileupGplusDist.push_back( hUpAndDown2DefDist.at(60) );
-    hJet60PileupGplusDist.push_back( hUpAndDown2DefDist.at(61) );
-    hJet60PileupGplusDist.push_back( hUpAndDown2DefDist.at(62) );
-    hJet60PileupGplusDist.push_back( hUpAndDown2DefDist.at(63) );
-    hJet60PileupGplusDist.push_back( hUpAndDown2DefDist.at(64) );
+    std::vector< std::vector<TH1D*> > hJet60PileupGplus2DefDist;
+    hJet60PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(60) );
+    hJet60PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(61) );
+    hJet60PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(62) );
+    hJet60PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(63) );
+    hJet60PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(64) );
 
-    std::vector< std::vector<TH1D*> > hJet60PileupVtx1Dist;
-    hJet60PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(65) );
-    hJet60PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(66) );
-    hJet60PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(67) );
-    hJet60PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(68) );
-    hJet60PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(69) );
+    std::vector< std::vector<TH1D*> > hJet60PileupVtxOne2DefDist;
+    hJet60PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(65) );
+    hJet60PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(66) );
+    hJet60PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(67) );
+    hJet60PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(68) );
+    hJet60PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(69) );
 
-    std::vector< std::vector<TH1D*> > hJet80PileupGplusDist;
-    hJet80PileupGplusDist.push_back( hUpAndDown2DefDist.at(70) );
-    hJet80PileupGplusDist.push_back( hUpAndDown2DefDist.at(71) );
-    hJet80PileupGplusDist.push_back( hUpAndDown2DefDist.at(72) );
-    hJet80PileupGplusDist.push_back( hUpAndDown2DefDist.at(73) );
-    hJet80PileupGplusDist.push_back( hUpAndDown2DefDist.at(74) );
+    std::vector< std::vector<TH1D*> > hJet80PileupGplus2DefDist;
+    hJet80PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(70) );
+    hJet80PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(71) );
+    hJet80PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(72) );
+    hJet80PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(73) );
+    hJet80PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(74) );
 
-    std::vector< std::vector<TH1D*> > hJet80PileupVtx1Dist;
-    hJet80PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(75) );
-    hJet80PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(76) );
-    hJet80PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(77) );
-    hJet80PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(78) );
-    hJet80PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(79) );
+    std::vector< std::vector<TH1D*> > hJet80PileupVtxOne2DefDist;
+    hJet80PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(75) );
+    hJet80PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(76) );
+    hJet80PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(77) );
+    hJet80PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(78) );
+    hJet80PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(79) );
 
-    std::vector< std::vector<TH1D*> > hJet100PileupGplusDist;
-    hJet100PileupGplusDist.push_back( hUpAndDown2DefDist.at(80) );
-    hJet100PileupGplusDist.push_back( hUpAndDown2DefDist.at(81) );
-    hJet100PileupGplusDist.push_back( hUpAndDown2DefDist.at(82) );
-    hJet100PileupGplusDist.push_back( hUpAndDown2DefDist.at(83) );
-    hJet100PileupGplusDist.push_back( hUpAndDown2DefDist.at(84) );
+    std::vector< std::vector<TH1D*> > hJet100PileupGplus2DefDist;
+    hJet100PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(80) );
+    hJet100PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(81) );
+    hJet100PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(82) );
+    hJet100PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(83) );
+    hJet100PileupGplus2DefDist.push_back( hUpAndDown2DefDist.at(84) );
 
-    std::vector< std::vector<TH1D*> > hJet100PileupVtx1Dist;
-    hJet100PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(85) );
-    hJet100PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(86) );
-    hJet100PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(87) );
-    hJet100PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(88) );
-    hJet100PileupVtx1Dist.push_back( hUpAndDown2DefDist.at(89) );
+    std::vector< std::vector<TH1D*> > hJet100PileupVtxOne2DefDist;
+    hJet100PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(85) );
+    hJet100PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(86) );
+    hJet100PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(87) );
+    hJet100PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(88) );
+    hJet100PileupVtxOne2DefDist.push_back( hUpAndDown2DefDist.at(89) );
 
 
     // Create JEU systematic tables
-    std::vector< std::vector<TH1D*> > hMBJeuRelSystDist = createRelSystUncrt(hMBEtaJeuUpDist, hMBEtaJeuDownDist, "hMB", 0);
-    std::vector< std::vector<TH1D*> > hJet60JeuRelSystDist = createRelSystUncrt(hJet60EtaJeuUpDist, hJet60EtaJeuDownDist, "hJet60", 0);
-    std::vector< std::vector<TH1D*> > hJet80JeuRelSystDist = createRelSystUncrt(hJet80EtaJeuUpDist, hJet80EtaJeuDownDist, "hJet80", 0);
-    std::vector< std::vector<TH1D*> > hJet100JeuRelSystDist = createRelSystUncrt(hJet100EtaJeuUpDist, hJet100EtaJeuDownDist, "hJet100", 0);
+    std::vector< std::vector<TH1D*> > hMBJeuRelSystDist = createRelSystUncrt(hMBEtaJeuUp2DefDist, hMBEtaJeuDown2DefDist, "hMB", 0);
+    std::vector< std::vector<TH1D*> > hJet60JeuRelSystDist = createRelSystUncrt(hJet60EtaJeuUp2DefDist, hJet60EtaJeuDown2DefDist, "hJet60", 0);
+    std::vector< std::vector<TH1D*> > hJet80JeuRelSystDist = createRelSystUncrt(hJet80EtaJeuUp2DefDist, hJet80EtaJeuDown2DefDist, "hJet80", 0);
+    std::vector< std::vector<TH1D*> > hJet100JeuRelSystDist = createRelSystUncrt(hJet100EtaJeuUp2DefDist, hJet100EtaJeuDown2DefDist, "hJet100", 0);
 
     // Create JER systematic tables
-    std::vector< std::vector<TH1D*> > hEmbeddingJerRelSystDist = createRelSystUncrt(hEmbeddingJerUpDist, hEmbeddingJerDownDist, "hEmbedding", 1);
+    std::vector< std::vector<TH1D*> > hEmbeddingJerRelSystDist = createRelSystUncrt(hEmbeddingJerUp2DefDist, hEmbeddingJerDown2DefDist, "hEmbedding", 1);
 
     // Create pileup systematic tables
-    std::vector< std::vector<TH1D*> > hMBPileupRelSystDist = createRelSystUncrt(hMBPileupGplusDist, hMBPileupVtx1Dist, "hMB", 3);
-    std::vector< std::vector<TH1D*> > hJet60PileupRelSystDist = createRelSystUncrt(hJet60PileupGplusDist, hJet60PileupVtx1Dist, "hJet60", 3);
-    std::vector< std::vector<TH1D*> > hJet80PileupRelSystDist = createRelSystUncrt(hJet80PileupGplusDist, hJet80PileupVtx1Dist, "hJet80", 3);
-    std::vector< std::vector<TH1D*> > hJet100PileupRelSystDist = createRelSystUncrt(hJet100PileupGplusDist, hJet100PileupVtx1Dist, "hJet100", 3);
+    std::vector< std::vector<TH1D*> > hMBPileupRelSystDist = createRelSystUncrt(hMBPileupGplus2DefDist, hMBPileupVtxOne2DefDist, "hMB", 3);
+    std::vector< std::vector<TH1D*> > hJet60PileupRelSystDist = createRelSystUncrt(hJet60PileupGplus2DefDist, hJet60PileupVtxOne2DefDist, "hJet60", 3);
+    std::vector< std::vector<TH1D*> > hJet80PileupRelSystDist = createRelSystUncrt(hJet80PileupGplus2DefDist, hJet80PileupVtxOne2DefDist, "hJet80", 3);
+    std::vector< std::vector<TH1D*> > hJet100PileupRelSystDist = createRelSystUncrt(hJet100PileupGplus2DefDist, hJet100PileupVtxOne2DefDist, "hJet100", 3);
 
     // Calculate totaly systematic uncertainty
     std::vector< std::vector<TH1D*> > hMBTotalRelSystDist = createTotalRelSystUncrt(hMBJeuRelSystDist, hEmbeddingJerRelSystDist, hMBPileupRelSystDist, "hMB");
@@ -6719,46 +7206,50 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist = createTotalRelSystUncrt(hJet80JeuRelSystDist, hEmbeddingJerRelSystDist, hJet80PileupRelSystDist, "hJet80");
     std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist = createTotalRelSystUncrt(hJet100JeuRelSystDist, hEmbeddingJerRelSystDist, hJet100PileupRelSystDist, "hJet100");
 
-    std::cout << "Creating final distributions" << std::endl;
     // Make final distributions
     std::vector< std::vector<TH1D*> > hFinalDist = makeFinalDistributions(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, 
                                                                           hEmbeddingGenEtaDist, hEmbeddingEtaDist, hRatios2McDist);
 
-    std::cout << "Creating final relative systematic uncertainties" << std::endl;
     // Make final systematic uncertainty
     std::vector< std::vector<TH1D*> > hFinalRelSystUncrtDist = makeFinalRelSystUncrt(hMBTotalRelSystDist, hJet60TotalRelSystDist, hJet80TotalRelSystDist, hJet100TotalRelSystDist); 
 
-    std::cout << "Creating final absolute systematic uncertainties" << std::endl;
     // Make final absolute systematic uncertainty
     std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist = makeFinalAbsSystUncrt(hFinalDist, hFinalRelSystUncrtDist);
-    std::cout << "Number of vectors with histos: " << hFinalAbsSystUncrtDist.size() << std::endl;
-    std::cout << "Number of histos in first vector: " << hFinalAbsSystUncrtDist.at(0).size() << std::endl;
-    std::cout << "Number of histos in second vector: " << hFinalAbsSystUncrtDist.at(1).size() << std::endl;
-    std::cout << "Number of histos in third vector: " << hFinalAbsSystUncrtDist.at(2).size() << std::endl;
-    std::cout << "Number of histos in fourth vector: " << hFinalAbsSystUncrtDist.at(3).size() << std::endl;
-    std::cout << "Number of histos in fifth vector: " << hFinalAbsSystUncrtDist.at(4).size() << std::endl;   
 
-    std::cout << "Plotting final distributions" << std::endl;
     // Plot final distributions
-    plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
+    // plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
 
     // Plot comparison of data and Monte Carlo
     // plotData2McComparison(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, hEmbeddingEtaDist, hEmbeddingGenEtaDist, hRatios2McDist, date, isCM);
+
+    // plotRelativeSystematicUncertainties(hMBJeuRelSystDist, hJet60JeuRelSystDist, hJet80JeuRelSystDist, hJet100JeuRelSystDist,
+    //                                     hEmbeddingJerRelSystDist,
+    //                                     hMBPileupRelSystDist, hJet60PileupRelSystDist, hJet80PileupRelSystDist, hJet100PileupRelSystDist,
+    //                                     hMBTotalRelSystDist, hJet60TotalRelSystDist, hJet80TotalRelSystDist, hJet100TotalRelSystDist, 
+    //                                     date, isCM);
 
     // plotJES(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist,
     //         hJeuMBUpEtaDist, hJeuMBDownEtaDist,
     //         hJeuJet60UpEtaDist, hJeuJet60DownEtaDist, 
     //         hJeuJet80UpEtaDist, hJeuJet80DownEtaDist,
     //         hJeuJet100UpEtaDist, hJeuJet100DownEtaDist, 
-    //         date, isCM);
+    //         hMBEtaJeuUp2DefDist, hMBEtaJeuDown2DefDist,
+    //         hJet60EtaJeuUp2DefDist, hJet60EtaJeuDown2DefDist,
+    //         hJet80EtaJeuUp2DefDist, hJet80EtaJeuDown2DefDist,
+    //         hJet100EtaJeuUp2DefDist, hJet100EtaJeuDown2DefDist,
+    //         date, isCM, drawFits);
 
-    // plotJER(hEmbeddingEtaDist, hJerUpEtaDist, hJerDownEtaDist, date, isCM);
+    // plotJER(hEmbeddingEtaDist, hJerUpEtaDist, hJerDownEtaDist, date, isCM, drawFits);
 
-    // plotPileup(hMBEtaDist, hMBGplusEtaDist, hMBVtx1EtaDist,
-    //            hJet60EtaDist, hJet60GplusEtaDist, hJet60Vtx1EtaDist,
-    //            hJet80EtaDist, hJet80GplusEtaDist, hJet80Vtx1EtaDist,
-    //            hJet100EtaDist, hJet100GplusEtaDist, hJet100Vtx1EtaDist,
-    //            date, isCM);
+    plotPileup(hMBEtaDist, hMBGplusEtaDist, hMBVtx1EtaDist,
+               hJet60EtaDist, hJet60GplusEtaDist, hJet60Vtx1EtaDist,
+               hJet80EtaDist, hJet80GplusEtaDist, hJet80Vtx1EtaDist,
+               hJet100EtaDist, hJet100GplusEtaDist, hJet100Vtx1EtaDist,
+               hMBPileupGplus2DefDist, hMBPileupVtxOne2DefDist,
+               hJet60PileupGplus2DefDist, hJet60PileupVtxOne2DefDist,
+               hJet80PileupGplus2DefDist, hJet80PileupVtxOne2DefDist,
+               hJet100PileupGplus2DefDist, hJet100PileupVtxOne2DefDist,
+               date, isCM, drawFits);
 
     // plotData2McComparison(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist,
     //                       hEmbeddingEtaDist, date, isCM);
@@ -7106,7 +7597,7 @@ void runOldCalculations(Bool_t isCM = kFALSE) {
 }
 
 //________________
-void runNewCalculations(Bool_t isCM = kFALSE) {
+void runNewCalculations(Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
     TString cmStr;
     if ( isCM ) {
@@ -7278,7 +7769,7 @@ void runNewCalculations(Bool_t isCM = kFALSE) {
                           jet60GplusFile, jet60Vtx1File,
                           jet80GplusFile, jet80Vtx1File,
                           jet100GplusFile, jet100Vtx1File, 
-                          date, isCM);
+                          date, isCM, drawFits);
 }
 
 //________________
@@ -7293,9 +7784,12 @@ void systematics() {
     Bool_t isCM{kTRUE};
     // Bool_t isCM{kFALSE};
 
+    Bool_t drawFits{kTRUE};
+    //Bool_t drawFits{kFALSE};
+
     // Run old calculations
     // runOldCalculations(isCM);
 
     // Run new calculations
-    runNewCalculations(isCM);
+    runNewCalculations(isCM, drawFits);
 }
