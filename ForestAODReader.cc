@@ -290,10 +290,10 @@ void ForestAODReader::clearVariables() {
     fPVertexFilterCutVtx1 = {0};
 
     // Loop over jets and tracks
-    for (Short_t i{0}; i<9999; i++) {
+    for (Short_t i{0}; i<20000; i++) {
 
         // Jet variables
-        if (i<100) {
+        if (i<10000) {
             fPFRecoJetPt[i] = {0.f};
             fPFRecoJetEta[i] = {0.f};
             fPFRecoJetPhi[i] = {0.f};

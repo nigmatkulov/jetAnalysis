@@ -98,7 +98,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
 void makeRatio(TH1* hRat, TH1* hPb, TH1* hPP) {
     rescaleEta(hPb);
     rescaleEta(hPP);
-    hPP->Scale( 1. / hPP->Integral() );
+    //hPP->Scale( 1. / hPP->Integral() );
     hRat->Divide( hPb, hPP );
 }
 
@@ -138,8 +138,8 @@ void comparePythia2PDF() {
     TString pdfInFileName = npdfName;
     pdfInFileName.ToLower();
 
-    TFile *pythiaFile = TFile::Open( Form("20241008/oSystematics_%s.root", frame.Data()) );
-    TFile *pdfFile = TFile::Open( Form("epps21/%s_pPb8160.root", pdfInFileName.Data()) );
+    TFile *pythiaFile = TFile::Open( Form("20241023/oSystematics_%s.root", frame.Data()) );
+    TFile *pdfFile = TFile::Open( Form("npdf/%s_pPb8160.root", pdfInFileName.Data()) );
     TFile *pdfxFile;
     if ( usePDFx ) {
         pdfxFile = TFile::Open("epps21/oEPPS21x.root");
@@ -218,12 +218,14 @@ void comparePythia2PDF() {
         else {
             trgName = "Jet100";
         }
+        
 
         hPb_data[i] = dynamic_cast<TH1D*> ( pythiaFile->Get( Form("%s_pPb8160_etaDijet_pt_%d_%d", trgName.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) ) );
         hPb_data[i]->SetName( Form("pPb_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_data[i], 0);
 
         hPb_nPDF[i] = dynamic_cast<TH1D*> ( pdfFile->Get( Form("pPbLab_pt_%d_%d_0", ptDijetLow.at(i), ptDijetHi.at(i) ) ) );
         hPb_nPDF[i]->SetName( Form("npdf_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_nPDF[i], 1);
+
 
         // hPb_fb_data[i] = dynamic_cast<TH1D*> ( pythiaFile->Get( Form("%s_pPb8160_etaDijet_fb_pt_%d_%d", trgName.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) ) );
         // hPb_fb_data[i]->SetName( Form("pPb_fb_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ); set1DStyle( hPb_fb_data[i], 0);

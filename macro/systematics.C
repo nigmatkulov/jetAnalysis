@@ -40,6 +40,10 @@ Double_t dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,
 
 Int_t nPads{4};
 
+// nPDF pT bins
+std::vector<Int_t> npdfPtLow = {50, 60, 100, 140, 300}; 
+std::vector<Int_t> npdfPtHi =  {60, 70, 110, 150, 500};
+
 //________________
 void fillDijetPtBins(std::vector<Int_t> &ptDijetLow, std::vector<Int_t> &ptDijetHi) {
     Int_t ptStep {5};
@@ -79,7 +83,7 @@ void plotCMSHeader() {
     t.SetTextSize(0.05);
     t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
     t.SetTextSize(0.04);
-    t.DrawLatexNDC(0.5, 0.93, "pPb 174.56 nb^{-1} (8.16 TeV)");
+    t.DrawLatexNDC(0.51, 0.93, "pPb 174.6 nb^{-1} (8.16 TeV)");
     t.SetTextSize(0.05);
 }
 
@@ -251,6 +255,14 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
         color = 4;        // blue
         markerStyle = 20; // filled circle
     }
+    else if (type == 5) {
+        color = 8;        // green
+        markerStyle = 39; // radiation
+    }
+    else if ( type == 6 ) {
+        color = 9;        // purple
+        markerStyle = 20; // circle
+    }
     else {
         color = 6;        // magenta
         markerStyle = 30; // open star
@@ -274,6 +286,47 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     if ( doRenorm ) {
         h->Scale( 1./h->Integral() );
     }
+}
+
+//________________
+void setSystUncrtStyle(TH1* h, Int_t type = 0) {
+    Int_t color = 29;        // Green-like
+    Int_t lineWidth = 0;
+    Int_t markerStyle = 20;
+    if ( type == 0 ) {
+        color = 29;          // Green-like
+        markerStyle = 1;
+    }
+    else if ( type == 1) {
+        color = 2;          // Red
+        lineWidth = 2;
+        markerStyle = 20;
+    }
+    else if ( type == 2 ) {
+        color = 4;           // Blue
+        lineWidth = 2;
+        markerStyle = 24;
+    }
+    else {
+        color = 46;          // Dark red-like
+        lineWidth = 2;
+        markerStyle = 22;
+    }
+    h->SetFillColorAlpha(color, 0.35);
+    h->SetLineColor(color);
+    h->SetMarkerColor(color);
+    h->SetMarkerStyle(markerStyle);
+    h->SetMarkerSize(0.9);
+    h->SetLineWidth(lineWidth);
+    h->SetFillStyle(1001);           // Solid fill
+
+    h->GetYaxis()->SetTitleSize(0.06);
+    h->GetYaxis()->SetLabelSize(0.06);
+    h->GetXaxis()->SetTitleSize(0.06);
+    h->GetXaxis()->SetLabelSize(0.06);
+    h->GetXaxis()->SetNdivisions(208);
+    h->GetYaxis()->SetNdivisions(208);    
+    h->GetYaxis()->SetTitleOffset(1.1);
 }
 
 //________________
@@ -370,160 +423,6 @@ TH1D* projectEtaFrom2D(TH2D* h2D, const Char_t *name,
     TH1D *tmp = dynamic_cast<TH1D*>( h2D->ProjectionY( name, ptDijetBinLow, ptDijetBinHi ) );
     tmp->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
     return tmp;
-}
-
-
-//________________
-void plotDifferentDirections(TFile *pbGoingFile, TFile *pGoingFile, TString date) {
-
-    TString trigName = "MB";
-    TString fName = pbGoingFile->GetName();
-    if ( fName.Contains("MB") ) {
-        trigName = "MB";
-    }
-    else if ( fName.Contains("Jet60") ) {
-        trigName = "Jet60";
-    }
-    else if ( fName.Contains("Jet80") ) {
-        trigName = "Jet80";
-    }
-    else if ( fName.Contains("Jet100") ) {
-        trigName = "Jet100";
-    }
-    else if ( fName.Contains("Jet120") ) {
-        trigName = "Jet120";
-    }
-    else {
-        trigName = "MB";
-    }
-
-    TH3D *hPtEtaDphiPbGoing = (TH3D*)pbGoingFile->Get("hRecoDijetPtEtaDphiWeighted");
-    //TH3D *hPtEtaDphiPbGoing = (TH3D*)pbGoingFile->Get("hRecoDijetPtEtaDphi");
-    hPtEtaDphiPbGoing->SetName("hPtEtaDphiPbGoing");
-    TH3D *hPtEtaDphiPGoing = (TH3D*)pGoingFile->Get("hRecoDijetPtEtaDphiWeighted");
-    //TH3D *hPtEtaDphiPGoing = (TH3D*)pGoingFile->Get("hRecoDijetPtEtaDphi");
-    hPtEtaDphiPGoing->SetName("hPtEtaDphiPGoing");
-
-    TString frame = "lab";
-
-    // Dijet pT selection
-    Int_t ptStep {5};
-    Int_t ptLow {30};
-
-    // Styles
-    Int_t pbGoingType{0};
-    Int_t pGoingType{1};
-
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.06);
-
-    // Dijet eta distributions
-    TH1D *hEtaPbGoing[ ptDijetBinLow.size() ];
-    TH1D *hEtaPGoing[ ptDijetBinLow.size() ];
-    TH1D *hEtaPb2PGoingRatio[ ptDijetBinLow.size() ];
-
-    TLine *line;
-    TLegend *leg;
-
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
-    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
-    Int_t ptBins = ptDijetBinLow.size();
-
-    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
-    cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
-
-    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
-    cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
-
-    std::cout << "ptBins: " << ptBins << std::endl;
-
-    // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
-
-        // Pb-going projection
-        hEtaPbGoing[i] = projectEtaFrom3D(hPtEtaDphiPbGoing, Form("hEtaPbGoing_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaPbGoing[i] );
-        set1DStyle(hEtaPbGoing[i], pbGoingType);
-
-        // p-going projection
-        hEtaPGoing[i] = projectEtaFrom3D(hPtEtaDphiPGoing, Form("hEtaPGoing_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaPGoing[i] );
-        set1DStyle(hEtaPGoing[i], pGoingType);
-
-        // Ratio of Pb-going to p-going
-        hEtaPb2PGoingRatio[i] = (TH1D*)hEtaPbGoing[i]->Clone( Form("hEtaPb2PGoingRatio_%d", i) );
-        make1DRatio(hEtaPb2PGoingRatio[i], hEtaPGoing[i], Form("hEtaPb2PGoingRatio_%d", i) );
-        hEtaPb2PGoingRatio[i]->GetYaxis()->SetTitle("Pb-going / p-going");
-
-        // Plot comparison
-        canv->cd();
-        setPadStyle();
-        hEtaPbGoing[i]->Draw();
-        hEtaPGoing[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.75, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaPbGoing[i], Form("Pb-going"), "p");
-        leg->AddEntry(hEtaPGoing[i], Form("p-going"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_dirComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        // Plot ratios of Pb-going to p-going
-        canv->cd();
-        setPadStyle();
-        hEtaPb2PGoingRatio[i]->Draw();
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        line = new TLine(hEtaPb2PGoingRatio[i]->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hEtaPb2PGoingRatio[i]->GetXaxis()->GetBinUpEdge(hEtaPb2PGoingRatio[i]->GetNbinsX()), 1.);
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-        canv->SaveAs( Form("%s/%s_pPb8160_etaDijet_dirRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        // Plot all comparisons on one canvas
-        cComp->cd(i+1);
-        setPadStyle();
-        hEtaPbGoing[i]->Draw();
-        hEtaPGoing[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.75, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaPbGoing[i], Form("Pb-going"), "p");
-        leg->AddEntry(hEtaPGoing[i], Form("p-going"), "p");
-        leg->Draw();
-
-        // Plot all ratios on one canvas
-        cRat->cd(i+1);
-        setPadStyle();
-        hEtaPb2PGoingRatio[i]->Draw();
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        line = new TLine(hEtaPb2PGoingRatio[i]->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hEtaPb2PGoingRatio[i]->GetXaxis()->GetBinUpEdge(hEtaPb2PGoingRatio[i]->GetNbinsX()), 1.);
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-    } // for (Int_t i=0; i<ptDijetBinLow.size(); i++)
-
-    cComp->SaveAs( Form("%s/%s_pPb8160_etaDijet_dirComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/%s_pPb8160_etaDijet_dirRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
 }
 
 //________________
@@ -1409,32 +1308,133 @@ void appendVectorOfVectors(std::vector< std::vector<TH1D*> > &orig, std::vector<
 }
 
 //________________
+std::vector< TF1* > fitSystRatio(std::vector< TH1D* > hSyst, Bool_t isUp = kTRUE, 
+                                 Int_t fitType = 2, Int_t etaType = 0, Bool_t drawFits = kTRUE) {
+
+    std::vector< TF1* > fitFunc( hSyst.size() );
+    Double_t xMin{-3.}, xMax{3.};
+    if (etaType != 0) {
+        xMin = 0.0001;
+        xMax = 3.;
+    }
+
+    // For all histograms in the vector
+    for (Int_t i{0}; i<hSyst.size(); i++) {
+
+        // Choose fit function
+        if ( fitType == 0 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc", hSyst[i]->GetName()), "[0]", xMin, xMax);
+            fitFunc.at(i)->SetParameter(0, 1.);
+        }
+        else if ( fitType == 1 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc", hSyst[i]->GetName()), "[0]+[1]*x", xMin, xMax);
+            fitFunc.at(i)->SetParameters(1., 0.);
+        }
+        else if ( fitType == 2 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc", hSyst[i]->GetName()), "[0]+[1]*x+[2]*x*x", xMin, xMax);
+            fitFunc.at(i)->SetParameters(1., 0., 0.);
+        }
+        else if ( fitType == 3 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc", hSyst[i]->GetName()), "[0]+[1]*x+[2]*x*x+[3]*x*x*x", xMin, xMax);
+            fitFunc.at(i)->SetParameters(1., 0., 0., 0.);
+        }
+        else if ( fitType == 4 ) {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc", hSyst[i]->GetName()), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", xMin, xMax);
+            fitFunc.at(i)->SetParameters(1., 0., 0., 0., 0.);
+        }
+        else {
+            fitFunc.at(i) = new TF1(Form("%s_fitFunc", hSyst[i]->GetName()), "[0]+[1]*x", xMin, xMax);
+            fitFunc.at(i)->SetParameters(1., 0.);
+        }
+
+        if ( isUp ) {
+            fitFunc.at(i)->SetLineColor(kRed);
+        }
+        else {
+            fitFunc.at(i)->SetLineColor(kBlue); 
+        }
+        fitFunc.at(i)->SetLineWidth(2);
+
+        if ( drawFits ) {
+            hSyst.at(i)->Fit( fitFunc.at(i), "MRE" );
+        }
+        else {
+            hSyst.at(i)->Fit( fitFunc.at(i), "MRE0" );
+        }
+
+        // std::cout << Form("Fit function for %s: %s. chi2/ndf = %f", hSyst.at(i)->GetName(), fitFunc.at(i)->GetExpFormula().Data(), fitFunc.at(i)->GetChisquare() / fitFunc.at(i)->GetNDF() ) << std::endl;
+    }
+
+    return fitFunc;
+}
+
+
+//________________
 std::vector< TH1D* > ratio2def(std::vector< TH1D* > hDef, std::vector< TH1D* > hSyst, 
-                               Int_t style = 2, Bool_t isCM = kFALSE) {
+                               Int_t systType = 0, Int_t upType = 0, Int_t etaType = 0, 
+                               Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+
+    // systType: 0 - jeu, 1 - jer, 2 - pointingRes, 3 - pileup                                
+    // upType: 0 = up, 1 = down
+    // etaType: 0 = eta, 1 = etaForward, 2 = etaBackward, 3 = etaFBRatio, 4 = etaBFRatio
+
     TString frame = (isCM) ? "cm" : "lab";
     std::vector< TH1D* > hRatio{};
     for (Int_t i{0}; i<hDef.size(); i++) {
         TH1D *h = dynamic_cast<TH1D*>( hSyst.at(i)->Clone( Form("%s_ratio2def_%s", hSyst.at(i)->GetName(), frame.Data()) ) );
         make1DRatio(h, hDef.at(i), Form("%s_ratio2def_%s", hSyst.at(i)->GetName(), frame.Data()) );
-        set1DStyle(h, style);
+        set1DStyle(h, upType);
         hRatio.push_back(h);
     }
+
+    Int_t fitType = 1;
+    if (systType == 0) {
+        if ( etaType == 0) {
+            fitType = 4;
+        }
+        else {
+            fitType = 2;
+        }
+    }
+    else if (systType == 1) {
+        if ( etaType == 0) {
+            fitType = 2;
+        }
+        else {
+            fitType = 1;
+        }
+        
+    }
+    else if (systType == 2) {
+        if ( etaType == 0) {
+            fitType = 2;
+        }
+        else {
+            fitType = 1;
+        }
+    }
+    else if (systType == 3) {
+        if ( etaType == 0) {
+            fitType = 1;
+        }
+        else {
+            fitType = 1;
+        }
+    }
+
+    std::vector< TF1* > fitFunc = fitSystRatio(hRatio, upType, fitType, etaType, drawFits);
     return hRatio;
 }
 
 //________________
 std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std::vector<TH1D*> > hDefDist, 
                                                                std::vector< std::vector<TH1D*> > hVarDist,
-                                                               Bool_t isCM = kFALSE, Int_t varType = 0) {
+                                                               Int_t systType = 0,
+                                                               Int_t upType = 0,
+                                                               Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
-    // Set the style
-    Int_t style = 2;
-    if (varType == 0) {
-        style = 0;
-    }
-    else {
-        style = 1;
-    }
+    // systType: 0 - jeu, 1 - jer, 2 - pointingRes, 3 - pileup
+    // upType: 0 = up, 1 = down
 
     // Create vector of histograms to return
     std::vector< std::vector< TH1D* > > hRatios;
@@ -1454,11 +1454,16 @@ std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std:
     std::vector< TH1D* > hVarEtaBFRatio = hVarDist.at(4);
 
     // Create histograms for ratios
-    std::vector< TH1D* > hEtaVar2DefRatio = ratio2def(hDefEta, hVarEta, style, isCM);
-    std::vector< TH1D* > hEtaForwardVar2DefRatio = ratio2def(hDefEtaForward, hVarEtaForward, style, isCM);
-    std::vector< TH1D* > hEtaBackwardVar2DefRatio = ratio2def(hDefEtaBackward, hVarEtaBackward, style, isCM);
-    std::vector< TH1D* > hEtaFBRatioVar2DefRatio = ratio2def(hDefEtaFBRatio, hVarEtaFBRatio, style, isCM);
-    std::vector< TH1D* > hEtaBFRatioVar2DefRatio = ratio2def(hDefEtaBFRatio, hVarEtaBFRatio, style, isCM);
+    Int_t etaTypeDef = 0;
+    Int_t etaTypeForward = 1;
+    Int_t etaTypeBackward = 2;
+    Int_t etaTypeFBRatio = 3;
+    Int_t etaTypeBFRatio = 4;
+    std::vector< TH1D* > hEtaVar2DefRatio = ratio2def(hDefEta, hVarEta, systType, upType, etaTypeDef, isCM, drawFits);
+    std::vector< TH1D* > hEtaForwardVar2DefRatio = ratio2def(hDefEtaForward, hVarEtaForward, systType, upType, etaTypeForward, isCM, drawFits);
+    std::vector< TH1D* > hEtaBackwardVar2DefRatio = ratio2def(hDefEtaBackward, hVarEtaBackward, systType, upType, etaTypeBackward, isCM, drawFits);
+    std::vector< TH1D* > hEtaFBRatioVar2DefRatio = ratio2def(hDefEtaFBRatio, hVarEtaFBRatio, systType, upType, etaTypeFBRatio, isCM, drawFits);
+    std::vector< TH1D* > hEtaBFRatioVar2DefRatio = ratio2def(hDefEtaBFRatio, hVarEtaBFRatio, systType, upType, etaTypeBFRatio, isCM, drawFits);
 
     hRatios.push_back( hEtaVar2DefRatio );
     hRatios.push_back( hEtaForwardVar2DefRatio );
@@ -1473,17 +1478,23 @@ std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std:
 std::vector< std::vector<TH1D*> > createVectorOfUpAndDownRatios(std::vector< std::vector<TH1D*> > hDefDist, 
                                                                 std::vector< std::vector<TH1D*> > hUpDist, 
                                                                 std::vector< std::vector<TH1D*> > hDownDist,
-                                                                Bool_t isCM = kFALSE) {
+                                                                Int_t systType = 0,
+                                                                Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
                                                                   
     // Create vector of histograms to return
     std::vector< std::vector< TH1D* > > hRatios;
 
+    // systType: 0 - jeu, 1 - jer, 2 - pointingRes, 3 - pileup
+    
+    Int_t upType = 0;
+    Int_t downType = 1;
+
     // Vectors of default
-    std::vector< std::vector<TH1D* > > hUp2DefRatios = createVectorOfVariationRatio(hDefDist, hUpDist, isCM, 0);
+    std::vector< std::vector<TH1D* > > hUp2DefRatios = createVectorOfVariationRatio(hDefDist, hUpDist, systType, upType, isCM, drawFits);
     std::vector< std::vector<TH1D* > > hDown2DefRatios = {};
 
     if ( !hDownDist.empty() ) {
-        hDown2DefRatios = createVectorOfVariationRatio(hDefDist, hDownDist, isCM, 1);
+        hDown2DefRatios = createVectorOfVariationRatio(hDefDist, hDownDist, systType, downType, isCM, drawFits);
     }
     
     // Append the vectors
@@ -1506,25 +1517,30 @@ std::vector< std::vector<TH1D*> > createUpAndDown2Def(std::vector< std::vector<T
                                                       std::vector< std::vector<TH1D*> > hJet60GplusEtaDist, std::vector< std::vector<TH1D*> > hJet60Vtx1EtaDist,
                                                       std::vector< std::vector<TH1D*> > hJet80GplusEtaDist, std::vector< std::vector<TH1D*> > hJet80Vtx1EtaDist,
                                                       std::vector< std::vector<TH1D*> > hJet100GplusEtaDist, std::vector< std::vector<TH1D*> > hJet100Vtx1EtaDist,
-                                                      Bool_t isCM = kFALSE) {
+                                                      Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
     // Create vector of histograms to return
     std::vector< std::vector<TH1D*> > hRatios;
     std::vector< std::vector<TH1D*> > hEmpty = {};
 
+    Int_t jeuSystType = 0;
+    Int_t jerSystType = 1;
+    Int_t pointingResSystType = 2;
+    Int_t pileupSystType = 3;
+
     // Retrieve histograms to divide
-    std::vector< std::vector<TH1D*> > hMBEtaJeuRatios = createVectorOfUpAndDownRatios(hMBEtaDist, hJeuMBUpEtaDist, hJeuMBDownEtaDist, isCM);
-    std::vector< std::vector<TH1D*> > hJet60EtaJeuRatios = createVectorOfUpAndDownRatios(hJet60EtaDist, hJeuJet60UpEtaDist, hJeuJet60DownEtaDist, isCM);
-    std::vector< std::vector<TH1D*> > hJet80EtaJeuRatios = createVectorOfUpAndDownRatios(hJet80EtaDist, hJeuJet80UpEtaDist, hJeuJet80DownEtaDist, isCM);
-    std::vector< std::vector<TH1D*> > hJet100EtaJeuRatios = createVectorOfUpAndDownRatios(hJet100EtaDist, hJeuJet100UpEtaDist, hJeuJet100DownEtaDist, isCM);
+    std::vector< std::vector<TH1D*> > hMBEtaJeuRatios = createVectorOfUpAndDownRatios(hMBEtaDist, hJeuMBUpEtaDist, hJeuMBDownEtaDist, jeuSystType, isCM, drawFits);
+    std::vector< std::vector<TH1D*> > hJet60EtaJeuRatios = createVectorOfUpAndDownRatios(hJet60EtaDist, hJeuJet60UpEtaDist, hJeuJet60DownEtaDist, jeuSystType, isCM, drawFits);
+    std::vector< std::vector<TH1D*> > hJet80EtaJeuRatios = createVectorOfUpAndDownRatios(hJet80EtaDist, hJeuJet80UpEtaDist, hJeuJet80DownEtaDist, jeuSystType, isCM, drawFits);
+    std::vector< std::vector<TH1D*> > hJet100EtaJeuRatios = createVectorOfUpAndDownRatios(hJet100EtaDist, hJeuJet100UpEtaDist, hJeuJet100DownEtaDist, jeuSystType, isCM, drawFits);
 
-    std::vector< std::vector<TH1D*> > hEmbeddingJerRatios = createVectorOfUpAndDownRatios(hEmbeddingEtaDist, hJerUpEtaDist, hJerDownEtaDist, isCM);
-    std::vector< std::vector<TH1D*> > hEmbeddingPointingResRatios = createVectorOfUpAndDownRatios(hEmbeddingEtaDist, hEmbeddingRefEtaDist, hEmpty, isCM);
+    std::vector< std::vector<TH1D*> > hEmbeddingJerRatios = createVectorOfUpAndDownRatios(hEmbeddingEtaDist, hJerUpEtaDist, hJerDownEtaDist, jerSystType, isCM, drawFits);
+    std::vector< std::vector<TH1D*> > hEmbeddingPointingResRatios = createVectorOfUpAndDownRatios(hEmbeddingEtaDist, hEmbeddingRefEtaDist, hEmpty, pointingResSystType, isCM, drawFits);
 
-    std::vector< std::vector<TH1D*> > hMBPileup = createVectorOfUpAndDownRatios(hMBEtaDist, hMBGplusEtaDist, hMBVtx1EtaDist, isCM);
-    std::vector< std::vector<TH1D*> > hJet60Pileup = createVectorOfUpAndDownRatios(hJet60EtaDist, hJet60GplusEtaDist, hJet60Vtx1EtaDist, isCM);
-    std::vector< std::vector<TH1D*> > hJet80Pileup = createVectorOfUpAndDownRatios(hJet80EtaDist, hJet80GplusEtaDist, hJet80Vtx1EtaDist, isCM);
-    std::vector< std::vector<TH1D*> > hJet100Pileup = createVectorOfUpAndDownRatios(hJet100EtaDist, hJet100GplusEtaDist, hJet100Vtx1EtaDist, isCM);
+    std::vector< std::vector<TH1D*> > hMBPileup = createVectorOfUpAndDownRatios(hMBEtaDist, hMBGplusEtaDist, hMBVtx1EtaDist, pileupSystType, isCM, drawFits);
+    std::vector< std::vector<TH1D*> > hJet60Pileup = createVectorOfUpAndDownRatios(hJet60EtaDist, hJet60GplusEtaDist, hJet60Vtx1EtaDist, pileupSystType, isCM, drawFits);
+    std::vector< std::vector<TH1D*> > hJet80Pileup = createVectorOfUpAndDownRatios(hJet80EtaDist, hJet80GplusEtaDist, hJet80Vtx1EtaDist, pileupSystType, isCM, drawFits);
+    std::vector< std::vector<TH1D*> > hJet100Pileup = createVectorOfUpAndDownRatios(hJet100EtaDist, hJet100GplusEtaDist, hJet100Vtx1EtaDist, pileupSystType, isCM, drawFits);
 
     // Append the vectors
     appendVectorOfVectors(hRatios, hMBEtaJeuRatios);      // 0
@@ -1600,2172 +1616,6 @@ std::vector< std::vector<TH1D*> >createDijetEtaHistograms(TFile* inFile, const c
     hDijetEtaHistos.push_back(hEtaBFRatio);
 
     return hDijetEtaHistos;
-}
-
-
-//________________
-void jeuSystematics(TF1 *jeuUp, TF1 *jeuDown, TH1D *hDef, TGraph* syst) {
-
-    // Loop over the bins and estimate systematics for those that have entries
-    for (Int_t i{1}; i<=hDef->GetNbinsX(); i++ ) {
-        // if ( hDef->GetBinContent(i) == 0 ) continue;
-        Double_t xVal = hDef->GetBinCenter(i);
-
-        Double_t yUp = jeuUp->Eval( xVal );
-        Double_t sign = ( (yUp - 1.) >= 0) ? 1 : -1;
-        Double_t yDown = jeuDown->Eval( xVal );
-        std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
-        Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
-        Double_t sysYabs = sysYrel * hDef->GetBinContent(i);
-
-        // if ( TMath::Abs(hDef->GetBinContent(i)) < 0.00001 ) {
-        //     sysYrel = 0.;
-        // }
-
-        std::cout << Form("bin content: %f syst [rel. uncrt.]: %.3f syst [abs. uncrt.]: %.8f\n", hDef->GetBinContent(i), sysYrel * 100., sysYabs );
-
-        syst->SetPoint(i-1, xVal, sign * sysYrel );
-    } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
-}
-
-//________________
-void jeuFBSystematics(TH1D *jeuUp, TH1D* jeuDown, TH1D *hDef, TGraph* syst) {
-    // Loop over the bins and estimate systematics
-    for (Int_t i{1}; i<=hDef->GetNbinsX(); i++ ) {
-        Double_t xVal = hDef->GetBinCenter(i);
-        Double_t yUp = jeuUp->GetBinContent(i);
-        Double_t yDown{1};
-        if (jeuDown != nullptr) {
-            yDown = jeuDown->GetBinContent(i);
-        }
-        else {
-            yDown = yUp;
-        }
-        Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
-        Double_t sysYabs = sysYrel * hDef->GetBinContent(i);
-        syst->SetPoint(i-1, xVal, sysYrel );
-    } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
-}
-
-//________________
-void plotJEU(TFile *defaultFile, TFile *jeuUpFile, TFile *jeuDownFile, TFile *dataFile, TString date, 
-             Bool_t isCM = kFALSE, Bool_t drawFits = kTRUE) {
-
-    TString frame;
-    frame = ( isCM ) ? "cms" : "lab";
-    TString histoName = "hRecoDijetPtEtaDphiWeighted";
-    if ( isCM ) {
-        histoName = "hRecoDijetPtEtaDphiCMWeighted";
-    }
-    TString trigName = "MB";
-    TString fName = defaultFile->GetName();
-    if ( fName.Contains("MB") ) {
-        trigName = "MB";
-    }
-    else if ( fName.Contains("Jet60") ) {
-        trigName = "Jet60";
-    }
-    else if ( fName.Contains("Jet80") ) {
-        trigName = "Jet80";
-    }
-    else if ( fName.Contains("Jet100") ) {
-        trigName = "Jet100";
-    }
-    else if ( fName.Contains("Jet120") ) {
-        trigName = "Jet120";
-    }
-    else {
-        trigName = "MB";
-    }
-
-    TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get( histoName.Data() );
-    hPtEtaDphiDef->SetName("hPtEtaDphiDef");
-    TH3D *hPtEtaDphiUp = (TH3D*)jeuUpFile->Get( histoName.Data() );
-    hPtEtaDphiUp->SetName("hPtEtaDphiUp");
-    TH3D *hPtEtaDphiDown = (TH3D*)jeuDownFile->Get( histoName.Data() );
-    hPtEtaDphiDown->SetName("hPtEtaDphiDown");
-    
-    TH3D *hPtEtaDphiData = (TH3D*)dataFile->Get( histoName.Data() );
-    hPtEtaDphiData->SetName("hPtEtaDphiData");
-
-    // Dijet pT selection
-    Int_t ptStep {5};
-    Int_t ptLow {30};
-
-    // Styles
-    Int_t defType{2};
-    Int_t upType{0};
-    Int_t downType{1};
-
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.06);
-
-    // Dijet eta distributions
-    TH1D *hEtaDef[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaData[ ptDijetBinLow.size() ];
-    TH1D *hEtaDataForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDataBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDataBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaDataFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaRatioUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioFBUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioBFUp[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaRatioDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioFBDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioBFDown[ ptDijetBinLow.size() ];
-
-    TF1 *fitRatioUp[ ptDijetBinLow.size() ];
-    TF1 *fitRatioDown[ ptDijetBinLow.size() ];
-
-    TGraph *grSyst[ ptDijetBinLow.size() ];
-    TGraph *grSystFB[ ptDijetBinLow.size() ];
-
-    TLine *line;
-    TLegend *leg;
-
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
-    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
-    Int_t ptBins = ptDijetBinLow.size();
-
-    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
-    cComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cFBComp = new TCanvas("cFBComp", "cFBComp", sizeX, sizeY);
-    cFBComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cBFComp = new TCanvas("cBFComp", "cBFComp", sizeX, sizeY);
-    cBFComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
-    cRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cFBRat = new TCanvas("cFBRat", "cFBRat", sizeX, sizeY);
-    cFBRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cBFRat = new TCanvas("cBFRat", "cBFRat", sizeX, sizeY);
-    cBFRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TString fbTitle = "#eta^{dijet}; #frac{ dN/d#eta^{forward} }{ dN/d#eta^{backward} }";
-    TString bfTitle = "#eta^{dijet}; #frac{ dN/d#eta^{backward} }{ dN/d#eta^{forward} }";
-    if ( isCM ) {
-        fbTitle = "#eta^{dijet}_{CM}; #frac{ dN/d#eta^{dijet}_{CM} (forward) }{ dN/d#eta^{dijet}_{CM} (backward) }";
-        bfTitle = "#eta^{dijet}_{CM}; #frac{ dN/d#eta^{dijet}_{CM} (backward) }{ dN/d#eta^{dijet}_{CM} (forward) }";
-    }
-
-    //
-    // Loop over dijet pT bins
-    //
-    for (Int_t i{0}; i<ptBins; i++) {
-
-        std::cout << "pT bin: " << i << std::endl;
-
-        //
-        // Read histograms for the real DATA
-        //
-        hEtaData[i] = projectEtaFrom3D(hPtEtaDphiData, Form("hEtaData_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaData[i] );
-        set1DStyle(hEtaData[i], defType);
-        hEtaDataForward[i] = new TH1D( Form("hEtaDataForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDataBackward[i] = new TH1D( Form("hEtaDataBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDataBFRatio[i] = new TH1D( Form("hEtaDataBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDataFBRatio[i] = new TH1D( Form("hEtaDataFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDataForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDataForward[i]->Sumw2();  set1DStyle(hEtaDataForward[i], upType);
-        hEtaDataBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaDataBackward[i]->Sumw2(); set1DStyle(hEtaDataBackward[i], downType);
-        hEtaDataBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDataBFRatio[i]->Sumw2();  set1DStyle(hEtaDataBFRatio[i], defType);
-        hEtaDataFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDataFBRatio[i]->Sumw2();  set1DStyle(hEtaDataFBRatio[i], defType);
-        makeDijetFB(hEtaData[i], hEtaDataBackward[i], hEtaDataForward[i], hEtaDataBFRatio[i], hEtaDataFBRatio[i]);
-
-        //
-        // Nominal (default) JEU selection
-        //
-        hEtaDef[i] = projectEtaFrom3D(hPtEtaDphiDef, Form("hEtaDef_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaDef[i] );
-        set1DStyle(hEtaDef[i], defType);
-        hEtaDefForward[i] = new TH1D( Form("hEtaDefForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDefBackward[i] = new TH1D( Form("hEtaDefBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDefBFRatio[i] = new TH1D( Form("hEtaDefBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDefFBRatio[i] = new TH1D( Form("hEtaDefFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDefForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefForward[i]->Sumw2();  set1DStyle(hEtaDefForward[i], upType);
-        hEtaDefBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaDefBackward[i]->Sumw2(); set1DStyle(hEtaDefBackward[i], downType);
-        hEtaDefBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefBFRatio[i]->Sumw2();  set1DStyle(hEtaDefBFRatio[i], defType);
-        hEtaDefFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefFBRatio[i]->Sumw2();  set1DStyle(hEtaDefFBRatio[i], defType);
-        makeDijetFB(hEtaDef[i], hEtaDefBackward[i], hEtaDefForward[i], hEtaDefBFRatio[i], hEtaDefFBRatio[i]);
-
-        //
-        // JEU up selection
-        //
-        hEtaUp[i] = projectEtaFrom3D(hPtEtaDphiUp, Form("hEtaUp_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaUp[i] );
-        set1DStyle(hEtaUp[i], upType);
-        hEtaUpForward[i] = new TH1D( Form("hEtaUpForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaUpBackward[i] = new TH1D( Form("hEtaUpBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaUpBFRatio[i] = new TH1D( Form("hEtaUpBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaUpFBRatio[i] = new TH1D( Form("hEtaUpFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaUpForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpForward[i]->Sumw2();  set1DStyle(hEtaUpForward[i], upType);
-        hEtaUpBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaUpBackward[i]->Sumw2(); set1DStyle(hEtaUpBackward[i], downType);
-        hEtaUpBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpBFRatio[i]->Sumw2();  set1DStyle(hEtaUpBFRatio[i], upType);
-        hEtaUpFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpFBRatio[i]->Sumw2();  set1DStyle(hEtaUpFBRatio[i], upType);
-        makeDijetFB(hEtaUp[i], hEtaUpBackward[i], hEtaUpForward[i], hEtaUpBFRatio[i], hEtaUpFBRatio[i]);   
-
-        //
-        // JEU down selection
-        //
-        hEtaDown[i] = projectEtaFrom3D(hPtEtaDphiDown, Form("hEtaDown_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaDown[i] );
-        set1DStyle(hEtaDown[i], downType);
-        hEtaDownForward[i] = new TH1D( Form("hEtaDownForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDownBackward[i] = new TH1D( Form("hEtaDownBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDownBFRatio[i] = new TH1D( Form("hEtaDownBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDownFBRatio[i] = new TH1D( Form("hEtaDownFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDownForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownForward[i]->Sumw2();  set1DStyle(hEtaDownForward[i], downType);
-        hEtaDownBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaDownBackward[i]->Sumw2(); set1DStyle(hEtaDownBackward[i], downType);
-        hEtaDownBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownBFRatio[i]->Sumw2();  set1DStyle(hEtaDownBFRatio[i], downType);
-        hEtaDownFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownFBRatio[i]->Sumw2();  set1DStyle(hEtaDownFBRatio[i], downType);
-        makeDijetFB(hEtaDown[i], hEtaDownBackward[i], hEtaDownForward[i], hEtaDownBFRatio[i], hEtaDownFBRatio[i]);
-
-        //
-        // Ratio of JEU up to default ratio
-        //
-        hEtaRatioUp[i] = dynamic_cast<TH1D*> ( hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) ) );
-        make1DRatio(hEtaRatioUp[i], hEtaDef[i], Form("hEtaRatioUp_%d", i), upType );
-        hEtaRatioUp[i]->GetYaxis()->SetTitle("JES / Default");
-
-        hEtaRatioBFUp[i] = dynamic_cast<TH1D*>( hEtaUpBFRatio[i]->Clone( Form("hEtaRatioBFUp_%d", i) ) );
-        hEtaRatioBFUp[i]->Divide( hEtaRatioBFUp[i], hEtaDefBFRatio[i], 1., 1. );
-        set1DStyle(hEtaRatioBFUp[i], upType);
-        hEtaRatioFBUp[i] = dynamic_cast<TH1D*>( hEtaUpFBRatio[i]->Clone( Form("hEtaRatioFBUp_%d", i) ) );
-        hEtaRatioFBUp[i]->Divide( hEtaRatioFBUp[i], hEtaDefFBRatio[i], 1., 1. );
-        set1DStyle(hEtaRatioFBUp[i], upType);    
-
-        fitRatioUp[i] = new TF1(Form("fitRatioUp_%d", i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", -5., 5.);
-        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d", i), "[0]+[1]*x+[2]*x*x", -5., 5.);
-        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d", i), "[0]+[1]*(x-0.465)*(x-0.465)", -5., 5.);
-        fitRatioUp[i]->SetParameters(0.986138, -0.0026037, 0.0119519);
-        fitRatioUp[i]->SetParLimits(2, 0., 1e6);
-        fitRatioUp[i]->SetLineColor(kRed);
-        fitRatioUp[i]->SetLineWidth(2);
-        hEtaRatioUp[i]->Fit(Form("fitRatioUp_%d", i), "MRE0");
-
-        // Ratio of JEU down to default ratio
-        hEtaRatioDown[i] = dynamic_cast<TH1D*>( hEtaDown[i]->Clone( Form("hEtaRatioDown_%d", i) ) );
-        make1DRatio(hEtaRatioDown[i], hEtaDef[i], Form("hEtaRatioDown_%d", i), downType );
-        hEtaRatioDown[i]->GetYaxis()->SetTitle("JES / Default");
-
-        hEtaRatioBFDown[i] = dynamic_cast<TH1D*>( hEtaDownBFRatio[i]->Clone( Form("hEtaRatioBFDown_%d", i) ) );
-        hEtaRatioBFDown[i]->Divide( hEtaRatioBFDown[i], hEtaDefBFRatio[i], 1., 1. );
-        set1DStyle(hEtaRatioBFDown[i], downType);
-        hEtaRatioFBDown[i] = dynamic_cast<TH1D*>( hEtaDownFBRatio[i]->Clone( Form("hEtaRatioFBDown_%d", i) ) );
-        hEtaRatioFBDown[i]->Divide( hEtaRatioFBDown[i], hEtaDefFBRatio[i], 1., 1. );     
-        set1DStyle(hEtaRatioFBDown[i], downType);
-
-        fitRatioDown[i] = new TF1(Form("fitRatioDown_%d", i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", -5., 5.);
-        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d", i), "[0]+[1]*x+[2]*x*x", -5., 5.);
-        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d", i), "[0]+[1]*(x-0.465)*(x-0.465)", -5., 5.);
-        fitRatioDown[i]->SetParameters(1.01234, 0.00637344, -0.0104644);
-        fitRatioDown[i]->SetParLimits(2, -1e6, 0);
-        fitRatioDown[i]->SetLineColor(kBlue);
-        fitRatioDown[i]->SetLineWidth(2);
-        hEtaRatioDown[i]->Fit(Form("fitRatioDown_%d", i), "MRE0");
-
-
-        // Calculate systematic uncertainty
-        grSyst[i] = new TGraph();
-        jeuSystematics(fitRatioUp[i], fitRatioDown[i], hEtaData[i], grSyst[i]);
-        grSyst[i]->SetName( Form("grSystJEU_%d", i) );
-
-        grSystFB[i] = new TGraph();
-        jeuFBSystematics(hEtaUpFBRatio[i], hEtaDownFBRatio[i], hEtaDataFBRatio[i], grSystFB[i]);
-        grSystFB[i]->SetName( Form("grSystJEU_FB_%d", i) );
-
-        // std::cout << "Number of points in graph: " << grSyst[i]->GetN() << std::endl;
-        // grSyst[i]->Print();
-
-        // Write systematic uncertainty to ASCII file
-        std::ofstream outFile( Form("%s/jeu/%s_pPb8160_etaDijet_jeuSyst_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if ( outFile.is_open() ) {
-            for (Int_t iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
-                // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0};
-                grSyst[i]->GetPoint(iPoint, x, y);
-                // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFile << x << " " << y << std::endl;
-            }
-            outFile.close();
-        }
-        else {
-            std::cerr << "[JeuSyst] Unable to open file for writing" << std::endl;
-        }
-
-        // Write FB systematic uncertainty to ASCII file
-        std::ofstream outFileFB( Form("%s/jeu/%s_pPb8160_etaDijet_jeuSyst_FB_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if ( outFileFB.is_open() ) {
-            for (Int_t iPoint = 0; iPoint < grSystFB[i]->GetN(); iPoint++) {
-                // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0};
-                grSystFB[i]->GetPoint(iPoint, x, y);
-                // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFileFB << x << " " << y << std::endl;
-            }
-            outFileFB.close();
-        }
-        else {
-            std::cerr << "[JeuSyst] Unable to open file for writing" << std::endl;
-        }
-
-        // Write data points to ASCII file
-        std::ofstream outFile2( Form("%s/data/%s_pPb8160_etaDijet_data_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if ( outFile2.is_open() ) {
-            for (Int_t iPoint = 1; iPoint <= hEtaDef[i]->GetNbinsX(); iPoint++) {
-                // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0}, xErr{0}, yErr{0}; 
-                x = hEtaDef[i]->GetXaxis()->GetBinCenter(iPoint);
-                y = hEtaDef[i]->GetBinContent(iPoint);
-                xErr = hEtaDef[i]->GetXaxis()->GetBinWidth(iPoint) / 2;
-                yErr = hEtaDef[i]->GetBinError(iPoint);
-                // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFile2 << x << " " << y << " " << xErr << " " << yErr << std::endl;
-            }
-            outFile2.close();
-        }
-        else {
-            std::cerr << "[DATA] Unable to open file for writing" << std::endl;
-        }
-
-        std::ofstream outFile3( Form("%s/data/%s_pPb8160_etaDijet_data_fb_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if (outFile3.is_open()) {
-            for (Int_t iPoint = 1; iPoint <= hEtaDefFBRatio[i]->GetNbinsX(); iPoint++) {
-                Double_t x{0}, y{0}, xErr{0}, yErr{0};
-                x = hEtaDefFBRatio[i]->GetXaxis()->GetBinCenter(iPoint);
-                y = hEtaDefFBRatio[i]->GetBinContent(iPoint);
-                xErr = hEtaDefFBRatio[i]->GetXaxis()->GetBinWidth(iPoint) / 2;
-                yErr = hEtaDefFBRatio[i]->GetBinError(iPoint);
-                outFile3 << x << " " << y << " " << xErr << " " << yErr << std::endl;
-            }
-            outFile3.close();
-        }
-        else {
-            std::cerr << "[DATA] Unable to open file for writing" << std::endl;
-        }
-
-        //
-        // Plot comparison eta distributions
-        //
-        canv->cd();
-        setPadStyle();
-        hEtaDef[i]->Draw();
-        hEtaUp[i]->Draw("same");
-        hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDef[i], Form("Default"), "p");
-        leg->AddEntry(hEtaUp[i], Form("JES+"), "p");
-        leg->AddEntry(hEtaDown[i], Form("JES-"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_jeuComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_jeuComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot BF comparison
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaDefBFRatio[i]->Draw();
-        hEtaUpBFRatio[i]->Draw("same");
-        hEtaDownBFRatio[i]->Draw("same");
-        hEtaDefBFRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaDefBFRatio[i]->GetYaxis()->SetRangeUser(0., 1.2);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.7, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDefBFRatio[i], Form("Backward/Forward"), "p");
-        leg->AddEntry(hEtaUpBFRatio[i], Form("JES+"), "p");
-        leg->AddEntry(hEtaDownBFRatio[i], Form("JES-"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_bf_jeuComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_bf_jeuComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot FB comparison
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaDefFBRatio[i]->Draw();
-        hEtaUpFBRatio[i]->Draw("same");
-        hEtaDownFBRatio[i]->Draw("same");
-        hEtaDefFBRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaDefFBRatio[i]->GetYaxis()->SetRangeUser(0.8, 1.8);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.55, 0.65, 0.65, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDefBFRatio[i], Form("Forward/Backward"), "p");
-        leg->AddEntry(hEtaUpBFRatio[i], Form("JES+"), "p");
-        leg->AddEntry(hEtaDownBFRatio[i], Form("JES-"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_fb_jeuComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_fb_jeuComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Ratio of FB up to default
-        //
-        canv->cd(i+1);
-        setPadFBStyle();
-        hEtaRatioFBUp[i]->Draw();
-        hEtaRatioFBDown[i]->Draw("same");
-        hEtaRatioFBUp[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioFBUp[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        hEtaRatioFBUp[i]->GetYaxis()->SetTitle("JES/Default forward/backward");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.3, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioFBUp[i], Form("JES+/def"), "p");
-        leg->AddEntry(hEtaRatioFBDown[i], Form("JES-/def"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_fb_jeuRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_fb_jeuRat_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Ratio of BF up to default
-        //
-        canv->cd(i+1);
-        setPadFBStyle();
-        hEtaRatioBFUp[i]->Draw();
-        hEtaRatioBFDown[i]->Draw("same");
-        hEtaRatioBFUp[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioBFUp[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        hEtaRatioBFUp[i]->GetYaxis()->SetTitle("JES/Default backward/forward");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.3, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioBFUp[i], Form("JES+/def"), "p");
-        leg->AddEntry(hEtaRatioBFDown[i], Form("JES-/def"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_bf_jeuRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_bf_jeuRat_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot ratios of full eta distributions
-        //
-        canv->cd();
-        setPadStyle();
-        hEtaRatioUp[i]->Draw();
-        hEtaRatioDown[i]->Draw("same");
-        if (drawFits) {
-            fitRatioUp[i]->SetLineColor(kRed);
-            fitRatioDown[i]->SetLineColor(kBlue);
-            fitRatioUp[i]->Draw("same");
-            fitRatioDown[i]->Draw("same");
-        }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioUp[i], Form("JES+ / Default"), "p");
-        leg->AddEntry(hEtaRatioDown[i], Form("JES- / Default"), "p");
-        leg->Draw();
-        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_jeuRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_jeuRat_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot comparisons of full dijet pseudorapidity on one canvas
-        //
-        cComp->cd(i+1);
-        setPadStyle();
-        hEtaDef[i]->Draw();
-        hEtaUp[i]->Draw("same");
-        hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDef[i], Form("Default"), "p");
-        leg->AddEntry(hEtaUp[i], Form("JES+"), "p");
-        leg->AddEntry(hEtaDown[i], Form("JES-"), "p");
-        leg->Draw();
-
-        //
-        // Plot comparisons of backward to forward ratios on one canvas
-        //
-        cBFComp->cd(i+1);
-        setPadFBStyle();
-        hEtaDefBFRatio[i]->Draw();
-        hEtaUpBFRatio[i]->Draw("same");
-        hEtaDownBFRatio[i]->Draw("same");
-        hEtaDefBFRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaDefBFRatio[i]->GetYaxis()->SetRangeUser(0., 1.2);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.35, 0.65, 0.45, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDefBFRatio[i], Form("Backward/Forward"), "p");
-        leg->AddEntry(hEtaUpBFRatio[i], Form("JES+"), "p");
-        leg->AddEntry(hEtaDownBFRatio[i], Form("JES-"), "p");
-        leg->Draw();
-
-        //
-        // Plot comparisons of forward to backward ratios on one canvas
-        //
-        cFBComp->cd(i+1);
-        setPadFBStyle();
-        hEtaDefFBRatio[i]->Draw();
-        hEtaUpFBRatio[i]->Draw("same");
-        hEtaDownFBRatio[i]->Draw("same");
-        hEtaDefFBRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaDefFBRatio[i]->GetYaxis()->SetRangeUser(0.8, 1.8);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.6, 0.65, 0.7, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDefFBRatio[i], Form("Forward/Backward"), "p");
-        leg->AddEntry(hEtaUpFBRatio[i], Form("JES+"), "p");
-        leg->AddEntry(hEtaDownFBRatio[i], Form("JES-"), "p");
-        leg->Draw();
-
-        //
-        // Plot ratios of full dijet pseudorapidity on one canvas
-        //
-        cRat->cd(i+1);
-        setPadStyle();
-        hEtaRatioUp[i]->Draw();
-        hEtaRatioDown[i]->Draw("same");
-        if (drawFits) {
-            fitRatioUp[i]->Draw("same");
-            fitRatioDown[i]->Draw("same");
-        }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioUp[i], Form("JES+ / Default"), "p");
-        leg->AddEntry(hEtaRatioDown[i], Form("JES- / Default"), "p");
-        leg->Draw();
-        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-
-        //
-        // Ratio of FB up to default on one canvas
-        //
-        cFBRat->cd(i+1);
-        setPadFBStyle();
-        hEtaRatioFBUp[i]->Draw();
-        hEtaRatioFBDown[i]->Draw("same");
-        hEtaRatioFBUp[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioFBUp[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        hEtaRatioFBUp[i]->GetYaxis()->SetTitle("JES/Default forward/backward");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.3, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioFBUp[i], Form("JES+/def"), "p");
-        leg->AddEntry(hEtaRatioFBDown[i], Form("JES-/def"), "p");
-        leg->Draw();
-
-        //
-        // Ratio of BF up to default on one canvas
-        //
-        cBFRat->cd(i+1);
-        setPadFBStyle();
-        hEtaRatioBFUp[i]->Draw();
-        hEtaRatioBFDown[i]->Draw("same");
-        hEtaRatioBFUp[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioBFUp[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        hEtaRatioBFUp[i]->GetYaxis()->SetTitle("JES/Default backward/FBforward");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.3, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioBFUp[i], Form("JES+/def"), "p");
-        leg->AddEntry(hEtaRatioBFDown[i], Form("JES-/def"), "p");
-        leg->Draw();
-    } // for (Int_t i=0; i<ptDijetBinLow.size(); i++)
-
-    cComp->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_jeuComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cComp->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_jeuComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_jeuRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_jeuRat_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFComp->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_bf_jeuComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFComp->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_bf_jeuComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBComp->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_fb_jeuComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBComp->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_fb_jeuComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFRat->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_bf_jeuRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFRat->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_bf_jeuRat_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBRat->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_fb_jeuRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBRat->SaveAs( Form("%s/jeu/%s_pPb8160_etaDijet_fb_jeuRat_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-}
-
-//________________
-void jerSystematics(TF1 *jerUp, TF1 *jerDown, TH1D *hDef, TGraph* syst) {
-
-    // Loop over the bins and estimate systematics for those that have entries
-    for (Int_t i{1}; i<=hDef->GetNbinsX(); i++ ) {
-        // if ( hDef->GetBinContent(i) == 0 ) continue;
-        Double_t xVal = hDef->GetBinCenter(i);
-
-        Double_t yUp = jerUp->Eval( xVal );
-        Double_t sign = ( (yUp - 1.) >= 0 ) ? 1: -1;
-        Double_t yDown = jerDown->Eval( xVal );
-        std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
-        Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
-        Double_t sysYabs = sysYrel * hDef->GetBinContent(i);
-        // if ( TMath::Abs(hDef->GetBinContent(i)) < 0.00001 ) {
-        //     sysYrel = 0.;
-        // }
-
-        std::cout << Form("bin content: %f syst [perc.]: %.3f syst [abs. val.]: %.8f\n", hDef->GetBinContent(i), sysYrel * 100., sysYabs );
-
-        syst->SetPoint(i-1, xVal, sign * sysYrel );
-    } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
-    std::cout << "JER up chi2/ndf: " << jerUp->GetChisquare() / jerUp->GetNDF() 
-              << " JER down chi2/ndf: " << jerDown->GetChisquare() / jerDown->GetNDF()
-              << std::endl;
-}
-
-//________________
-void updateJERRatio(TH1D *h) {
-    for (Int_t i{1}; i<=h->GetNbinsX(); i++) {
-        if (h->GetBinContent(i) != 0 ) {
-            Double_t val = h->GetBinContent(i);
-            val = TMath::Abs(val - 1.) + 1.;
-            h->SetBinContent(i, val);
-        }
-    } // for (Int_t i{1}; i<=h->GetNBinsX(); i++)
-}
-
-//________________
-void plotJER(TFile *defaultFile, TFile *jerUpFile, TFile *jerDownFile, TString date, 
-             Bool_t isCM = kFALSE, Bool_t drawFits = kTRUE) {
-
-    TString frame;
-    frame = ( isCM ) ? "cms" : "lab";
-    TString histoName = "hGenDijetPtEtaDphiWeighted";
-    if ( isCM ) {
-        histoName = "hGenDijetPtEtaDphiCMWeighted";
-    }
-    TString trigName = "MB";
-    TString fName = defaultFile->GetName();
-    if ( fName.Contains("MB") ) {
-        trigName = "MB";
-    }
-    else if ( fName.Contains("Jet60") ) {
-        trigName = "Jet60";
-    }
-    else if ( fName.Contains("Jet80") ) {
-        trigName = "Jet80";
-    }
-    else if ( fName.Contains("Jet100") ) {
-        trigName = "Jet100";
-    }
-    else if ( fName.Contains("Jet120") ) {
-        trigName = "Jet120";
-    }
-    else {
-        trigName = "MB";
-    }
-
-    TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get( histoName.Data() );
-    hPtEtaDphiDef->SetName("hPtEtaDphiDef");
-    TH3D *hPtEtaDphiUp = (TH3D*)jerUpFile->Get( histoName.Data() );
-    hPtEtaDphiUp->SetName("hPtEtaDphiUp");
-    TH3D *hPtEtaDphiDown = (TH3D*)jerDownFile->Get( histoName.Data() );
-    hPtEtaDphiDown->SetName("hPtEtaDphiDown");
-
-    // Dijet pT selection
-    Int_t ptStep {5};
-    Int_t ptLow {30};
-    // std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55 , 3};
-    // std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194, 194};
-
-    // Styles
-    Int_t defType{2};
-    Int_t upType{0};
-    Int_t downType{1};
-
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.06);
-
-    // Dijet eta distributions
-    TH1D *hEtaDef[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaRatioUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioFBUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioBFUp[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaRatioDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioFBDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioBFDown[ ptDijetBinLow.size() ];
-
-    TF1 *fitRatioUp[ ptDijetBinLow.size() ];
-    TF1 *fitRatioDown[ ptDijetBinLow.size() ];
-
-    TGraph *grSyst[ ptDijetBinLow.size() ];
-    TGraph *grSystFB[ ptDijetBinLow.size() ];
-
-    TLine *line;
-    TLegend *leg;
-
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
-    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
-    Int_t ptBins = ptDijetBinLow.size();
-
-    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
-    cComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
-    cRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cFBComp = new TCanvas("cFBComp", "cFBComp", sizeX, sizeY);
-    cFBComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cBFComp = new TCanvas("cBFComp", "cBFComp", sizeX, sizeY);
-    cBFComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cFBRat = new TCanvas("cFBRat", "cFBRat", sizeX, sizeY);
-    cFBRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cBFRat = new TCanvas("cBFRat", "cBFRat", sizeX, sizeY);
-    cBFRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TString fbTitle = "#eta^{dijet}; #frac{ dN/d#eta^{forward} }{ dN/d#eta^{backward} }";
-    TString bfTitle = "#eta^{dijet}; #frac{ dN/d#eta^{backward} }{ dN/d#eta^{forward} }";
-    if ( isCM ) {
-        fbTitle = "#eta^{dijet}_{CM}; #frac{ dN/d#eta^{dijet}_{CM} (forward) }{ dN/d#eta^{dijet}_{CM} (backward) }";
-        bfTitle = "#eta^{dijet}_{CM}; #frac{ dN/d#eta^{dijet}_{CM} (backward) }{ dN/d#eta^{dijet}_{CM} (forward) }";
-    }
-
-    // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
-
-        std::cout << "pT bin: " << i << std::endl;
-
-        //
-        // JER default selection
-        //
-        hEtaDef[i] = projectEtaFrom3D(hPtEtaDphiDef, Form("hEtaDef_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaDef[i] );
-        set1DStyle(hEtaDef[i], defType);
-        hEtaDefForward[i] = new TH1D( Form("hEtaDefForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDefBackward[i] = new TH1D( Form("hEtaDefBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDefBFRatio[i] = new TH1D( Form("hEtaDefBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDefFBRatio[i] = new TH1D( Form("hEtaDefFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDefForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefForward[i]->Sumw2();  set1DStyle(hEtaDefForward[i], upType);
-        hEtaDefBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaDefBackward[i]->Sumw2(); set1DStyle(hEtaDefBackward[i], downType);
-        hEtaDefBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefBFRatio[i]->Sumw2();  set1DStyle(hEtaDefBFRatio[i], defType);
-        hEtaDefFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefFBRatio[i]->Sumw2();  set1DStyle(hEtaDefFBRatio[i], defType);
-        makeDijetFB(hEtaDef[i], hEtaDefBackward[i], hEtaDefForward[i], hEtaDefBFRatio[i], hEtaDefFBRatio[i]);
-
-        //
-        // JER up selection
-        //
-        hEtaUp[i] = projectEtaFrom3D(hPtEtaDphiUp, Form("hEtaUp_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaUp[i] );
-        set1DStyle(hEtaUp[i], upType);
-        hEtaUpForward[i] = new TH1D( Form("hEtaUpForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaUpBackward[i] = new TH1D( Form("hEtaUpBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaUpBFRatio[i] = new TH1D( Form("hEtaUpBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaUpFBRatio[i] = new TH1D( Form("hEtaUpFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaUpForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpForward[i]->Sumw2();  set1DStyle(hEtaUpForward[i], upType);
-        hEtaUpBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaUpBackward[i]->Sumw2(); set1DStyle(hEtaUpBackward[i], downType);
-        hEtaUpBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpBFRatio[i]->Sumw2();  set1DStyle(hEtaUpBFRatio[i], upType);
-        hEtaUpFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpFBRatio[i]->Sumw2();  set1DStyle(hEtaUpFBRatio[i], upType);
-        makeDijetFB(hEtaUp[i], hEtaUpBackward[i], hEtaUpForward[i], hEtaUpBFRatio[i], hEtaUpFBRatio[i]);
-
-        //
-        // JER down selection
-        //
-        hEtaDown[i] = projectEtaFrom3D(hPtEtaDphiDown, Form("hEtaDown_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaDown[i] );
-        set1DStyle(hEtaDown[i], downType);
-        hEtaDownForward[i] = new TH1D( Form("hEtaDownForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDownBackward[i] = new TH1D( Form("hEtaDownBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDownBFRatio[i] = new TH1D( Form("hEtaDownBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDownFBRatio[i] = new TH1D( Form("hEtaDownFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDownForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownForward[i]->Sumw2();  set1DStyle(hEtaDownForward[i], downType);
-        hEtaDownBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaDownBackward[i]->Sumw2(); set1DStyle(hEtaDownBackward[i], downType);
-        hEtaDownBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownBFRatio[i]->Sumw2();  set1DStyle(hEtaDownBFRatio[i], downType);
-        hEtaDownFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownFBRatio[i]->Sumw2();  set1DStyle(hEtaDownFBRatio[i], downType);
-        makeDijetFB(hEtaDown[i], hEtaDownBackward[i], hEtaDownForward[i], hEtaDownBFRatio[i], hEtaDownFBRatio[i]);
-
-        // Ratio of JER up to default ratio
-        hEtaRatioUp[i] = dynamic_cast<TH1D*>( hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) ) );
-        make1DRatio(hEtaRatioUp[i], hEtaDef[i], Form("hEtaRatioUp_%d", i), upType );
-        hEtaRatioUp[i]->GetYaxis()->SetTitle("JER / Default");
-        updateJERRatio( hEtaRatioUp[i] );
-        hEtaRatioFBUp[i] = dynamic_cast<TH1D*>( hEtaUpFBRatio[i]->Clone( Form("hEtaRatioFBUp_%d", i) ) );
-        // make1DRatio(hEtaRatioFBUp[i], hEtaDefFBRatio[i], Form("hEtaRatioFBUp_%d", i), upType);
-        hEtaRatioBFUp[i] = dynamic_cast<TH1D*>( hEtaUpBFRatio[i]->Clone( Form("hEtaRatioBFUp_%d", i) ) );
-        hEtaRatioFBUp[i]->Divide(hEtaRatioFBUp[i], hEtaDefFBRatio[i], 1., 1.);
-        set1DStyle(hEtaRatioBFUp[i], upType);
-
-        // make1DRatio(hEtaRatioBFUp[i], hEtaDefBFRatio[i], Form("hEtaRatioBFUp_%d", i), upType);
-        hEtaRatioBFUp[i]->Divide(hEtaRatioBFUp[i], hEtaDefBFRatio[i], 1., 1.);
-        set1DStyle(hEtaRatioBFUp[i], upType);
-        hEtaRatioFBUp[i]->GetYaxis()->SetTitle("JER / Default");
-        hEtaRatioBFUp[i]->GetYaxis()->SetTitle("JER / Default");
-
-        // Ratio of JER down to default ratio
-        hEtaRatioDown[i] = dynamic_cast<TH1D*>( hEtaDown[i]->Clone( Form("hEtaRatioDown_%d", i) ) );
-        make1DRatio(hEtaRatioDown[i], hEtaDef[i], Form("hEtaRatioDown_%d", i), downType );
-        hEtaRatioDown[i]->GetYaxis()->SetTitle("JER / Default");
-        updateJERRatio( hEtaRatioDown[i] );
-        hEtaRatioFBDown[i] = dynamic_cast<TH1D*>( hEtaDownFBRatio[i]->Clone( Form("hEtaRatioFBDown_%d", i) ) );
-        // make1DRatio(hEtaRatioFBDown[i], hEtaDefFBRatio[i], Form("hEtaRatioFBDown_%d", i), downType);
-        hEtaRatioFBDown[i]->Divide(hEtaRatioFBDown[i], hEtaDefFBRatio[i], 1., 1.);
-        set1DStyle(hEtaRatioFBDown[i], downType);
-
-        hEtaRatioBFDown[i] = dynamic_cast<TH1D*>( hEtaDownBFRatio[i]->Clone( Form("hEtaRatioBFDown_%d", i) ) );
-        // make1DRatio(hEtaRatioBFDown[i], hEtaDefBFRatio[i], Form("hEtaRatioBFDown_%d", i), downType);
-        hEtaRatioBFDown[i]->Divide(hEtaRatioBFDown[i], hEtaDefBFRatio[i], 1., 1.);
-        set1DStyle(hEtaRatioBFDown[i], downType);
-        hEtaRatioFBDown[i]->GetYaxis()->SetTitle("JER / Default");
-        hEtaRatioBFDown[i]->GetYaxis()->SetTitle("JER / Default");
-
-        // Make fit functions
-        fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]+[1]*x + [2]*x*x", -3.5, 3.5);
-        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]", -5., 5.);
-        // fitRatioUp[i]->SetParameters(0., 0.0001);
-        fitRatioUp[i]->SetParLimits(2, 0.000001, 1e6);
-        fitRatioUp[i]->SetParameters(0.);
-        fitRatioUp[i]->SetLineColor(kRed);
-        fitRatioUp[i]->SetLineWidth(2);
-
-        fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x +[2]*x*x", -3.5, 3.5);
-        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]", -5., 5.);
-        // fitRatioDown[i]->SetParameters(0., 0.0001);
-        fitRatioDown[i]->SetParLimits(2, 0.000001, 1e6);
-        fitRatioDown[i]->SetParameters(0.);
-        fitRatioDown[i]->SetLineColor(kBlue);
-        fitRatioDown[i]->SetLineWidth(2);
-
-        // Perform fits
-        hEtaRatioUp[i]->Fit(Form("fitRatioUp_%d",i), "MRE0");
-        hEtaRatioDown[i]->Fit(Form("fitRatioDown_%d",i), "MRE0");
-        std::cout << "chi2/ndf up: " << fitRatioUp[i]->GetChisquare() / fitRatioUp[i]->GetNDF() << std::endl;
-        std::cout << "chi2/ndf down: " << fitRatioDown[i]->GetChisquare() / fitRatioDown[i]->GetNDF() << std::endl;
-
-        // Calculate systematics
-        grSyst[i] = new TGraph();
-        jerSystematics(fitRatioUp[i], fitRatioDown[i], hEtaDef[i], grSyst[i]);
-        grSyst[i]->SetName( Form("grSyst_%d", i) );
-
-        grSystFB[i] = new TGraph();
-        jeuFBSystematics(hEtaRatioFBUp[i], hEtaRatioFBDown[i], hEtaDefFBRatio[i], grSystFB[i]);
-        grSystFB[i]->SetName( Form("grSystFB_%d", i) );
-
-        // Write systematic uncertainty to ASCII file
-        std::ofstream outFile( Form("%s/jer/%s_pPb8160_etaDijet_jerSyst_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if ( outFile.is_open() ) {
-            for (Int_t iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
-                // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0};
-                grSyst[i]->GetPoint(iPoint, x, y);
-                // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFile << x << " " << y << std::endl;
-            }
-            outFile.close();
-        }
-        else {
-            std::cerr << "[JerSyst] Unable to open file for writing" << std::endl;
-        }
-
-        std::ofstream outFileFB( Form("%s/jer/%s_pPb8160_etaDijet_jerSyst_FB_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if ( outFileFB.is_open() ) {
-            for (Int_t iPoint = 0; iPoint < grSystFB[i]->GetN(); iPoint++) {
-                // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0};
-                grSystFB[i]->GetPoint(iPoint, x, y);
-                // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFileFB << x << " " << y << std::endl;
-            }
-            outFileFB.close();
-        }
-        else {
-            std::cerr << "[JerSyst] Unable to open file for writing" << std::endl;
-        }
-
-        //
-        // Plot comparison of dijet pseudorapidity distributions
-        //
-        canv->cd();
-        setPadStyle();
-        hEtaDef[i]->Draw();
-        hEtaUp[i]->Draw("same");
-        hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDef[i], Form("JER def."), "p");
-        leg->AddEntry(hEtaUp[i], Form("JER+"), "p");
-        leg->AddEntry(hEtaDown[i], Form("JER-"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_jerComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_jerComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot BF comparison
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaDefBFRatio[i]->Draw();
-        hEtaUpBFRatio[i]->Draw("same");
-        hEtaDownBFRatio[i]->Draw("same");
-        hEtaDefBFRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaDefBFRatio[i]->GetYaxis()->SetRangeUser(0., 2.);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.65, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDefBFRatio[i], Form("Backward/Forward"), "p");
-        leg->AddEntry(hEtaUpBFRatio[i], Form("JER+"), "p");
-        leg->AddEntry(hEtaDownBFRatio[i], Form("JER-"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_bf_jerComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_bf_jerComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot FB comparison
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaDefFBRatio[i]->Draw();
-        hEtaUpFBRatio[i]->Draw("same");
-        hEtaDownFBRatio[i]->Draw("same");
-        hEtaDefFBRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaDefFBRatio[i]->GetYaxis()->SetRangeUser(0., 2.);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.55, 0.65, 0.65, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDefBFRatio[i], Form("Forward/Backward"), "p");
-        leg->AddEntry(hEtaUpBFRatio[i], Form("JER+"), "p");
-        leg->AddEntry(hEtaDownBFRatio[i], Form("JER-"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_fb_jerComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_fb_jerComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot ratios of pseudorapidity distributions to default
-        //
-        canv->cd();
-        setPadStyle();
-        hEtaRatioUp[i]->Draw();
-        hEtaRatioDown[i]->Draw("same");
-        if (drawFits) {
-            fitRatioUp[i]->SetLineColor(kRed);
-            fitRatioDown[i]->SetLineColor(kBlue);
-            fitRatioUp[i]->Draw("same");
-            fitRatioDown[i]->Draw("same");
-        }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioUp[i], Form("JER+ / Default"), "p");
-        leg->AddEntry(hEtaRatioDown[i], Form("JER- / Default"), "p");
-        leg->Draw();
-        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_jerRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_jerRat_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot ratios of BF to default
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaRatioBFUp[i]->Draw();
-        hEtaRatioBFDown[i]->Draw("same");
-        hEtaRatioBFUp[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioBFUp[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.26, 0.65, 0.46, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioBFUp[i], Form("JER+/Def"), "p");
-        leg->AddEntry(hEtaRatioBFDown[i], Form("JER-/Def"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_bf_jerRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_bf_jerRat_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot ratios of FB to default
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaRatioFBUp[i]->Draw();
-        hEtaRatioFBDown[i]->Draw("same");
-        hEtaRatioFBUp[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioFBUp[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.26, 0.65, 0.46, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioFBUp[i], Form("JER+/Def"), "p");
-        leg->AddEntry(hEtaRatioFBDown[i], Form("JER-/Def"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_fb_jerRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_fb_jerRat_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot all dijet pseudorapidity comparisons on one canvas
-        //
-        cComp->cd(i+1);
-        setPadStyle();
-        hEtaDef[i]->Draw();
-        hEtaUp[i]->Draw("same");
-        hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDef[i], Form("JER def."), "p");
-        leg->AddEntry(hEtaUp[i], Form("JER+"), "p");
-        leg->AddEntry(hEtaDown[i], Form("JER-"), "p");
-        leg->Draw();
-
-        //
-        // Plot dijet pseudorapidity ratios on one canvas
-        //
-        cRat->cd(i+1);
-        setPadStyle();
-        hEtaRatioUp[i]->Draw();
-        hEtaRatioDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioUp[i], Form("JER+ / Default"), "p");
-        leg->AddEntry(hEtaRatioDown[i], Form("JER- / Default"), "p");
-        leg->Draw();
-        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-        if (drawFits) {
-            fitRatioUp[i]->Draw("same");
-            fitRatioDown[i]->Draw("same");
-        }
-
-        //
-        // Plot comparisons of backward to forward ratios on one canvas
-        //
-        cBFComp->cd(i+1);
-        setPadFBStyle();
-        hEtaDefBFRatio[i]->Draw();
-        hEtaUpBFRatio[i]->Draw("same");
-        hEtaDownBFRatio[i]->Draw("same");
-        hEtaDefBFRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaDefBFRatio[i]->GetYaxis()->SetRangeUser(0., 2.);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.26, 0.65, 0.46, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDefBFRatio[i], Form("Backward/Forward"), "p");
-        leg->AddEntry(hEtaUpBFRatio[i], Form("JER+"), "p");
-        leg->AddEntry(hEtaDownBFRatio[i], Form("JER-"), "p");
-        leg->Draw();
-
-        //
-        // Plot BF ratios to default on one canvas
-        //
-        cBFRat->cd(i+1);
-        setPadFBStyle();
-        hEtaRatioBFUp[i]->Draw();
-        hEtaRatioBFDown[i]->Draw("same");
-        hEtaRatioBFUp[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioBFUp[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.26, 0.65, 0.46, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioBFUp[i], Form("JER+/Def"), "p");
-        leg->AddEntry(hEtaRatioBFDown[i], Form("JER-/Def"), "p");
-        leg->Draw();
-
-        //
-        // Plot comparisons of forward to backward ratios on one canvas
-        //
-        cFBComp->cd(i+1);
-        setPadFBStyle();
-        hEtaDefFBRatio[i]->Draw();
-        hEtaUpFBRatio[i]->Draw("same");
-        hEtaDownFBRatio[i]->Draw("same");
-        hEtaDefFBRatio[i]->GetYaxis()->SetRangeUser(0., 3.);
-        hEtaDefFBRatio[i]->GetYaxis()->SetRangeUser(0., 2.);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.55, 0.65, 0.65, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDefFBRatio[i], Form("Forward/Backward"), "p");
-        leg->AddEntry(hEtaUpFBRatio[i], Form("JER+"), "p");
-        leg->AddEntry(hEtaDownFBRatio[i], Form("JER-"), "p");
-        leg->Draw();
-
-        //
-        // Plot FB ratios to default on one canvas
-        //
-        cFBRat->cd(i+1);
-        setPadFBStyle();
-        hEtaRatioFBUp[i]->Draw();
-        hEtaRatioFBDown[i]->Draw("same");
-        hEtaRatioFBUp[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioFBUp[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        // t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.26, 0.65, 0.46, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioFBUp[i], Form("JER+/Def"), "p");
-        leg->AddEntry(hEtaRatioFBDown[i], Form("JER-/Def"), "p");
-        leg->Draw();
-    } // for (Int_t i{0}; i<ptBins; i++)
-
-    cComp->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_jerComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cComp->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_jerComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_jerRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_jerRat_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFComp->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_bf_jerComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFComp->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_bf_jerComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBComp->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_fb_jerComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBComp->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_fb_jerComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFRat->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_bf_jerRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFRat->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_bf_jerRat_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFRat->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_fb_jerRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFRat->SaveAs( Form("%s/jer/%s_pPb8160_etaDijet_fb_jerRat_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-}
-
-//________________
-void pointingSystematics(TF1 *fitf, TH1D *h, TGraph* syst) {
-
-    std::cout << Form("Def file name: %s\n", h->GetName());
-    // Loop over the bins and estimate systematics for those that have entries
-    for (Int_t i{1}; i<=h->GetNbinsX(); i++ ) {
-        //if ( h->GetBinContent(i) == 0 ) continue;
-        Double_t xVal = h->GetXaxis()->GetBinCenter(i);
-        Double_t yVal = fitf->Eval( xVal );
-        Double_t sign = ( (yVal - 1.) >= 0 ) ? 1 : -1;
-        yVal = TMath::Abs( yVal - 1.);
-        // if ( TMath::Abs( h->GetBinContent(i) ) < 0.0001 ) {
-        //     yVal = 0.;
-        // }
-        std::cout << Form("bin content: %f x: %3.2f y [perc.]: %.3f ", h->GetBinContent(i), xVal, yVal * 100.) << std::endl;;
-        syst->SetPoint(i-1, xVal, sign * yVal );
-    } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
-}
-
-//________________
-void plotPointingResolution(TFile *embeddingFile, TString date, Bool_t isCM = kFALSE, 
-                            Bool_t drawFits = kTRUE) {
-
-    TString frame;
-    frame = ( isCM ) ? "cms" : "lab";
-    TString histoName = "hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted";
-    if ( isCM ) {
-        histoName = "hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted";
-    }
-
-    TString trigName = "MB";
-    TString fName = embeddingFile->GetName();
-    if ( fName.Contains("MB") ) {
-        trigName = "MB";
-    }
-    else if ( fName.Contains("Jet60") ) {
-        trigName = "Jet60";
-    }
-    else if ( fName.Contains("Jet80") ) {
-        trigName = "Jet80";
-    }
-    else if ( fName.Contains("Jet100") ) {
-        trigName = "Jet100";
-    }
-    else if ( fName.Contains("Jet120") ) {
-        trigName = "Jet120";
-    }
-    else {
-        trigName = "MB";
-    }
-
-    TH3D *hRecoEtaRefEtaRecoPt = (TH3D*)embeddingFile->Get( histoName.Data() );
-    hRecoEtaRefEtaRecoPt->SetName("hRecoEtaRefEtaRecoPt");
-
-    // Dijet pT selection
-    Int_t ptStep {5};
-    Int_t ptLow {30};
-    // std::vector<Int_t> ptDijetBinLow {3, 5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 43, 55};
-    // std::vector<Int_t> ptDijetBinHi  {4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 42, 54, 194};
-
-    // Styles
-    Int_t recoType{0};
-    Int_t refType{1};
-
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.06);
-
-    // Dijet eta distributions
-    TH1D *hEtaReco[ ptDijetBinLow.size() ];
-    TH1D *hEtaRecoForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaRecoBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaRecoBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaRecoFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaRef[ ptDijetBinLow.size() ];
-    TH1D *hEtaRefForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaRefBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaRefBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaRefFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioBF[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioFB[ ptDijetBinLow.size() ];
-    TH2D *hEtaRefVsEtaReco[ ptDijetBinLow.size() ];
-
-    TF1 *fitRatio[ ptDijetBinLow.size() ];
-
-    TGraph *grSyst[ ptDijetBinLow.size() ];
-
-    TLine *line;
-    TLegend *leg;
-
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
-    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
-    Int_t ptBins = ptDijetBinLow.size();
-
-    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
-    cComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
-    cRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *c2D = new TCanvas("c2D", "c2D", sizeX, sizeY);
-    c2D->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cFBComp = new TCanvas("cFBComp", "cFBComp", sizeX, sizeY);
-    cFBComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cBFComp = new TCanvas("cBFComp", "cBFComp", sizeX, sizeY);
-    cBFComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cFBRat = new TCanvas("cFBRat", "cFBRat", sizeX, sizeY);
-    cFBRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cBFRat = new TCanvas("cBFRat", "cBFRat", sizeX, sizeY);
-    cBFRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-
-    TString fbTitle = "#eta^{dijet}; #frac{ dN/d#eta^{forward} }{ dN/d#eta^{backward} }";
-    TString bfTitle = "#eta^{dijet}; #frac{ dN/d#eta^{backward} }{ dN/d#eta^{forward} }";
-    if ( isCM ) {
-        fbTitle = "#eta^{dijet}_{CM}; #frac{ dN/d#eta^{dijet}_{CM} (forward) }{ dN/d#eta^{dijet}_{CM} (backward) }";
-        bfTitle = "#eta^{dijet}_{CM}; #frac{ dN/d#eta^{dijet}_{CM} (backward) }{ dN/d#eta^{dijet}_{CM} (forward) }";
-    }
-
-    // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
-
-        std::cout << "pT bin: " << i << std::endl;
-
-        // Project to 2D (ref vs reco)
-        hRecoEtaRefEtaRecoPt->GetZaxis()->SetRange( ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        hEtaRefVsEtaReco[i] = dynamic_cast<TH2D*>( hRecoEtaRefEtaRecoPt->Project3D("yx") );
-        hEtaRefVsEtaReco[i]->SetNameTitle( Form("hEtaRefVsEtaReco_%d", i),";#eta^{dijet}_{reco};#eta^{dijet}_{ref}" );
-        rescaleEta( hEtaRefVsEtaReco[i] );
-        set2DStyle( hEtaRefVsEtaReco[i] );
-
-        // Project on eta reco
-        hEtaReco[i] = dynamic_cast<TH1D*>(hRecoEtaRefEtaRecoPt->ProjectionX( Form("hEtaReco_%d", i), 1, -1, ptDijetBinLow.at(i), ptDijetBinHi.at(i) ) );
-        rescaleEta( hEtaReco[i] );
-        set1DStyle( hEtaReco[i], recoType );
-        ( isCM ) ? hEtaReco[i]->GetXaxis()->SetTitle("#eta_{CM}") : hEtaReco[i]->GetXaxis()->SetTitle("#eta");
-        hEtaRecoForward[i] = new TH1D( Form("hEtaRecoForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaRecoBackward[i] = new TH1D( Form("hEtaRecoBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaRecoBFRatio[i] = new TH1D( Form("hEtaRecoBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaRecoFBRatio[i] = new TH1D( Form("hEtaRecoFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaRecoForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaRecoForward[i]->Sumw2();  set1DStyle(hEtaRecoForward[i], recoType);
-        hEtaRecoBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaRecoBackward[i]->Sumw2(); set1DStyle(hEtaRecoBackward[i], refType);
-        hEtaRecoBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaRecoBFRatio[i]->Sumw2();  set1DStyle(hEtaRecoBFRatio[i], recoType);
-        hEtaRecoFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaRecoFBRatio[i]->Sumw2();  set1DStyle(hEtaRecoFBRatio[i], recoType);
-        makeDijetFB(hEtaReco[i], hEtaRecoBackward[i], hEtaRecoForward[i], hEtaRecoBFRatio[i], hEtaRecoFBRatio[i]);
-
-        // Project on eta ref
-        hEtaRef[i] = dynamic_cast<TH1D*>(hRecoEtaRefEtaRecoPt->ProjectionY( Form("hEtaRef_%d", i), 1, -1, ptDijetBinLow.at(i), ptDijetBinHi.at(i) ) );
-        rescaleEta( hEtaRef[i] );
-        set1DStyle( hEtaRef[i], refType );
-        ( isCM ) ? hEtaRef[i]->GetXaxis()->SetTitle("#eta_{CM}") : hEtaRef[i]->GetXaxis()->SetTitle("#eta");
-        hEtaRefForward[i] = new TH1D( Form("hEtaRefForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaRefBackward[i] = new TH1D( Form("hEtaRefBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaRefBFRatio[i] = new TH1D( Form("hEtaRefBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaRefFBRatio[i] = new TH1D( Form("hEtaRefFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaRefForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaRefForward[i]->Sumw2();  set1DStyle(hEtaRefForward[i], recoType);
-        hEtaRefBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaRefBackward[i]->Sumw2(); set1DStyle(hEtaRefBackward[i], refType);
-        hEtaRefBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaRefBFRatio[i]->Sumw2();  set1DStyle(hEtaRefBFRatio[i], refType);
-        hEtaRefFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaRefFBRatio[i]->Sumw2();  set1DStyle(hEtaRefFBRatio[i], refType);
-        makeDijetFB(hEtaRef[i], hEtaRefBackward[i], hEtaRefForward[i], hEtaRefBFRatio[i], hEtaRefFBRatio[i]);
-
-        hEtaRatioBF[i] = dynamic_cast<TH1D*>( hEtaRecoBFRatio[i]->Clone( Form("hEtaRatioBF_%d", i) ) );
-        hEtaRatioBF[i]->Divide( hEtaRatioBF[i], hEtaRefBFRatio[i], 1., 1.);
-        set1DStyle(hEtaRatioBF[i], recoType);
-
-        hEtaRatioFB[i] = dynamic_cast<TH1D*>( hEtaRecoFBRatio[i]->Clone( Form("hEtaRatioFB_%d", i) ) );
-        hEtaRatioFB[i]->Divide( hEtaRatioBF[i], hEtaRefFBRatio[i], 1., 1.);
-        set1DStyle(hEtaRatioFB[i], recoType);
-
-        // Make ratios of reco to ref
-        hEtaRatio[i] = dynamic_cast<TH1D*>( hEtaReco[i]->Clone( Form("hEtaRatio_%d", i) ) );
-        make1DRatio(hEtaRatio[i], hEtaRef[i], Form("make1DRatio_%d", i), recoType);
-        hEtaRatio[i]->GetYaxis()->SetTitle("reco / ref");
-
-        // Create fit function
-        fitRatio[i] = new TF1( Form("fitRatio_%d", i), "[0]+[1]*x+[2]*x*x", -4.8, 4.8 );
-        fitRatio[i]->SetLineColor(kBlack);
-        fitRatio[i]->SetLineWidth(2);
-        fitRatio[i]->SetParameters(0., 0., 0.);
-        fitRatio[i]->SetParLimits(2, -1e6, 0.);
-        hEtaRatio[i]->Fit( Form("fitRatio_%d", i), "MRE0" );
-        std::cout << "chi2/ndf down: " << fitRatio[i]->GetChisquare() / fitRatio[i]->GetNDF() << std::endl;
-
-        // Create graph to store the data
-        grSyst[i] = new TGraph();
-        pointingSystematics( fitRatio[i], hEtaRatio[i], grSyst[i] );
-
-        // Write systematic uncertainty to ASCII file
-        std::ofstream outFile( Form("%s/pointing/%s_pPb8160_etaDijet_pointingSyst_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if ( outFile.is_open() ) {
-            for (Int_t iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
-                // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0};
-                grSyst[i]->GetPoint(iPoint, x, y);
-                // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFile << x << " " << y << std::endl;
-            }
-            outFile.close();
-        }
-        else {
-            std::cerr << "[PointingSyst] Unable to open file for writing" << std::endl;
-        }
-
-        //
-        // Plot 2D matrix
-        //
-        canv->cd();
-        setPadStyle();
-        hEtaRefVsEtaReco[i]->Draw("colz");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefComp_2D_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefComp_2D_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot comparison of reco and ref dijet pseudorapidity distributions
-        //
-        canv->cd();
-        setPadStyle();
-        hEtaReco[i]->Draw();
-        hEtaRef[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaReco[i], Form("Reco"), "p");
-        leg->AddEntry(hEtaRef[i], Form("Ref"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot comparison of reco and ref BF distributions
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaRecoBFRatio[i]->Draw();
-        hEtaRefBFRatio[i]->Draw("same");
-        hEtaRecoBFRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRecoBFRatio[i]->GetYaxis()->SetRangeUser(0.5, 4.5);
-        leg = new TLegend(0.65, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRecoBFRatio[i], Form("Reco backward/Forward"), "p");
-        leg->AddEntry(hEtaRefBFRatio[i], Form("Gen backward/Forward"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_bf_RecoRefComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_bf_RecoRefComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot ratio of reco and ref BF distributions
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaRatioBF[i]->Draw();
-        hEtaRatioBF[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioBF[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        hEtaRatioBF[i]->GetYaxis()->SetTitle("Reco/Gen");
-        leg = new TLegend(0.65, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioBF[i], Form("Reco/Gen"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_bf_RecoRefRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_bf_RecoRefRat_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-
-        //
-        // Plot comparison of reco and ref FB distributions
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaRecoFBRatio[i]->Draw();
-        hEtaRefFBRatio[i]->Draw("same");
-        hEtaRecoFBRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRecoFBRatio[i]->GetYaxis()->SetRangeUser(0., 4.0);
-        leg = new TLegend(0.7, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRecoFBRatio[i], Form("Reco forward/backward"), "p");
-        leg->AddEntry(hEtaRefFBRatio[i], Form("Gen forward/backward"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_fb_RecoRefComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_fb_RecoRefComp_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot ratio of reco and ref FB distributions
-        //
-        canv->cd();
-        setPadFBStyle();
-        hEtaRatioFB[i]->Draw();
-        hEtaRatioFB[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioFB[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        hEtaRatioFB[i]->GetYaxis()->SetTitle("Data/MC");
-        leg = new TLegend(0.65, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioFB[i], Form("Reco/Gen"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_fb_RecoRefRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_fb_RecoRefRat_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-
-        //
-        // Plot reco to ref ratio of dijet pseudorapidity distributions
-        //
-        canv->cd();
-        setPadStyle();
-        hEtaRatio[i]->Draw();
-        if (drawFits) {
-            fitRatio[i]->Draw("same");
-        }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefRatio_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefRatio_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot reco to ref ratio of dijet pseudorapidity distributions
-        //
-        canv->cd();
-        setPadStyle();
-        hEtaRatio[i]->Draw();
-        if (drawFits) {
-            fitRatio[i]->Draw("same");
-        }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefRatio_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        canv->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefRatio_pt_%d_%d_%s.png", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        //
-        // Plot all 2D distributions dijet pseudorapidity distributions on one canvas
-        //
-        c2D->cd(i+1);
-        setPadStyle();
-        hEtaRefVsEtaReco[i]->Draw("colz");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-
-        //
-        // Plot all comparisons of dijet pseudorapidity distributions on one canvas
-        //
-        cComp->cd(i+1);
-        setPadStyle();
-        hEtaReco[i]->Draw();
-        hEtaRef[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaReco[i], Form("Reco"), "p");
-        leg->AddEntry(hEtaRef[i], Form("Gen"), "p");
-        leg->Draw();
-
-        //
-        // Plot FB comparisons on one canvas
-        //
-        cFBComp->cd(i+1);
-        setPadFBStyle();
-        hEtaRecoFBRatio[i]->Draw();
-        hEtaRefFBRatio[i]->Draw("same");
-        hEtaRecoFBRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRecoFBRatio[i]->GetYaxis()->SetRangeUser(0., 1.1);
-        leg = new TLegend(0.65, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRecoFBRatio[i], Form("Reco forward/backward"), "p");
-        leg->AddEntry(hEtaRefFBRatio[i], Form("Gen forward/backward"), "p");
-        leg->Draw();
-
-        //
-        // Plot BF comparisons on one canvas
-        //
-        cBFComp->cd(i+1);
-        setPadFBStyle();  
-        hEtaRecoBFRatio[i]->Draw();
-        hEtaRefBFRatio[i]->Draw("same");
-        hEtaRecoBFRatio[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRecoBFRatio[i]->GetYaxis()->SetRangeUser(0., 4.0);
-        leg = new TLegend(0.65, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRecoBFRatio[i], Form("Reco backward/forward"), "p");
-        leg->AddEntry(hEtaRefBFRatio[i], Form("Gen backward/forward"), "p");
-        leg->Draw();
-
-        //
-        // Plot ratio of reco and ref BF distributions on one canvas
-        //
-        cBFRat->cd(i+1);
-        setPadFBStyle();
-        hEtaRatioBF[i]->Draw();
-        hEtaRatioBF[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioBF[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        hEtaRatioBF[i]->GetYaxis()->SetTitle("Reco/Gen");
-        leg = new TLegend(0.65, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioBF[i], Form("Reco/Gen"), "p");
-        leg->Draw();
-
-        //
-        // Plot ratio of reco and ref FB distributions
-        //
-        cFBRat->cd(i+1);
-        setPadFBStyle();
-        hEtaRatioFB[i]->Draw();
-        hEtaRatioFB[i]->GetXaxis()->SetRangeUser(0., 3.);
-        hEtaRatioFB[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        hEtaRatioFB[i]->GetYaxis()->SetTitle("Data/MC");
-        leg = new TLegend(0.65, 0.45, 0.85, 0.65);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioFB[i], Form("Data/MC"), "p");
-        leg->Draw();
-
-        //
-        // Plot ratios on one canvas
-        //
-        cRat->cd(i+1);
-        setPadStyle();
-        hEtaRatio[i]->Draw();
-        if (drawFits) {
-            fitRatio[i]->Draw("same");
-        }
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-    } // for (Int_t i{0}; i<ptBins; i++) 
-
-    cComp->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cComp->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    c2D->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefCorr_2D_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    c2D->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefCorr_2D_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefRatio_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_RecoRefRatio_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFComp->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_bf_RecoRefComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFComp->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_bf_RecoRefComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBComp->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_fb_RecoRefComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBComp->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_fb_RecoRefComp_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );    
-    cBFRat->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_bf_RecoRefRatio_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cBFRat->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_bf_RecoRefRatio_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBRat->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_fb_RecoRefRatio_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cFBRat->SaveAs( Form("%s/pointing/%s_pPb8160_etaDijet_fb_RecoRefRatio_all_%s.png", date.Data(), trigName.Data(), frame.Data() ) );
-}
-
-//________________
-void pileupSystematics(TF1 *pileupUp, TF1 *pileupDown, TH1D *hDef, TGraph* syst) {
-
-    // Loop over the bins and estimate systematics for those that have entries
-    for (Int_t i{1}; i<=hDef->GetNbinsX(); i++ ) {
-        // if ( hDef->GetBinContent(i) == 0 ) continue;
-        Double_t xVal = hDef->GetBinCenter(i);
-
-        Double_t yUp = pileupUp->Eval( xVal );
-        Double_t yDown = pileupDown->Eval( xVal );
-        std::cout << Form("x: %3.2f up: %.3f down: %.3f ", xVal, yUp, yDown);
-        // Will use only gplus as a systematic variation
-        Double_t sysYrel = yUp - 1.;
-        // Combination of gplus and vtx1
-        // Double_t sysYrel = ( TMath::Abs(yUp - 1.) + TMath::Abs(yDown - 1.) ) / 2;
-        Double_t sysYabs = sysYrel * hDef->GetBinContent(i);
-
-        std::cout << Form("bin content: %f syst [perc.]: %.4f syst [abs. val.]: %.8f\n", hDef->GetBinContent(i), sysYrel * 100., sysYabs );
-
-        syst->SetPoint(i-1, xVal, sysYrel );
-    } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
-    std::cout << "pileup Gplus chi2/ndf: " << pileupUp->GetChisquare() / pileupUp->GetNDF() 
-              << " pileup Vtx1 chi2/ndf: " << pileupDown->GetChisquare() / pileupDown->GetNDF()
-              << std::endl;
-}
-
-//________________
-void plotPileup(TFile *defaultFile, TFile *gplusFile, TFile *vtx1File, TString date, 
-                Bool_t isCM = kFALSE, Bool_t drawFits = kTRUE) {
-
-    TString frame;
-    frame = ( isCM ) ? "cms" : "lab";
-    TString histoName = "hRecoDijetPtEtaDphiWeighted";
-    if ( isCM ) {
-        histoName = "hRecoDijetPtEtaDphiCMWeighted";
-    }
-
-    TString trigName = "MB";
-    TString fName = defaultFile->GetName();
-    if ( fName.Contains("MB") ) {
-        trigName = "MB";
-    }
-    else if ( fName.Contains("Jet60") ) {
-        trigName = "Jet60";
-    }
-    else if ( fName.Contains("Jet80") ) {
-        trigName = "Jet80";
-    }
-    else if ( fName.Contains("Jet100") ) {
-        trigName = "Jet100";
-    }
-    else if ( fName.Contains("Jet120") ) {
-        trigName = "Jet120";
-    }
-    else {
-        trigName = "MB";
-    }
-
-    TH3D *hPtEtaDphiDef = (TH3D*)defaultFile->Get( histoName.Data() );
-    hPtEtaDphiDef->SetName("hPtEtaDphiDef");
-    TH3D *hPtEtaDphiUp = (TH3D*)gplusFile->Get( histoName.Data() );
-    hPtEtaDphiUp->SetName("hPtEtaDphiUp");
-    TH3D *hPtEtaDphiDown = (TH3D*)vtx1File->Get( histoName.Data() );
-    hPtEtaDphiDown->SetName("hPtEtaDphiDown");
-
-    // Dijet pT selection
-    Int_t ptStep {5};
-    Int_t ptLow {30};
-
-    // Styles
-    Int_t defType{2};
-    Int_t upType{0};
-    Int_t downType{1};
-
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.06);
-
-    // Dijet eta distributions
-    TH1D *hEtaDef[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaDefFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaUpFBRatio[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownForward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownBackward[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownBFRatio[ ptDijetBinLow.size() ];
-    TH1D *hEtaDownFBRatio[ ptDijetBinLow.size() ];    
-
-    TH1D *hEtaRatioUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioFBUp[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioBFUp[ ptDijetBinLow.size() ];
-
-    TH1D *hEtaRatioDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioFBDown[ ptDijetBinLow.size() ];
-    TH1D *hEtaRatioBFDown[ ptDijetBinLow.size() ];
-
-    TF1 *fitRatioUp[ ptDijetBinLow.size() ];
-    TF1 *fitRatioDown[ ptDijetBinLow.size() ];
-
-    TGraph *grSyst[ ptDijetBinLow.size() ];
-    TGraph *grSystFB[ ptDijetBinLow.size() ];
-
-    TLine *line;
-    TLegend *leg;
-
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
-    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
-    Int_t ptBins = ptDijetBinLow.size();
-
-    TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
-    cComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cRat = new TCanvas("cRat", "cRat", sizeX, sizeY);
-    cRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cFBComp = new TCanvas("cFBComp", "cFBComp", sizeX, sizeY);
-    cFBComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cBFComp = new TCanvas("cBFComp", "cBFComp", sizeX, sizeY);
-    cBFComp->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cFBRat = new TCanvas("cFBRat", "cFBRat", sizeX, sizeY);
-    cFBRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TCanvas *cBFRat = new TCanvas("cBFRat", "cBFRat", sizeX, sizeY);
-    cBFRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1) );
-
-    TString fbTitle = "#eta^{dijet}; #frac{ dN/d#eta^{forward} }{ dN/d#eta^{backward} }";
-    TString bfTitle = "#eta^{dijet}; #frac{ dN/d#eta^{backward} }{ dN/d#eta^{forward} }";
-    if ( isCM ) {
-        fbTitle = "#eta^{dijet}_{CM}; #frac{ dN/d#eta^{dijet}_{CM} (forward) }{ dN/d#eta^{dijet}_{CM} (backward) }";
-        bfTitle = "#eta^{dijet}_{CM}; #frac{ dN/d#eta^{dijet}_{CM} (backward) }{ dN/d#eta^{dijet}_{CM} (forward) }";
-    }
-
-    // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
-
-        std::cout << "pT bin: " << i << std::endl;
-
-        // Pileup default selection
-        hEtaDef[i] = projectEtaFrom3D(hPtEtaDphiDef, Form("hEtaDef_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaDef[i] );
-        set1DStyle(hEtaDef[i], defType);
-        hEtaDefForward[i] = new TH1D( Form("hEtaDefForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDefBackward[i] = new TH1D( Form("hEtaDefBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDefBFRatio[i] = new TH1D( Form("hEtaDefBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDefFBRatio[i] = new TH1D( Form("hEtaDefFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDefForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefForward[i]->Sumw2();  set1DStyle(hEtaDefForward[i], upType);
-        hEtaDefBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaDefBackward[i]->Sumw2(); set1DStyle(hEtaDefBackward[i], downType);
-        hEtaDefBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefBFRatio[i]->Sumw2();  set1DStyle(hEtaDefBFRatio[i], defType);
-        hEtaDefFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDefFBRatio[i]->Sumw2();  set1DStyle(hEtaDefFBRatio[i], defType);
-        makeDijetFB(hEtaDef[i], hEtaDefBackward[i], hEtaDefForward[i], hEtaDefBFRatio[i], hEtaDefFBRatio[i]);
-
-        // Gplus (up) selection
-        hEtaUp[i] = projectEtaFrom3D(hPtEtaDphiUp, Form("hEtaUp_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaUp[i] );
-        set1DStyle(hEtaUp[i], upType);
-        hEtaUpForward[i] = new TH1D( Form("hEtaUpForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaUpBackward[i] = new TH1D( Form("hEtaUpBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaUpBFRatio[i] = new TH1D( Form("hEtaUpBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaUpFBRatio[i] = new TH1D( Form("hEtaUpFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaUpForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpForward[i]->Sumw2();  set1DStyle(hEtaUpForward[i], upType);
-        hEtaUpBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaUpBackward[i]->Sumw2(); set1DStyle(hEtaUpBackward[i], downType);
-        hEtaUpBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpBFRatio[i]->Sumw2();  set1DStyle(hEtaUpBFRatio[i], upType);
-        hEtaUpFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaUpFBRatio[i]->Sumw2();  set1DStyle(hEtaUpFBRatio[i], upType);
-        makeDijetFB(hEtaUp[i], hEtaUpBackward[i], hEtaUpForward[i], hEtaUpBFRatio[i], hEtaUpFBRatio[i]);
-
-
-        // Vtx1 (down) selection
-        hEtaDown[i] = projectEtaFrom3D(hPtEtaDphiDown, Form("hEtaDown_%d", i), ptDijetBinLow.at(i), ptDijetBinHi.at(i) );
-        rescaleEta( hEtaDown[i] );
-        set1DStyle(hEtaDown[i], downType);
-        hEtaDownForward[i] = new TH1D( Form("hEtaDownForward_%d",i), Form("#eta for forward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDownBackward[i] = new TH1D( Form("hEtaDownBackward_%d",i), Form("#eta for backward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDownBFRatio[i] = new TH1D( Form("hEtaDownBFRatio_%d",i), Form("#eta for backward/forward direction;%s", bfTitle.Data()), 15, 0., 5.);
-        hEtaDownFBRatio[i] = new TH1D( Form("hEtaDownFBRatio_%d",i), Form("#eta for forward/backward direction;%s", fbTitle.Data()), 15, 0., 5.);
-        hEtaDownForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownForward[i]->Sumw2();  set1DStyle(hEtaDownForward[i], downType);
-        hEtaDownBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaDownBackward[i]->Sumw2(); set1DStyle(hEtaDownBackward[i], downType);
-        hEtaDownBFRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownBFRatio[i]->Sumw2();  set1DStyle(hEtaDownBFRatio[i], downType);
-        hEtaDownFBRatio[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);  hEtaDownFBRatio[i]->Sumw2();  set1DStyle(hEtaDownFBRatio[i], downType);
-        makeDijetFB(hEtaDown[i], hEtaDownBackward[i], hEtaDownForward[i], hEtaDownBFRatio[i], hEtaDownFBRatio[i]);
-
-        // Ratio of pileup up to default ratio
-        hEtaRatioUp[i] = dynamic_cast<TH1D*>( hEtaUp[i]->Clone( Form("hEtaRatioUp_%d", i) ) );
-        make1DRatio(hEtaRatioUp[i], hEtaDef[i], Form("hEtaRatioUp_%d", i), upType );
-        hEtaRatioUp[i]->GetYaxis()->SetTitle("vtx.flt. / dz1p0");
-        //updateJERRatio( hEtaRatioUp[i] );
-
-        // Ratio of pileup down to default ratio
-        hEtaRatioDown[i] = dynamic_cast<TH1D*>( hEtaDown[i]->Clone( Form("hEtaRatioDown_%d", i) ) );
-        make1DRatio(hEtaRatioDown[i], hEtaDef[i], Form("hEtaRatioDown_%d", i), downType );
-        hEtaRatioDown[i]->GetYaxis()->SetTitle("vtx.flt. / dz1p0");
-        //updateJERRatio( hEtaRatioDown[i] );
-
-        // Make fit functions
-        fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]+[1]*x", -3.5, 3.5);
-        // fitRatioUp[i] = new TF1(Form("fitRatioUp_%d",i), "[0]", -5., 5.);
-        // fitRatioUp[i]->SetParameters(0., 0.0001);
-        // fitRatioUp[i]->SetParLimits(2, 0.000001, 1e6);
-        fitRatioUp[i]->SetParameters(0.);
-        fitRatioUp[i]->SetLineColor(kRed);
-        fitRatioUp[i]->SetLineWidth(2);
-
-        fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]+[1]*x", -3.5, 3.5);
-        // fitRatioDown[i] = new TF1(Form("fitRatioDown_%d",i), "[0]", -5., 5.);
-        // fitRatioDown[i]->SetParameters(0., 0.0001);
-        // fitRatioDown[i]->SetParLimits(2, 0.000001, 1e6);
-        fitRatioDown[i]->SetParameters(0.);
-        fitRatioDown[i]->SetLineColor(kBlue);
-        fitRatioDown[i]->SetLineWidth(2);
-
-        // Perform fits
-        hEtaRatioUp[i]->Fit(Form("fitRatioUp_%d",i), "MRE0");
-        hEtaRatioDown[i]->Fit(Form("fitRatioDown_%d",i), "MRE0");
-        std::cout << "chi2/ndf up: " << fitRatioUp[i]->GetChisquare() / fitRatioUp[i]->GetNDF() << std::endl;
-        std::cout << "chi2/ndf down: " << fitRatioDown[i]->GetChisquare() / fitRatioDown[i]->GetNDF() << std::endl;
-
-        // Calculate systematics
-        grSyst[i] = new TGraph();
-        pileupSystematics(fitRatioUp[i], fitRatioDown[i], hEtaDef[i], grSyst[i]);
-        grSyst[i]->SetName( Form("grSyst_%d", i) );
-
-        grSystFB[i] = new TGraph();
-        jeuFBSystematics(hEtaUpFBRatio[i], nullptr, hEtaDefFBRatio[i], grSystFB[i]);
-        grSystFB[i]->SetName( Form("grSystFB_%d", i) );
-
-        // Write systematic uncertainty to ASCII file
-        std::ofstream outFile( Form("%s/pileup/%s_pPb8160_etaDijet_pileupSyst_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if ( outFile.is_open() ) {
-            for (Int_t iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
-                // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0};
-                grSyst[i]->GetPoint(iPoint, x, y);
-                // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFile << x << " " << y << std::endl;
-            }
-            outFile.close();
-        }
-        else {
-            std::cerr << "[PileupSyst] Unable to open file for writing" << std::endl;
-        }
-
-        std::ofstream outFileFB( Form("%s/pileup/%s_pPb8160_etaDijet_pileupSystFB_%d_%d_%s.txt", date.Data(), trigName.Data(),
-                                    ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                                    ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-        if ( outFileFB.is_open() ) {
-            for (Int_t iPoint = 0; iPoint < grSystFB[i]->GetN(); iPoint++) {
-                // std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0};
-                grSystFB[i]->GetPoint(iPoint, x, y);
-                // std::cout << " x: " << x << " y: " << y << std::endl;
-                outFileFB << x << " " << y << std::endl;
-            }
-            outFileFB.close();
-        }
-        else {
-            std::cerr << "[PileupSyst] Unable to open file for writing" << std::endl;
-        }
-
-        // Plot comparison
-        canv->cd();
-        setPadStyle();
-        hEtaDef[i]->Draw();
-        hEtaUp[i]->Draw("same");
-        //hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDef[i], Form("dz1p0 def."), "p");
-        leg->AddEntry(hEtaUp[i], Form("Gplus"), "p");
-        //leg->AddEntry(hEtaDown[i], Form("Vtx1"), "p");
-        leg->Draw();
-        canv->SaveAs( Form("%s/pileup/%s_pPb8160_etaDijet_pileupComp_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        // Plot ratios
-        canv->cd();
-        setPadStyle();
-        hEtaRatioUp[i]->Draw();
-        //hEtaRatioDown[i]->Draw("same");
-        if (drawFits) {
-            fitRatioUp[i]->SetLineColor(kBlack);
-            fitRatioUp[i]->Draw("same");
-            //fitRatioDown[i]->Draw("same");
-        }
-        hEtaRatioUp[i]->GetYaxis()->SetRangeUser(0.95, 1.05);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioUp[i], Form("Gplus / dz1p0"), "p");
-        //leg->AddEntry(hEtaRatioDown[i], Form("Vtx1 / Default"), "p");
-        leg->Draw();
-        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-        canv->SaveAs( Form("%s/pileup/%s_pPb8160_etaDijet_pileupRat_pt_%d_%d_%s.pdf", date.Data(), trigName.Data(),
-                      ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
-                      ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
-
-        // Plot all comparisons on one canvas
-        cComp->cd(i+1);
-        setPadStyle();
-        hEtaDef[i]->Draw();
-        hEtaUp[i]->Draw("same");
-        //hEtaDown[i]->Draw("same");
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.2, 0.65, 0.4, 0.85);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaDef[i], Form("dz1p0"), "p");
-        leg->AddEntry(hEtaUp[i], Form("Gplus"), "p");
-        //leg->AddEntry(hEtaDown[i], Form("Vtx1"), "p");
-        leg->Draw();
-
-        // Plot all ratios on one canvas
-        cRat->cd(i+1);
-        setPadStyle();
-        hEtaRatioUp[i]->Draw();
-        //hEtaRatioDown[i]->Draw("same");
-        hEtaRatioUp[i]->GetYaxis()->SetRangeUser(0.95, 1.05);
-        t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", 
-                       ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
-        t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
-        leg = new TLegend(0.45, 0.2, 0.65, 0.3);
-        leg->SetTextSize(0.04);
-        leg->SetLineWidth(0);
-        leg->AddEntry(hEtaRatioUp[i], Form("Gplus / dz1p0"), "p");
-        //leg->AddEntry(hEtaRatioDown[i], Form("Vtx1 / dz1p0"), "p");
-        leg->Draw();
-        line = new TLine(hEtaRatioUp[i]->GetXaxis()->GetBinLowEdge(1), 1., 
-                         hEtaRatioUp[i]->GetXaxis()->GetBinUpEdge(hEtaRatioUp[i]->GetNbinsX()), 1.);
-        line->SetLineColor(kMagenta);
-        line->SetLineWidth(3);
-        line->SetLineStyle(3);
-        line->Draw();
-        if (drawFits) {
-            fitRatioUp[i]->Draw("same");
-            //fitRatioDown[i]->Draw("same");
-        }
-    } // for (Int_t i{0}; i<ptBins; i++)
-
-    cComp->SaveAs( Form("%s/pileup/%s_pPb8160_etaDijet_pileupComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-    cRat->SaveAs( Form("%s/pileup/%s_pPb8160_etaDijet_pileupRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
-
 }
 
 //________________
@@ -4037,10 +1887,7 @@ void plotDistributionWithUncrt(TCanvas *c, TH1D *h1, TH1D *h2,
     h1->SetLineWidth(2);
 
     // Set style for systematic uncertainty
-    h2->SetFillColorAlpha(29, 0.55);
-    h2->SetLineColor(29);
-    h2->SetLineWidth(0);
-    h2->SetFillStyle(1001);           // Solid fill
+    setSystUncrtStyle(h2, 0);
 
     // Create pad
     TLegend *leg;
@@ -4122,10 +1969,7 @@ void plotManyDistributionsOnCanvas(TCanvas *c, std::vector< TH1D* > hData, std::
         hData.at(i)->SetLineColor(kBlack);
         hData.at(i)->SetLineWidth(2);
 
-        hSyst.at(i)->SetFillColorAlpha(29, 0.55);
-        hSyst.at(i)->SetLineColor(29);
-        hSyst.at(i)->SetLineWidth(0);
-        hSyst.at(i)->SetFillStyle(1001);           // Solid fill
+        setSystUncrtStyle( hSyst.at(i), 0 );
     }
 
     // Create legend
@@ -4600,8 +2444,14 @@ void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> h
 
         // Draw histograms
         hRatioUp.at(i)->Draw();
+        TF1 *fitUp = hRatioUp.at(i)->GetFunction( Form("%s_fitFunc", hRatioUp.at(i)->GetName()) );
+        fitUp->SetLineColor(kRed);
+        fitUp->Draw("same");
         if ( !hRatioDown.empty() ) {
             hRatioDown.at(i)->Draw("same");
+            TF1 *fitDown = hRatioDown.at(i)->GetFunction( Form("%s_fitFunc", hRatioDown.at(i)->GetName()) );
+            fitDown->SetLineColor(kBlue);
+            fitDown->Draw("same");
         }
         // Adjust ranges
         hRatioUp.at(i)->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
@@ -4629,61 +2479,6 @@ void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> h
             leg->Draw();
         }
     } // for (Int_t i{0}; i<hRatioUp.size(); i++)
-}
-
-//________________
-std::vector< TF1* > fitSystRatio(std::vector< TH1D* > hSyst, Bool_t isUp = kTRUE, 
-                                 Int_t fitType = 2, Int_t etaType = 0, Bool_t drawFits = kTRUE) {
-
-    std::vector< TF1* > fitFunc( hSyst.size() );
-    Double_t xMin{-3.}, xMax{3.};
-    if (etaType != 0) {
-        xMin = 0.0001;
-        xMax = 3.;
-    }
-
-    // For all histograms in the vector
-    for (Int_t i{0}; i<hSyst.size(); i++) {
-
-        // Choose fit function
-        if ( fitType == 0 ) {
-            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]", xMin, xMax);
-        }
-        else if ( fitType == 1 ) {
-            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x", xMin, xMax);
-        }
-        else if ( fitType == 2 ) {
-            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x+[2]*x*x", xMin, xMax);
-        }
-        else if ( fitType == 3 ) {
-            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x", xMin, xMax);
-        }
-        else if ( fitType == 4 ) {
-            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x+[2]*x*x+[3]*x*x*x+[4]*x*x*x*x", xMin, xMax);
-        }
-        else {
-            fitFunc.at(i) = new TF1(Form("%s_fitFunc_%d", hSyst[i]->GetName(), i), "[0]+[1]*x", xMin, xMax);
-        }
-
-        if ( isUp ) {
-            fitFunc.at(i)->SetLineColor(kRed);
-        }
-        else {
-            fitFunc.at(i)->SetLineColor(kBlue); 
-        }
-        fitFunc.at(i)->SetLineWidth(2);
-
-        if ( drawFits ) {
-            hSyst.at(i)->Fit( fitFunc.at(i), "MRE" );
-        }
-        else {
-            hSyst.at(i)->Fit( fitFunc.at(i), "MRE0" );
-        }
-
-        std::cout << Form("Fit function for %s: %s. chi2/ndf = %f", hSyst.at(i)->GetName(), fitFunc.at(i)->GetExpFormula().Data(), fitFunc.at(i)->GetChisquare() / fitFunc.at(i)->GetNDF() ) << std::endl;
-    }
-
-    return fitFunc;
 }
 
 //________________
@@ -4740,11 +2535,11 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
     }
 
     // Fits (Fit type: 0 -constant, 1 - linear, 2 - quadratic, 3 - cubic, 4 - quartic)
-    std::vector<TF1*> fitUp = fitSystRatio(hRatioUp, kTRUE, fitType, etaType, drawFits);
-    std::vector<TF1*> fitDown = {};
-    if ( !hRatioDown.empty() ) {
-        fitDown = fitSystRatio(hRatioDown, kFALSE, fitType, etaType, drawFits);
-    }
+    // std::vector<TF1*> fitUp = fitSystRatio(hRatioUp, kTRUE, fitType, etaType, drawFits);
+    // std::vector<TF1*> fitDown = {};
+    // if ( !hRatioDown.empty() ) {
+    //     fitDown = fitSystRatio(hRatioDown, kFALSE, fitType, etaType, drawFits);
+    // }
 
     // Create canvas
     Int_t sizeX{1200};
@@ -5703,7 +3498,6 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
 
-
     // Dijet pT selection
     std::vector<Int_t> ptDijetLow{};
     std::vector<Int_t> ptDijetHi{};
@@ -5772,21 +3566,20 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
             setPadFBStyle();
         }
 
-        // Set colors
-        hTotal.at(i)->SetLineColor(kBlack); hTotal.at(i)->SetLineWidth(2);
-        hJeu.at(i)->SetLineColor(kRed); hJeu.at(i)->SetLineWidth(2);
-        hJer.at(i)->SetLineColor(kBlue); hJer.at(i)->SetLineWidth(2);
-        hPileup.at(i)->SetLineColor(kGreen); hPileup.at(i)->SetLineWidth(2);
-        if ( !hPointingRes.empty() ) {
-            hPointingRes.at(i)->SetLineColor(kMagenta); hPointingRes.at(i)->SetLineWidth(2);
-        }
-
         hTotalInPercent.push_back( dynamic_cast<TH1D*>( hTotal.at(i)->Clone( Form("%s_inPerc", hTotal.at(i)->GetName() ) ) ) );
         hJeuInPercent.push_back( dynamic_cast<TH1D*>( hJeu.at(i)->Clone( Form("%s_inPerc", hJeu.at(i)->GetName() ) ) ) );
         hJerInPercent.push_back( dynamic_cast<TH1D*>( hJer.at(i)->Clone( Form("%s_inPerc", hJer.at(i)->GetName() ) ) ) );
         hPileupInPercent.push_back( dynamic_cast<TH1D*>( hPileup.at(i)->Clone( Form("%s_inPerc", hPileup.at(i)->GetName() ) ) ) );
         if ( !hPointingRes.empty() ) {
             hPointingResInPercent.push_back( dynamic_cast<TH1D*>( hPointingRes.at(i)->Clone( Form("%s_inPerc", hPointingRes.at(i)->GetName() ) ) ) );
+        }
+
+        set1DStyle( hTotalInPercent.at(i), 2 );
+        set1DStyle( hJeuInPercent.at(i), 0 );
+        set1DStyle( hJerInPercent.at(i), 1 );
+        set1DStyle( hPileupInPercent.at(i), 5 );
+        if ( !hPointingRes.empty() ) {
+            set1DStyle( hPointingResInPercent.at(i), 6 );
         }
 
         hTotalInPercent.at(i)->Scale(100.0);
@@ -5808,6 +3601,9 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
         hTotalInPercent.at(i)->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
         hTotalInPercent.at(i)->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
         hTotalInPercent.at(i)->GetYaxis()->SetTitle("Rel. syst. uncrt. [%]");
+
+        // Draw text
+        t.DrawLatexNDC(0.35, 0.94, Form("%d < p_{T}^{jet} < %d GeV", ptDijetLow.at(i), ptDijetHi.at(i) ) );
 
         // Draw legend
         TLegend *leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
@@ -5907,10 +3703,11 @@ void plotRelativeSystematicUncertainties(std::vector< std::vector<TH1D*> > hMBJe
     Int_t etaTypeBF = 4;
 
     // Plot relative systematic uncertainties
-    plotRelSystUncrt(hMBEtaJeuRelSyst, hJet80EtaJeuRelSyst, hMBEtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hMBTotalEtaRelSyst, etaTypeDef, date, isCM);
-    plotRelSystUncrt(hJet60EtaJeuRelSyst, hJet80EtaJeuRelSyst, hJet60EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet60TotalEtaRelSyst, etaTypeDef, date, isCM);
-    plotRelSystUncrt(hJet80EtaJeuRelSyst, hJet80EtaJeuRelSyst, hJet80EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet80TotalEtaRelSyst, etaTypeDef, date, isCM);
-    plotRelSystUncrt(hJet100EtaJeuRelSyst, hJet80EtaJeuRelSyst, hJet100EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet100TotalEtaRelSyst, etaTypeDef, date, isCM);
+    plotRelSystUncrt(hMBEtaJeuRelSyst, hEmbeddingEtaJerRelSyst, hMBEtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hMBTotalEtaRelSyst, etaTypeDef, date, isCM);
+    plotRelSystUncrt(hJet60EtaJeuRelSyst, hEmbeddingEtaJerRelSyst, hJet60EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet60TotalEtaRelSyst, etaTypeDef, date, isCM);
+    plotRelSystUncrt(hJet80EtaJeuRelSyst, hEmbeddingEtaJerRelSyst, hJet80EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet80TotalEtaRelSyst, etaTypeDef, date, isCM);
+    plotRelSystUncrt(hJet100EtaJeuRelSyst, hEmbeddingEtaJerRelSyst, hJet100EtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hJet100TotalEtaRelSyst, etaTypeDef, date, isCM);
+
 }
 
 //________________
@@ -6180,6 +3977,7 @@ void writeDistributions2RootFile(std::vector< std::vector<TH1D*> > hMBEtaDist, s
                                  std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist, std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist,
                                  std::vector< std::vector<TH1D*> > hFinalDist, std::vector< std::vector<TH1D*> > hFinalRelSystUncrtDist, 
                                  std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist,
+                                 std::vector< std::vector<TH1D*> > hEpps21Dist, std::vector< std::vector<TH1D*> > hNcteq15hqDist,
                                  TString date, Bool_t isCM = kFALSE) {
 
     TString frame;
@@ -6251,18 +4049,22 @@ void writeDistributions2RootFile(std::vector< std::vector<TH1D*> > hMBEtaDist, s
     writeVectors2RootFile(hFinalRelSystUncrtDist);
     writeVectors2RootFile(hFinalAbsSystUncrtDist);
 
+    writeVectors2RootFile(hEpps21Dist);
+    writeVectors2RootFile(hNcteq15hqDist);
+
     oFile->Write();
     oFile->Close();
 }
 
 //________________
-void applySmoothing(TH1D* h) {
+void applySmoothing(TH1D* h, Int_t systType = 0) {
     TString name = h->GetName();
     name.ToLower();
-    if ( ( name.Contains("jeu") || name.Contains("pointing") ) && 
+    if ( ( ( systType == 0 || systType == 2 ) && 
            ( !name.Contains("fb") && !name.Contains("forward") && 
-             !name.Contains("backward") && !name.Contains("bf") ) ) {
-        Int_t binLow = h->FindBin(-1.2);
+             !name.Contains("backward") && !name.Contains("bf") ) ) ||
+          ( ( systType == 0 || systType == 1 ) && name.Contains("fb") ) ) {
+        Int_t binLow = ( h->GetXaxis()->GetBinCenter(1) < 0 ) ? h->FindBin(-1.2) : 1;
         Int_t binHi = h->FindBin(1.2);
         Double_t maxVal{-1};
         for (Int_t i = binLow; i<=binHi; i++) {
@@ -6282,7 +4084,8 @@ void applySmoothing(TH1D* h) {
 //________________
 TH1D* calculateSystUncrtBinByBin(TH1D *hUp, TH1D *hDown = nullptr, 
                                 const Char_t *setName = "hMB", 
-                                Int_t systType = 0, Int_t bin = 0) {
+                                Int_t systType = 0, Int_t bin = 0,
+                                Bool_t useFit = kFALSE) {
 
     TString hName = setName;
     TString systSuffix;
@@ -6312,20 +4115,38 @@ TH1D* calculateSystUncrtBinByBin(TH1D *hUp, TH1D *hDown = nullptr,
     hName += "_";
     hName += bin;
     // Create histogram to store systematic uncertainties
-    TH1D *hSystUncrt = (TH1D*)hUp->Clone( hName.Data() );
+    TH1D *hSystUncrt = dynamic_cast<TH1D*>( hUp->Clone( hName.Data() ) );
     hSystUncrt->Reset();
+    TF1 *fitUp = nullptr;
+    TF1 *fitDown = nullptr;
+    if ( useFit ) {
+        fitUp = hUp->GetFunction( Form( "%s_fitFunc", hUp->GetName() ) );
+        if ( hDown ) {
+            fitDown = hDown->GetFunction( Form( "%s_fitFunc", hDown->GetName() ) );
+        }
+    }
 
     // Calculate systematic uncertainties
     for (Int_t i = 1; i <= hUp->GetNbinsX(); i++) {
         Double_t up = hUp->GetBinContent(i);
+        if ( useFit ) {
+            up = fitUp->Eval( hUp->GetBinCenter(i) );
+        }
         Double_t down = up; 
         if ( hDown ) {
             down = hDown->GetBinContent(i);
+            if ( useFit ) {
+                down = fitDown->Eval( hDown->GetBinCenter(i) );
+            }
         }
         Double_t systUncrt = ( TMath::Abs(up - 1) + TMath::Abs(down - 1) ) / 2.0;
+        if ( up < 0.000001 && down < 0.000001 ) {
+            systUncrt = 0;
+        }
+        //std::cout << "bin: " << i << " up: " << up << " down: " << down << " systUncrt: " << systUncrt << std::endl;
         hSystUncrt->SetBinContent(i, systUncrt);
     }
-    applySmoothing(hSystUncrt);
+    applySmoothing(hSystUncrt, systType);
     hSystUncrt->SetLineColor(color);
     hSystUncrt->SetMarkerColor(color);
     return hSystUncrt;
@@ -6333,8 +4154,11 @@ TH1D* calculateSystUncrtBinByBin(TH1D *hUp, TH1D *hDown = nullptr,
 
 //________________
 std::vector<TH1D*> calculateSystUncrt(std::vector<TH1D*> hUp, std::vector<TH1D*> hDown = {},
-                                      const Char_t *setName = "hMB", Int_t systType = 0) {
+                                      const Char_t *setName = "hMB", Int_t systType = 0,
+                                      Bool_t useFit = kFALSE) {
  
+    // systType: 0 - JEU, 1 - JER, 2 - Pointing, 3 - Pileup
+
     // Create vector to store systematic uncertainties
     std::vector<TH1D*> hSystUncrt{};
 
@@ -6346,8 +4170,18 @@ std::vector<TH1D*> calculateSystUncrt(std::vector<TH1D*> hUp, std::vector<TH1D*>
 
     // Calculate systematic uncertainties
     for (Int_t i = 0; i < hUp.size(); i++) {
-        hSystUncrt.push_back( calculateSystUncrtBinByBin(hUp.at(i), ( !hDown.empty() ) ? hDown.at(i) : nullptr, setName, systType, i) );
-    }
+        if ( systType != 3 ) {
+            hSystUncrt.push_back( calculateSystUncrtBinByBin(hUp.at(i), ( !hDown.empty() ) ? hDown.at(i) : nullptr, setName, systType, i, useFit) );
+        }
+        else {
+            if ( i <=9 ) {
+                hSystUncrt.push_back( calculateSystUncrtBinByBin(hUp.at(i), ( !hDown.empty() ) ? hDown.at(i) : nullptr, setName, systType, i, useFit) );
+            }
+            else {
+                hSystUncrt.push_back( calculateSystUncrtBinByBin(hUp.at(9), ( !hDown.empty() ) ? hDown.at(9) : nullptr, setName, systType, i, useFit) );
+            }
+        }
+    } // for (Int_t i = 0; i < hUp.size(); i++)
 
     return hSystUncrt;
 }
@@ -6355,7 +4189,10 @@ std::vector<TH1D*> calculateSystUncrt(std::vector<TH1D*> hUp, std::vector<TH1D*>
 //________________
 std::vector< std::vector<TH1D*> > createRelSystUncrt(std::vector< std::vector<TH1D*> > hUp, 
                                                      std::vector< std::vector<TH1D*> > hDown,
-                                                     const Char_t* setName = "hMB", Int_t systType = 0) {
+                                                     const Char_t* setName = "hMB", Int_t systType = 0,
+                                                     Bool_t useFit = kFALSE) {
+
+    // systType: 0 - JEU, 1 - JER, 2 - Pointing, 3 - Pileup
 
     TString datasetName = setName;
     // Create vector to store relative systematic uncertainties
@@ -6378,17 +4215,11 @@ std::vector< std::vector<TH1D*> > createRelSystUncrt(std::vector< std::vector<TH
     }
 
     // Create relative systematic uncertainties
-    datasetName = setName; datasetName += "Eta";         hRelSystUncrt.push_back( calculateSystUncrt(hUpEta, hDownEta, datasetName.Data(), systType) );
-    datasetName = setName; datasetName += "EtaForward";  hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaForward, hDownEtaForward, datasetName.Data(), systType) );
-    datasetName = setName; datasetName += "EtaBackward"; hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaBackward, hDownEtaBackward, datasetName.Data(), systType) );
-    datasetName = setName; datasetName += "EtaFB";       hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaFBRatio, hDownEtaFBRatio, datasetName.Data(), systType) );
-    if (systType == 3) {
-        std::vector<TH1D*> empty{};
-        datasetName = setName; datasetName += "EtaBF";       hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaBFRatio, empty, datasetName.Data(), systType) );
-    }
-    else {
-        datasetName = setName; datasetName += "EtaBF";       hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaBFRatio, hDownEtaBFRatio, datasetName.Data(), systType) );
-    }
+    datasetName = setName; datasetName += "Eta";         hRelSystUncrt.push_back( calculateSystUncrt(hUpEta, hDownEta, datasetName.Data(), systType, useFit) );
+    datasetName = setName; datasetName += "EtaForward";  hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaForward, hDownEtaForward, datasetName.Data(), systType, useFit) );
+    datasetName = setName; datasetName += "EtaBackward"; hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaBackward, hDownEtaBackward, datasetName.Data(), systType, useFit) );
+    datasetName = setName; datasetName += "EtaFB";       hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaFBRatio, hDownEtaFBRatio, datasetName.Data(), systType, useFit) );
+    datasetName = setName; datasetName += "EtaBF";       hRelSystUncrt.push_back( calculateSystUncrt(hUpEtaBFRatio, hDownEtaBFRatio, datasetName.Data(), systType, useFit) );
 
     return hRelSystUncrt;
 }
@@ -6422,7 +4253,11 @@ std::vector<TH1D*> combineRelSystUncrt(std::vector<TH1D*> hJeuRelSystUncrt, std:
             Double_t pileup = hPileupRelSystUncrt.at(i)->GetBinContent(j);
             Double_t total = TMath::Sqrt( jeu * jeu + jer * jer + pointingRes * pointingRes + pileup * pileup );
             hTotal->SetBinContent(j, total);
-             std::cout << "eta bin: " << j << " jeu: " << jeu << " jer: " << jer << " pointingRes: " << pointingRes << " pileup: " << pileup << " total: " << total << std::endl;
+            std::cout << "eta bin: " << j << " jeu: " << jeu << " jer: " << jer << " pointingRes: " << pointingRes << " pileup: " << pileup << " total: " << total << std::endl;
+            if ( total < jeu ) std::cout << "total < jeu" << std::endl;
+            if ( total < jer ) std::cout << "total < jer" << std::endl;
+            if ( total < pointingRes ) std::cout << "total < pointingRes" << std::endl;
+            if ( total < pileup ) std::cout << "total < pileup" << std::endl;
         }
         hTotal->SetLineColor(1);
         hTotal->SetMarkerColor(1);
@@ -6741,6 +4576,21 @@ std::vector< std::vector<TH1D*> > makeFinalDistributions(std::vector< std::vecto
 }
 
 //________________
+std::vector< TH1D* > makeRelSystUncrtAtUnity(std::vector<TH1D*> hUncrt) {
+    std::vector< TH1D* > hRelSystUncrt{};
+    for (Int_t i{0}; i<hUncrt.size(); i++) {
+        hRelSystUncrt.push_back( dynamic_cast<TH1D*>( hUncrt.at(i)->Clone( Form("%s_rescaledAtUnity", hUncrt.at(i)->GetName()) ) ) );
+        // hRelSystUncrt.at(i)->Scale(100.);
+        for (Int_t j{1}; j<=hRelSystUncrt.at(i)->GetNbinsX(); j++) {
+            Double_t val = hRelSystUncrt.at(i)->GetBinContent(j);
+            hRelSystUncrt.at(i)->SetBinContent(j, 1.0);
+            hRelSystUncrt.at(i)->SetBinError(j, val);
+        }
+    }
+    return hRelSystUncrt;
+}
+
+//________________
 std::vector< std::vector<TH1D*> > makeFinalRelSystUncrt(std::vector< std::vector<TH1D*> > hMBTotalRelSystDist, 
                                                         std::vector< std::vector<TH1D*> > hJet60TotalRelSystDist, 
                                                         std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist, 
@@ -6827,7 +4677,200 @@ std::vector< std::vector<TH1D*> > makeFinalRelSystUncrt(std::vector< std::vector
     hFinalDistributions.push_back(hEtaFBRatioFinalRelSystUncrt);                // 3
     hFinalDistributions.push_back(hEtaBFRatioFinalRelSystUncrt);                // 4
 
+    std::vector< TH1D* > hEtaFinalRelSystUncrtAtUnity = makeRelSystUncrtAtUnity(hEtaFinalRelSystUncrt);
+    std::vector< TH1D* > hEtaForwardFinalRelSystUncrtAtUnity = makeRelSystUncrtAtUnity(hEtaForwardFinalRelSystUncrt);
+    std::vector< TH1D* > hEtaBackwardFinalRelSystUncrtAtUnity = makeRelSystUncrtAtUnity(hEtaBackwardFinalRelSystUncrt);
+    std::vector< TH1D* > hEtaFBRatioFinalRelSystUncrtAtUnity = makeRelSystUncrtAtUnity(hEtaFBRatioFinalRelSystUncrt);
+    std::vector< TH1D* > hEtaBFRatioFinalRelSystUncrtAtUnity = makeRelSystUncrtAtUnity(hEtaBFRatioFinalRelSystUncrt);
+
+    hFinalDistributions.push_back(hEtaFinalRelSystUncrtAtUnity);                // 5
+    hFinalDistributions.push_back(hEtaForwardFinalRelSystUncrtAtUnity);         // 6
+    hFinalDistributions.push_back(hEtaBackwardFinalRelSystUncrtAtUnity);        // 7
+    hFinalDistributions.push_back(hEtaFBRatioFinalRelSystUncrtAtUnity);         // 8
+    hFinalDistributions.push_back(hEtaBFRatioFinalRelSystUncrtAtUnity);         // 9
+
     return hFinalDistributions;
+}
+
+//________________
+std::vector< std::vector< TH1D* > > retrieveNLOJetDistributions(TFile *inFile, Int_t npdfSet = 0) {
+
+    // npdfSet: 0 - epps21; 1 - nCTEQ15HQ
+
+    // pT bin edges
+    std::vector<int> ptLow = {50, 60, 100, 140, 300}; 
+    std::vector<int> ptHi =  {60, 70, 110, 150, 500};
+
+    const char* npdfName = "epps21";
+    Int_t nPDFSets = 107;
+    if ( npdfSet == 0 ) {
+        npdfName = "epps21";
+        nPDFSets = 107;
+    }
+    else if ( npdfSet == 1 ) {
+        npdfName = "ncteq15hq";
+        nPDFSets = 39;
+    }
+
+    // std::vector< std::vector< TH1D* > > hNpdfDistirbutions;
+    std::vector< std::vector< TH1D* > > hNpdfEtaLab{};
+    std::vector< TH1D* > hNpdfEtaLabPt{};
+    // std::vector< TH1D* > hNpdfEtaCMForward{};
+    // std::vector< TH1D* > hNpdfEtaCMBackward{};
+    // std::vector< TH1D* > hNpdfEtaCMFBRatio{};
+    // std::vector< TH1D* > hNpdfEtaCMBFRatio{};
+
+    // Loop over pT bins
+    for (Int_t i{0}; i<ptLow.size(); i++) {
+
+        hNpdfEtaLabPt.clear();
+        for (Int_t j{0}; j<nPDFSets; j++ ) {
+
+            // Full eta in lab frame
+            hNpdfEtaLabPt.push_back( dynamic_cast<TH1D*>( inFile->Get( Form("pPbLab_pt_%d_%d_%d", ptLow.at(i), ptHi.at(i), j) ) ) );
+            hNpdfEtaLabPt.at(j)->SetName( Form("%s_pPb8160_etaLab_pt_%d_%d_%d", npdfName, ptLow.at(i), ptHi.at(i), j) );
+            //rescaleEta(hNpdfEtaLabPt.at(j));
+            hNpdfEtaLabPt.at(j)->Scale( 1./hNpdfEtaLabPt.at(j)->Integral() );
+
+            // // Forward eta in CM frame
+            // hNpdfEtaCMForward.push_back( dynamic_cast<TH1D*>( inFile->Get( Form("pPbCMForward_pt_%d_%d_%d", ptLow.at(i), ptHi.at(i), j) ) ) );
+            // hNpdfEtaCMForward.at(j)->SetName( Form("%s_pPb8160_etaCM_forward_pt_%d_%d_%d", npdfName, ptLow.at(i), ptHi.at(i), j) );
+
+            // // Backward eta in CM frame
+            // hNpdfEtaCMBackward.push_back( dynamic_cast<TH1D*>( inFile->Get( Form("pPbCMBackward_pt_%d_%d_%d", ptLow.at(i), ptHi.at(i), j) ) ) );
+            // hNpdfEtaCMBackward.at(j)->SetName( Form("%s_pPb8160_etaCM_backward_pt_%d_%d_%d", npdfName, ptLow.at(i), ptHi.at(i), j  );
+
+            // // Forward/Backward ratio in CM frame
+            // hNpdfEtaCMFBRatio.push_back( dynamic_cast<TH1D*>( hNpdfEtaCMForward.at(i)->Clone( Form("%s_pPb8160_etaCM_fb_pt_%d_%d_%d", npdfName, ptLow.at(i), ptHi.at(i), j) ) ) );
+            // hNpdfEtaCMFBRatio.at(j)->Divide( hNpdfEtaCMBackward.at(i) );
+
+            // // Backward/Forward ratio in CM frame
+            // hNpdfEtaCMBFRatio.push_back( dynamic_cast<TH1D*>( hNpdfEtaCMBackward.at(i)->Clone( Form("%s_pPb8160_etaCM_bf_pt_%d_%d_%d", npdfName, ptLow.at(i), ptHi.at(i), j) ) ) );
+            // hNpdfEtaCMBFRatio.at(j)->Divide( hNpdfEtaCMForward.at(i) );
+        } // for (Int_t j{0}; j<nPDFSets; j++ )
+        hNpdfEtaLab.push_back(hNpdfEtaLabPt);
+    } // for (Int_t i{0}; i<ptLow.size(); i++)
+
+    // hNpdfDistirbutions.push_back(hNpdfEtaLab);
+    // hNpdfDistirbutions.push_back(hNpdfEtaCMForward);
+    // hNpdfDistirbutions.push_back(hNpdfEtaCMBackward);
+    // hNpdfDistirbutions.push_back(hNpdfEtaCMFBRatio);
+    // hNpdfDistirbutions.push_back(hNpdfEtaCMBFRatio);
+
+    return hNpdfEtaLab;
+}
+
+//________________
+TH1D* calculateSystUncrtForNPDF(std::vector<TH1D*> hRatios, Int_t npdfSet = 0, Int_t ptLow = 50, Int_t ptHi = 60) {
+
+    const char* npdfName = "data2epps21";
+    if ( npdfSet == 1 ) npdfName = "data2ncteq15hq";
+
+    TH1D* hSystUncrt = dynamic_cast<TH1D*>( hRatios.at(0)->Clone( Form("%s_systUncrt_pt_%d_%d", npdfName, ptLow, ptHi)) );
+    std::vector<TH1D*> hSystSidePositive{};
+    std::vector<TH1D*> hSystSideNegative{};
+    TH1D* hErrors = dynamic_cast<TH1D*>( hRatios.at(0)->Clone( Form("%s_errors", hRatios.at(0)->GetName())) );
+    hErrors->Reset();
+
+
+    // Try to estimate simmetric uncertainties accroding
+    // the Eq. 10 from https://arxiv.org/pdf/1903.09832
+    Int_t iter = 0;
+    for (Int_t i{1}; i<hRatios.size(); ) {
+        // Negative side
+        hSystSideNegative.push_back( dynamic_cast<TH1D*>( hRatios.at(i)->Clone( Form("%s_systNegative_%d", hRatios.at(i)->GetName(), iter) ) ) );
+        // Positive side
+        hSystSidePositive.push_back( dynamic_cast<TH1D*>( hRatios.at(i+1)->Clone( Form("%s_systPositive_%d", hRatios.at(i+1)->GetName(), iter) ) ) );
+
+        // Square the numbers and sum with the previous set
+        for (Int_t j{1}; j<=hErrors->GetNbinsX(); j++) {
+            Double_t oldVal = hErrors->GetBinContent(j);
+            Double_t newVal = hSystSidePositive.at(iter)->GetBinContent(j) - hSystSideNegative.at(iter)->GetBinContent(j);
+            newVal *= newVal;
+            newVal += oldVal;
+            hErrors->SetBinContent(j, newVal);
+        }
+        i+=2;
+        iter++;
+    } // for (Int_t i{1}; i<hRatios.size(); )
+
+    // Take a half of the root of each bin and assign it as a final uncertainty
+    // to the main nPDF set
+    for (Int_t i{1}; i<=hSystUncrt->GetNbinsX(); i++) {
+        Double_t val = hSystUncrt->GetBinContent(i);
+        Double_t valErr = hErrors->GetBinContent(i);
+        valErr = 0.5 * TMath::Sqrt(valErr);
+        hSystUncrt->SetBinContent(i, val);
+        hSystUncrt->SetBinError(i, valErr);
+
+        //std::cout << "Bin: " << i << " eta: " << hSystUncrt->GetBinCenter(i) << " value: " << val << " error: " << valErr << std::endl;
+    }
+
+    return hSystUncrt;
+}
+
+//________________
+std::vector< std::vector< TH1D* > > makeRatiosOfData2nPDF(std::vector< std::vector< TH1D* > > hDataDist, 
+                                                          std::vector< std::vector< TH1D* > > hNpdfDist,
+                                                          Int_t npdfSet = 0) {
+
+    // npdfSet: 0 - epps21; 1 - ncteq15hq
+    const char* npdfName = "data2epps21";
+    if ( npdfSet == 1 ) npdfName = "data2ncteq15hq";
+
+    // Dijet pT standard binning
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    // Vector that corresponds to all pT bins
+    std::vector< TH1D* > hDataEta = hDataDist.at(0);
+    std::vector< std::vector< TH1D* > > hReturnVector{};
+    std::vector< TH1D* > hData2NpdfStat{};
+    std::vector< TH1D* > hData2NpdfSyst{};
+
+    // For all existing nPDF calculated pT bins
+    for (Int_t i{0}; i<npdfPtLow.size(); i++) {
+
+        // Skip bins that are not matching pT binning
+        Int_t ptBin = -1;
+        for (Int_t j{0}; j<ptDijetLow.size(); j++) {
+            if ( npdfPtLow.at(i) == ptDijetLow.at(j) && npdfPtHi.at(i) == ptDijetHi.at(j) ) {
+                ptBin = j;
+                std::cout << "Found matching pT bin: " << ptBin << " ptLow: " << npdfPtLow.at(i) << " ptHi: " << npdfPtHi.at(i) << std::endl;
+                break;
+            }
+        }
+
+        // Retrieve data distribution for the given MC pT bin
+        TH1D* hData = hDataEta.at(ptBin);
+        // Retrieve nPDF distributions for the given MC pT bin
+        std::vector<TH1D*> nloSets = hNpdfDist.at(i);
+        std::vector<TH1D*> hData2NpdfRatio{};
+
+        // Loop over nPDF sets
+        for (Int_t j{0}; j<nloSets.size(); j++) {
+            if ( j == 0 ) {
+                hData2NpdfRatio.push_back( dynamic_cast<TH1D*>( hData->Clone( Form("%s_statUcrt_eta_pt_%d_%d", npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) ) ) );
+            }
+            else {
+                hData2NpdfRatio.push_back( dynamic_cast<TH1D*>( hData->Clone( Form("%s_statUcrt_eta_pt_%d_%d_%d", npdfName, npdfPtLow.at(i), npdfPtHi.at(i), j) ) ) );
+            }
+            hData2NpdfRatio.at(j)->Divide( nloSets.at(j) );
+        } // for (Int_t j{0}; j<nloSets.size(); j++)
+
+        // Calculate systematic uncertainties for the given nPDF set
+        hData2NpdfStat.push_back( hData2NpdfRatio.at(0) );
+        hData2NpdfSyst.push_back( calculateSystUncrtForNPDF(hData2NpdfRatio, npdfSet, npdfPtLow.at(i), npdfPtHi.at(i)) );
+    } // for (Int_t i{0}; i<ptLow.size(); i++)
+
+    // Ratio with statistical uncertainties
+    hReturnVector.push_back(hData2NpdfStat);
+    // Ratio with systematic uncertainties
+    hReturnVector.push_back(hData2NpdfSyst);
+
+    return hReturnVector;
 }
 
 //________________
@@ -6934,6 +4977,201 @@ std::vector< std::vector<TH1D*> > makeFinalAbsSystUncrt(std::vector< std::vector
     return hFinalDistributions;
 }
 
+//________________
+void plotIndividualDataOverNpdf(TCanvas *c, TH1D* data, TH1D* epps21Stat, TH1D* epps21Syst, 
+                                TH1D* ncteq15hqStat, TH1D* ncteq15hqSyst,
+                                Int_t etaType=0, Int_t ptLow=50, Int_t ptHi=60) {
+
+    // Text 
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // Number for plotting position
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0.7, 1.3};
+    Double_t legX[2] = {0.4, 0.65};
+    Double_t legY[2] = {0.2, 0.35};
+
+    // etaType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    if ( etaType > 0 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+    }
+
+    // Set style for the data points
+    Int_t dataStyle{0};
+    Int_t epps21Style{1};
+    Int_t ncteq15hqStyle{2};
+    setSystUncrtStyle(data, dataStyle);
+    setSystUncrtStyle(epps21Syst, epps21Style);
+    setSystUncrtStyle(ncteq15hqSyst, ncteq15hqStyle);
+    set1DStyle(epps21Stat, 0);
+    set1DStyle(ncteq15hqStat, 1);
+
+    // Create pad
+    TLegend *leg;
+    TLine *line;
+
+    //
+    // Plot comparison
+    //
+    c->cd();
+
+    // Set pad style
+    if ( etaType == 0 ) {
+        setPadStyle();
+    }
+    else {
+        setPadFBStyle();
+    }
+
+    // Plot distributions
+    data->Draw("E2");
+    epps21Syst->Draw("E2 same");
+    ncteq15hqSyst->Draw("E2 same");
+    epps21Stat->Draw("same");
+    ncteq15hqStat->Draw("same");
+
+    // Set ranges
+    data->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    data->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    data->GetYaxis()->SetTitle("Data / nPDF");
+
+    t.DrawLatexNDC(0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
+    plotCMSHeader();
+
+    // Legend
+    leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    leg->AddEntry(data, "Data uncrt.", "f");
+    leg->AddEntry(epps21Syst, "EPPS21 x CT18", "pf");
+    leg->AddEntry(ncteq15hqSyst, "nCTEQ15HQ", "pf");
+    leg->Draw();
+
+    // Line at unity
+    line = new TLine(xRange[0], 1.0, xRange[1], 1.0);
+    line->SetLineStyle(2);
+    line->SetLineColor(kMagenta);
+    line->Draw();
+}
+
+//________________
+void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist, 
+                      std::vector< std::vector<TH1D*> > ncteq15hqDist, 
+                      std::vector< std::vector<TH1D*> > dataRelSystUncrt,
+                      Int_t etaType, TString date, Bool_t isCM) {
+
+    // Dijet pT standard binning
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    std::vector< TH1D* > dataUncrtAtUnity = dataRelSystUncrt.at(5);
+    std::vector< TH1D* > epps21StatUncrt = epps21Dist.at(0);
+    std::vector< TH1D* > epps21SystUncrt = epps21Dist.at(1);
+    std::vector< TH1D* > ncteq15hqStatUncrt = ncteq15hqDist.at(0);
+    std::vector< TH1D* > ncteq15hqSystUncrt = ncteq15hqDist.at(1);
+
+    Int_t ptBin = -1;
+
+    // Text 
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.06);
+
+    // Number for plotting position
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0.7, 1.3};
+    Double_t legX[2] = {0.4, 0.65};
+    Double_t legY[2] = {0.2, 0.35};
+
+    // etaType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    if ( etaType > 0 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+    }
+
+    // Set style for the data points
+    Int_t dataStyle{0};
+    Int_t epps21Style{1};
+    Int_t ncteq15hqStyle{2};
+
+    // Canvases
+    Int_t sizeX{1200}, sizeY{800};
+    TCanvas *c = new TCanvas("c", "c", sizeX, sizeY);
+
+    TCanvas *comp = new TCanvas("comp", "comp", 1500, 300 );
+    comp->Divide(npdfPtLow.size(), 1);
+
+    TLegend *leg; 
+
+    for (Int_t i{0}; i<epps21StatUncrt.size(); i++) {
+
+        // Find the proper pT bin
+        for (Int_t j{0}; j<ptDijetLow.size(); j++) {
+            if ( npdfPtLow.at(i) == ptDijetLow.at(j) && npdfPtHi.at(i) == ptDijetHi.at(j) ) {
+                ptBin = j;
+                break;
+            }
+        }
+
+        // Switch to canvas
+        plotIndividualDataOverNpdf(c, dataUncrtAtUnity.at(ptBin), epps21StatUncrt.at(i), epps21SystUncrt.at(i), 
+                                   ncteq15hqStatUncrt.at(i), ncteq15hqSystUncrt.at(i),
+                                   etaType, ptDijetLow.at(ptBin), ptDijetHi.at(ptBin));
+        c->SaveAs( Form("%s/data2mc/comp2npdf_eta_pt_%d_%d_%s.png", date.Data(), ptDijetLow.at(ptBin), ptDijetHi.at(ptBin), date.Data()) );
+
+        // Comparison on a single canvas
+        comp->cd(i+1);
+        if ( etaType == 0 ) {
+            setPadStyle();
+        }
+        else {
+            setPadFBStyle();
+        }
+
+        // Set histogram styles
+        setSystUncrtStyle(dataUncrtAtUnity.at(ptBin), dataStyle);
+        setSystUncrtStyle(epps21SystUncrt.at(i), epps21Style);
+        setSystUncrtStyle(ncteq15hqSystUncrt.at(i), ncteq15hqStyle);
+        set1DStyle(epps21StatUncrt.at(i), 0);
+        set1DStyle(ncteq15hqStatUncrt.at(i), 1);
+
+        // Draw histograms
+        dataUncrtAtUnity.at(ptBin)->Draw("E2");
+        epps21SystUncrt.at(i)->Draw("E2 same");
+        ncteq15hqSystUncrt.at(i)->Draw("E2 same");
+        epps21StatUncrt.at(i)->Draw("same");
+        ncteq15hqStatUncrt.at(i)->Draw("same");
+        dataUncrtAtUnity.at(ptBin)->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+        dataUncrtAtUnity.at(ptBin)->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+        dataUncrtAtUnity.at(ptBin)->GetYaxis()->SetTitle("Data / nPDF");
+
+        // Plot pT label
+        t.DrawLatexNDC(0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", ptDijetLow.at(ptBin), ptDijetHi.at(ptBin)));
+        plotCMSHeader();
+
+        // Legend
+        leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+        leg->SetBorderSize(0);
+        leg->SetFillStyle(0);
+        leg->SetTextSize(0.05);
+        leg->AddEntry(dataUncrtAtUnity.at(ptBin), "Data uncrt.", "f");
+        leg->AddEntry(epps21SystUncrt.at(i), "EPPS21 x CT18", "pf");
+        leg->AddEntry(ncteq15hqSystUncrt.at(i), "nCTEQ15HQ", "pf");
+        leg->Draw();
+
+        // Line at unity
+        TLine *line = new TLine(xRange[0], 1.0, xRange[1], 1.0);
+        line->SetLineStyle(2);
+        line->SetLineColor(kMagenta);
+        line->Draw();
+    } // for (Int_t i{0}; i<epps21Dist.size(); i++)
+    comp->SaveAs( Form("%s/data2mc/comp2npdf_eta_%s.png", date.Data(), date.Data()) );
+}
 
 //________________
 void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingFile, 
@@ -6949,7 +5187,8 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
                            TFile *mbGplusFile, TFile *mbVtx1File,
                            TFile *jet60GplusFile, TFile *jet60Vtx1File,
                            TFile *jet80GplusFile, TFile *jet80Vtx1File,
-                           TFile *jet100GplusFile, TFile *jet100Vtx1File, 
+                           TFile *jet100GplusFile, TFile *jet100Vtx1File,
+                           TFile *epps21File, TFile *ncteq15hqFile,
                            TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
     TString frame;
@@ -7113,6 +5352,10 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     oHistoName = returnTrigName(jet100Vtx1File) + "_pPb8160_etaDijet_vtx1";
     std::vector< std::vector<TH1D*> > hJet100Vtx1EtaDist = createDijetEtaHistograms(jet100Vtx1File, histoName.Data(), oHistoName.Data(), isCM, downType);
 
+    // nPDF
+    std::vector< std::vector<TH1D*> > hEpps21Dist = retrieveNLOJetDistributions(epps21File, 0);
+    std::vector< std::vector<TH1D*> > hNcteq15hqDist = retrieveNLOJetDistributions(ncteq15hqFile, 1);
+
     // Create ratios to MC
     std::vector< std::vector<TH1D*> > hRatios2McDist = createRatios2MC(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, hEmbeddingEtaDist, hEmbeddingGenEtaDist, isCM);
 
@@ -7125,7 +5368,8 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
                                                                                hMBGplusEtaDist, hMBVtx1EtaDist,
                                                                                hJet60GplusEtaDist, hJet60Vtx1EtaDist,
                                                                                hJet80GplusEtaDist, hJet80Vtx1EtaDist,
-                                                                               hJet100GplusEtaDist, hJet100Vtx1EtaDist, isCM);
+                                                                               hJet100GplusEtaDist, hJet100Vtx1EtaDist, 
+                                                                               isCM, drawFits);
     
     
     // Create JEU up and down histograms
@@ -7161,23 +5405,28 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     Int_t pointingType{2};
     Int_t pileupType{3};
 
+    Bool_t useFitJeu = kTRUE;
+    Bool_t useFitJer = kFALSE;
+    Bool_t useFitPointing = kTRUE;
+    Bool_t useFitPileup = kTRUE;
+
     // Create JEU systematic tables
-    std::vector< std::vector<TH1D*> > hMBJeuRelSystDist = createRelSystUncrt(hMBEtaJeuUp2DefDist, hMBEtaJeuDown2DefDist, "hMB", jeuType);
-    std::vector< std::vector<TH1D*> > hJet60JeuRelSystDist = createRelSystUncrt(hJet60EtaJeuUp2DefDist, hJet60EtaJeuDown2DefDist, "hJet60", jeuType);
-    std::vector< std::vector<TH1D*> > hJet80JeuRelSystDist = createRelSystUncrt(hJet80EtaJeuUp2DefDist, hJet80EtaJeuDown2DefDist, "hJet80", jeuType);
-    std::vector< std::vector<TH1D*> > hJet100JeuRelSystDist = createRelSystUncrt(hJet100EtaJeuUp2DefDist, hJet100EtaJeuDown2DefDist, "hJet100", jeuType);
+    std::vector< std::vector<TH1D*> > hMBJeuRelSystDist = createRelSystUncrt(hMBEtaJeuUp2DefDist, hMBEtaJeuDown2DefDist, "hMB", jeuType, useFitJeu);
+    std::vector< std::vector<TH1D*> > hJet60JeuRelSystDist = createRelSystUncrt(hJet60EtaJeuUp2DefDist, hJet60EtaJeuDown2DefDist, "hJet60", jeuType, useFitJeu);
+    std::vector< std::vector<TH1D*> > hJet80JeuRelSystDist = createRelSystUncrt(hJet80EtaJeuUp2DefDist, hJet80EtaJeuDown2DefDist, "hJet80", jeuType, useFitJeu);
+    std::vector< std::vector<TH1D*> > hJet100JeuRelSystDist = createRelSystUncrt(hJet100EtaJeuUp2DefDist, hJet100EtaJeuDown2DefDist, "hJet100", jeuType, useFitJeu);
 
     // Create JER systematic tables
-    std::vector< std::vector<TH1D*> > hEmbeddingJerRelSystDist = createRelSystUncrt(hEmbeddingJerUp2DefDist, hEmbeddingJerDown2DefDist, "hEmbedding", jerType);
+    std::vector< std::vector<TH1D*> > hEmbeddingJerRelSystDist = createRelSystUncrt(hEmbeddingJerUp2DefDist, hEmbeddingJerDown2DefDist, "hEmbedding", jerType, useFitJer);
     // Create pointing resolution systematic tables
     std::vector< std::vector<TH1D*> > hEmpty{};
-    std::vector< std::vector<TH1D*> > hPointingResRelSystDist = createRelSystUncrt(hPointingRes2DefDist, hEmpty, "hPointingRes", pointingType);
+    std::vector< std::vector<TH1D*> > hPointingResRelSystDist = createRelSystUncrt(hPointingRes2DefDist, hEmpty, "hPointingRes", pointingType, useFitPointing);
 
     // Create pileup systematic tables
-    std::vector< std::vector<TH1D*> > hMBPileupRelSystDist = createRelSystUncrt(hMBPileupGplus2DefDist, hEmpty, "hMB", pileupType);
-    std::vector< std::vector<TH1D*> > hJet60PileupRelSystDist = createRelSystUncrt(hJet60PileupGplus2DefDist, hEmpty, "hJet60", pileupType);
-    std::vector< std::vector<TH1D*> > hJet80PileupRelSystDist = createRelSystUncrt(hJet80PileupGplus2DefDist, hEmpty, "hJet80", pileupType);
-    std::vector< std::vector<TH1D*> > hJet100PileupRelSystDist = createRelSystUncrt(hJet100PileupGplus2DefDist, hEmpty, "hJet100", pileupType);
+    std::vector< std::vector<TH1D*> > hMBPileupRelSystDist = createRelSystUncrt(hMBPileupGplus2DefDist, hEmpty, "hMB", pileupType, useFitPileup);
+    std::vector< std::vector<TH1D*> > hJet60PileupRelSystDist = createRelSystUncrt(hJet60PileupGplus2DefDist, hEmpty, "hJet60", pileupType, useFitPileup);
+    std::vector< std::vector<TH1D*> > hJet80PileupRelSystDist = createRelSystUncrt(hJet80PileupGplus2DefDist, hEmpty, "hJet80", pileupType, useFitPileup);
+    std::vector< std::vector<TH1D*> > hJet100PileupRelSystDist = createRelSystUncrt(hJet100PileupGplus2DefDist, hEmpty, "hJet100", pileupType, useFitPileup);
 
     // std::vector< std::vector<TH1D*> > hMBPileupRelSystDist = createRelSystUncrt(hMBPileupGplus2DefDist, hMBPileupVtxOne2DefDist, "hMB", pileupType);
     // std::vector< std::vector<TH1D*> > hJet60PileupRelSystDist = createRelSystUncrt(hJet60PileupGplus2DefDist, hJet60PileupVtxOne2DefDist, "hJet60", pileupType);
@@ -7194,34 +5443,45 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     std::vector< std::vector<TH1D*> > hFinalDist = makeFinalDistributions(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, 
                                                                           hEmbeddingGenEtaDist, hEmbeddingEtaDist, hRatios2McDist);
 
+    Int_t epps21type{0};
+    Int_t ncteq15hqtype{1};
+    std::vector< std::vector< TH1D* > > hFinalOverEpps21Dist = makeRatiosOfData2nPDF(hFinalDist, hEpps21Dist, epps21type);
+    std::vector< std::vector< TH1D* > > hFinalOverNcteq15hqDist = makeRatiosOfData2nPDF(hFinalDist, hNcteq15hqDist, ncteq15hqtype);
+
     // Make final systematic uncertainty
     std::vector< std::vector<TH1D*> > hFinalRelSystUncrtDist = makeFinalRelSystUncrt(hMBTotalRelSystDist, hJet60TotalRelSystDist, hJet80TotalRelSystDist, hJet100TotalRelSystDist); 
+
 
     // Make final absolute systematic uncertainty
     std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist = makeFinalAbsSystUncrt(hFinalDist, hFinalRelSystUncrtDist);
 
     // Plot final distributions
-    // plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
+    plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
+
+    // Plot comparison of data and nPDF
+    Int_t etaType{0};
+    // Int_t etaForwardType{1};
+    // plotDataOverNpdf(hFinalOverEpps21Dist, hFinalOverNcteq15hqDist, hFinalRelSystUncrtDist, etaType, date, isCM);
 
     // Plot comparison of data and Monte Carlo
     // plotData2McComparison(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, hEmbeddingEtaDist, hEmbeddingGenEtaDist, hRatios2McDist, date, isCM);
 
-    // plotRelativeSystematicUncertainties(hMBJeuRelSystDist, hJet60JeuRelSystDist, hJet80JeuRelSystDist, hJet100JeuRelSystDist,
-    //                                     hEmbeddingJerRelSystDist, hPointingResRelSystDist,
-    //                                     hMBPileupRelSystDist, hJet60PileupRelSystDist, hJet80PileupRelSystDist, hJet100PileupRelSystDist,
-    //                                     hMBTotalRelSystDist, hJet60TotalRelSystDist, hJet80TotalRelSystDist, hJet100TotalRelSystDist, 
-    //                                     date, isCM);
+    plotRelativeSystematicUncertainties(hMBJeuRelSystDist, hJet60JeuRelSystDist, hJet80JeuRelSystDist, hJet100JeuRelSystDist,
+                                        hEmbeddingJerRelSystDist, hPointingResRelSystDist,
+                                        hMBPileupRelSystDist, hJet60PileupRelSystDist, hJet80PileupRelSystDist, hJet100PileupRelSystDist,
+                                        hMBTotalRelSystDist, hJet60TotalRelSystDist, hJet80TotalRelSystDist, hJet100TotalRelSystDist, 
+                                        date, isCM);
 
-    plotJES(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist,
-            hJeuMBUpEtaDist, hJeuMBDownEtaDist,
-            hJeuJet60UpEtaDist, hJeuJet60DownEtaDist, 
-            hJeuJet80UpEtaDist, hJeuJet80DownEtaDist,
-            hJeuJet100UpEtaDist, hJeuJet100DownEtaDist, 
-            hMBEtaJeuUp2DefDist, hMBEtaJeuDown2DefDist,
-            hJet60EtaJeuUp2DefDist, hJet60EtaJeuDown2DefDist,
-            hJet80EtaJeuUp2DefDist, hJet80EtaJeuDown2DefDist,
-            hJet100EtaJeuUp2DefDist, hJet100EtaJeuDown2DefDist,
-            date, isCM, drawFits);
+    // plotJES(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist,
+    //         hJeuMBUpEtaDist, hJeuMBDownEtaDist,
+    //         hJeuJet60UpEtaDist, hJeuJet60DownEtaDist, 
+    //         hJeuJet80UpEtaDist, hJeuJet80DownEtaDist,
+    //         hJeuJet100UpEtaDist, hJeuJet100DownEtaDist, 
+    //         hMBEtaJeuUp2DefDist, hMBEtaJeuDown2DefDist,
+    //         hJet60EtaJeuUp2DefDist, hJet60EtaJeuDown2DefDist,
+    //         hJet80EtaJeuUp2DefDist, hJet80EtaJeuDown2DefDist,
+    //         hJet100EtaJeuUp2DefDist, hJet100EtaJeuDown2DefDist,
+    //         date, isCM, drawFits);
 
     // plotJER(hEmbeddingEtaDist, hJerUpEtaDist, hJerDownEtaDist, hEmbeddingJerUp2DefDist, hEmbeddingJerDown2DefDist,  date, isCM, drawFits);
 
@@ -7262,6 +5522,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
                                 hMBPileupRelSystDist, hJet60PileupRelSystDist, hJet80PileupRelSystDist, hJet100PileupRelSystDist,
                                 hMBTotalRelSystDist, hJet60TotalRelSystDist, hJet80TotalRelSystDist, hJet100TotalRelSystDist,
                                 hFinalDist, hFinalRelSystUncrtDist, hFinalAbsSystUncrtDist,
+                                hEpps21Dist, hNcteq15hqDist,
                                 date, isCM);
 
 }
@@ -7460,128 +5721,6 @@ void compareJER(TFile *embFile, TFile *jerDefFile, TFile *jerUpFile, TFile *jerD
 }
 
 //________________
-void runOldCalculations(Bool_t isCM = kFALSE) {
-
-    Bool_t drawFits{kTRUE};
-    TString cmStr;
-    if ( isCM ) {
-        cmStr = "_cmSel";
-    } 
-    else {
-        cmStr = "";
-    }
-
-    // Check the directory for storing figures exists
-    TDatime dt;
-    TString date { Form( "%d",dt.GetDate() ) };
-    if ( directoryExists( date.Data() ) ) {
-        //std::cout << "Directory exists." << std::endl;
-    } 
-    else {
-        createDirectory( date.Data() );
-    }
-
-    // Retrieve the base branch name to work on
-    // Int_t branchId{0};
-    // if ( defaultFileName.Contains("akCs4") ) {
-    //     branchId = {0};
-    // }
-    // else {
-    //     branchId = {1};
-    // }
-
-    Int_t trigVal{0}; // 0-MB, 1-Jet60, 2-Jet80, 3-Jet100
-
-    TString trigName;
-    if ( trigVal == 0 ) {
-        trigName = "MB";
-    }
-    else if ( trigVal == 1 ) {
-        trigName = "Jet60";
-    }
-    else if ( trigVal == 2 ) {
-        trigName = "Jet80";
-    }
-    else {
-        trigName = "Jet100";
-    }
-
-    TString pathPrefix = "/Users/nigmatkulov/cernbox";
-
-    // List of file names
-    TString defaultFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_ak4%s.root", pathPrefix.Data(), trigName.Data(), cmStr.Data()) );
-    TString pbGoingFileName( Form("%s/ana/pPb8160/exp/Pbgoing/def/%s_Pbgoing_pPb8160_ak4%s.root", pathPrefix.Data(), trigName.Data(), cmStr.Data()) );
-    TString pGoingFileName( Form("%s/ana/pPb8160/exp/pgoing/def/%s_pgoing_pPb8160_ak4%s.root", pathPrefix.Data(), trigName.Data(), cmStr.Data()) );
-
-    TString pbGoingEmbeddingFileName( Form("%s/ana/pPb8160/embedding/Pbgoing/jer/oEmbedding_pPb8160_Pbgoing_jerDef_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
-    TString pGoingEmbeddingFileName( Form("%s/ana/pPb8160/embedding/pgoing/jer/oEmbedding_pPb8160_pgoing_jerDef_ak4%s.root", pathPrefix.Data() , cmStr.Data()) );
-
-    TString akcs4FileName( Form("%s/ana/pPb8160/exp/MB_pPb8160_akCs4.root", pathPrefix.Data(), trigName.Data()) );
-
-    TString jeuUpFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_jeu_up_ak4%s.root", pathPrefix.Data(), trigName.Data(), cmStr.Data()) );
-    TString jeuDownFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_jeu_down_ak4%s.root", pathPrefix.Data(), trigName.Data(), cmStr.Data()) );
-    TString embeddingFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
-
-    // TString jerDefFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weight%s_ak4.root", pathPrefix.Data(), trigName.Data() ) );
-    // TString jerUpFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_weight%s_ak4.root", pathPrefix.Data(), trigName.Data() ) );
-    // TString jerDownFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDown_weight%s_ak4.root", pathPrefix.Data(), trigName.Data() ) );
-    TString jerDefFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
-    TString jerUpFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerUp_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
-    TString jerDownFileName( Form("%s/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDown_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
-
-    TString pileupGplusFileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_gplus_ak4%s.root", pathPrefix.Data(), trigName.Data(), cmStr.Data()) );
-    TString pileupVtx1FileName( Form("%s/ana/pPb8160/exp/%s_pPb8160_vtx1_ak4.root", pathPrefix.Data(), trigName.Data()) );
-
-    std::cout << "Default file: " << defaultFileName.Data() << std::endl;
-    std::cout << "PbGoing file: " << pbGoingFileName.Data() << std::endl;
-    std::cout << "PGoing file: " << pGoingFileName.Data() << std::endl;
-    std::cout << "JeuUp file: " << jeuUpFileName.Data() << std::endl;
-    std::cout << "JeuDown file: " << jeuDownFileName.Data() << std::endl;
-
-
-    // Files to work on
-    TFile *defaultFile = TFile::Open( defaultFileName.Data() );
-    TFile *pbGoingFile = TFile::Open( pbGoingFileName.Data() );
-    TFile *pGoingFile = TFile::Open( pGoingFileName.Data() );
-    TFile *akcs4File = TFile::Open( akcs4FileName.Data() );
-    TFile *jeuUpFile = TFile::Open( jeuUpFileName.Data() );
-    TFile *jeuDownFile = TFile::Open( jeuDownFileName.Data() );
-    TFile *embeddingFile = TFile::Open( embeddingFileName.Data() );
-    TFile *jerDefFile = TFile::Open( jerDefFileName.Data() );
-    TFile *jerUpFile = TFile::Open( jerUpFileName.Data() );
-    TFile *jerDownFile = TFile::Open( jerDownFileName.Data() );
-    TFile *pbGoingEmbeddingFile = TFile::Open( pbGoingEmbeddingFileName.Data() );
-    TFile *pGoingEmbeddingFile = TFile::Open( pGoingEmbeddingFileName.Data() );
-    TFile *gplusFile = TFile::Open( pileupGplusFileName.Data() );
-    TFile *vtx1File = TFile::Open( pileupVtx1FileName.Data() );
-
-    // Checks files are okay
-    if ( !checkFileIsGood( defaultFile ) ) return;
-    if ( !checkFileIsGood( pbGoingFile ) ) return;
-    if ( !checkFileIsGood( pGoingFile ) ) return;
-    if ( !checkFileIsGood( akcs4File ) ) return;
-    if ( !checkFileIsGood( jeuUpFile ) ) return;
-    if ( !checkFileIsGood( jeuDownFile ) ) return;
-    if ( !checkFileIsGood( embeddingFile ) ) return;
-    if ( !checkFileIsGood( jerDefFile ) ) return;
-    if ( !checkFileIsGood( jerUpFile ) ) return;
-    if ( !checkFileIsGood( jerDownFile ) ) return;
-    if ( !checkFileIsGood( gplusFile ) ) return;
-    if ( !checkFileIsGood( vtx1File ) ) return;
-
-
-    // plotDifferentDirections( pbGoingFile, pGoingFile, isCM, date );
-    // plotDifferentDirections( pbGoingEmbeddingFile, pGoingEmbeddingFile, date );
-    // compareData2McDifferentDirections(pbGoingFile, pGoingFile, pbGoingEmbeddingFile, pGoingEmbeddingFile, isCM, date, defaultFile);
-    // plotJEU( defaultFile, jeuUpFile, jeuDownFile, defaultFile, date, isCM, drawFits );
-    // plotJER(jerDefFile, jerUpFile, jerDownFile, date, isCM, drawFits);
-    // plotPointingResolution( jerDefFile, date, isCM, drawFits );
-    // plotPileup( defaultFile, gplusFile, vtx1File, date, isCM, drawFits );
-    // compareJetCollections( defaultFile, akcs4File, date );
-    // compareJER( embeddingFile, jerDefFile, jerUpFile, jerDownFile, date );
-}
-
-//________________
 void runNewCalculations(Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
 
     TString cmStr;
@@ -7650,6 +5789,10 @@ void runNewCalculations(Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
     TString jet100GplusFileName( Form("%s/ana/pPb8160/exp/Jet100_pPb8160_gplus_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
     TString jet100Vtx1FileName( Form("%s/ana/pPb8160/exp/Jet100_pPb8160_vtx1_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
 
+    // NLOJet++ file names
+    TString epps21FileName( Form("npdf/epps21_pPb8160.root") );
+    TString ncteq15hqFileName( Form("npdf/ncteq15hq_pPb8160.root") );
+
     //
     // Open files
     //
@@ -7694,6 +5837,10 @@ void runNewCalculations(Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
     TFile* jet80Vtx1File = TFile::Open( jet80Vtx1FileName.Data() );
     TFile* jet100GplusFile = TFile::Open( jet100GplusFileName.Data() );
     TFile* jet100Vtx1File = TFile::Open( jet100Vtx1FileName.Data() );
+
+    // NLOJet++
+    TFile* epps21File = TFile::Open( epps21FileName.Data() );
+    TFile* ncteq15hqFile = TFile::Open( ncteq15hqFileName.Data() );
 
     
     // Check that files exist
@@ -7740,6 +5887,10 @@ void runNewCalculations(Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
     if ( !checkFileIsGood( jet100GplusFile ) ) return;
     if ( !checkFileIsGood( jet100Vtx1File ) ) return;
 
+    // NLOJet++
+    if ( !checkFileIsGood( epps21File ) ) return;
+    if ( !checkFileIsGood( ncteq15hqFile ) ) return;
+
     retrieveDistributions(mbFile, mbPbGoingFile, mbPGoingFile, 
                           jet60File, jet60PbGoingFile, jet60PGoingFile,
                           jet80File, jet80PbGoingFile, jet80PGoingFile,
@@ -7753,7 +5904,8 @@ void runNewCalculations(Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
                           mbGplusFile, mbVtx1File,
                           jet60GplusFile, jet60Vtx1File,
                           jet80GplusFile, jet80Vtx1File,
-                          jet100GplusFile, jet100Vtx1File, 
+                          jet100GplusFile, jet100Vtx1File,
+                          epps21File, ncteq15hqFile,
                           date, isCM, drawFits);
 }
 
@@ -7766,11 +5918,11 @@ void systematics() {
     gStyle->SetPalette(kBird);
 
     // CMS or Lab frame
-    Bool_t isCM{kTRUE};
-    // Bool_t isCM{kFALSE};
+    // Bool_t isCM{kTRUE};
+    Bool_t isCM{kFALSE};
 
-    Bool_t drawFits{kTRUE};
-    //Bool_t drawFits{kFALSE};
+    // Bool_t drawFits{kTRUE};
+    Bool_t drawFits{kFALSE};
 
     // Run old calculations
     // runOldCalculations(isCM);

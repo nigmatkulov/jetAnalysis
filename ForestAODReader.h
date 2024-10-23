@@ -350,99 +350,99 @@ class ForestAODReader : public BaseReader {
     /// @brief Number of reconstructed jets
     Int_t   fNPFRecoJets;
     /// @brief Reconstructed jet transverse momentum (without JEC)
-    Float_t fPFRecoJetPt[100];
+    Float_t fPFRecoJetPt[10000];
     /// @brief Pseudorapidity of reconstructed jet
-    Float_t fPFRecoJetEta[100];
+    Float_t fPFRecoJetEta[10000];
     /// @brief Azimuthal angle of reconstructed jet
-    Float_t fPFRecoJetPhi[100];
+    Float_t fPFRecoJetPhi[10000];
     /// @brief WTA eta of reconstructed jet
-    Float_t fPFRecoJetWTAEta[100];
+    Float_t fPFRecoJetWTAEta[10000];
     /// @brief WTA phi of reconstructed jet
-    Float_t fPFRecoJetWTAPhi[100];
+    Float_t fPFRecoJetWTAPhi[10000];
     /// @brief Track with maximum pT in reconstructed jet
-    Float_t fPFRecoJetTrackMax[100];
+    Float_t fPFRecoJetTrackMax[10000];
 
-    Float_t fPFRecoJtPfNHF[100];
-    Float_t fPFRecoJtPfNEF[100];
-    Float_t fPFRecoJtPfCHF[100];
-    Float_t fPFRecoJtPfMUF[100];
-    Float_t fPFRecoJtPfCEF[100];
-    Int_t fPFRecoJtPfCHM[100];
-    Int_t fPFRecoJtPfCEM[100];
-    Int_t fPFRecoJtPfNHM[100];
-    Int_t fPFRecoJtPfNEM[100];
-    Int_t fPFRecoJtPfMUM[100];
+    Float_t fPFRecoJtPfNHF[10000];
+    Float_t fPFRecoJtPfNEF[10000];
+    Float_t fPFRecoJtPfCHF[10000];
+    Float_t fPFRecoJtPfMUF[10000];
+    Float_t fPFRecoJtPfCEF[10000];
+    Int_t fPFRecoJtPfCHM[10000];
+    Int_t fPFRecoJtPfCEM[10000];
+    Int_t fPFRecoJtPfNHM[10000];
+    Int_t fPFRecoJtPfNEM[10000];
+    Int_t fPFRecoJtPfMUM[10000];
 
     /// @brief Transverse momentum of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetPt[100];
+    Float_t fPFRefJetPt[10000];
     /// @brief /// @brief Pseudorapidity of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetEta[100];
+    Float_t fPFRefJetEta[10000];
     /// @brief Azimuthal angle of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetPhi[100];
+    Float_t fPFRefJetPhi[10000];
     /// @brief WTA eta of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetWTAEta[100];
+    Float_t fPFRefJetWTAEta[10000];
     /// @brief WTA phi of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetWTAPhi[100];
+    Float_t fPFRefJetWTAPhi[10000];
     /// @brief Parton flavor of generated jet that was matched with reconstructed jet
-    Int_t   fPFRefJetPartonFlavor[100];
+    Int_t   fPFRefJetPartonFlavor[10000];
     /// @brief Parton flavor for B of generated jet that was matched with reconstructed jet
-    Int_t   fPFRefJetPartonFlavorForB[100];
+    Int_t   fPFRefJetPartonFlavorForB[10000];
 
     /// @brief Number of generated jets
     Int_t   fNPFGenJets;
     /// @brief Generated jet transverse momentum
-    Float_t fPFGenJetPt[100];
+    Float_t fPFGenJetPt[10000];
     /// @brief Pseudorapidity of generated jet
-    Float_t fPFGenJetEta[100];
+    Float_t fPFGenJetEta[10000];
     /// @brief Azimuthal angle of generated jet
-    Float_t fPFGenJetPhi[100];
+    Float_t fPFGenJetPhi[10000];
     /// @brief WTA eta of generated jet
-    Float_t fPFGenJetWTAEta[100];
+    Float_t fPFGenJetWTAEta[10000];
     /// @brief WTA phi of generated jet
-    Float_t fPFGenJetWTAPhi[100];
+    Float_t fPFGenJetWTAPhi[10000];
 
     /// @brief Number of reconstructed jets
     Int_t   fNCaloRecoJets;
     /// @brief Reconstructed jet transverse momentum (without JEC)
-    Float_t fCaloRecoJetPt[100];
+    Float_t fCaloRecoJetPt[10000];
     /// @brief Pseudorapidity of reconstructed jet
-    Float_t fCaloRecoJetEta[100];
+    Float_t fCaloRecoJetEta[10000];
     /// @brief Azimuthal angle of reconstructed jet
-    Float_t fCaloRecoJetPhi[100];
+    Float_t fCaloRecoJetPhi[10000];
     /// @brief WTA eta of reconstructed jet
-    Float_t fCaloRecoJetWTAEta[100];
+    Float_t fCaloRecoJetWTAEta[10000];
     /// @brief WTA eta of reconstructed jet
-    Float_t fCaloRecoJetWTAPhi[100];
+    Float_t fCaloRecoJetWTAPhi[10000];
     /// @brief Track with maximum pT in reconstructed jet
-    Float_t fCaloRecoJetTrackMax[100];
+    Float_t fCaloRecoJetTrackMax[10000];
 
     /// @brief Transverse momentum of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetPt[100];
+    Float_t fCaloRefJetPt[10000];
     /// @brief /// @brief Pseudorapidity of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetEta[100];
+    Float_t fCaloRefJetEta[10000];
     /// @brief Azimuthal angle of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetPhi[100];
+    Float_t fCaloRefJetPhi[10000];
     /// @brief WTA eta of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetWTAEta[100];
+    Float_t fCaloRefJetWTAEta[10000];
     /// @brief WTA eta of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetWTAPhi[100];
+    Float_t fCaloRefJetWTAPhi[10000];
     /// @brief Parton flavor of generated jet that was matched with reconstructed jet
-    Int_t   fCaloRefJetPartonFlavor[100];
+    Int_t   fCaloRefJetPartonFlavor[10000];
     /// @brief Parton flavor for B of generated jet that was matched with reconstructed jet
-    Int_t   fCaloRefJetPartonFlavorForB[100];
+    Int_t   fCaloRefJetPartonFlavorForB[10000];
 
     /// @brief Number of generated jets
     Int_t   fNCaloGenJets;
     /// @brief Generated jet transverse momentum
-    Float_t fCaloGenJetPt[100];
+    Float_t fCaloGenJetPt[10000];
     /// @brief Pseudorapidity of generated jet
-    Float_t fCaloGenJetEta[100];
+    Float_t fCaloGenJetEta[10000];
     /// @brief Azimuthal angle of generated jet
-    Float_t fCaloGenJetPhi[100];
+    Float_t fCaloGenJetPhi[10000];
     /// @brief WTA eta of generated jet
-    Float_t fCaloGenJetWTAEta[100];
+    Float_t fCaloGenJetWTAEta[10000];
     /// @brief WTA phi of generated jet
-    Float_t fCaloGenJetWTAPhi[100];
+    Float_t fCaloGenJetWTAPhi[10000];
 
     //
     // Reconstructed tracks
@@ -451,41 +451,41 @@ class ForestAODReader : public BaseReader {
     /// @brief Number of tracks
     Int_t   fNTracks;
     /// @brief Track transverse momentum
-    Float_t fTrackPt[9999];
+    Float_t fTrackPt[20000];
     /// @brief Track pseudorapidity
-    Float_t fTrackEta[9999];
+    Float_t fTrackEta[20000];
     /// @brief Track azimuthal angle
-    Float_t fTrackPhi[9999];
+    Float_t fTrackPhi[20000];
     /// @brief Track pT error (uncertainty)
-    Float_t fTrackPtErr[9999];
+    Float_t fTrackPtErr[20000];
     /// @brief Track distance of closest approach in transverse plane (XY)
-    Float_t fTrackDcaXY[9999];
+    Float_t fTrackDcaXY[20000];
     /// @brief Track distance of closest approach in beam direction (z)
-    Float_t fTrackDcaZ[9999];
+    Float_t fTrackDcaZ[20000];
     /// @brief Track distance of closest approach error in transverse plane (XY)
-    Float_t fTrackDcaXYErr[9999];
+    Float_t fTrackDcaXYErr[20000];
     /// @brief Track distance of closest approach error in beam direction (z)
-    Float_t fTrackDcaZErr[9999];
+    Float_t fTrackDcaZErr[20000];
     /// @brief Track fitting (reconstruction) chi2
-    Float_t fTrackChi2[9999];
+    Float_t fTrackChi2[20000];
     /// @brief Track number of degrees of freedom in the fitting 
-    UChar_t fTrackNDOF[9999];    
+    UChar_t fTrackNDOF[20000];    
     /// @brief Particle flow energy deposited in ECAL from the given track
-    Float_t fTrackPartFlowEcal[9999];
+    Float_t fTrackPartFlowEcal[20000];
     /// @brief Particle flow energy deposited in HCAL from the given track
-    Float_t fTrackPartFlowHcal[9999];
+    Float_t fTrackPartFlowHcal[20000];
     /// @brief Track MVA for each step
-    Float_t fTrackMVA[9999];
+    Float_t fTrackMVA[20000];
     /// @brief Track algorithm/step
-    UChar_t fTrackAlgo[9999];
+    UChar_t fTrackAlgo[20000];
     /// @brief Track charge
-    Int_t   fTrackCharge[9999];
+    Int_t   fTrackCharge[20000];
     /// @brief Number of hits in the tracker
-    UChar_t fTrackNHits[9999];
+    UChar_t fTrackNHits[20000];
     /// @brief Number of layers with measurement in the tracker
-    UChar_t fTrackNLayers[9999];
+    UChar_t fTrackNLayers[20000];
     /// @brief Tracker steps MVA selection
-    Bool_t  fTrackHighPurity[9999];
+    Bool_t  fTrackHighPurity[20000];
 
     //
     // Monte Carlo tracks
