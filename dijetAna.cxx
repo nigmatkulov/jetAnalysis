@@ -194,12 +194,12 @@ int main(int argc, char const *argv[]) {
     analysis->setEtaShift( etaShift );
     analysis->setLeadJetPtLow( 50. );
     analysis->setSubLeadJetPtLow( 40. );
-    analysis->setDijetPhiCut( 5. * TMath::Pi() / 6 );
+    analysis->setDijetPhiCut( 2. * TMath::Pi() / 3 );
     if ( isMc ) {
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
     }
-    //analysis->selectJetsInCMFrame();
-    analysis->setVerbose();
+    analysis->selectJetsInCMFrame();
+    //analysis->setVerbose();
     
     // Initialize histogram manager
     HistoManagerDiJet *hm = new HistoManagerDiJet{};

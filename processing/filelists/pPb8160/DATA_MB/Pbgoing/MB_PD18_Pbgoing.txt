@@ -3035,7 +3035,6 @@
 /eos/cms/store/group/phys_heavyions/ddesouza/Jets_pPb/Data_withjetid/MBPD18/Pbgoing/HiForest_pPb_DATA_MB_Pbgoing_PD18_828.root
 /eos/cms/store/group/phys_heavyions/ddesouza/Jets_pPb/Data_withjetid/MBPD18/Pbgoing/HiForest_pPb_DATA_MB_Pbgoing_PD18_829.root
 /eos/cms/store/group/phys_heavyions/ddesouza/Jets_pPb/Data_withjetid/MBPD18/Pbgoing/HiForest_pPb_DATA_MB_Pbgoing_PD18_83.root
-/eos/cms/store/group/phys_heavyions/ddesouza/Jets_pPb/Data_withjetid/MBPD18/Pbgoing/HiForest_pPb_DATA_MB_Pbgoing_PD18_830.root
 /eos/cms/store/group/phys_heavyions/ddesouza/Jets_pPb/Data_withjetid/MBPD18/Pbgoing/HiForest_pPb_DATA_MB_Pbgoing_PD18_831.root
 /eos/cms/store/group/phys_heavyions/ddesouza/Jets_pPb/Data_withjetid/MBPD18/Pbgoing/HiForest_pPb_DATA_MB_Pbgoing_PD18_832.root
 /eos/cms/store/group/phys_heavyions/ddesouza/Jets_pPb/Data_withjetid/MBPD18/Pbgoing/HiForest_pPb_DATA_MB_Pbgoing_PD18_833.root
