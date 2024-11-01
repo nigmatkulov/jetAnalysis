@@ -22,10 +22,9 @@
 Event::Event() : TObject(), fRunId{0}, fEventId{0}, fLumi{0},
                  fVx{0}, fVy{0}, fVz{0}, fHiBin{-1}, fCentralityWeight{1.}, 
                  fPtHat{-1}, fPtHatWeight{-1}, 
-                 fNBadPFJets{0},  fNBadCaloJets{0}, fMult{0},
+                 fNBadRecoJets{0},  fMult{0},
                  fGenJetsCollectionIsFilled{kFALSE} {
-    fPFJetCollection = new PartFlowJetCollection{};
-    fCaloJetCollection = new CaloJetCollection{};
+    fRecoJetCollection = new RecoJetCollection{};
     fGenJetCollection = new GenJetCollection{};
     fTrackCollection = new TrackCollection{};
     fGenTrackCollection = new GenTrackCollection{};
@@ -36,17 +35,15 @@ Event::Event() : TObject(), fRunId{0}, fEventId{0}, fLumi{0},
 Event::Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
              const Float_t& vx, const Float_t& vy, const Float_t& vz, 
              const Int_t& hiBin, const Float_t& centW, const Float_t& ptHat, 
-             const Float_t& w, const Int_t& nBadPFJets, 
-             const Int_t& nBadCaloJets, const Int_t& mult) : TObject(),
+             const Float_t& w, const Int_t& nBadRecoJets, const Int_t& mult) : TObject(),
     fRunId{runId}, fEventId{eventId}, fLumi{lumi}, 
     fVx{vx}, fVy{vy}, fVz{vz},
     fHiBin{(Short_t)hiBin}, fCentralityWeight{centW}, fPtHat{ptHat}, fPtHatWeight{w}, 
-    fNBadPFJets{(UChar_t)nBadPFJets}, fNBadCaloJets{(UChar_t)nBadCaloJets},
+    fNBadRecoJets{(UChar_t)nBadRecoJets},
     fMult{(UShort_t)mult}, fGenJetsCollectionIsFilled{kFALSE} {
     
     // Create new collections 
-    fPFJetCollection = new PartFlowJetCollection{};
-    fCaloJetCollection = new CaloJetCollection{};
+    fRecoJetCollection = new RecoJetCollection{};
     fGenJetCollection = new GenJetCollection{};
     fTrackCollection = new TrackCollection{};
     fGenTrackCollection = new GenTrackCollection{};
@@ -56,13 +53,8 @@ Event::Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi,
 //________________
 Event::~Event() {
     // Clean collection of particle jets
-    for (PartFlowJetIterator iter=fPFJetCollection->begin();
-         iter!=fPFJetCollection->end(); iter++) {
-        delete *iter;
-    }
-    // Clean collection of calorimeter jets
-    for (CaloJetIterator iter=fCaloJetCollection->begin();
-         iter!=fCaloJetCollection->end(); iter++) {
+    for (RecoJetIterator iter=fRecoJetCollection->begin();
+         iter!=fRecoJetCollection->end(); iter++) {
         delete *iter;
     }
     // Clean collection of generated jets

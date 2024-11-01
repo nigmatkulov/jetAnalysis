@@ -49,23 +49,23 @@ void JetESRAnalysis::processEvent(const Event* event) {
 
     Int_t leadJetIndex{-1}, currentIndex{0};
     Double_t leadJetPt{-1};
-    PartFlowJetIterator pfJetIter;
+    RecoJetIterator recoJetIter;
 
     //
     // Searching for leading jet that also should have gen jet
     //
 
-    for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ ) {
-        Double_t pt = (*pfJetIter)->ptJECCorr();
+    for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
+        Double_t pt = (*recoJetIter)->ptJECCorr();
         if ( pt > leadJetPt ) {
             leadJetIndex = currentIndex;
             leadJetPt = pt;
         }
         currentIndex++;
-    } // for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ )
+    } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
 
     if ( leadJetIndex >= 0 ) {
-        RecoJet *jet = event->pfJetCollection()->at( leadJetIndex );
+        RecoJet *jet = event->recoJetCollection()->at( leadJetIndex );
         //std::cout << "Read leading jet info" << std::endl;
         if ( TMath::Abs( jet->eta() ) > 1.6 ||
              !jet->hasMatching() ) {
@@ -107,11 +107,11 @@ void JetESRAnalysis::processEvent(const Event* event) {
     fHM->hPtHatWeight->Fill( ptHatW, centW );
 
     // Number of overscaled jets
-    fHM->hNBadJets[0]->Fill( event->numberOfOverscaledPFJets() );
-    if ( ptHat > 20 ) fHM->hNBadJets[1]->Fill( event->numberOfOverscaledPFJets() );
-    if ( ptHat > 40 ) fHM->hNBadJets[2]->Fill( event->numberOfOverscaledPFJets() );
-    if ( ptHat > 60 ) fHM->hNBadJets[3]->Fill( event->numberOfOverscaledPFJets() );
-    if ( ptHat > 80 ) fHM->hNBadJets[4]->Fill( event->numberOfOverscaledPFJets() );
+    fHM->hNBadJets[0]->Fill( event->numberOfOverscaledRecoJets() );
+    if ( ptHat > 20 ) fHM->hNBadJets[1]->Fill( event->numberOfOverscaledRecoJets() );
+    if ( ptHat > 40 ) fHM->hNBadJets[2]->Fill( event->numberOfOverscaledRecoJets() );
+    if ( ptHat > 60 ) fHM->hNBadJets[3]->Fill( event->numberOfOverscaledRecoJets() );
+    if ( ptHat > 80 ) fHM->hNBadJets[4]->Fill( event->numberOfOverscaledRecoJets() );
 
     //std::cout << "HiBin: " << event->hiBin() << " centrality: " << centrality << std::endl;
 
@@ -202,17 +202,17 @@ void JetESRAnalysis::processEvent(const Event* event) {
     currentIndex = {0}; 
 
     // Loop over reconstructed particle flow jets
-    for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ ) {
+    for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
         // For speed up purpose here
-        // if ( !(*pfJetIter)->hasMatching() ) continue;
+        // if ( !(*recoJetIter)->hasMatching() ) continue;
 
         // Reco jets
-        Double_t eta = (*pfJetIter)->eta();
-        Double_t phi = (*pfJetIter)->phi();
-        Double_t ptRaw = (*pfJetIter)->pt();
-        Double_t WTAeta = (*pfJetIter)->WTAEta();
-        Double_t WTAphi = (*pfJetIter)->WTAPhi();
+        Double_t eta = (*recoJetIter)->eta();
+        Double_t phi = (*recoJetIter)->phi();
+        Double_t ptRaw = (*recoJetIter)->pt();
+        Double_t WTAeta = (*recoJetIter)->WTAEta();
+        Double_t WTAphi = (*recoJetIter)->WTAPhi();
         Double_t dphi = TVector2::Phi_mpi_pi(phi - WTAphi);
         Double_t deltaR = TMath::Sqrt( (eta - WTAeta) * (eta - WTAeta) +
                                         dphi * dphi );
@@ -221,7 +221,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
         fHM->hRecoJetRawPtEtaPhiCent->Fill( recoJetRawPtEtaPhiCent, centW );
 
         // Corrected momentum of the reconstructed jet
-        Double_t pt = (*pfJetIter)->ptJECCorr();
+        Double_t pt = (*recoJetIter)->ptJECCorr();
         nRecoJets[0]++;
         if ( pt > 20 ) nRecoJets[1]++;
         if ( pt > 50 ) nRecoJets[2]++;
@@ -232,7 +232,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
         fHM->hRecoJetDeltaRPtCent->Fill( deltaRPtCent, centW );
 
         Double_t flavB{-6};
-        if ( !(*pfJetIter)->hasMatching() ) {
+        if ( !(*recoJetIter)->hasMatching() ) {
             Double_t tmp[4] {pt, -6., ptHat, centrality };
             fHM->hRecoJetPtFlavPtHatCentInclusive->Fill( tmp, centW );
             fHM->hRecoJetPtFlavPtHatCentInclusiveWeighted->Fill( tmp, ptHatW * centW );
@@ -241,10 +241,10 @@ void JetESRAnalysis::processEvent(const Event* event) {
         }
 
         // For the JES and other histograms matching is important
-        if ( !(*pfJetIter)->hasMatching() ) continue;
+        if ( !(*recoJetIter)->hasMatching() ) continue;
 
         // Retrieve matched gen jet
-        GenJet *matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
+        GenJet *matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
 
         Double_t genPt = matchedJet->pt();
         nRefJets[0]++;
@@ -346,7 +346,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
         fHM->hJESPtFlavPtHatCentWeighted->Fill( jesPtFlavPtHatCent, ptHatW );
 
         currentIndex++;
-    } // for ( pfJetIter = event->pfJetCollection()->begin();
+    } // for ( recoJetIter = event->recoJetCollection()->begin();
 
     //std::cout << "-------------------" << std::endl;
     for (Int_t i{0}; i<5; i++) {

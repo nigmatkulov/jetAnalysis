@@ -42,7 +42,7 @@ int main(int argc, char const *argv[]) {
     Int_t   collEnergyGeV{5020};
     TString collSystem{};
     Int_t   collYear{2018};
-    TString pfBranchName{};
+    TString recoJetBranchName{};
     TString oFileName{};
     TString JECFileName;
     //TString path2JEC = "/Users/gnigmat/work/cms/soft/jetAnalysis";
@@ -51,7 +51,7 @@ int main(int argc, char const *argv[]) {
         inFileName = "../../../data/HiForestAOD_PbPb_sim.list";
         //inFileName = "../../../data/HiForestAOD_PbPb_exp.list";
         collSystem = "PbPb";
-        pfBranchName = "akCs4PFJetAnalyzer";
+        recoJetBranchName = "akCs4PFJetAnalyzer";
         oFileName = "oTestReadForest_PbPb.root";
         JECFileName = "Autumn18_HI_V8_MC_L2Relative_AK4PF.txt";
     }
@@ -59,7 +59,7 @@ int main(int argc, char const *argv[]) {
         //inFileName = "../../../data/pp/HiForestAOD_1113.root";
         inFileName = "../../../data/HiForestAOD_pp.list";
         collSystem = "pp";
-        pfBranchName = "ak4PFJetAnalyzer";
+        recoJetBranchName = "ak4PFJetAnalyzer";
         oFileName = "oTestReadForest_pp.root";
         JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
     }
@@ -127,9 +127,8 @@ int main(int argc, char const *argv[]) {
     }
     reader->useHltBranch();
     reader->useSkimmingBranch();
-    reader->usePartFlowJetBranch();
-    reader->setPartFlowJetBranchName( pfBranchName.Data() );
-    //reader->useCaloJetBranch();
+    reader->useRecoJetBranch();
+    reader->setRecoJetBranchName( recoJetBranchName.Data() );
     reader->setCollidingSystem( collSystem.Data() );
     reader->setCollidingEnergy( collEnergyGeV ) ;
     reader->setYearOfDataTaking( collYear );

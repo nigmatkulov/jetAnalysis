@@ -40,7 +40,7 @@ class ForestAODReader : public BaseReader {
     /// @param inputStream Input file (.root) or list of ROOT files that contain CMS ForestAOD
     ForestAODReader(const Char_t* inputStream, 
                     const Bool_t& useHltBranch = kTRUE, const Bool_t& useSkimmingBranch = kTRUE, 
-                    const Bool_t& usePFJetBranch = kTRUE, const Bool_t& useCaloJetBranch = kFALSE, 
+                    const Bool_t& useRecoJetBranch = kTRUE, 
                     const Bool_t& useTrackBranch = kFALSE, const Bool_t& useGenTrackBranch = kFALSE, 
                     const Bool_t& isMc = kFALSE );
     /// @brief Destructor
@@ -60,14 +60,10 @@ class ForestAODReader : public BaseReader {
 
     void useSkimmingBranch()    { fUseSkimmingBranch = {kTRUE}; }
     /// Turn-on particle flow branch to be read
-    void usePartFlowJetBranch() { fUsePartFlowJetBranch = {kTRUE}; }
+    void useRecoJetBranch() { fUseRecoJetBranch = {kTRUE}; }
     /// @brief Set particle flow jet branch name
-    void setPartFlowJetBranchName(const Char_t *name = "akCs4PFJetAnalyzer") { fPFTreeName = name; }
-    /// Turn-on calorimeter jet branch to be read
-    void useCaloJetBranch()     { fUseCaloJetBranch = {kTRUE}; }
-    /// @brief Set calorimeter jet branch name
-    void setCaloJetBranchName(const Char_t *name = "akPu4CaloJetAnalyzer") { fCaloTreeName = name; }
-    /// Turn-on calorimeter jet branch to be read
+    void setRecoJetBranchName(const Char_t *name = "akCs4PFJetAnalyzer") { fRecoJetTreeName = name; }
+    /// Turn-on track branch to be read
     void useTrackBranch()       { fUseTrackBranch = {kTRUE}; }
 
     /// @brief Set colliding system
@@ -118,7 +114,7 @@ class ForestAODReader : public BaseReader {
     void createExtraJECScaleCorrFunction();
 
     /// Setup input all input
-    void setupInput(TString input, TChain *hltChain, TChain *eveChain, TChain *partFlowChain, 
+    void setupInput(TString input, TChain *hltChain, TChain *eveChain, TChain *jetChain, 
                     TChain *trkChain, Bool_t useMC, TChain *genTrkChain);
     /// Setup chains to be filled
     Int_t setupChains();
@@ -224,9 +220,7 @@ class ForestAODReader : public BaseReader {
     Bool_t fUseSkimmingBranch;
 
     /// @brief Switch particle flow jet branch ON
-    Bool_t fUsePartFlowJetBranch;
-    /// @brief Switch calorimeter-reconstructed jet branch ON
-    Bool_t fUseCaloJetBranch;
+    Bool_t fUseRecoJetBranch;
     /// @brief Switch track branch ON
     Bool_t fUseTrackBranch;
     /// @brief Switch MC track branch ON
@@ -238,19 +232,15 @@ class ForestAODReader : public BaseReader {
     TChain *fSkimTree;
     /// @brief Chain containing event information
     TChain *fEventTree;
-    /// @brief Chain containing jets from calorimeters
-    TChain *fCaloJetTree;
     /// @brief Chain containing particle flow jets
-    TChain *fPartFlowJetTree;
+    TChain *fRecoJetTree;
     /// @brief Chain containing tracks
     TChain *fTrkTree;
     /// @brief Chain containing Monte Carlo tracks
     TChain *fGenTrkTree;
 
-    /// @brief Name of the particle flow tree (e.g. akCs4PFJetAnalyzer for PbPb or ak4PFJetAnalyzer for pp)
-    TString fPFTreeName;
-    /// @brief Name of the particle flow tree (e.g. akPu4CaloJetAnalyzer for PbPb)
-    TString fCaloTreeName;
+    /// @brief Name of the reconstructed jet tree (e.g. akCs4PFJetAnalyzer for PbPb or ak4PFJetAnalyzer for pp)
+    TString fRecoJetTreeName;
 
     //
     // Variables to store information from TTree
@@ -348,101 +338,58 @@ class ForestAODReader : public BaseReader {
     //
 
     /// @brief Number of reconstructed jets
-    Int_t   fNPFRecoJets;
+    Int_t   fNRecoJets;
     /// @brief Reconstructed jet transverse momentum (without JEC)
-    Float_t fPFRecoJetPt[10000];
+    Float_t fRecoJetPt[10000];
     /// @brief Pseudorapidity of reconstructed jet
-    Float_t fPFRecoJetEta[10000];
+    Float_t fRecoJetEta[10000];
     /// @brief Azimuthal angle of reconstructed jet
-    Float_t fPFRecoJetPhi[10000];
+    Float_t fRecoJetPhi[10000];
     /// @brief WTA eta of reconstructed jet
-    Float_t fPFRecoJetWTAEta[10000];
+    Float_t fRecoJetWTAEta[10000];
     /// @brief WTA phi of reconstructed jet
-    Float_t fPFRecoJetWTAPhi[10000];
+    Float_t fRecoJetWTAPhi[10000];
     /// @brief Track with maximum pT in reconstructed jet
-    Float_t fPFRecoJetTrackMax[10000];
+    Float_t fRecoJetTrackMax[10000];
 
-    Float_t fPFRecoJtPfNHF[10000];
-    Float_t fPFRecoJtPfNEF[10000];
-    Float_t fPFRecoJtPfCHF[10000];
-    Float_t fPFRecoJtPfMUF[10000];
-    Float_t fPFRecoJtPfCEF[10000];
-    Int_t fPFRecoJtPfCHM[10000];
-    Int_t fPFRecoJtPfCEM[10000];
-    Int_t fPFRecoJtPfNHM[10000];
-    Int_t fPFRecoJtPfNEM[10000];
-    Int_t fPFRecoJtPfMUM[10000];
+    Float_t fRecoJtPfNHF[10000];
+    Float_t fRecoJtPfNEF[10000];
+    Float_t fRecoJtPfCHF[10000];
+    Float_t fRecoJtPfMUF[10000];
+    Float_t fRecoJtPfCEF[10000];
+    Int_t fRecoJtPfCHM[10000];
+    Int_t fRecoJtPfCEM[10000];
+    Int_t fRecoJtPfNHM[10000];
+    Int_t fRecoJtPfNEM[10000];
+    Int_t fRecoJtPfMUM[10000];
 
     /// @brief Transverse momentum of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetPt[10000];
+    Float_t fRefJetPt[10000];
     /// @brief /// @brief Pseudorapidity of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetEta[10000];
+    Float_t fRefJetEta[10000];
     /// @brief Azimuthal angle of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetPhi[10000];
+    Float_t fRefJetPhi[10000];
     /// @brief WTA eta of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetWTAEta[10000];
+    Float_t fRefJetWTAEta[10000];
     /// @brief WTA phi of generated jet that was matched with reconstructed jet
-    Float_t fPFRefJetWTAPhi[10000];
+    Float_t fRefJetWTAPhi[10000];
     /// @brief Parton flavor of generated jet that was matched with reconstructed jet
-    Int_t   fPFRefJetPartonFlavor[10000];
+    Int_t   fRefJetPartonFlavor[10000];
     /// @brief Parton flavor for B of generated jet that was matched with reconstructed jet
-    Int_t   fPFRefJetPartonFlavorForB[10000];
+    Int_t   fRefJetPartonFlavorForB[10000];
 
     /// @brief Number of generated jets
-    Int_t   fNPFGenJets;
+    Int_t   fNGenJets;
     /// @brief Generated jet transverse momentum
-    Float_t fPFGenJetPt[10000];
+    Float_t fGenJetPt[10000];
     /// @brief Pseudorapidity of generated jet
-    Float_t fPFGenJetEta[10000];
+    Float_t fGenJetEta[10000];
     /// @brief Azimuthal angle of generated jet
-    Float_t fPFGenJetPhi[10000];
+    Float_t fGenJetPhi[10000];
     /// @brief WTA eta of generated jet
-    Float_t fPFGenJetWTAEta[10000];
+    Float_t fGenJetWTAEta[10000];
     /// @brief WTA phi of generated jet
-    Float_t fPFGenJetWTAPhi[10000];
-
-    /// @brief Number of reconstructed jets
-    Int_t   fNCaloRecoJets;
-    /// @brief Reconstructed jet transverse momentum (without JEC)
-    Float_t fCaloRecoJetPt[10000];
-    /// @brief Pseudorapidity of reconstructed jet
-    Float_t fCaloRecoJetEta[10000];
-    /// @brief Azimuthal angle of reconstructed jet
-    Float_t fCaloRecoJetPhi[10000];
-    /// @brief WTA eta of reconstructed jet
-    Float_t fCaloRecoJetWTAEta[10000];
-    /// @brief WTA eta of reconstructed jet
-    Float_t fCaloRecoJetWTAPhi[10000];
-    /// @brief Track with maximum pT in reconstructed jet
-    Float_t fCaloRecoJetTrackMax[10000];
-
-    /// @brief Transverse momentum of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetPt[10000];
-    /// @brief /// @brief Pseudorapidity of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetEta[10000];
-    /// @brief Azimuthal angle of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetPhi[10000];
-    /// @brief WTA eta of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetWTAEta[10000];
-    /// @brief WTA eta of generated jet that was matched with reconstructed jet
-    Float_t fCaloRefJetWTAPhi[10000];
-    /// @brief Parton flavor of generated jet that was matched with reconstructed jet
-    Int_t   fCaloRefJetPartonFlavor[10000];
-    /// @brief Parton flavor for B of generated jet that was matched with reconstructed jet
-    Int_t   fCaloRefJetPartonFlavorForB[10000];
-
-    /// @brief Number of generated jets
-    Int_t   fNCaloGenJets;
-    /// @brief Generated jet transverse momentum
-    Float_t fCaloGenJetPt[10000];
-    /// @brief Pseudorapidity of generated jet
-    Float_t fCaloGenJetEta[10000];
-    /// @brief Azimuthal angle of generated jet
-    Float_t fCaloGenJetPhi[10000];
-    /// @brief WTA eta of generated jet
-    Float_t fCaloGenJetWTAEta[10000];
-    /// @brief WTA phi of generated jet
-    Float_t fCaloGenJetWTAPhi[10000];
+    Float_t fGenJetWTAPhi[10000];
 
     //
     // Reconstructed tracks
@@ -534,17 +481,11 @@ class ForestAODReader : public BaseReader {
 
     /// @brief Vector that contains indices of generated jets that matched to the reconsructed 
     /// particle flow jet (should be of the reco/red size)
-    std::vector<Int_t> fRecoPFJet2GenJetId;
+    std::vector<Int_t> fRecoJet2GenJetId;
     /// @brief Vector that contains indices of the reconstructed particle flow jets that 
     /// macthed to generated jet
-    std::vector<Int_t> fGenJet2RecoPFJet;
+    std::vector<Int_t> fGenJet2RecoJet;
 
-    /// @brief Vector that contains indices of generated jets that matched to the reconsructed 
-    /// calorimeter jet (should be of the reco/red size)
-    std::vector<Int_t> fRecoCaloJet2GenJetId;
-    /// @brief Vector that contains indices of the reconstructed calorimeter jets that 
-    /// macthed to generated jet
-    std::vector<Int_t> fGenJet2RecoCaloJet;
     /// @brief Use extra correction for JEC (for 8160 pPb year 2016 ak4pf is default. extra needed for ak4cs)
     Bool_t  fUseExtraJEC;
     /// @brief JEC extra correction

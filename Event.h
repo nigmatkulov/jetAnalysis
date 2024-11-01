@@ -26,8 +26,7 @@ class Event : public TObject {
     Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
           const Float_t& vx, const Float_t& vy, const Float_t& vz, 
           const Int_t& hiBin, const Float_t& centW, const Float_t& ptHat, 
-          const Float_t& w, const Int_t& nBadPFJets, 
-          const Int_t& nBadCaloJets, const Int_t& mult);
+          const Float_t& w, const Int_t& nBadRecoJets, const Int_t& mult);
     /// @brief Destructor
     virtual ~Event();
 
@@ -58,9 +57,7 @@ class Event : public TObject {
     /// @brief Set event weight
     void setPtHatWeight(const Float_t& w) { fPtHatWeight = w; }
     /// @brief Set number of particle flow jets with pT > pThat
-    void setNumberOfOverscaledPFJets(const Int_t& n) { fNBadPFJets = (UChar_t)n; }
-    /// @brief Set number of calorimeter jets with pT > pThat
-    void setNumberOfOverscaledCaloJets(const Int_t& n) { fNBadCaloJets = (UChar_t)n; }
+    void setNumberOfOverscaledRecoJets(const Int_t& n) { fNBadRecoJets = (UChar_t)n; }
     /// @brief Set reference multiplicity (CMS way)
     void setMultiplicity(const Int_t& mult) { fMult = (UShort_t)mult; }
     /// @brief Set the flag that generated jet collection is filled to true
@@ -91,17 +88,13 @@ class Event : public TObject {
     /// @brief Return event weight 
     Float_t ptHatWeight() const    { return fPtHatWeight; }
     /// @brief Return number of particle flow jets in even with pT > pThat 
-    Int_t numberOfOverscaledPFJets() const { return (Int_t)fNBadPFJets; }
-    /// @brief Return number of calorimeter jets in even with pT > pThat 
-    Int_t numberOfOverscaledCaloJets() const { return (Int_t)fNBadCaloJets; }
+    Int_t numberOfOverscaledRecoJets() const { return (Int_t)fNBadRecoJets; }
     /// @brief Return reference multiplicity (CMS way) 
     Int_t multiplicity() const { return (Int_t)fMult; }
     /// @brief Return if generated jet collection filled 
     Bool_t isGenJetCollectionFilled() const { return fGenJetsCollectionIsFilled; }
     /// @brief Return number of particle flow jets 
-    UInt_t numberOfPFJets() const   { return this->pfJetCollection()->size(); }
-    /// @brief Return number of calorimeter jets 
-    UInt_t numberOfCaloJets() const { return this->caloJetCollection()->size(); }
+    UInt_t numberOfRecoJets() const   { return this->recoJetCollection()->size(); }
     /// @brief Return number of generated jets 
     UInt_t numberOfGenJets() const  { return this->genJetCollection()->size(); }
 
@@ -110,9 +103,7 @@ class Event : public TObject {
     /// @brief Return pointer to a collection of MC tracks 
     GenTrackCollection *genTrackCollection() const { return fGenTrackCollection; }
     /// @brief Return pointer to a collection of particle flow jets 
-    PartFlowJetCollection *pfJetCollection() const { return fPFJetCollection; }
-    /// @brief Return pointer to a collection of calorimeter jets 
-    CaloJetCollection *caloJetCollection() const { return fCaloJetCollection; }
+    RecoJetCollection *recoJetCollection() const { return fRecoJetCollection; }
     /// @brief Return pointer to a collection of generated jets 
     GenJetCollection *genJetCollection() const { return fGenJetCollection; }
     /// @brief Return pointer to a trigger and skimming information 
@@ -140,18 +131,14 @@ class Event : public TObject {
     /// @brief Event weight scaling
     Float_t   fPtHatWeight;
     /// @brief Number of particle flow jets with pT > pThat
-    UChar_t   fNBadPFJets;
-    /// @brief Number of calorimeter jets with pT > pThat
-    UChar_t   fNBadCaloJets;
+    UChar_t   fNBadRecoJets;
     /// @brief Reference charged track multiplicity (CMS way)
     UShort_t  fMult;
     /// @brief Check if collection of generated jets is filled
     Bool_t    fGenJetsCollectionIsFilled;
 
     /// @brief Particle flow jet collection
-    PartFlowJetCollection *fPFJetCollection;
-    /// @brief Calorimeter jet collection
-    CaloJetCollection *fCaloJetCollection;
+    RecoJetCollection *fRecoJetCollection;
     /// @brief Generated jet collection
     GenJetCollection *fGenJetCollection;
 

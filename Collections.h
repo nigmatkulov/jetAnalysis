@@ -26,13 +26,9 @@
 typedef std::vector<BaseAnalysis*> AnalysisCollection;
 typedef std::vector<BaseAnalysis*>::iterator AnalysisIterator;
 
-// Particle flow jet collection
-typedef std::vector<RecoJet*> PartFlowJetCollection;
-typedef std::vector<RecoJet*>::iterator PartFlowJetIterator;
-
-// Calorimeter jet collection
-typedef std::vector<RecoJet*> CaloJetCollection;
-typedef std::vector<RecoJet*>::iterator CaloJetIterator;
+// Reconstructed jet collection
+typedef std::vector<RecoJet*> RecoJetCollection;
+typedef std::vector<RecoJet*>::iterator RecoJetIterator;
 
 // Generated jet collection
 typedef std::vector<GenJet*> GenJetCollection;
