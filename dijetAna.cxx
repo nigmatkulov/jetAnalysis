@@ -33,8 +33,8 @@ int main(int argc, char const *argv[]) {
     Int_t   collEnergyGeV{8160};
     TString collSystem{"pPb"};
     Int_t   collYear{2016};
-    //TString pfBranchName{"akCs4PFJetAnalyzer"};
-    TString pfBranchName{"ak4PFJetAnalyzer"};
+    //TString recoJetBranchName{"akCs4PFJetAnalyzer"};
+    TString recoJetBranchName{"ak4PFJetAnalyzer"};
     TString oFileName{};
     TString JECFileName;
     TString JECFileDataName;
@@ -146,10 +146,10 @@ int main(int argc, char const *argv[]) {
     }
     reader->useHltBranch();
     reader->useSkimmingBranch();
-    reader->usePartFlowJetBranch();
-    reader->setPartFlowJetBranchName( pfBranchName.Data() );
+    reader->useRecoJetBranch();
+    reader->setRecoJetBranchName( recoJetBranchName.Data() );
 
-    if ( pfBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
+    if ( recoJetBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
         std::cout << "Extra correction will be used for JEC" << std::endl;
         reader->useExtraJECCorr();
     }

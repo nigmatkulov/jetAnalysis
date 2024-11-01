@@ -885,23 +885,23 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     Int_t  idRecoLead{-1}, idRecoSubLead{-1}, idRecoLeadJetId{-1}, idRecoSubLeadJetId{-1};
 
     // Loop over reconstructed jets
-    PartFlowJetIterator pfJetIter;
+    RecoJetIterator recoJetIter;
     Int_t counter{0};
-    for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ ) {
+    for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
-        Double_t pt = (*pfJetIter)->ptJECCorr();
-        Double_t eta = (*pfJetIter)->eta();
-        Double_t phi = (*pfJetIter)->phi();
-        Double_t ptRaw = (*pfJetIter)->pt();
+        Double_t pt = (*recoJetIter)->ptJECCorr();
+        Double_t eta = (*recoJetIter)->eta();
+        Double_t phi = (*recoJetIter)->phi();
+        Double_t ptRaw = (*recoJetIter)->pt();
 
         if ( fVerbose ) {
             std::cout << "Reco jet #" << counter << " ";
-            (*pfJetIter)->print();
+            (*recoJetIter)->print();
         }
 
         // JetId parameters
-        int chargedMult = (*pfJetIter)->jtPfCHM() + (*pfJetIter)->jtPfCEM() + (*pfJetIter)->jtPfMUM();
-        int neutralMult = (*pfJetIter)->jtPfNHM() + (*pfJetIter)->jtPfNEM();
+        int chargedMult = (*recoJetIter)->jtPfCHM() + (*recoJetIter)->jtPfCEM() + (*recoJetIter)->jtPfMUM();
+        int neutralMult = (*recoJetIter)->jtPfNHM() + (*recoJetIter)->jtPfNEM();
         int numberOfConstituents = chargedMult + neutralMult;
 
         Int_t dummyIter{0};
@@ -916,13 +916,13 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         fHM->hRecoInclusiveJetPtVsEtaKineCut->Fill(eta, pt, ptHatW);
 
         // JetId histograms
-        fHM->hNHF[dummyIter]->Fill( (*pfJetIter)->jtPfNHF(), ptHatW );
-        fHM->hNEmF[dummyIter]->Fill( (*pfJetIter)->jtPfNEF(), ptHatW );
+        fHM->hNHF[dummyIter]->Fill( (*recoJetIter)->jtPfNHF(), ptHatW );
+        fHM->hNEmF[dummyIter]->Fill( (*recoJetIter)->jtPfNEF(), ptHatW );
         fHM->hNumOfConst[dummyIter]->Fill( numberOfConstituents, ptHatW );
-        fHM->hMUF[dummyIter]->Fill( (*pfJetIter)->jtPfMUF(), ptHatW );
-        fHM->hCHF[dummyIter]->Fill( (*pfJetIter)->jtPfCHF(), ptHatW );
+        fHM->hMUF[dummyIter]->Fill( (*recoJetIter)->jtPfMUF(), ptHatW );
+        fHM->hCHF[dummyIter]->Fill( (*recoJetIter)->jtPfCHF(), ptHatW );
         fHM->hChargedMult[dummyIter]->Fill( chargedMult, ptHatW );
-        fHM->hCEmF[dummyIter]->Fill( (*pfJetIter)->jtPfCEF(), ptHatW );
+        fHM->hCEmF[dummyIter]->Fill( (*recoJetIter)->jtPfCEF(), ptHatW );
         fHM->hNumOfNeutPart[dummyIter]->Fill( neutralMult, ptHatW );
 
         // Local variables for the current jet analysis
@@ -939,14 +939,14 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
         Double_t res[4] { JES, genPt, genEta, genPhi };
 
         // Check selection criteria
-        passTrkMax = isGoodTrkMax( (*pfJetIter) );
-        passJetId = isGoodJetId( (*pfJetIter) );
+        passTrkMax = isGoodTrkMax( (*recoJetIter) );
+        passJetId = isGoodJetId( (*recoJetIter) );
 
         // On MC check reco jet matching to gen
         if ( fIsMc ) {
-            hasMatching = (*pfJetIter)->hasMatching();
+            hasMatching = (*recoJetIter)->hasMatching();
             if ( hasMatching ) {
-                matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
+                matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
                 genPt = matchedJet->pt();
                 genEta = matchedJet->eta();
                 genPhi = matchedJet->phi();
@@ -1158,7 +1158,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         // Increment counter
         counter++;
-    } // for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ )
+    } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
 
 
     //
@@ -1178,7 +1178,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         if ( fIsMc ) {
             // Check leading jet matching to gen
-            if ( event->pfJetCollection()->at( idRecoLead )->hasMatching() ) {
+            if ( event->recoJetCollection()->at( idRecoLead )->hasMatching() ) {
                 fHM->hRecoLeadJetMatchedPtVsEta->Fill(etaRecoLead, ptRecoLead, ptHatW);
             }
             else {
@@ -1186,7 +1186,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             }
 
             // Check subleading jet matching to gen
-            if ( event->pfJetCollection()->at( idRecoSubLead )->hasMatching() ) {
+            if ( event->recoJetCollection()->at( idRecoSubLead )->hasMatching() ) {
                 fHM->hRecoSubLeadJetMatchedPtVsEta->Fill(etaRecoSubLead, ptRecoSubLead, ptHatW);
             }
             else {
@@ -1194,11 +1194,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             }
         } // if ( fIsMc )
 
-        Bool_t goodLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoLead ) );
+        Bool_t goodLeadJet = isGoodRecoJet( event->recoJetCollection()->at( idRecoLead ) );
         if ( fVerbose ) {
             std::cout << Form("Leading jet is %s\n", ((goodLeadJet) ? "good" : "bad") );  
         }
-        Bool_t goodSubLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoSubLead ) );
+        Bool_t goodSubLeadJet = isGoodRecoJet( event->recoJetCollection()->at( idRecoSubLead ) );
         if ( fVerbose ) {
             std::cout << Form("SubLeading jet is %s\n", ((goodSubLeadJet) ? "good" : "bad") );  
         }
@@ -1355,7 +1355,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
         if ( fIsMc ) {
             // Check leading jet matching to gen
-            if ( event->pfJetCollection()->at( idRecoLeadJetId )->hasMatching() ) {
+            if ( event->recoJetCollection()->at( idRecoLeadJetId )->hasMatching() ) {
                 fHM->hRecoLeadJetMatchedPtVsEtaJetIdCut->Fill(etaRecoLeadJetId, ptRecoLeadJetId, ptHatW);
             }
             else {
@@ -1363,7 +1363,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             }
 
             // Check subleading jet matching to gen
-            if ( event->pfJetCollection()->at( idRecoSubLeadJetId )->hasMatching() ) {
+            if ( event->recoJetCollection()->at( idRecoSubLeadJetId )->hasMatching() ) {
                 fHM->hRecoSubLeadJetMatchedPtVsEtaJetIdCut->Fill(etaRecoSubLeadJetId, ptRecoSubLeadJetId, ptHatW);
             }
             else {
@@ -1371,11 +1371,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             }
         } // if ( fIsMc )
         
-        Bool_t goodLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoLeadJetId ) );
+        Bool_t goodLeadJet = isGoodRecoJet( event->recoJetCollection()->at( idRecoLeadJetId ) );
         if ( fVerbose ) {
             std::cout << Form("Leading jet is %s\n", ((goodLeadJet) ? "good" : "bad") );  
         }
-        Bool_t goodSubLeadJet = isGoodRecoJet( event->pfJetCollection()->at( idRecoSubLeadJetId ) );
+        Bool_t goodSubLeadJet = isGoodRecoJet( event->recoJetCollection()->at( idRecoSubLeadJetId ) );
         if ( fVerbose ) {
             std::cout << Form("SubLeading jet is %s\n", ((goodSubLeadJet) ? "good" : "bad") );  
         }
@@ -1481,23 +1481,23 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
     Int_t  idRecoLead{-1}, idRecoSubLead{-1};
 
     // Loop over reconstructed jets
-    PartFlowJetIterator pfJetIter;
+    RecoJetIterator recoJetIter;
     Int_t counter{0};
-    for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ ) {
+    for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
-        if ( !(*pfJetIter)->hasMatching() ) continue;
+        if ( !(*recoJetIter)->hasMatching() ) continue;
 
         GenJet *matchedJet{nullptr};
         Double_t genPt{999.};
         Double_t genEta{-999.};
         Double_t genPhi{-999.};
 
-        Double_t pt = (*pfJetIter)->ptJECCorr();
-        Double_t eta = (*pfJetIter)->eta();
-        Double_t phi = (*pfJetIter)->phi();
-        Double_t ptRaw = (*pfJetIter)->pt();
+        Double_t pt = (*recoJetIter)->ptJECCorr();
+        Double_t eta = (*recoJetIter)->eta();
+        Double_t phi = (*recoJetIter)->phi();
+        Double_t ptRaw = (*recoJetIter)->pt();
 
-        matchedJet = event->genJetCollection()->at( (*pfJetIter)->genJetId() );
+        matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
         genPt = matchedJet->pt();
         genEta = matchedJet->eta();
         genPhi = matchedJet->phi();
@@ -1506,7 +1506,7 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
             std::cout << "Ref jet info for reco jet #" << counter;
             matchedJet->print();
             std::cout << "Reco jet #" << counter << " ";
-            (*pfJetIter)->print();
+            (*recoJetIter)->print();
         }
         
         if ( genPt > ptRefLead ) {
@@ -1542,12 +1542,12 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
 
         if ( fVerbose ) {
             std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d genId: %d \n", 
-                              ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead, (*pfJetIter)->genJetId());
+                              ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead, (*recoJetIter)->genJetId());
         }
 
         // Increment counter
         counter++;
-    } // for ( pfJetIter = event->pfJetCollection()->begin(); pfJetIter != event->pfJetCollection()->end(); pfJetIter++ )
+    } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
 
     //
     // Check if leading and subleading jets were found
@@ -1556,16 +1556,16 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
         if ( fVerbose ) {
             std::cout << Form("Checking dijet Lead pT: %5.2f SubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d Lead genId: %d SubLead genId: %d\n", 
                               ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead, 
-                              event->pfJetCollection()->at( idRecoLead )->genJetId(), 
-                              event->pfJetCollection()->at( idRecoSubLead )->genJetId() );
+                              event->recoJetCollection()->at( idRecoLead )->genJetId(), 
+                              event->recoJetCollection()->at( idRecoSubLead )->genJetId() );
         }
         Bool_t goodLeadJet{kFALSE};
         Bool_t goodSubLeadJet{kFALSE};
         Bool_t goodDijet{kFALSE};
-        if ( event->pfJetCollection()->at( idRecoLead )->hasMatching() && 
-             event->pfJetCollection()->at( idRecoSubLead )->hasMatching() ) {
-            goodLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoLead )->genJetId() ) );
-            goodSubLeadJet = isGoodGenJet( event->genJetCollection()->at( event->pfJetCollection()->at( idRecoSubLead )->genJetId() ) );
+        if ( event->recoJetCollection()->at( idRecoLead )->hasMatching() && 
+             event->recoJetCollection()->at( idRecoSubLead )->hasMatching() ) {
+            goodLeadJet = isGoodGenJet( event->genJetCollection()->at( event->recoJetCollection()->at( idRecoLead )->genJetId() ) );
+            goodSubLeadJet = isGoodGenJet( event->genJetCollection()->at( event->recoJetCollection()->at( idRecoSubLead )->genJetId() ) );
             goodDijet = isGoodDijet( ptRefLead, ptRefSubLead, TMath::Abs( deltaPhi(phiRefLead, phiRefSubLead) ) );
         }
         isDijetFound = goodLeadJet && goodSubLeadJet && goodDijet;
