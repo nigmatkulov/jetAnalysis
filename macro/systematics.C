@@ -46,6 +46,9 @@ Double_t etaCMShift{0.465};
 std::vector<Int_t> npdfPtLow = {60, 100, 140}; 
 std::vector<Int_t> npdfPtHi =  {70, 110, 150};
 
+// Dijet opening angle text for labels
+const Char_t *dijet_dphi = "#frac{5#pi}{6}";
+
 //________________
 void fillDijetPtBins(std::vector<Int_t> &ptDijetLow, std::vector<Int_t> &ptDijetHi) {
     Int_t ptStep {5};
@@ -85,7 +88,7 @@ void plotCMSHeader() {
     t.SetTextSize(0.05);
     t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
     t.SetTextSize(0.04);
-    t.DrawLatexNDC(0.51, 0.93, "pPb 174.6 nb^{-1} (8.16 TeV)");
+    t.DrawLatexNDC(0.55, 0.93, "pPb 174.6 nb^{-1} (8.16 TeV)");
     t.SetTextSize(0.05);
 }
 
@@ -1967,7 +1970,7 @@ void plotDistributionWithUncrt(TCanvas *c, TH1D *h1, TH1D *h2,
         h2->GetYaxis()->SetTitle("Backward / Forward");
     }
     t.DrawLatexNDC(0.35, 0.83, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi ) );
-    
+
     t.SetTextSize(0.05);
     t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Leading} > 50 GeV");
     t.DrawLatexNDC(0.2, 0.66, "p_{T}^{Subleading} > 40 GeV");
@@ -1977,7 +1980,7 @@ void plotDistributionWithUncrt(TCanvas *c, TH1D *h1, TH1D *h2,
     else {
         t.DrawLatexNDC(0.2, 0.57, "|#eta| < 3");
     }
-    t.DrawLatexNDC(0.2, 0.49, "#Delta#phi^{dijet} > #frac{2#pi}{3}");
+    t.DrawLatexNDC(0.2, 0.49, Form("#Delta#phi^{dijet} > %s", dijet_dphi));
     t.SetTextSize(0.06);
 
     leg = new TLegend(0.6, 0.65, 0.8, 0.8);
@@ -2093,7 +2096,7 @@ void plotManyDistributionsOnCanvas(TCanvas *c, std::vector< TH1D* > hData, std::
                 t.DrawLatexNDC(0.2, 0.7, "|#eta^{jet}| < 3");
             }
 
-            t.DrawLatexNDC(0.2, 0.57, "#Delta#phi^{dijet} > #frac{2#pi}{3}");
+            t.DrawLatexNDC(0.2, 0.57, Form("#Delta#phi^{dijet} > %s", dijet_dphi) );
             t.SetTextSize(0.06);
         }
 
@@ -2139,7 +2142,7 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
 
     // Create canvases
     Int_t sizeX{1200}, sizeY{1200};
-    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 1000);
 
     TCanvas *cEta = new TCanvas("cEta", "cEta", sizeX, sizeY);
     cEta->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
@@ -2796,15 +2799,16 @@ void plotIndividualData2McComparison(TCanvas *c, TH1D *hData, TH1D *hSystUncrt, 
 }
 
 //________________
-void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUncrt, TH1D *hEmb2GenRatio, TH1D *hData2EmbRatio,
+void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUncrt, TH1D *hEmb2GenRatio, TH1D *hData2EmbRatio = nullptr,
                                  int ptLow = 50, int ptHi = 60, Bool_t isCM = kFALSE, int fbType = 0) {
     // Latex
     TLatex t;
     t.SetTextFont(42);
     t.SetTextSize(0.06);
 
-    std::cout << "hData2GenRatio: " << hData2GenRatio->GetName() << " hSystUncrt: " << hSystUncrt->GetName() 
-              << " hEmb2GenRatio: " << hEmb2GenRatio->GetName() << " hData2EmbRatio: " << hData2EmbRatio->GetName() << std::endl;
+    // std::cout << "################ ptLow = " << ptLow << " ptHi = " << ptHi << std::endl;
+    // std::cout << "hData2GenRatio: " << hData2GenRatio->GetName() << " hSystUncrt: " << hSystUncrt->GetName() 
+    //           << " hEmb2GenRatio: " << hEmb2GenRatio->GetName() << " hData2EmbRatio: " << ( ( hData2EmbRatio ) ? hData2EmbRatio->GetName() : "empty" ) << std::endl;
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
     Double_t xRange[2] = {-3., 3.};
@@ -2813,7 +2817,7 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
     Double_t xLegend[2] = {0.27, 0.47};
     Double_t yLegend[2] = {0.65, 0.85};
 
-    Double_t drawPt[2] = {0.35, 0.83};
+    Double_t drawPt[2] = {0.32, 0.83};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2836,8 +2840,8 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
 
     // Set style for the data points
     Int_t dataType{2};
-    Int_t embType{0};
-    Int_t genType{1};
+    Int_t embType{1};
+    Int_t genType{0};
     set1DStyle( hData2GenRatio, dataType );
     if ( hEmb2GenRatio ) {
         set1DStyle( hEmb2GenRatio, embType );
@@ -2845,9 +2849,9 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
     if ( hData2EmbRatio ) {
         set1DStyle( hData2EmbRatio, genType );
     }
-
     // Set uncertainty style
     setSystUncrtStyle(hSystUncrt, 0);
+
 
     // Set pad style
     setPadStyle();
@@ -2863,22 +2867,23 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
     }
     hSystUncrt->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
     hSystUncrt->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-    hSystUncrt->GetYaxis()->SetTitle("Ratio to MC");
+    hSystUncrt->GetYaxis()->SetTitle("Ratio to PYTHIA");
+
     t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi ) );
 
-    // Legend
-    TLegend *leg = new TLegend(xLegend[0], yLegend[0], xLegend[1], yLegend[1]);
-    leg->SetTextSize(0.04);
-    leg->SetLineWidth(0);
-    leg->AddEntry(hData2GenRatio, "Data/Gen", "p");
-    leg->AddEntry(hSystUncrt, "Syst. Uncrt.", "f");
-    if ( hEmb2GenRatio ) {
-        leg->AddEntry(hEmb2GenRatio, "Embedding/Gen", "p");
-    }
-    if ( hData2EmbRatio ) {
-        leg->AddEntry(hData2EmbRatio, "Data/Embedding", "p");
-    }
-    leg->Draw();
+    // // Legend
+    // TLegend *leg = new TLegend(xLegend[0], yLegend[0], xLegend[1], yLegend[1]);
+    // leg->SetTextSize(0.04);
+    // leg->SetLineWidth(0);
+    // leg->AddEntry(hData2GenRatio, "Data/Gen", "p");
+    // leg->AddEntry(hSystUncrt, "Syst. Uncrt.", "f");
+    // if ( hEmb2GenRatio ) {
+    //     leg->AddEntry(hEmb2GenRatio, "Embedding/Gen", "p");
+    // }
+    // if ( hData2EmbRatio ) {
+    //     leg->AddEntry(hData2EmbRatio, "Data/Embedding", "p");
+    // }
+    // leg->Draw();
 
     // Plot CMS header
     plotCMSHeader();
@@ -3010,7 +3015,7 @@ void plotManyData2McComparison(TCanvas *c, std::vector<TH1D*> hData, std::vector
                 t.DrawLatexNDC(0.2, 0.7, "|#eta^{jet}| < 3");
             }
 
-            t.DrawLatexNDC(0.2, 0.57, "#Delta#phi^{dijet} > #frac{2#pi}{3}");
+            t.DrawLatexNDC(0.2, 0.57, Form("#Delta#phi^{dijet} > %s", dijet_dphi) );
             t.SetTextSize(0.06);
         }
 
@@ -3132,7 +3137,7 @@ void plotManyData2McRatio(TCanvas *c, std::vector<TH1D*> hData2GenRatio, std::ve
                 t.DrawLatexNDC(0.4, 0.3, "|#eta^{jet}| < 3");
             }
 
-            t.DrawLatexNDC(0.4, 0.2, "#Delta#phi^{dijet} > #frac{2#pi}{3}");
+            t.DrawLatexNDC(0.4, 0.2, Form("#Delta#phi^{dijet} > %s", dijet_dphi) );
             t.SetTextSize(0.06);
         }
 
@@ -3164,7 +3169,7 @@ void plotData2McComparison(std::vector< std::vector<TH1D*> > hFinalDist,
                            std::vector< std::vector<TH1D*> > hFinalRelSystUncrtDist,
                            TString date, Bool_t isCM = kFALSE) {
 
-    Bool_t plotData2Embedding = {kTRUE};
+    Bool_t plotData2Embedding = {kFALSE};
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
@@ -3260,7 +3265,7 @@ void plotData2McComparison(std::vector< std::vector<TH1D*> > hFinalDist,
 
     Int_t sizeX{1200}, sizeY{1200};
     // Individual distributions
-    TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
+    TCanvas *canv = new TCanvas("canv", "canv", 1200, 1000);
 
     // Comparisons
     TCanvas *cEtaComp = new TCanvas("cEtaComp", "cEtaComp", sizeX, sizeY);
@@ -3294,11 +3299,11 @@ void plotData2McComparison(std::vector< std::vector<TH1D*> > hFinalDist,
     TCanvas *cEtaBFRatio2GenRat = new TCanvas("cEtaBFRatio2GenRat", "cEtaBFRatio2GenRat", sizeX, sizeY);
     cEtaBFRatio2GenRat->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
 
-    // std::cout << "hEtaData2GenRatio: " << hEtaData2GenRatioDist.size() 
-    //           << " hEtaAbsSystUncrtDist: " << hEtaAbsSystUncrtDist.size() 
-    //           << " hEtaEmbedding2GenRatioDist: " << hEtaEmbedding2GenRatioDist.size() 
-    //           << " hEtaData2EmbeddingRatioDist: " << hEtaData2EmbeddingRatioDist.size() 
-    //           << std::endl;
+    std::cout << "hEtaData2GenRatio: " << hEtaData2GenRatioDist.size() 
+              << " hEtaAbsSystUncrtDist: " << hEtaAbsSystUncrtDist.size() 
+              << " hEtaEmbedding2GenRatioDist: " << hEtaEmbedding2GenRatioDist.size() 
+              << " hEtaData2EmbeddingRatioDist: " << hEtaData2EmbeddingRatioDist.size() 
+              << std::endl;
 
     // Plot individual distributions
     for (Int_t i{0}; i<hEtaDist.size(); i++) {
@@ -3326,47 +3331,47 @@ void plotData2McComparison(std::vector< std::vector<TH1D*> > hFinalDist,
 
         // Individual ratios
         canv->cd();
-        if ( !hEtaEmbedding2GenRatioDist.empty() ) {
-            plotIndividualData2GenRatio(canv, hEtaData2GenRatioDist.at(i), hEtaData2GenRelSystUncrtAtValueDist.at(i), hEtaEmbedding2GenRatioDist.at(i), hEtaData2EmbeddingRatioDist.at(i), isCM, 0, ptDijetLow.at(i), ptDijetHi.at(i));
+        if ( !hEtaData2EmbeddingRatioDist.empty() ) {
+            plotIndividualData2GenRatio(canv, hEtaData2GenRatioDist.at(i), hEtaData2GenRelSystUncrtAtValueDist.at(i), hEtaEmbedding2GenRatioDist.at(i), hEtaData2EmbeddingRatioDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 0);
         }
         else {
-            plotIndividualData2GenRatio(canv, hEtaData2GenRatioDist.at(i), hEtaData2GenRelSystUncrtAtValueDist.at(i), hEtaEmbedding2GenRatioDist.at(i), nullptr, isCM, 0, ptDijetLow.at(i), ptDijetHi.at(i));
+            plotIndividualData2GenRatio(canv, hEtaData2GenRatioDist.at(i), hEtaData2GenRelSystUncrtAtValueDist.at(i), hEtaEmbedding2GenRatioDist.at(i), nullptr, ptDijetLow.at(i), ptDijetHi.at(i), isCM, 0);
         }
         canv->SaveAs( Form("%s/data2mc/pPb8160_etaDijet_ratio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data()) );
 
         canv->cd();
         if ( !hEtaForwardData2EmbeddingRatioDist.empty() ) {
-            plotIndividualData2GenRatio(canv, hEtaForwardData2GenRatioDist.at(i), hEtaForwardData2GenRelSystUncrtAtValueDist.at(i), hEtaForwardEmbedding2GenRatioDist.at(i), hEtaForwardData2EmbeddingRatioDist.at(i), isCM, 1, ptDijetLow.at(i), ptDijetHi.at(i));
+            plotIndividualData2GenRatio(canv, hEtaForwardData2GenRatioDist.at(i), hEtaForwardData2GenRelSystUncrtAtValueDist.at(i), hEtaForwardEmbedding2GenRatioDist.at(i), hEtaForwardData2EmbeddingRatioDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 1);
         }
         else {
-            plotIndividualData2GenRatio(canv, hEtaForwardData2GenRatioDist.at(i), hEtaForwardData2GenRelSystUncrtAtValueDist.at(i), hEtaForwardEmbedding2GenRatioDist.at(i), nullptr, isCM, 1, ptDijetLow.at(i), ptDijetHi.at(i));
+            plotIndividualData2GenRatio(canv, hEtaForwardData2GenRatioDist.at(i), hEtaForwardData2GenRelSystUncrtAtValueDist.at(i), hEtaForwardEmbedding2GenRatioDist.at(i), nullptr, ptDijetLow.at(i), ptDijetHi.at(i), isCM, 1);
         }
         canv->SaveAs( Form("%s/data2mc/pPb8160_etaDijet_forward_ratio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data()) );
 
         canv->cd();
         if ( !hEtaBackwardData2EmbeddingRatioDist.empty() ) {
-            plotIndividualData2GenRatio(canv, hEtaBackwardData2GenRatioDist.at(i), hEtaBackwardData2GenRelSystUncrtAtValueDist.at(i), hEtaBackwardEmbedding2GenRatioDist.at(i), hEtaBackwardData2EmbeddingRatioDist.at(i), isCM, 2, ptDijetLow.at(i), ptDijetHi.at(i));
+            plotIndividualData2GenRatio(canv, hEtaBackwardData2GenRatioDist.at(i), hEtaBackwardData2GenRelSystUncrtAtValueDist.at(i), hEtaBackwardEmbedding2GenRatioDist.at(i), hEtaBackwardData2EmbeddingRatioDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 2);
         }
         else {
-            plotIndividualData2GenRatio(canv, hEtaBackwardData2GenRatioDist.at(i), hEtaBackwardData2GenRelSystUncrtAtValueDist.at(i), hEtaBackwardEmbedding2GenRatioDist.at(i), nullptr, isCM, 2, ptDijetLow.at(i), ptDijetHi.at(i));   
+            plotIndividualData2GenRatio(canv, hEtaBackwardData2GenRatioDist.at(i), hEtaBackwardData2GenRelSystUncrtAtValueDist.at(i), hEtaBackwardEmbedding2GenRatioDist.at(i), nullptr, ptDijetLow.at(i), ptDijetHi.at(i), isCM, 2);   
         }
         canv->SaveAs( Form("%s/data2mc/pPb8160_etaDijet_backward_ratio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data()) );
 
         canv->cd();
-        if ( !hEtaFBRatioData2GenRatioDist.empty() ) {
-            plotIndividualData2GenRatio(canv, hEtaFBRatioData2GenRatioDist.at(i), hEtaFBRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaFBRatioEmbedding2GenRatioDist.at(i), hEtaFBRatioData2EmbeddingRatioDist.at(i), isCM, 3, ptDijetLow.at(i), ptDijetHi.at(i));
+        if ( !hEtaFBRatioData2EmbeddingRatioDist.empty() ) {
+            plotIndividualData2GenRatio(canv, hEtaFBRatioData2GenRatioDist.at(i), hEtaFBRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaFBRatioEmbedding2GenRatioDist.at(i), hEtaFBRatioData2EmbeddingRatioDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 3);
         }
         else {
-            plotIndividualData2GenRatio(canv, hEtaFBRatioData2GenRatioDist.at(i), hEtaFBRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaFBRatioEmbedding2GenRatioDist.at(i), nullptr, isCM, 3, ptDijetLow.at(i), ptDijetHi.at(i));
+            plotIndividualData2GenRatio(canv, hEtaFBRatioData2GenRatioDist.at(i), hEtaFBRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaFBRatioEmbedding2GenRatioDist.at(i), nullptr, ptDijetLow.at(i), ptDijetHi.at(i), isCM, 3);
         }
         canv->SaveAs( Form("%s/data2mc/pPb8160_etaDijet_fb_ratio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data()) );
 
         canv->cd();
-        if ( !hEtaFBRatioData2EmbeddingRatioDist.empty() ) {
-            plotIndividualData2GenRatio(canv, hEtaBFRatioData2GenRatioDist.at(i), hEtaBFRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaBFRatioEmbedding2GenRatioDist.at(i), hEtaBFRatioData2EmbeddingRatioDist.at(i), isCM, 4, ptDijetLow.at(i), ptDijetHi.at(i));
+        if ( !hEtaBFRatioData2EmbeddingRatioDist.empty() ) {
+            plotIndividualData2GenRatio(canv, hEtaBFRatioData2GenRatioDist.at(i), hEtaBFRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaBFRatioEmbedding2GenRatioDist.at(i), hEtaBFRatioData2EmbeddingRatioDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 4);
         }
         else {
-            plotIndividualData2GenRatio(canv, hEtaBFRatioData2GenRatioDist.at(i), hEtaBFRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaBFRatioEmbedding2GenRatioDist.at(i), nullptr, isCM, 4, ptDijetLow.at(i), ptDijetHi.at(i));
+            plotIndividualData2GenRatio(canv, hEtaBFRatioData2GenRatioDist.at(i), hEtaBFRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaBFRatioEmbedding2GenRatioDist.at(i), nullptr, ptDijetLow.at(i), ptDijetHi.at(i), isCM, 4);
         }
         canv->SaveAs( Form("%s/data2mc/pPb8160_etaDijet_bf_ratio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data()) );
     } // for (Int_t i{0}; i<hEtaDist.size(); i++)
@@ -5908,8 +5913,6 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
 
     // Plot comparison of data and Monte Carlo
     plotData2McComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, date, isCM);
-
-    // plotData2McComparison(hMBEtaDist, hJet60EtaDist, hJet80EtaDist, hJet100EtaDist, hEmbeddingEtaDist, hEmbeddingGenEtaDist, hRatios2McDist, date, isCM);
 
     // plotRelativeSystematicUncertainties(hMBJeuRelSystDist, hJet60JeuRelSystDist, hJet80JeuRelSystDist, hJet100JeuRelSystDist,
     //                                     hEmbeddingJerRelSystDist, hPointingResRelSystDist,
