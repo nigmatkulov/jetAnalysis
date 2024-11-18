@@ -49,6 +49,8 @@ std::vector<Int_t> npdfPtHi =  {70, 110, 150};
 // Dijet opening angle text for labels
 const Char_t *dijet_dphi = "#frac{5#pi}{6}";
 
+Int_t fontFamily{42}; // Times New Roman
+
 //________________
 void fillDijetPtBins(std::vector<Int_t> &ptDijetLow, std::vector<Int_t> &ptDijetHi) {
     Int_t ptStep {5};
@@ -84,7 +86,7 @@ bool checkFileIsGood(TFile *inFile) {
 //________________
 void plotCMSHeader() {
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.05);
     t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
     t.SetTextSize(0.04);
@@ -238,7 +240,7 @@ void setPadFBStyle() {
 //________________
 void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
-    Double_t markerSize = 0.9;
+    Double_t markerSize = 1.5;
     Int_t lineWidth = 2;
     Int_t color = 2;
     if (type == 0) {
@@ -288,6 +290,8 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     h->GetXaxis()->SetNdivisions(205);
     h->GetYaxis()->SetNdivisions(205);    
     h->GetYaxis()->SetTitleOffset(1.1);
+    h->GetXaxis()->SetTitleFont( fontFamily );
+    h->GetYaxis()->SetTitleFont( fontFamily );
 
     if ( doRenorm ) {
         h->Scale( 1./h->Integral() );
@@ -338,6 +342,8 @@ void setSystUncrtStyle(TH1* h, Int_t type = 0) {
     h->GetXaxis()->SetNdivisions(205);
     h->GetYaxis()->SetNdivisions(205);    
     h->GetYaxis()->SetTitleOffset(1.1);
+    h->GetXaxis()->SetTitleFont( fontFamily );
+    h->GetYaxis()->SetTitleFont( fontFamily );
 }
 
 //________________
@@ -506,7 +512,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
     Int_t expOverMcType{2};
 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // Dijet eta distributions
@@ -632,6 +638,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
                        ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.75, 0.4, 0.85);
+        leg->SetTextFont( fontFamily );
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
         leg->AddEntry(hExpEtaPb2PGoingRatio[i], Form("Data"), "p");
@@ -667,6 +674,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
                        ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.75, 0.4, 0.85);
+        leg->SetTextFont( fontFamily );
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
         leg->AddEntry(hExpEtaPb2PGoingRatio[i], Form("Data"), "p");
@@ -1704,7 +1712,7 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
     Int_t akCs4Type{1};
 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily);
     t.SetTextSize(0.06);
 
     // Dijet eta distributions
@@ -1756,6 +1764,7 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
                        ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.75, 0.4, 0.85);
+        leg->SetTextFont( fontFamily );
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
         leg->AddEntry(hEtaAk4[i], Form("ak4"), "p");
@@ -1792,6 +1801,7 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
                        ptLow + (ptDijetBinLow.at(i) - 1) * ptStep, ptLow + ptDijetBinHi.at(i) * ptStep) );
         t.DrawLatexNDC( 0.65, 0.8, Form("%s frame", frame.Data() ) );
         leg = new TLegend(0.2, 0.75, 0.4, 0.85);
+        leg->SetTextFont( fontFamily );
         leg->SetTextSize(0.04);
         leg->SetLineWidth(0);
         leg->AddEntry(hEtaAk4[i], Form("ak4"), "p");
@@ -1899,7 +1909,7 @@ void plotDistributionWithUncrt(TCanvas *c, TH1D *h1, TH1D *h2,
                               Bool_t isCM = kFALSE, Int_t fbType = 0) {
 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
@@ -1984,6 +1994,7 @@ void plotDistributionWithUncrt(TCanvas *c, TH1D *h1, TH1D *h2,
     t.SetTextSize(0.06);
 
     leg = new TLegend(0.6, 0.65, 0.8, 0.8);
+    leg->SetTextFont( fontFamily );
     leg->SetTextSize(0.06);
     leg->SetLineWidth(0);
     leg->AddEntry(h1, "Data", "lep");
@@ -2102,6 +2113,143 @@ void plotManyDistributionsOnCanvas(TCanvas *c, std::vector< TH1D* > hData, std::
 
         if ( i == 1 ) {
             leg = new TLegend(0.6, 0.65, 0.8, 0.8);
+            leg->SetTextFont( fontFamily);
+            leg->SetTextSize(0.06);
+            leg->SetLineWidth(0);
+            leg->AddEntry(hData.at(i), "Data", "lep");
+            leg->AddEntry(hSyst.at(i), "Syst. uncrt.", "f");
+            leg->Draw();
+        }
+
+        plotCMSHeader();
+    } // for (Int_t i{0}; i<ptBins; i++)
+}
+
+//________________
+void plotManyDistributionsOnTwoCanvases(TCanvas *c, std::vector< TH1D* > hData, std::vector< TH1D* > hSyst, 
+                                        Bool_t isCM = kFALSE, Int_t fbType = 0, Int_t half = 1) {
+
+    // Half: 1 - first half, 2 - second half
+    if ( half != 1 && half != 2 ) {
+        std::cerr << "Wrong half number. Choose 1 or 2." << std::endl;
+        half = 1;
+    }
+
+    TLatex t;
+    t.SetTextFont( fontFamily );
+    t.SetTextSize(0.06);
+
+    // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0.001, 0.12};
+
+    if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
+        xRange[0] = 0.;
+        xRange[1] = 3.0;
+        yRange[0] = 0.001;
+        yRange[1] = 0.2;
+    }
+    else if ( fbType == 3 ) {               // Forward/backward
+        xRange[0] = 0.;
+        xRange[1] = 2.4;
+        yRange[0] = 0.75;
+        yRange[1] = 2.0;
+    }
+    else if ( fbType == 4 ) {               // Backward/forward
+        xRange[0] = 0.;
+        xRange[1] = 2.4;
+        yRange[0] = 0.4;
+        yRange[1] = 1.15;
+    }
+
+    // Dijet pT selection
+    std::vector<Int_t> ptDijetLow{};
+    std::vector<Int_t> ptDijetHi{};
+    Int_t ptBins = ptDijetBinLow.size();
+    fillDijetPtBins(ptDijetLow, ptDijetHi);
+
+    // Set style for the data points
+    for (Int_t i{0}; i<hData.size(); i++) {
+        hData.at(i)->SetMarkerStyle(20);
+        hData.at(i)->SetMarkerSize(1.3);
+        hData.at(i)->SetMarkerColor(kBlack);
+        hData.at(i)->SetLineColor(kBlack);
+        hData.at(i)->SetLineWidth(2);
+
+        setSystUncrtStyle( hSyst.at(i), 0 );
+    }
+
+    // Create legend
+    TLegend *leg;
+
+    // Loop over dijet pT bins
+    Int_t min{0}, max{ptBins};
+    if ( half == 1 ) {
+        min = 0;
+        max = ptBins / 2;
+    }
+    else if ( half == 2 ) {
+        min = ptBins / 2;
+        max = ptBins;
+    }
+    for (Int_t i{min}; i<max; i++) {
+
+        c->cd(i+1-min);
+        setPadStyle();
+        hSyst.at(i)->Draw("E2");
+        hData.at(i)->Draw("same");
+        // hData.at(i)->Draw();
+        // hSyst.at(i)->Draw("E2 same");
+        hSyst.at(i)->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+        hSyst.at(i)->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+        if ( fbType == 0 ) {
+            if ( isCM ) {
+                hSyst.at(i)->GetYaxis()->SetTitle("dN/d#eta_{CM}");
+            }
+            else {
+                hSyst.at(i)->GetYaxis()->SetTitle("dN/d#eta");
+            }
+        }
+        else if ( fbType == 1 || fbType == 2 ) {
+            if ( isCM ) {
+                hSyst.at(i)->GetYaxis()->SetTitle("dN/d#eta_{CM}");
+            }
+            else {
+                hSyst.at(i)->GetYaxis()->SetTitle("dN/d#eta");
+            }
+        }
+        else if ( fbType == 3 ) {
+            hSyst.at(i)->GetYaxis()->SetTitle("Forward / Backward");
+        }
+        else if ( fbType == 4 ) {
+            hSyst.at(i)->GetYaxis()->SetTitle("Backward / Forward");
+        }
+        t.DrawLatexNDC(0.3, 0.83, Form("%d < p_{T}^{ave} (GeV) < %d", 
+                       ptDijetLow.at(i), ptDijetHi.at(i) ) );
+        
+        if ( (i - min) == 0 ) {
+            t.SetTextSize(0.06);
+            t.DrawLatexNDC(0.2, 0.7, "p_{T}^{Leading} > 50 GeV");
+            t.DrawLatexNDC(0.2, 0.57, "p_{T}^{Subleading} > 40 GeV");
+            t.SetTextSize(0.06);
+        }
+
+        if ( (i - min) == 2 ) {
+            t.SetTextSize(0.06);
+            if ( isCM ) {
+                t.DrawLatexNDC(0.2, 0.7, "|#eta_{CM}^{jet}| < 2.5");
+            }
+            else {
+                t.DrawLatexNDC(0.2, 0.7, "|#eta^{jet}| < 3");
+            }
+
+            t.DrawLatexNDC(0.2, 0.57, Form("#Delta#phi^{dijet} > %s", dijet_dphi) );
+            t.SetTextSize(0.06);
+        }
+
+        if ( (i - min) == 1 ) {
+            leg = new TLegend(0.2, 0.6, 0.4, 0.75);
+            leg->SetTextFont( fontFamily );
             leg->SetTextSize(0.06);
             leg->SetLineWidth(0);
             leg->AddEntry(hData.at(i), "Data", "lep");
@@ -2147,6 +2295,12 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
     TCanvas *cEta = new TCanvas("cEta", "cEta", sizeX, sizeY);
     cEta->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
 
+    TCanvas *cEtaH1 = new TCanvas("cEtaH1", "cEtaH1", sizeX / 1.7, sizeY);
+    cEtaH1->Divide( ( nPads / 2 ), ( ( ( ptBins / 2 ) % ( nPads / 2 ) ) == 0 ) ? ( ( ptBins / 2 ) / ( nPads / 2 ) ) : ( ( ptBins / 2 ) / ( nPads / 2 ) + 1), 0.001, 0.001);
+
+    TCanvas *cEtaH2 = new TCanvas("cEtaH2", "cEtaH2", sizeX / 1.7, sizeY);
+    cEtaH2->Divide( ( nPads / 2 ), ( ( ( ptBins / 2 ) % ( nPads / 2 ) ) == 0 ) ? ( ( ptBins / 2 ) / ( nPads / 2 ) ) : ( ( ptBins / 2 ) / ( nPads / 2 ) + 1), 0.001, 0.001);
+
     TCanvas *cEtaForward = new TCanvas("cEtaForward", "cEtaForward", sizeX, sizeY);
     cEtaForward->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
 
@@ -2155,6 +2309,12 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
 
     TCanvas *cEtaFB = new TCanvas("cEtaFB", "cEtaFB", sizeX, sizeY);
     cEtaFB->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
+
+    TCanvas *cEtaFBH1 = new TCanvas("cEtaFBH1", "cEtaFBH1", sizeX / 1.7, sizeY);
+    cEtaFBH1->Divide( ( nPads / 2 ), ( ( ( ptBins / 2 ) % ( nPads / 2 ) ) == 0 ) ? ( ( ptBins / 2 ) / ( nPads / 2 ) ) : ( ( ptBins / 2 ) / ( nPads / 2 ) + 1), 0.001, 0.001);
+
+    TCanvas *cEtaFBH2 = new TCanvas("cEtaFBH2", "cEtaFBH2", sizeX / 1.7, sizeY);
+    cEtaFBH2->Divide( ( nPads / 2 ), ( ( ( ptBins / 2 ) % ( nPads / 2 ) ) == 0 ) ? ( ( ptBins / 2 ) / ( nPads / 2 ) ) : ( ( ptBins / 2 ) / ( nPads / 2 ) + 1), 0.001, 0.001);
 
     TCanvas *cEtaBF = new TCanvas("cEtaBF", "cEtaBF", sizeX, sizeY);
     cEtaBF->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
@@ -2166,8 +2326,8 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
         canv->cd();
         plotDistributionWithUncrt(canv, hEtaDist.at(i), hEtaAbsSystUncrtDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 0);
         canv->SaveAs( Form("%s/data/pPb8160_etaDijet_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
-        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_pt_%d_%d_%s.png", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
-        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_pt_%d_%d_%s.eps", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
+        // canv->SaveAs( Form("%s/data/pPb8160_etaDijet_pt_%d_%d_%s.png", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
+        // canv->SaveAs( Form("%s/data/pPb8160_etaDijet_pt_%d_%d_%s.eps", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
 
         // Forward eta
         canv->cd();
@@ -2183,8 +2343,8 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
         canv->cd();
         plotDistributionWithUncrt(canv, hEtaFBRatioDist.at(i), hEtaFBRatioAbsSystUncrtDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 3);
         canv->SaveAs( Form("%s/data/pPb8160_etaDijet_fbRatio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
-        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_fbRatio_pt_%d_%d_%s.png", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
-        canv->SaveAs( Form("%s/data/pPb8160_etaDijet_fbRatio_pt_%d_%d_%s.eps", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
+        // canv->SaveAs( Form("%s/data/pPb8160_etaDijet_fbRatio_pt_%d_%d_%s.png", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
+        // canv->SaveAs( Form("%s/data/pPb8160_etaDijet_fbRatio_pt_%d_%d_%s.eps", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
 
         // Backward/forward ratio
         canv->cd();
@@ -2193,19 +2353,27 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
     } // for (Int_t i=0; i<ptBins; i++)
 
     plotManyDistributionsOnCanvas(cEta, hEtaDist, hEtaAbsSystUncrtDist, isCM, 0);
+    plotManyDistributionsOnTwoCanvases(cEtaH1, hEtaDist, hEtaAbsSystUncrtDist, isCM, 0, 1);
+    plotManyDistributionsOnTwoCanvases(cEtaH2, hEtaDist, hEtaAbsSystUncrtDist, isCM, 0, 2);
     plotManyDistributionsOnCanvas(cEtaForward, hEtaForwardDist, hEtaForwardAbsSystUncrtDist, isCM, 1);
     plotManyDistributionsOnCanvas(cEtaBackward, hEtaBackwardDist, hEtaBackwardAbsSystUncrtDist, isCM, 2);
     plotManyDistributionsOnCanvas(cEtaFB, hEtaFBRatioDist, hEtaFBRatioAbsSystUncrtDist, isCM, 3);
+    plotManyDistributionsOnTwoCanvases(cEtaFBH1, hEtaFBRatioDist, hEtaFBRatioAbsSystUncrtDist, isCM, 3, 1);
+    plotManyDistributionsOnTwoCanvases(cEtaFBH2, hEtaFBRatioDist, hEtaFBRatioAbsSystUncrtDist, isCM, 3, 2);
     plotManyDistributionsOnCanvas(cEtaBF, hEtaBFRatioDist, hEtaBFRatioAbsSystUncrtDist, isCM, 4);
 
     cEta->SaveAs( Form("%s/data/pPb8160_etaDijet_all_%s.pdf", date.Data(), frame.Data() ) );
-    cEta->SaveAs( Form("%s/data/pPb8160_etaDijet_all_%s.png", date.Data(), frame.Data() ) );
-    cEta->SaveAs( Form("%s/data/pPb8160_etaDijet_all_%s.eps", date.Data(), frame.Data() ) );
+    cEtaH1->SaveAs( Form("%s/data/pPb8160_etaDijet_all_h1_%s.pdf", date.Data(), frame.Data() ) );
+    cEtaH2->SaveAs( Form("%s/data/pPb8160_etaDijet_all_h2_%s.pdf", date.Data(), frame.Data() ) );
+    // cEta->SaveAs( Form("%s/data/pPb8160_etaDijet_all_%s.png", date.Data(), frame.Data() ) );
+    // cEta->SaveAs( Form("%s/data/pPb8160_etaDijet_all_%s.eps", date.Data(), frame.Data() ) );
     cEtaForward->SaveAs( Form("%s/data/pPb8160_etaDijet_forward_all_%s.pdf", date.Data(), frame.Data() ) );
     cEtaBackward->SaveAs( Form("%s/data/pPb8160_etaDijet_backward_all_%s.pdf", date.Data(), frame.Data() ) );
     cEtaFB->SaveAs( Form("%s/data/pPb8160_etaDijet_fb_all_%s.pdf", date.Data(), frame.Data() ) );
-    cEtaFB->SaveAs( Form("%s/data/pPb8160_etaDijet_fb_all_%s.png", date.Data(), frame.Data() ) );
-    cEtaFB->SaveAs( Form("%s/data/pPb8160_etaDijet_fb_all_%s.eps", date.Data(), frame.Data() ) );
+    cEtaFBH1->SaveAs( Form("%s/data/pPb8160_etaDijet_fb_h1_%s.pdf", date.Data(), frame.Data() ) );
+    cEtaFBH2->SaveAs( Form("%s/data/pPb8160_etaDijet_fb_h2_%s.pdf", date.Data(), frame.Data() ) );
+    // cEtaFB->SaveAs( Form("%s/data/pPb8160_etaDijet_fb_all_%s.png", date.Data(), frame.Data() ) );
+    // cEtaFB->SaveAs( Form("%s/data/pPb8160_etaDijet_fb_all_%s.eps", date.Data(), frame.Data() ) );
     cEtaBF->SaveAs( Form("%s/data/pPb8160_etaDijet_bf_all_%s.pdf", date.Data(), frame.Data() ) );
 }
 
@@ -2215,7 +2383,7 @@ void plotIndividualUpDownDefComparison(TCanvas *c, TH1D *hDef, TH1D *hUp, TH1D *
                                        Bool_t isCM = kFALSE, Int_t fbType = 0) {
 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
@@ -2284,6 +2452,7 @@ void plotIndividualUpDownDefComparison(TCanvas *c, TH1D *hDef, TH1D *hUp, TH1D *
     t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi ) );
     
     leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    leg->SetTextFont( fontFamily );
     leg->SetTextSize(0.04);
     leg->SetLineWidth(0);
     leg->AddEntry(hDef, "Default", "p");
@@ -2300,7 +2469,7 @@ void plotIndividualUpDownDefRatio(TCanvas *c, TH1D *hRatioUp, TH1D *hRatioDown,
                                   Bool_t isCM = kFALSE, Int_t fbType = 0) {
 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
@@ -2366,6 +2535,7 @@ void plotIndividualUpDownDefRatio(TCanvas *c, TH1D *hRatioUp, TH1D *hRatioDown,
     hRatioUp->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
     t.DrawLatexNDC(0.25, 0.93, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi ) );
     leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    leg->SetTextFont( fontFamily );
     leg->SetTextSize(0.04);
     leg->SetLineWidth(0);
     leg->AddEntry(hRatioUp, "Up/Def", "p");
@@ -2391,7 +2561,7 @@ void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, std::vector<TH1D*> 
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
@@ -2470,6 +2640,7 @@ void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, std::vector<TH1D*> 
 
         if ( i == 0 ) {
             TLegend *leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+            leg->SetTextFont( fontFamily );
             leg->SetTextSize(0.04);
             leg->SetLineWidth(0);
             leg->AddEntry(hDef.at(i), "Default", "p");
@@ -2486,7 +2657,7 @@ void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, std::vector<TH1D*> 
 void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> hRatioDown, Int_t fbType = 0) {
     
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // Dijet pT selection
@@ -2571,6 +2742,7 @@ void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> h
         // Draw legend in the first pad
         if ( i == 0 ) {
             TLegend *leg = new TLegend(0.27, 0.7, 0.47, 0.85);
+            leg->SetTextFont( fontFamily );
             leg->SetTextSize(0.04);
             leg->SetLineWidth(0);
             leg->AddEntry(hRatioUp.at(i), "Up/Def", "p");
@@ -2712,7 +2884,7 @@ void plotIndividualData2McComparison(TCanvas *c, TH1D *hData, TH1D *hSystUncrt, 
 
     // Latex
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
@@ -2782,6 +2954,7 @@ void plotIndividualData2McComparison(TCanvas *c, TH1D *hData, TH1D *hSystUncrt, 
 
     // Legend
     TLegend *leg = new TLegend(xLegend[0], yLegend[0], xLegend[1], yLegend[1]);
+    leg->SetTextFont( fontFamily );
     leg->SetTextSize(0.04);
     leg->SetLineWidth(0);
     leg->AddEntry(hData, "Data", "p");
@@ -2803,7 +2976,7 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
                                  int ptLow = 50, int ptHi = 60, Bool_t isCM = kFALSE, int fbType = 0) {
     // Latex
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // std::cout << "################ ptLow = " << ptLow << " ptHi = " << ptHi << std::endl;
@@ -2871,19 +3044,20 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
 
     t.DrawLatexNDC(drawPt[0], drawPt[1], Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi ) );
 
-    // // Legend
-    // TLegend *leg = new TLegend(xLegend[0], yLegend[0], xLegend[1], yLegend[1]);
-    // leg->SetTextSize(0.04);
-    // leg->SetLineWidth(0);
-    // leg->AddEntry(hData2GenRatio, "Data/Gen", "p");
-    // leg->AddEntry(hSystUncrt, "Syst. Uncrt.", "f");
-    // if ( hEmb2GenRatio ) {
-    //     leg->AddEntry(hEmb2GenRatio, "Embedding/Gen", "p");
-    // }
-    // if ( hData2EmbRatio ) {
-    //     leg->AddEntry(hData2EmbRatio, "Data/Embedding", "p");
-    // }
-    // leg->Draw();
+    // Legend
+    TLegend *leg = new TLegend(xLegend[0], yLegend[0], xLegend[1], yLegend[1]);
+    leg->SetTextFont( fontFamily );
+    leg->SetTextSize(0.04);
+    leg->SetLineWidth(0);
+    leg->AddEntry(hData2GenRatio, "Data/Gen", "p");
+    leg->AddEntry(hSystUncrt, "Syst. Uncrt.", "f");
+    if ( hEmb2GenRatio ) {
+        leg->AddEntry(hEmb2GenRatio, "Embedding/Gen", "p");
+    }
+    if ( hData2EmbRatio ) {
+        leg->AddEntry(hData2EmbRatio, "Data/Embedding", "p");
+    }
+    leg->Draw();
 
     // Plot CMS header
     plotCMSHeader();
@@ -2896,7 +3070,7 @@ void plotManyData2McComparison(TCanvas *c, std::vector<TH1D*> hData, std::vector
 
     // Latex
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // Dijet pT selection
@@ -3022,6 +3196,7 @@ void plotManyData2McComparison(TCanvas *c, std::vector<TH1D*> hData, std::vector
         // Legend
         if ( i == 1 ) {
             TLegend *leg = new TLegend(xLegend[0], yLegend[0], xLegend[1], yLegend[1]);
+            leg->SetTextFont( fontFamily );
             leg->SetTextSize(0.04);
             leg->SetLineWidth(0);
             leg->AddEntry(hData.at(i), "Data", "p");
@@ -3144,6 +3319,7 @@ void plotManyData2McRatio(TCanvas *c, std::vector<TH1D*> hData2GenRatio, std::ve
         // Legend
         if ( i == 1 ) {
             TLegend *leg = new TLegend(xLegend[0], yLegend[0], xLegend[1], yLegend[1]);
+            leg->SetTextFont( fontFamily );
             leg->SetTextSize(0.05);
             leg->SetLineWidth(0);
             leg->AddEntry(hSystUncrt.at(i), "Data/Gen", "pf");
@@ -3579,7 +3755,7 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
     }
 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
@@ -3664,6 +3840,7 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
         TLegend *leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
         leg->SetBorderSize(0);
         leg->SetFillStyle(0);
+        leg->SetTextFont( fontFamily );
         leg->AddEntry(hTotalInPercent.at(i), "Total", "l");
         leg->AddEntry(hJeuInPercent.at(i), "JES", "l");
         leg->AddEntry(hJerInPercent.at(i), "JER", "l");
@@ -5179,7 +5356,7 @@ void plotIndividualDataOverNpdf(TCanvas *c, TH1D* data, TH1D* epps21Stat, TH1D* 
 
     // Text 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // Number for plotting position
@@ -5240,6 +5417,7 @@ void plotIndividualDataOverNpdf(TCanvas *c, TH1D* data, TH1D* epps21Stat, TH1D* 
     leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
+    leg->SetTextFont( fontFamily );
     leg->AddEntry(data, "Data syst. uncrt.", "f");
     leg->AddEntry(epps21Syst, "EPPS21 x CT18ANLO", "pf");
     leg->AddEntry(ncteq15hqSyst, "nCTEQ15HQ", "pf");
@@ -5260,7 +5438,7 @@ void plotIndividualDataToNpdfComparison(TCanvas *c, TH1D *hData, TH1D *hDataUncr
 
     // Text 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // Number for plotting position
@@ -5339,6 +5517,7 @@ void plotIndividualDataToNpdfComparison(TCanvas *c, TH1D *hData, TH1D *hDataUncr
     leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
+    leg->SetTextFont( fontFamily );
     leg->SetTextSize(0.05);
     leg->AddEntry(hDataUncrt, "Data (CMS)", "pf");
     leg->AddEntry(hEpps21Uncrt, "EPPS21 x CT18ANLO", "pf");
@@ -5514,7 +5693,7 @@ void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist,
 
     // Text 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // Number for plotting position
@@ -5595,6 +5774,7 @@ void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist,
         leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
         leg->SetBorderSize(0);
         leg->SetFillStyle(0);
+        leg->SetTextFont( fontFamily );
         leg->SetTextSize(0.05);
         leg->AddEntry(dataUncrtAtUnity.at(ptBin), "Data syst. uncrt.", "f");
         leg->AddEntry(epps21SystUncrt.at(i), "EPPS21 x CT18", "pf");
@@ -5663,7 +5843,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     Int_t genType{4};
 
     // TLatex t;
-    // t.SetTextFont(42);
+    // t.SetTextFont(fontFamily);
     // t.SetTextSize(0.06);
 
     //
@@ -5898,12 +6078,12 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist = makeFinalAbsSystUncrt(hFinalDist, hFinalRelSystUncrtDist);
 
     // Plot final distributions
-    // plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
+    plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
 
     // Plot comparison of data and nPDF
     Int_t etaType{0};
     // Int_t etaForwardType{1};
-    //plotDataOverNpdf(hFinalOverEpps21Dist, hFinalOverNcteq15hqDist, hFinalRelSystUncrtDist, etaType, date, isCM);
+    // plotDataOverNpdf(hFinalOverEpps21Dist, hFinalOverNcteq15hqDist, hFinalRelSystUncrtDist, etaType, date, isCM);
 
     // plotDataToNpdfComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, 
     //                          hEpps21FinalDist, hEpps21SystUncrtDist,
@@ -5912,7 +6092,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     //                          date, isCM);
 
     // Plot comparison of data and Monte Carlo
-    plotData2McComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, date, isCM);
+    // plotData2McComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, date, isCM);
 
     // plotRelativeSystematicUncertainties(hMBJeuRelSystDist, hJet60JeuRelSystDist, hJet80JeuRelSystDist, hJet100JeuRelSystDist,
     //                                     hEmbeddingJerRelSystDist, hPointingResRelSystDist,
@@ -5994,7 +6174,7 @@ void compareJER(TFile *embFile, TFile *jerDefFile, TFile *jerUpFile, TFile *jerD
     Int_t defType{5};
 
     TLatex t;
-    t.SetTextFont(42);
+    t.SetTextFont( fontFamily );
     t.SetTextSize(0.04);
 
     TLegend *leg;
@@ -6129,6 +6309,7 @@ void compareJER(TFile *embFile, TFile *jerDefFile, TFile *jerUpFile, TFile *jerD
     fitJerDown->Draw("same");
 
     leg = new TLegend(0.4, 0.6, 0.65, 0.8);
+    leg->SetTextFont( fontFamily );
     leg->SetTextSize(0.04);
     leg->SetLineWidth(0);
     leg->AddEntry(hJERVsPtPure, Form("JER pure"), "p");
@@ -6153,6 +6334,7 @@ void compareJER(TFile *embFile, TFile *jerDefFile, TFile *jerUpFile, TFile *jerD
     hJESVsPtJerDef->Draw("same");
 
     leg = new TLegend(0.4, 0.6, 0.65, 0.8);
+    leg->SetTextFont( fontFamily );
     leg->SetTextSize(0.04);
     leg->SetLineWidth(0);
     leg->AddEntry(hJESVsPtPure, Form("JES pure"), "p");
@@ -6374,4 +6556,4 @@ void systematics() {
 
     // Run new calculations
     runNewCalculations(isCM, drawFits);
-}
+}I 
