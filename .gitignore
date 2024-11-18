@@ -39,6 +39,7 @@ build/*
 
 # histograms
 macro/202*
+macro/npdf/figs/*
 
 # processing
 processing/input/*
