@@ -19,6 +19,8 @@ ClassImp(TriggerAndSkim)
 
 //________________
 TriggerAndSkim::TriggerAndSkim() :
+  fHLT_HIAK4CaloJet60_v1{0},
+  fHLT_HIAK4CaloJet80_v1{0},
   fHLT_PAAK4CaloJet60_Eta5p1_v3{0},
   fHLT_PAAK4CaloJet80_Eta5p1_v3{0},
   fHLT_PAAK4CaloJet100_Eta5p1_v3{0},
