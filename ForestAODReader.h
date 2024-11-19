@@ -138,64 +138,6 @@ class ForestAODReader : public BaseReader {
     /// @brief Find resolution factor from JERSyst values for the given eta
     Double_t  retrieveResolutionFactor(const Double_t& eta);
 
-    /// @brief Calculate event weight
-    /// @param isMC Is MC sample
-    /// @param use_centrality If use centrality instead of multiplicity
-    /// @param system Colliding system (pp, pPb or PbPb)
-    /// @param year Year of the data taking
-    /// @param energy Colliding energy (in GeV)
-    /// @param vz Vertex Z position
-    /// @param mult Charge particle multiplicity
-    /// @param weighttree PtHat of the event (for MC only)
-    /// @param leadjetpt Leading jet pT
-    Float_t eventWeight(const Bool_t& isMC, const Bool_t& use_centrality, const std::string& system, 
-                        const Int_t& year, const Int_t& energy, const Float_t& vz, 
-                        const Int_t mult, const Float_t& weighttree, const Float_t& leadjetpt) const;
-    /// @brief For compatibility between MC reco and data
-    /// @param isMC 
-    /// @param system 
-    /// @param year 
-    /// @param energy 
-    /// @param jetpt 
-    Float_t jetPtWeight(const Bool_t& isMC, const std::string& system, const Int_t& year, 
-                        const Int_t& energy, float jetpt) const;
-    /// @brief For compatibility between MC RECO and Data
-    /// @param isMC Is MC sample
-    /// @param system Colliding system (pp, pPb or PbPb)
-    /// @param year Year of the data taking
-    /// @param energy Colliding energy (in GeV)
-    /// @param leadjetpt Leading jet pT
-    Float_t leadJetPtWeight(const Bool_t& isMC, const std::string& system, const Int_t& year, 
-                            const Int_t& energy, const Float_t& leadjetpt) const;
-    /// @brief For compatibility between MC RECO and Data
-    /// @param isMC Is MC sample
-    /// @param system Colliding system (pp, pPb or PbPb)
-    /// @param year Year of the data taking
-    /// @param energy Colliding energy (in GeV)
-    /// @param subleadjetpt Leading jet pT
-    Float_t subleadJetPtWeight(const Bool_t& isMC, const std::string& system, const Int_t& year, 
-                               const Int_t& energy, const Float_t& subleadjetpt);
-    /// @brief Jet smearing resolution effect
-    /// @param isMC True for MC and false for Data
-    /// @param system Colliding system (pp, pPb or PbPb)
-    /// @param year Year of the data taking
-    /// @param energy Colliding energy (in GeV)
-    /// @param jetpt Jet pT weight
-    /// @param dosmearing Apply smearing
-    /// @param resolutionfactor Worsening resolution by 20%: 0.663, by 10%: 0.458 , by 30%: 0.831
-    Float_t jetPtSmeringWeight(const Bool_t& isMC, const std::string& system, const Int_t& year, 
-                               const Int_t& energy, const Float_t& jetpt, const Bool_t& dosmearing, 
-                               const Float_t resolutionfactor) const;
-    /// @brief Track mixing effect (Seagull)
-    /// @param isMC True for MC and false for Data
-    /// @param system Colliding system (pp, pPb or PbPb)
-    /// @param year Year of the data taking
-    /// @param energy Colliding energy (in GeV)
-    /// @param trketa Track eta
-    /// @param reco Is reco track
-    Float_t trkEtaMixWeight(const Bool_t& isMC, const std::string& system, const Int_t& year, 
-                            const Int_t& energy, const Float_t& trketa, const Bool_t& reco) const;
-
     /// @brief Calculate centrality weight
     Double_t evalCentralityWeight(const Double_t& hiBin);
 
@@ -269,6 +211,8 @@ class ForestAODReader : public BaseReader {
     // Trigger and skimming information
     //
 
+    Int_t fHLT_HIAK4CaloJet60_v1;
+    Int_t fHLT_HIAK4CaloJet80_v1;
     Int_t fHLT_PAAK4CaloJet60_Eta5p1_v3;
     Int_t fHLT_PAAK4CaloJet80_Eta5p1_v3;
     Int_t fHLT_PAAK4CaloJet100_Eta5p1_v3;

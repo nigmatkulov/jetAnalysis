@@ -223,6 +223,8 @@ void ForestAODReader::clearVariables() {
     fNGenJets = {0};
     fNTracks = {0};
 
+    fHLT_HIAK4CaloJet60_v1 = {0};
+    fHLT_HIAK4CaloJet80_v1 = {0};
     fHLT_PAAK4CaloJet60_Eta5p1_v3 = {0};
     fHLT_PAAK4CaloJet80_Eta5p1_v3 = {0};
     fHLT_PAAK4CaloJet100_Eta5p1_v3 = {0};
@@ -461,137 +463,6 @@ void ForestAODReader::createExtraJECScaleCorrFunction() {
 }
 
 //________________
-Float_t ForestAODReader::jetPtWeight(const Bool_t &isMC, const std::string &system, const Int_t &year, 
-                                     const Int_t &energy, float jetpt) const {
-    Float_t jetptweight = 1.0;
-
-    // JetPtWeightFunction is derived from MC vs data jet pT spectra.
-    /*
-    if(isMC && system == "pp" && energy == 5020 && year == 2017){
-        TF1 *JetPtWeightFunction = new TF1("JetPtWeightFunction", "pol3", 0.0, 500.0); //Derived from all jets above 120 GeV and JECv6
-        JetPtWeightFunction->SetParameters(0.79572,0.0021861,-6.35407e-06,6.66435e-09);
-        jetptweight = JetPtWeightFunction->Eval(jetpt);
-    }
-    */
-    return jetptweight;
-}
-
-//________________
-Float_t ForestAODReader::leadJetPtWeight(const Bool_t &isMC, const std::string &system, const Int_t& year, 
-                                         const Int_t& energy, const Float_t& leadjetpt) const {
-    Float_t leadjetptweight = 1.0;
-
-    // LeadJetPtWeightFunction is derived from MC vs data leading jet pT spectra.
-    /*
-    if(isMC && system == "pp" && energy == 5020 && year == 2017){
-        TF1 *LeadJetPtWeightFunction = new TF1("LeadJetPtWeightFunction", "pol3", 0.0, 500.0); //Derived from leading jets above 120 GeV and JECv6
-        LeadJetPtWeightFunction->SetParameters(0.876682,0.00131479,-3.90884e-06,4.40358e-09); ;
-        leadjetptweight = LeadJetPtWeightFunction->Eval(leadjetpt);
-    }
-    */
-    return leadjetptweight;
-}
-
-//________________
-Float_t ForestAODReader::subleadJetPtWeight(const Bool_t &isMC, const std::string &system, const Int_t &year, 
-                                            const Int_t &energy, const Float_t &subleadjetpt) {
-    Float_t subleadjetptweight = 1.0;
-
-    // SubLeadJetPtWeightFunction is derived from MC vs data subleading jet pT spectra.
-    /*
-    if(isMC && system == "pp" && energy == 5020 && year == 2017){
-        TF1 *SubLeadJetPtWeightFunction = new TF1("SubLeadJetPtWeightFunction", "pol3", 0.0, 500.0); //Derived from leading jets above 120 GeV and JECv6
-        SubLeadJetPtWeightFunction->SetParameters(0.876682,0.00131479,-3.90884e-06,4.40358e-09); ;
-        subleadjetptweight = SubLeadJetPtWeightFunction->Eval(subleadjetpt);
-    }
-    */
-    return subleadjetptweight;
-}
-
-//________________
-Float_t ForestAODReader::jetPtSmeringWeight(const Bool_t &isMC, const std::string &system, const Int_t &year, 
-                                            const Int_t &energy, const Float_t &jetpt, 
-                                            const Bool_t &dosmearing, const Float_t resolutionfactor) const {
-    Float_t jetptsmearweight = 1.0;
-    if(!dosmearing) return jetptsmearweight;
-
-    // JetPtSmearingWeightFunction is derived from MC vs data jet pT spectra.
-    if(!isMC && system == "pp" && energy == 5020 && year == 2017){
-        TF1 *JetPtSmearingWeightFunction = new TF1("JetPtSmearingWeightFunction", "pol3", 0.0, 500.0); //Derived from all jets above 120 GeV and JECv6
-        JetPtSmearingWeightFunction->SetParameters(0.174881, -0.00091979, 3.50064e-06, -6.52541e-09, 4.64199e-12);
-        jetptsmearweight = JetPtSmearingWeightFunction->Eval(jetpt);
-        jetptsmearweight = jetptsmearweight*resolutionfactor;
-    }
-
-    return jetptsmearweight;
-}
-
-//________________
-Float_t ForestAODReader::trkEtaMixWeight(const Bool_t &isMC, const std::string &system, const Int_t &year, const Int_t &energy, 
-                                         const Float_t &trketa, const Bool_t &reco) const {
-    float trketamixweight = 1.0;
-
-    // TrkEtaMixWeightFunction is derived from trk eta from signal over trk eta from mixing
-    /*
-    if(isMC && system == "pp" && energy == 5020 && year == 2017 && !reco){
-        TF1 *TrkEtaMixWeightFunction = new TF1("TrkEtaMixWeightFunction", "pol3", 0.0, 500.0); 
-        TrkEtaMixWeightFunction->SetParameters(0.174881, -0.00091979, 3.50064e-06, -6.52541e-09, 4.64199e-12);
-        trketamixweight = TrkEtaMixWeightFunction->Eval(jetpt);
-    }
-    */
-    return trketamixweight;
-}
-
-//________________
-Float_t ForestAODReader::eventWeight(const Bool_t &isMC, const Bool_t &use_centrality, 
-                                     const std::string& system, const Int_t &year, const Int_t &energy, 
-                                     const Float_t &vz, const Int_t mult, const Float_t &weighttree, 
-                                     const Float_t &leadjetpt) const {
-
-    Float_t vzweight = 1.0;
-    Float_t multweight = 1.0;
-    Float_t evtweight = 1.0;
-    Float_t multefficiency = 1.0;
-    Float_t jetefficiency = 1.0;		
-    Float_t totalweight = 1.0;
-
-    // VzWeightFunction is derived from MC vs data event Vz --> MC only --> vzweight
-    // MultCentWeightFunction is derived from MC vs data event multiplicity or centrality --> MC only --> multweight
-    // MultTriggerWeightFunction is derived from the turn on plots as function of multiplicity --> RECO only
-    // JetTriggerWeightFunction is derived from the turn on plots as function of leading jet pT --> RECO only
-    // weighttree is the pthat weight --> MC only 
-
-	if (isMC && !use_centrality && system == "pp" && 
-        energy == 5020 && year == 2017) {
-
-		TF1 *VzWeightFunction = new TF1("VzWeightFunction", "pol6", -15.0, 15.0);
-		VzWeightFunction->SetParameters(0.973805, 0.00339418, 0.000757544, -1.37331e-06, -2.82953e-07, -3.06778e-10, 3.48615e-09);
-		vzweight = VzWeightFunction->Eval(vz);
-
-		TF1 *MultCentWeightFunction = new TF1("MultCentWeightFunction", "pol0", 0.0, 500.0);
-		MultCentWeightFunction->SetParameter(0,1.0);
-		multweight = MultCentWeightFunction->Eval(mult);
-
-		TF1 *MultTriggerWeightFunction = new TF1("MultTriggerWeightFunction", "pol0", 0.0, 500.0); // fitted from turn on curves
-		MultTriggerWeightFunction->SetParameter(0,1.0);
-		Float_t multtrigweight = 1.0;
-		multtrigweight = MultTriggerWeightFunction->Eval(mult);
-		multefficiency = 1./multtrigweight;
-
-		TF1 *JetTriggerWeightFunction = new TF1("JetTriggerWeightFunction", "pol0", 0.0, 500.0); // fitted from turn on curves
-		JetTriggerWeightFunction->SetParameter(0,1.0);
-		Float_t jettrigweight = 1.0;
-		jettrigweight = JetTriggerWeightFunction->Eval(leadjetpt);
-		jetefficiency = 1./jettrigweight;
-
-		evtweight = weighttree;
-	}
-
-	totalweight = evtweight * multweight * vzweight * multefficiency * jetefficiency;
-	return totalweight;
-}
-
-//________________
 Double_t ForestAODReader::evalCentralityWeight(const Double_t& x) {
     Double_t weight{1.};
     Double_t p0{4.363352};
@@ -611,7 +482,7 @@ Double_t ForestAODReader::evalCentralityWeight(const Double_t& x) {
 
 //_________________
 void ForestAODReader::finish() {
-
+    // Nothing to do here
 }
 
 //_________________
@@ -774,6 +645,8 @@ void ForestAODReader::setupBranches() {
     if ( fUseHltBranch ) {
 
         // Status
+        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet60_v1", 1);
+        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet80_v1", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet60_Eta5p1_v3", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet80_Eta5p1_v3", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet100_Eta5p1_v3", 1);
@@ -817,6 +690,8 @@ void ForestAODReader::setupBranches() {
         fHltTree->SetBranchStatus("HLT_HIPuAK4CaloJet100Eta5p1_v1", 1);
 
         // Address
+        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet60_v1", &fHLT_HIAK4CaloJet60_v1);
+        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet80_v1", &fHLT_HIAK4CaloJet80_v1);
         fHltTree->SetBranchAddress("HLT_PAAK4CaloJet60_Eta5p1_v3", &fHLT_PAAK4CaloJet60_Eta5p1_v3);
         fHltTree->SetBranchAddress("HLT_PAAK4CaloJet80_Eta5p1_v3", &fHLT_PAAK4CaloJet80_Eta5p1_v3);
         fHltTree->SetBranchAddress("HLT_PAAK4CaloJet100_Eta5p1_v3", &fHLT_PAAK4CaloJet100_Eta5p1_v3);
@@ -1210,6 +1085,8 @@ Event* ForestAODReader::returnEvent() {
     // Fill HLT branch
     if ( fUseHltBranch ) {
 
+        fEvent->trigAndSkim()->setHLT_HIAK4CaloJet60_v1(fHLT_HIAK4CaloJet60_v1);
+        fEvent->trigAndSkim()->setHLT_HIAK4CaloJet80_v1(fHLT_HIAK4CaloJet80_v1);
         fEvent->trigAndSkim()->setHLT_PAAK4CaloJet60_Eta5p1_v3(fHLT_PAAK4CaloJet60_Eta5p1_v3);
         fEvent->trigAndSkim()->setHLT_PAAK4CaloJet80_Eta5p1_v3(fHLT_PAAK4CaloJet80_Eta5p1_v3);
         fEvent->trigAndSkim()->setHLT_PAAK4CaloJet100_Eta5p1_v3(fHLT_PAAK4CaloJet100_Eta5p1_v3);
@@ -1301,8 +1178,7 @@ Event* ForestAODReader::returnEvent() {
                 jet->setWTAPhi( fGenJetWTAPhi[iGenJet] );
                 jet->setFlavor( fRefJetPartonFlavor[fGenJet2RecoJet.at(iGenJet)] );
                 jet->setFlavorForB( fRefJetPartonFlavorForB[fGenJet2RecoJet.at(iGenJet)] );
-                jet->setPtWeight( jetPtWeight(fIsMc, fCollidingSystem.Data(), fYearOfDataTaking, 
-                                              fCollidingEnergyGeV, fGenJetPt[iGenJet]) );
+                jet->setPtWeight( 1. );
                 fEvent->genJetCollection()->push_back( jet );
             } // for (Int_t iGenJet{0}; iGenJet<fNGenJets; iGenJet++)
 
