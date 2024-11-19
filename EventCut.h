@@ -68,8 +68,10 @@ class EventCut {
     void useHLT_HIPuAK4CaloJet80Eta5p1_v1()  { fHLT_HIPuAK4CaloJet80Eta5p1_v1 = {kTRUE}; }
     void useHLT_PAAK4PFJet60_Eta5p1_v4()     { fHLT_PAAK4PFJet60_Eta5p1_v4 = {kTRUE}; }
     void useHLT_PAAK4PFJet80_Eta5p1_v3()     { fHLT_PAAK4PFJet80_Eta5p1_v3 = {kTRUE}; }
-    void useHLT_PAAK4PFJet100_Eta5p1_v3()     { fHLT_PAAK4PFJet100_Eta5p1_v3 = {kTRUE}; }
-    void useHLT_PAAK4PFJet120_Eta5p1_v2()     { fHLT_PAAK4PFJet120_Eta5p1_v2 = {kTRUE}; }
+    void useHLT_PAAK4PFJet100_Eta5p1_v3()    { fHLT_PAAK4PFJet100_Eta5p1_v3 = {kTRUE}; }
+    void useHLT_PAAK4PFJet120_Eta5p1_v2()    { fHLT_PAAK4PFJet120_Eta5p1_v2 = {kTRUE}; }
+    void useHLT_HIAK4CaloJet60_v1()          { fHLT_HIAK4CaloJet60_v1 = {kTRUE}; }
+    void useHLT_HIAK4CaloJet80_v1()          { fHLT_HIAK4CaloJet80_v1 = {kTRUE}; }
 
     void usePhfCoincFilter()                { fPhfCoincFilter = {kTRUE}; }
     void usePVertexFilterCutdz1p0()         { fPVertexFilterCutdz1p0 = {kTRUE}; }
@@ -122,11 +124,14 @@ class EventCut {
     Bool_t fPVertexFilterCutVtx1;
 
     // Triggers
+    Bool_t fHLT_HIAK4CaloJet60_v1; // pp5020
+    Bool_t fHLT_HIAK4CaloJet80_v1; // pp5020
+
     Bool_t fHLT_HIPuAK4CaloJet80Eta5p1_v1;
-    Bool_t fHLT_PAAK4PFJet60_Eta5p1_v4;  // pPb
-    Bool_t fHLT_PAAK4PFJet80_Eta5p1_v3;  // pPb
-    Bool_t fHLT_PAAK4PFJet100_Eta5p1_v3; // pPb
-    Bool_t fHLT_PAAK4PFJet120_Eta5p1_v2; // pPb
+    Bool_t fHLT_PAAK4PFJet60_Eta5p1_v4;  // pPb 8160
+    Bool_t fHLT_PAAK4PFJet80_Eta5p1_v3;  // pPb 8160
+    Bool_t fHLT_PAAK4PFJet100_Eta5p1_v3; // pPb 8160
+    Bool_t fHLT_PAAK4PFJet120_Eta5p1_v2; // pPb 8160
 
     /// @brief Number of events passed cut
     Long64_t fEventsPassed;
