@@ -17,6 +17,7 @@
 #include "TString.h"
 #include "Rtypes.h"
 #include "TChain.h"
+#include "TF1.h"
 
 // Jet analysis headers
 #include "BaseAnalysis.h"
@@ -43,8 +44,6 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Return a TList of objects to be written as output
     virtual TList* getOutputList();
 
-    /// @brief Set debug information
-    void setDebug(const Bool_t& debug) { fDebug = debug; }
     /// @brief Add histogram manager to the analysis
     void addHistoManager(HistoManagerDiJet *hm) { fHM = hm; }
     /// @brief Add lorentz shift
@@ -112,9 +111,13 @@ class DiJetAnalysis : public BaseAnalysis {
     Double_t boostEta2CM(const Double_t &etaLab);
     /// @brief Get proper eta in the lab frame depending on beam direction 
     Double_t etaLab(const Double_t &eta);
+    /// @brief Dijet eta calculation
+    Double_t dijetEtaInFrame(const Double_t& eta1, const Double_t& eta2, Bool_t isCM = kFALSE);
 
-    /// @brief Print debug information
-    Bool_t   fDebug;
+    /// @brief Vz weight to match MC to data
+    TF1 *fVzWeight;
+    /// @brief Dijet ptAve weight (to match PYTHIA 2 pp data)
+    TF1 *fDijetPtAveWeight;
     /// @brief Centrality weight
     Bool_t   fUseCentralityWeight;
     /// @brief Histogram manager

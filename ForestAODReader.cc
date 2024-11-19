@@ -645,8 +645,8 @@ void ForestAODReader::setupBranches() {
     if ( fUseHltBranch ) {
 
         // Status
-        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet60_v1", 1);
-        fHltTree->SetBranchAddress("HLT_HIAK4CaloJet80_v1", 1);
+        fHltTree->SetBranchStatus("HLT_HIAK4CaloJet60_v1", 1);
+        fHltTree->SetBranchStatus("HLT_HIAK4CaloJet80_v1", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet60_Eta5p1_v3", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet80_Eta5p1_v3", 1);
         fHltTree->SetBranchStatus("HLT_PAAK4CaloJet100_Eta5p1_v3", 1);
