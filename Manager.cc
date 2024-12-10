@@ -68,10 +68,14 @@ void Manager::finish() {
 //________________
 void Manager::performAnalysis() {
 
+    std::cout << "Manager::performAnalysis - Number of events in chain: " << fEventsInChain << std::endl;
+
     // Loop over all events available
     for (Long64_t iEvent=0; iEvent<fEventsInChain; iEvent++) {
 
         //std::cout << "=================================" << std::endl;
+
+        std::cout << "Manager::performAnalysis - Processing event: " << iEvent << std::endl;
         Event *currentEvent = fEventReader->returnEvent();
 
         if ( !currentEvent ) {
