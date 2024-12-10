@@ -26,10 +26,10 @@ fi
 # Generate path to the inputfile list
 if [ "$sample_name" -eq 0 ]; then
     sample_prefix="MB_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb5020/DATA_MB/${direction}/MB_${direction}5TeV_allPDs.txt"
+    input_file_list="${EXEC_PATH}/filelists/pPb5020/Data_MB/${direction}/MB_${direction}5TeV_allPDs.txt"
 else
     sample_prefix="PAEGJet_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb5020/DATA_PAEGJet/${direction}/PAEGJet_${direction}5TeV.txt"
+    input_file_list="${EXEC_PATH}/filelists/pPb5020/Data_PAEGJet/${direction}/PAEGJet_${direction}5TeV.txt"
 fi
 
 # Specify number of files per list to split
