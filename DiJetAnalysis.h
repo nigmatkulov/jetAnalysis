@@ -47,11 +47,11 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Add histogram manager to the analysis
     void addHistoManager(HistoManagerDiJet *hm) { fHM = hm; }
     /// @brief Add lorentz shift
-    void setEtaShift(const Double_t& shift) { fEtaShift = shift; }
+    void setEtaShift(const Double_t& shift)  { fEtaShift = shift; }
     /// @brief Set dataset to be MC
-    void setIsMc(const Bool_t& isMc) { fIsMc = isMc; }
+    void setIsMc(const Bool_t& isMc)         { fIsMc = isMc; }
     /// @brief Is pPb dataset
-    void setIsPPb()                  { fIsPPb = kTRUE; }
+    void setIsPPb()                          { fIsPPb = kTRUE; }
     /// @brief Set cut on the ptHat of the event (for MC in pPb only due to the xsection matching)
     void setPtHatRange(const Double_t& lo, const Double_t& hi) { fPtHatRange[0] = lo; fPtHatRange[1] = hi; }
     /// @brief Cut on the lowest momentum of leading jet

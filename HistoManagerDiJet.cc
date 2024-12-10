@@ -403,14 +403,21 @@ HistoManagerDiJet::~HistoManagerDiJet() {
 //________________
 void HistoManagerDiJet::init(const Bool_t& isMc) {
 
-    const Int_t dijetEtaBins{30};
-    Double_t dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
-                                            -2.0, -1.8, -1.6, -1.4, -1.2, 
-                                            -1.0, -0.8, -0.6, -0.4, -0.2,  
-                                             0.0,  0.2,  0.4,  0.6,  0.8,  
-                                             1.0,  1.2,  1.4,  1.6,  1.8,  
-                                             2.0,  2.2,  2.4,  3.0,  4.0,  
-                                             5.0 };
+//     const Int_t dijetEtaBins{30};
+//     Double_t dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
+//                                             -2.0, -1.8, -1.6, -1.4, -1.2, 
+//                                             -1.0, -0.8, -0.6, -0.4, -0.2,  
+//                                              0.0,  0.2,  0.4,  0.6,  0.8,  
+//                                              1.0,  1.2,  1.4,  1.6,  1.8,  
+//                                              2.0,  2.2,  2.4,  3.0,  4.0,  
+//                                              5.0 };
+
+    // Old binning convention
+    const Int_t dijetEtaBins{18};
+    Double_t dijetEtaVals[dijetEtaBins+1] = { -2.915, -2.63333333333, -2.07, -1.78833333333, -1.50666666667,
+                                              -1.225, -0.94333333333, -0.66166666666, -0.38, -0.09833333333,
+                                              0.18333333333, 0.465, 0.74666666666, 1.02833333333, 1.31,
+                                              1.59166666667, 1.87333333333, 2.43666666667, 3.};
 
     const Int_t dijetEtaFBBins{13};
     Double_t dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
@@ -418,11 +425,15 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                                 2.0,  2.2,  2.4,  3.0 };
 
 
-    const Int_t dijetPtBins{17};
-    Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
-                                           90., 100.,  110., 120., 130.,
-                                          140., 150.,  160., 180., 200., 
-                                          240., 300., 1000.};
+    // const Int_t dijetPtBins{17};
+    // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
+    //                                        90., 100.,  110., 120., 130.,
+    //                                       140., 150.,  160., 180., 200., 
+    //                                       240., 300., 1000.};
+
+    // Old binning convention
+    const Int_t dijetPtBins{6};
+    Double_t dijetPtVals[dijetPtBins+1] {25., 55., 75., 95., 115., 150., 400.}; // 6 bins
     
     Int_t    prescale = 2;
 
@@ -619,9 +630,9 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hGenDijetEta->Sumw2();
         hGenDijetPtEtaDphi = new TH3D("hGenDijetPtEtaDphi","Gen dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
-                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
-                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
-                                        fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
+                                      fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                      fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
+                                      fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
         hGenDijetPtEtaDphi->Sumw2();
         hGenDijetPtEtaDphiWeighted = new TH3D("hGenDijetPtEtaDphiWeighted","Gen dijet info weighted;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
                                               fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],

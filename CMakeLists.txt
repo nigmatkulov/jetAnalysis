@@ -123,6 +123,11 @@ add_executable(dijetAna dijetAna.cxx)
 # Link created libraries
 target_link_libraries(dijetAna ${libname})
 
+# Create main executable (to call from the command line)
+add_executable(dijetAna_pPb5020 dijetAna_pPb5020.cxx)
+# Link created libraries
+target_link_libraries(dijetAna_pPb5020 ${libname})
+
 # Include directories 
 #target_include_directories(jetAna PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})
 
