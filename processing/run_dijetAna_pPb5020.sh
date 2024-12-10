@@ -32,9 +32,9 @@ if [ "$is_mc" -eq 1 ]; then
     fi
 else
     if [ "$is_Pbgoing" -eq 1 ]; then
-        ../build/dijetAna_pPb5020 ${input_file_list} /eos/user/g/gnigmatk/ana/pPb5020/exp/RunD/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
+        ../build/dijetAna_pPb5020 ${input_file_list} /eos/user/g/gnigmatk/ana/pPb5020/exp/RunD/${output_file_name} ${is_mc} 0 ${pt_hat_low} ${pt_hat_hi}
     else
-        ../build/dijetAna_pPb5020 ${input_file_list} /eos/user/g/gnigmatk/ana/pPb5020/exp/RunB/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi}
+        ../build/dijetAna_pPb5020 ${input_file_list} /eos/user/g/gnigmatk/ana/pPb5020/exp/RunB/${output_file_name} ${is_mc} 0 ${pt_hat_low} ${pt_hat_hi}
     fi
 fi
 

@@ -33,7 +33,7 @@ else
 fi
 
 # Specify number of files per list to split
-files_per_job=50
+files_per_job=100
 #input_file_list=$HOME/filelists/test_list.txt
 
 echo -e "Splitting input file list: ${input_file_list}"
@@ -76,7 +76,7 @@ EOF
 
 for ((jobId = 1; jobId <= $n_sublists; jobId++)); do
     cat <<EOF >>condor/sub/pPb5020/${formatted_date}/pPb5020_${sample_prefix}.sub
-arguments             = input/pPb5020/${formatted_date}/${sample_prefix}_$jobId.list ${sample_prefix}_pPb5020_$jobId.root 0 0 0 15000
+arguments             = input/pPb5020/${formatted_date}/${sample_prefix}_$jobId.list ${sample_prefix}_pPb5020_$jobId.root 0 ${is_Pbgoing} 0 15000
 output                = condor/log/pPb5020/${formatted_date}/${sample_prefix}_$jobId.out
 error                 = condor/log/pPb5020/${formatted_date}/${sample_prefix}_$jobId.err
 log                   = condor/log/pPb5020/${formatted_date}/${sample_prefix}_$jobId.log
