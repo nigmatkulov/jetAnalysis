@@ -4,7 +4,7 @@
 if [ $# -ne 4 ]; then
     echo "Usage: $0 <input_file> <N> <sample_name> <direction>"
     echo "sample_name: 0 for DATA_MB, 1 for PAEGJet"
-
+    echo "direction: 0 for RunB, 1 for RunD"
     exit 1
 fi
 
@@ -32,9 +32,9 @@ fi
 
 # Prefix
 if [ "$sample_name" == "DATA_MB" ]; then
-    sample_prefix="MB_${direction}5TeV_allPDs"
+    sample_prefix="MB_5TeV_${direction}"
 else
-    sample_prefix="PAEGJet_${direction}5TeV"
+    sample_prefix="PAEGJet_5TeV_${direction}"
 fi
 
 # Check if the input file exists
