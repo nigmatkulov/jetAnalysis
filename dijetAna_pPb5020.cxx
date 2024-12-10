@@ -30,7 +30,7 @@ int main(int argc, char const *argv[]) {
     Bool_t isCentWeightCalc{kFALSE};
     Bool_t isPbGoingDir{};
     TString inFileName{};
-    Int_t   collEnergyGeV{8160};
+    Int_t   collEnergyGeV{8160}; // Keep this value intentionally to use the corrections
     TString collSystem{"pPb"};
     Int_t   collYear{2016};
     TString recoJetBranchName{"akCs4PFJetAnalyzer"};

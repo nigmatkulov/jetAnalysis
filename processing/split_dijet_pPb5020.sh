@@ -32,9 +32,9 @@ fi
 
 # Prefix
 if [ "$sample_name" == "DATA_MB" ]; then
-    sample_prefix="MB_5TeV_${direction}"
+    sample_prefix="MB_${direction}"
 else
-    sample_prefix="PAEGJet_5TeV_${direction}"
+    sample_prefix="PAEGJet_${direction}"
 fi
 
 # Check if the input file exists
