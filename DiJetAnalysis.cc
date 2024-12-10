@@ -37,7 +37,8 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fUseMcReweighting{0}, fJetPtBins{75}, fJetPtLow{20},
     fJetPtHi{1520}, fJetPtStep{20}, fSelectJetsInCMFrame{kFALSE},
     fMcReweight{1},
-    fEventCounter{0}, fCycleCounter{0} {
+    fEventCounter{0}, fCycleCounter{0},
+    fTotalCounter{0} {
 
     fPtHatRange[0] = {15.};
     fPtHatRange[1] = {30.};
@@ -1431,6 +1432,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
         std::cout << "DiJetAnalysis::processEvent" << std::endl;
     }
 
+    fTotalCounter++;
     fEventCounter++;
     if ( fEventCounter >= 50000 ) {
         fCycleCounter++;
@@ -1535,6 +1537,7 @@ void DiJetAnalysis::finish() {
                       (fCycleCounter * 50000) + fEventCounter, 
                       (Double_t)(fCycleCounter * 50000 + fEventCounter) / fNEventsInSample )
               << std::endl;
+    std::cout << Form("DiJetAnalysis::processEvent [INFO]: Total number of events processed: %d", fTotalCounter) << std::endl;
     std::cout << "DiJetAnalysis::finish" << std::endl;
 }
 

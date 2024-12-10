@@ -165,8 +165,9 @@ class DiJetAnalysis : public BaseAnalysis {
     Double_t  fJetPtLeadPtSubleadReweightMatrix[75][75];
     Double_t  fMcReweight;
 
-    Int_t    fEventCounter;
-    Int_t    fCycleCounter;
+    Int_t     fEventCounter;
+    Int_t     fCycleCounter;
+    UInt_t    fTotalCounter;
 
   ClassDef(DiJetAnalysis, 0)
 };
