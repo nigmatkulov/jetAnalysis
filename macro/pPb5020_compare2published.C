@@ -14,6 +14,17 @@
 #include <vector>
 
 //________________
+void plotCMSHeader() {
+    TLatex t;
+    t.SetTextFont( 42 );
+    t.SetTextSize(0.05);
+    t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.65, 0.93, "pPb 5.02 TeV");
+    t.SetTextSize(0.05);
+}
+
+//________________
 void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
     Double_t markerSize = 0.9;
@@ -85,14 +96,128 @@ void rescaleEta(TH1* h) {
 }
 
 //________________
+void plotComparison(TCanvas *c, TH1D* pub, TH1D* runB, TH1D* runD = nullptr,
+                    int ptLow=55, int ptHi=75, TString jetAlgo="akCs4PF") {
+
+    // Text 
+    TLatex t;
+    t.SetTextFont( 42 );
+    t.SetTextSize(0.06);
+
+    // Number for plotting position
+    Double_t xRange[2] = {-3., 3.};
+    Double_t yRange[2] = {0., 0.12};
+    Double_t legX[2] = {0.4, 0.65};
+    Double_t legY[2] = {0.2, 0.35};
+
+    // Set style for the data points
+    Int_t pubStyle{2};
+    Int_t runBStyle{0};
+    Int_t runDStyle{1};
+    set1DStyle(pub, pubStyle);
+    set1DStyle(runB, runBStyle);
+    if ( runD ) {
+        set1DStyle(runD, runDStyle);
+    }
+
+    // Make ratios
+    TH1D *ratioB = dynamic_cast<TH1D*>( runB->Clone("ratioB") );
+    ratioB->Divide( pub );
+
+    TH1D *ratioD = nullptr;
+    if ( runD ) {
+        ratioD = dynamic_cast<TH1D*>( runD->Clone("ratioD") );
+        ratioD->Divide( pub );
+    }
+
+    // Create pad
+    TLegend *leg;
+    TLine *line;
+
+    //
+    // Plot comparison
+    //
+    c->cd(1);
+    // Set pad style
+    setPadStyle();
+    // Plot distributions
+    pub->Draw();
+    runB->Draw("same");
+    if ( runD ) {
+        runD->Draw("same");
+    }
+    // Set ranges
+    pub->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    pub->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    pub->GetYaxis()->SetTitle("dN/d#eta^{dijet}");
+    pub->GetXaxis()->SetTitle("#eta^{dijet}");
+
+    t.DrawLatexNDC(0.3, 0.85, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi));
+    t.DrawLatexNDC(0.75, 0.85, Form("%s", jetAlgo.Data()));
+    plotCMSHeader();
+    
+
+    // Legend
+    leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    leg->SetTextFont( 42 );
+    leg->AddEntry(pub, "pPb pub.", "p");
+    leg->AddEntry(runB, "runB", "p");
+    if ( runD ) {
+        leg->AddEntry(runD, "runD", "p");
+    }
+    leg->Draw();
+
+    c->cd(2);
+    setPadStyle();
+    ratioB->Draw();
+    if ( runD ) {
+        ratioD->Draw("same");
+    }
+    ratioB->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    ratioB->GetYaxis()->SetRangeUser(0.5, 1.5);
+    ratioB->GetYaxis()->SetTitle("Ratio to pub.");
+    ratioB->GetXaxis()->SetTitle("#eta^{dijet}");
+
+    // Legend
+    leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    leg->SetTextFont( 42 );
+    leg->AddEntry(ratioB, "runB", "p");
+    if ( runD ) {
+        leg->AddEntry(ratioD, "runD", "p");
+    }
+    leg->Draw();
+
+    // Line at unity
+    line = new TLine(xRange[0], 1.0, xRange[1], 1.0);
+    line->SetLineStyle(2);
+    line->SetLineColor(kMagenta);
+    line->Draw();
+}
+
+//________________
 void pPb5020_compare2published() {
+
+    // Base style
+    gStyle->SetOptStat(0);
+    gStyle->SetOptTitle(0);
+    gStyle->SetPalette(kBird);
 
     int ptBinLow{6};
     int ptBinHi{10};
 
+    TString jetAlgo = "akCs4PF";
+    // TString jetAlgo = "ak4PF";
+
     TFile *pubFile = TFile::Open("pPb5020/cms_dijet_eta_5TeV_pub.root");
-    TFile *runBFile = TFile::Open("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/RunB/PAEGJet_RunB_pPb5020_1.root");
-    TFile *runDFile = TFile::Open("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/RunD/PAEGJet_RunD_pPb5020_1.root");
+    TFile *runBFile = TFile::Open( Form("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/PAEGJet_pPb5020_%s.root", jetAlgo.Data()) );
+    // TFile *runBFile = TFile::Open( Form("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/RunB/PAEGJet_RunB_pPb5020_%s.root", jetAlgo.Data()) );
+
+    TFile *runDFile = TFile::Open( Form("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/RunD/PAEGJet_RunD_pPb5020_%s.root", jetAlgo.Data()) );
+    // TFile *runDFile = TFile::Open( Form("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/PAEGJet_pPb5020_%s.root", jetAlgo.Data()) ); ;
 
     TH1D *hPubDijetEta_55_75 = dynamic_cast<TH1D*>( pubFile->Get("pPbEta_pt_55_75") );
     hPubDijetEta_55_75->SetName("hPubDijetEta_55_75");
@@ -110,9 +235,10 @@ void pPb5020_compare2published() {
     rescaleEta( hRunDDijetEta_55_75 );
     set1DStyle( hRunDDijetEta_55_75, 1);
 
-    TCanvas *c = new TCanvas("c", "c", 800, 600);
-    setPadStyle();
-    hPubDijetEta_55_75->Draw();
-    hRunBDijetEta_55_75->Draw("same");
-    hRunDDijetEta_55_75->Draw("same");
+    TCanvas *c = new TCanvas("c", "c", 600, 1200);
+    c->Divide(1, 2);
+
+    plotComparison(c, hPubDijetEta_55_75, hRunBDijetEta_55_75, nullptr, 55, 75, jetAlgo);
+    // plotComparison(c, hPubDijetEta_55_75, hRunBDijetEta_55_75, hRunDDijetEta_55_75, 55, 75, jetAlgo);
+
 }
