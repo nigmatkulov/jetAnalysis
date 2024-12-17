@@ -163,8 +163,11 @@ void plotComparison(TCanvas *c, TH1D* pub, TH1D* runB, TH1D* runD = nullptr,
     leg->SetFillStyle(0);
     leg->SetTextFont( 42 );
     leg->AddEntry(pub, "pPb pub.", "p");
-    leg->AddEntry(runB, "runB", "p");
-    if ( runD ) {
+    if ( !runD ) {
+        leg->AddEntry(runB, "runB + runD", "p");
+    }
+    else {
+        leg->AddEntry(runB, "runB", "p");
         leg->AddEntry(runD, "runD", "p");
     }
     leg->Draw();
@@ -185,8 +188,11 @@ void plotComparison(TCanvas *c, TH1D* pub, TH1D* runB, TH1D* runD = nullptr,
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
     leg->SetTextFont( 42 );
-    leg->AddEntry(ratioB, "runB", "p");
-    if ( runD ) {
+    if ( !runD ) {
+        leg->AddEntry(ratioB, "runB + runD", "p");
+    }
+    else {
+        leg->AddEntry(ratioB, "runB", "p");
         leg->AddEntry(ratioD, "runD", "p");
     }
     leg->Draw();
@@ -206,39 +212,66 @@ void pPb5020_compare2published() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
-    int ptBinLow{6};
-    int ptBinHi{10};
+    // pT bins
+    // 30-35   1
+    // 35-40   2
+    // 40-45   3
+    // 45-50   4
+    // 50-55   5
+    // 55-60   6
+    // 60-65   7
+    // 65-70   8
+    // 70-75   9
+    // 75-80   10
+    // 80-85   11
+    // 85-90   12
+    // 90-95   13
+    // 95-100  14
 
-    TString jetAlgo = "akCs4PF";
-    // TString jetAlgo = "ak4PF";
+    // Binning for 55 to 75 GeV
+    int ptBinLow{6};
+    int ptBinHi{9};
+    int ptLow{55};
+    int ptHi{75};
+
+    // Binning for 75 to 95 GeV
+    // int ptBinLow{10};
+    // int ptBinHi{13};
+    // int ptLow{75};
+    // int ptHi{95};
+
+    // TString jetAlgo = "akCs4PF";
+    TString jetAlgo = "ak4PF";
 
     TFile *pubFile = TFile::Open("pPb5020/cms_dijet_eta_5TeV_pub.root");
+    // Combined runB and runD
     TFile *runBFile = TFile::Open( Form("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/PAEGJet_pPb5020_%s.root", jetAlgo.Data()) );
+    // RunB
     // TFile *runBFile = TFile::Open( Form("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/RunB/PAEGJet_RunB_pPb5020_%s.root", jetAlgo.Data()) );
 
+    // RunD
     TFile *runDFile = TFile::Open( Form("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/RunD/PAEGJet_RunD_pPb5020_%s.root", jetAlgo.Data()) );
-    // TFile *runDFile = TFile::Open( Form("/Users/nigmatkulov/cernbox/ana/pPb5020/exp/PAEGJet_pPb5020_%s.root", jetAlgo.Data()) ); ;
 
-    TH1D *hPubDijetEta_55_75 = dynamic_cast<TH1D*>( pubFile->Get("pPbEta_pt_55_75") );
-    hPubDijetEta_55_75->SetName("hPubDijetEta_55_75");
+    TH1D *hPubDijetEta_55_75 = dynamic_cast<TH1D*>( pubFile->Get( Form("pPbEta_pt_%d_%d", ptLow, ptHi) ) );
+    hPubDijetEta_55_75->SetName( Form("hPubDijetEta_%d_%d", ptLow, ptHi) );
     set1DStyle( hPubDijetEta_55_75, 2);
 
     TH3D *hRunBPtEtaDphi = dynamic_cast<TH3D*>( runBFile->Get("hRecoDijetPtEtaDphiWeighted") );
     hRunBPtEtaDphi->SetName("hRunBPtEtaDphi");
-    TH1D *hRunBDijetEta_55_75 = dynamic_cast<TH1D*>( hRunBPtEtaDphi->ProjectionY("hRunBDijetEta_55_75", ptBinLow, ptBinHi) );
+    TH1D *hRunBDijetEta_55_75 = dynamic_cast<TH1D*>( hRunBPtEtaDphi->ProjectionY( Form("hRunBDijetEta_%d_%d", ptLow, ptHi), ptBinLow, ptBinHi) );
     rescaleEta( hRunBDijetEta_55_75 );
     set1DStyle( hRunBDijetEta_55_75, 0);
 
     TH3D *hRunDPtEtaDphi = dynamic_cast<TH3D*>( runDFile->Get("hRecoDijetPtEtaDphiWeighted") );
     hRunDPtEtaDphi->SetName("hRunDPtEtaDphi");
-    TH1D *hRunDDijetEta_55_75 = dynamic_cast<TH1D*>( hRunDPtEtaDphi->ProjectionY("hRunDDijetEta_55_75", ptBinLow, ptBinHi) );
+    TH1D *hRunDDijetEta_55_75 = dynamic_cast<TH1D*>( hRunDPtEtaDphi->ProjectionY( Form("hRunDDijetEta_%d_%d", ptLow, ptHi), ptBinLow, ptBinHi) );
     rescaleEta( hRunDDijetEta_55_75 );
     set1DStyle( hRunDDijetEta_55_75, 1);
 
     TCanvas *c = new TCanvas("c", "c", 600, 1200);
     c->Divide(1, 2);
 
-    plotComparison(c, hPubDijetEta_55_75, hRunBDijetEta_55_75, nullptr, 55, 75, jetAlgo);
-    // plotComparison(c, hPubDijetEta_55_75, hRunBDijetEta_55_75, hRunDDijetEta_55_75, 55, 75, jetAlgo);
+    plotComparison(c, hPubDijetEta_55_75, hRunBDijetEta_55_75, nullptr, ptLow, ptHi, jetAlgo);
+    // plotComparison(c, hPubDijetEta_55_75, hRunBDijetEta_55_75, hRunDDijetEta_55_75, ptLow, ptHi, jetAlgo);
 
 }

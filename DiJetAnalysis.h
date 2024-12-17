@@ -72,6 +72,10 @@ class DiJetAnalysis : public BaseAnalysis {
     void setLooseJetIdCut()                  { fIsLooseJetIdCut = {kTRUE}; }
     /// @brief Select inclusive jets in the center-of-mass frame
     void selectJetsInCMFrame()               { fSelectJetsInCMFrame = {kTRUE}; }
+    /// @brief Set eta range to select jets in the lab frame
+    void setJetEtaLabRange(const Double_t& lo, const Double_t& hi) { fJetEtaLab[0]=lo; fJetEtaLab[1]=hi; }
+    /// @brief Set eta range to select jets in the center-of-mass frame
+    void setJetEtaCMRange(const Double_t& lo, const Double_t& hi) { fJetEtaCM[0]=lo; fJetEtaCM[1]=hi; }
 
     /// @brief Reweight MC to data (trigger-dependent): 
     /// 0 - do not reweight (default)
@@ -164,6 +168,10 @@ class DiJetAnalysis : public BaseAnalysis {
     Double_t  fJetPtStep;
     Double_t  fJetPtLeadPtSubleadReweightMatrix[75][75];
     Double_t  fMcReweight;
+    /// Range of eta selection in the lab frame
+    Double_t  fJetEtaLab[2];
+    /// Range of eta selection in the center-of-mass frame
+    Double_t  fJetEtaCM[2];
 
     Int_t     fEventCounter;
     Int_t     fCycleCounter;
