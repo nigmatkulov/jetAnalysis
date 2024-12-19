@@ -41,7 +41,7 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fTotalCounter{0} {
 
     fJetEtaLab[0] = -3.; fJetEtaLab[1] = 3.;
-    fJetEtaCm[0] = -2.5; fJetEtaCm[1] = 2.5;
+    fJetEtaCM[0] = -2.5; fJetEtaCM[1] = 2.5;
     fPtHatRange[0] = {15.};
     fPtHatRange[1] = {30.};
     for (Int_t i=0; i<fJetPtBins; i++) {
@@ -1015,9 +1015,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
             // Dijet analysis
             Double_t dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
-            Double_t dijetRecoEta = dijetEtaInFrame(etaLead, etaSubLead, kFALSE);
+            Double_t dijetRecoEta = dijetEtaInFrame(etaRecoLead, etaRecoSubLead, kFALSE);
             Double_t dijetRecoDphi = deltaPhi(phiRecoLead, phiRecoSubLead);
-            Double_t dijetRecoEtaCM = dijetEtaInFrame(etaLead, etaSubLead, kTRUE);
+            Double_t dijetRecoEtaCM = dijetEtaInFrame(etaRecoLead, etaRecoSubLead, kTRUE);
 
 
             // Correlation between leading and subleading
@@ -1368,9 +1368,9 @@ void DiJetAnalysis::processRefJets(const Event* event, Double_t ptHatW) {
             Double_t dijetRecoEtaCM = dijetEtaInFrame(etaRecoLead, etaRecoSubLead, kTRUE);
 
             Double_t dijetRefPt = 0.5 * (ptRefLead + ptRefSubLead);
-            Double_t dijetRefEta = dijetEtaInFrame(etaRefLead, etaRefSubLead. kFALSE);
+            Double_t dijetRefEta = dijetEtaInFrame(etaRefLead, etaRefSubLead, kFALSE);
             Double_t dijetRefDphi = deltaPhi(phiRefLead, phiRefSubLead);
-            Double_t dijetRefEtaCM = dijetEtaInFrame(etaRefLead, etaRefSubLead. kTRUE);
+            Double_t dijetRefEtaCM = dijetEtaInFrame(etaRefLead, etaRefSubLead, kTRUE);
 
             // Dijet reco vs ref for unfolding
             Double_t dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
