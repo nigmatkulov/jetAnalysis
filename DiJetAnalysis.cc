@@ -255,7 +255,7 @@ Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb,
 }
 
 //________________
-Double_t DiJetAnalysis::deltaPhi(const Double_t& phi1, const Double_t phi2) {
+Double_t DiJetAnalysis::deltaPhi(const Double_t& phi1, const Double_t &phi2) {
     Double_t dphi = phi1 - phi2;
     if ( dphi > TMath::Pi() ) dphi -= TMath::TwoPi();
     if ( dphi < -TMath::Pi() ) dphi += TMath::TwoPi();

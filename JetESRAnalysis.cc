@@ -21,11 +21,11 @@
 // Jet analysis headers
 #include "JetESRAnalysis.h"
 
-ClassImp(JetESRAnalysis)
-
 //________________
 JetESRAnalysis::JetESRAnalysis() : BaseAnalysis(), 
-    fDebug{kFALSE}, fUseCentralityWeight{}, fHM{nullptr} {
+    fVerbose{false}, fHM{nullptr}, fUseCentralityWeight{false}, fEtaShift{0},
+    fCollisionSystem{2}, fIsPbGoingDir{false}, fPtHatRange{15., 30.},
+    fVzWeight{nullptr} {
     /* Empty */
 }
 
@@ -37,7 +37,382 @@ JetESRAnalysis::~JetESRAnalysis() {
 //________________
 void JetESRAnalysis::init() {
     // Initialize analysis
-    //std::cout << "JetESRAnalysis::init" << std::endl;
+
+    // Print initial setup of the analysis
+    print();
+}
+
+//________________
+void JetESRAnalysis::print() {
+    std::cout << "----------------------------------------\n";
+    std::cout << "JetESRAnalysis initial parameters:\n";
+    std::cout << "Use centrality weight       : " << fUseCentralityWeight << std::endl
+              << "Histogram manager           : " << fHM << std::endl
+              << "Is pPb                      : " << fIsPPb << std::endl
+              << "Is Pb-going direction       : " << fIsPbGoingDir << std::endl
+              << "eta shift                   : " << fEtaShift << std::endl
+              << "ptHat range                 : " << fPtHatRange[0] << "-" << fPtHatRange[1] << std::endl
+              << "Leading jet pT              : " << fLeadJetPtLow << std::endl
+              << "SubLeading jet pT           : " << fSubleadJetPtLow << std::endl
+              << "Dijet phi cut               : " << fDijetPhiCut << std::endl
+              << "Select jets in CM frame     : " << fSelectJetsInCMFrame << std::endl;
+    std::cout << "----------------------------------------\n";
+}
+
+//________________
+void JetESRAnalysis::findLeadSubleadJets(const double &pt, const int &counter,
+                                         double &ptLead, double &ptSublead,
+                                         int &idLead, int &idSubLead) {
+    // Find leading and subleading jets
+    if ( fVerbose ) {
+        std::cout << "JetESRAnalysis::findLeadSubleadJets - begin" << std::endl;
+    }
+
+    if ( pt > ptLead ) {
+        ptSublead = ptLead;
+        idSubLead = idLead;
+        ptLead = pt;
+        idLead = counter;
+    }
+    else if ( pt > ptSublead ) {
+        ptSublead = pt;
+        idSubLead = counter;
+    }
+
+    if ( fVerbose ) {
+        std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f Lead id: %d SubLead id: %d\n", 
+                          ptLead, ptSublead, idLead, idSubLead);
+        std::cout << "JetESRAnalysis::findLeadSubleadJets - end" << std::endl;
+    }
+}
+
+//________________
+bool JetESRAnalysis::isGoodGenJet(const GenJet* jet) {
+    bool goodJet{false};
+    double etaCut[2] {fSubleadJetEta[0], fSubleadJetEta[1]}; 
+    double eta = jet->eta();
+
+    // if ( fSelectJetsInCMFrame ) {
+
+    //     eta = boostEta2CM( eta );
+
+    //     etaCut[0] = fJetEtaCM[0];
+    //     etaCut[1] = fJetEtaCM[1];
+    // }
+    // else {
+    //     eta = etaLab( eta );
+    // }
+
+    if ( jet->pt() > fSubleadJetPtLow && etaCut[0] < eta && eta < etaCut[1] ) {
+        goodJet = {true};
+    }
+    
+    if ( fVerbose ) {
+        std::cout << Form("Gen jet cut %s\n", goodJet ? "\t[passed]" : "\t[failed]" );
+    }
+
+    return goodJet;
+}
+
+//________________
+double JetESRAnalysis::deltaPhi(const double& phi1, const double &phi2) {
+    double dphi = phi1 - phi2;
+    if ( dphi > TMath::Pi() ) dphi -= TMath::TwoPi();
+    if ( dphi < -TMath::Pi() ) dphi += TMath::TwoPi();
+    return dphi;
+}
+
+//________________
+bool JetESRAnalysis::isGoodDijet(const double& ptLead, const double& ptSubLead, const double& dphi) {
+    bool isGood = ( ptLead > fLeadJetPtLow &&
+                    ptSubLead > fSubLeadJetPtLow && 
+                    dphi > fDijetPhiCut );
+    if ( fVerbose ) {
+        std::cout << "JetESRAnalysis::isGoodDijet " << isGood << " ";
+        std::cout << Form("pTlead: %5.2f pTsub: %5.2f dphi: %4.2f\n", ptLead, ptSubLead, dphi);
+    }
+    return isGood;
+}
+
+//________________
+bool JetESRAnalysis::isGoodTrkMax(const RecoJet* jet) {
+    bool goodTrackMax = {true};
+    double rawPt = jet->rawPt();
+    double trackMaxPt = jet->trackMaxPt();
+    if ( TMath::Abs( jet->eta() ) < 2.4 && 
+         ( trackMaxPt/rawPt < 0.01 ||
+           trackMaxPt/rawPt > 0.98) ) {
+        goodTrackMax = {kFALSE};
+    }
+
+    if ( fVerbose ) {
+        std::cout << "TrackMaxPt/rawPt: " << trackMaxPt/rawPt << ( (goodTrackMax) ? " [passed]" : " [failed]" ) 
+                  << ( (trackMaxPt/rawPt < 0.01) ? " too low value " : "" ) << ( (trackMaxPt/rawPt > 0.98) ? " too large value " : "" )
+                  << std::endl;
+    }
+
+    return goodTrackMax;
+}
+
+//________________
+void JetESRAnalysis::processGenJets(const Event* event, const double &weight) {
+    // Process and analyze gen jets
+    if ( fVerbose ) {
+        std::cout << "JetESRAnalysis::processGenJets - begin" << std::endl;
+    }
+
+    // Variables for dijets
+    double ptLead{-1.}, ptSubLead{-1.}, etaLead{0.}, etaSubLead{0.},
+           phiLead{0.}, phiSubLead{0.};
+    int idLead{-1}, idSubLead{-1};
+
+    GenJetIterator genJetIter;
+    int counter{0};
+
+    int centrality = event->centrality(); // -1 if no centrality available
+    double ptHat = event->ptHat();
+
+    // Loop over generated jets
+    for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ ) {
+
+        if ( fVerbose ) {
+            std::cout << "Gen jet #" << counter << " ";
+            (*genJetIter)->print();
+        }
+
+        double pt = (*genJetIter)->pt();
+        double eta = (*genJetIter)->eta();
+        double phi = (*genJetIter)->phi();
+        int flavB{-6};
+        switch ( (*genJetIter)->flavorForB() )
+        {
+        case -99:
+            flavB = {-6};
+            break;
+        case -5:
+            flavB = {-5};
+            break;
+        case -4:
+            flavB = {-4};
+            break;
+        case -3:
+            flavB = {-3};
+            break;
+        case -2:
+            flavB = {-2};
+            break;
+        case -1:
+            flavB = {-1};
+            break;
+        case 0:
+            flavB = {0};
+            break;
+        case 1:
+            flavB = {1};
+            break;
+        case 2:
+            flavB = {2};
+            break;
+        case 3:
+            flavB = {3};
+            break;
+        case 4:
+            flavB = {4};
+            break;
+        case 5:
+            flavB = {5};
+            break;
+        case 21:
+            flavB = {6};
+            break;
+        default:
+            flavB = {-6};
+            break;
+        }
+
+        // 0 - pt, 1 - eta, 2 - phi, 3 - flavorForB, 4 - ptHat, 5 - centrality
+        double jetPtEtaPhiFlavPtHatCent[6] = { pt, eta, phi, (double)flavB, ptHat, (double)centrality };
+
+        // Fill inclusive jet histograms
+        fHM->hGenInclusiveJetPtEtaPhiFlavPtHatCent->Fill( jetPtEtaPhiFlavPtHatCent, 1. );
+        fHM->hGenInclusiveJetPtEtaPhiFlavPtHatCentWeighted->Fill( jetPtEtaPhiFlavPtHatCent, weight );
+
+        if ( isGoodGenJet( (*genJetIter) ) ) {
+            // Fill good jet histograms
+            fHM->hGenInclusiveGoodJetPtEtaPhiFlavPtHatCent->Fill( jetPtEtaPhiFlavPtHatCent, 1. );
+            fHM->hGenInclusiveGoodJetPtEtaPhiFlavPtHatCentWeighted->Fill( jetPtEtaPhiFlavPtHatCent, weight );
+        } // if ( isGoodGenJet( (*genJetIter) ) )
+
+        // Search for leading and subleading jets
+        findLeadSubleadJets( pt, counter, ptLead, ptSubLead, idLead, idSubLead );
+
+    } // for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ )
+
+    // Check if leading and subleading jets were found
+    if ( idLead >= 0 && idSubLead >= 0 ) {
+        if ( fVerbose ) {
+            std::cout << "Gen dijet found: [true]" << std::endl;
+        }
+
+        // Get leading and subleading jets
+        GenJet *leadJet = event->genJetCollection()->at( idLead );
+        GenJet *subLeadJet = event->genJetCollection()->at( idSubLead );
+
+        ptLead = leadJet->pt();
+        etaLead = leadJet->eta();
+        phiLead = leadJet->phi();
+        int flavBLead{-6};
+        switch ( leadJet->flavorForB() )
+        {
+        case -99:
+            flavBLead = {-6};
+            break;
+        case -5:
+            flavBLead = {-5};
+            break;
+        case -4:
+            flavBLead = {-4};
+            break;
+        case -3:
+            flavBLead = {-3};
+            break;
+        case -2:
+            flavBLead = {-2};
+            break;
+        case -1:
+            flavBLead = {-1};
+            break;
+        case 0:
+            flavBLead = {0};
+            break;
+        case 1:
+            flavBLead = {1};
+            break;
+        case 2:
+            flavBLead = {2};
+            break;
+        case 3:
+            flavBLead = {3};
+            break;
+        case 4:
+            flavBLead = {4};
+            break;
+        case 5:
+            flavBLead = {5};
+            break;
+        case 21:
+            flavBLead = {6};
+            break;
+        default:
+            flavBLead = {-6};
+            break;
+        }
+
+        ptSubLead = subLeadJet->pt();
+        etaSubLead = subLeadJet->eta();
+        phiSubLead = subLeadJet->phi();
+        int flavBSubLead{-6};
+        switch ( subLeadJet->flavorForB() )
+        {
+        case -99:
+            flavBSubLead = {-6};
+            break;
+        case -5:
+            flavBSubLead = {-5};
+            break;
+        case -4:
+            flavBSubLead = {-4};
+            break;
+        case -3:
+            flavBSubLead = {-3};
+            break;
+        case -2:
+            flavBSubLead = {-2};
+            break;
+        case -1:
+            flavBSubLead = {-1};
+            break;
+        case 0:
+            flavBSubLead = {0};
+            break;
+        case 1:
+            flavBSubLead = {1};
+            break;
+        case 2:
+            flavBSubLead = {2};
+            break;
+        case 3:
+            flavBSubLead = {3};
+            break;
+        case 4:
+            flavBSubLead = {4};
+            break;
+        case 5:
+            flavBSubLead = {5};
+            break;
+        case 21:
+            flavBSubLead = {6};
+            break;
+        default:
+            flavBSubLead = {-6};
+            break;
+        }
+
+        if ( !isGoodDijet( ptLead, ptSubLead, deltaPhi( phiLead, phiSubLead ) ) ) {
+            break;
+        }
+
+        // Fill leading and subleading jet histograms
+        double leadJetPtEtaPhiFlavPtHatCent[6] = { ptLead, etaLead, phiLead, (double)flavBLead, ptHat, (double)centrality };
+        double subLeadJetPtEtaPhiFlavPtHatCent[6] = { ptSubLead, etaSubLead, phiSubLead, (double)flavBSubLead, ptHat, (double)centrality };
+
+        fHM->hGenLeadJetPtEtaPhiFlavPtHatCent->Fill( leadJetPtEtaPhiFlavPtHatCent, 1. );
+        fHM->hGenLeadJetPtEtaPhiFlavPtHatCentWeighted->Fill( leadJetPtEtaPhiFlavPtHatCent, weight );
+        fHM->hGenSubLeadJetPtEtaPhiFlavPtHatCent->Fill( subLeadJetPtEtaPhiFlavPtHatCent, 1. );
+        fHM->hGenSubLeadJetPtEtaPhiFlavPtHatCentWeighted->Fill( subLeadJetPtEtaPhiFlavPtHatCent, weight );
+
+        // Calculate dijet quantities
+        double dijetDphi = deltaPhi( phiLead, phiSubLead );
+        double dijetEta = 0.5 * ( etaLead + etaSubLead );
+        double dijetPt = 0.5 * ( ptLead + ptSubLead );
+
+        fHM->hGenDijetPtEtaDphi->Fill( dijetPt, dijetEta, dijetDphi, 1. );
+        fHM->hGenDijetPtEtaDphiWeighted->Fill( dijetPt, dijetEta, dijetDphi, weight );
+
+    } // if ( idLead >= 0 && idSubLead >= 0 )
+    else {
+        if ( fVerbose ) {
+            std::cout << "Gen dijet found: [false]" << std::endl;
+        }
+    } // else
+
+    if ( fVerbose ) {
+        std::cout << "JetESRAnalysis::processGenJets - end" << std::endl;
+    }
+}
+
+//________________
+void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
+    // Process and analyze reco jets
+    if ( fVerbose ) {
+        std::cout << "JetESRAnalysis::processRecoJets - begin" << std::endl;
+    }
+
+    // Define variables
+    double ptRecoLead{-1.}, ptRecoSubLead{-1.},
+           ptRawRecoLead{-1.}, ptRawRecoSubLead{-1.},
+           etaRecoLead{0.}, etaRecoSubLead{0.},
+           phiRecoLead{0.},  phiRecoSubLead{0.}, 
+           ptRefLead{-1.}, ptRefSubLead{-1.},
+           etaRefLead{0.}, etaRefSubLead{0.},
+           phiRefLead{0.}, phiRefSubLead{0.};
+    int idRecoLead{-1}, idRecoSubLead{-1};
+
+    // TODO: Implement the rest of the code
+    
+    if ( fVerbose ) {
+        std::cout << "JetESRAnalysis::processGenJets - end" << std::endl;
+    }
 }
 
 //________________
@@ -119,77 +494,7 @@ void JetESRAnalysis::processEvent(const Event* event) {
     //
     // Generated jet quantities
     //
-
-    // Counters for gen jets with pT cuts: >0, >20, >50, >80, >120 GeV
-    Int_t nGenJets[5] {0, 0, 0, 0, 0};
-    GenJetIterator genJetIter;
-    for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ ) {
-
-        Double_t pt = (*genJetIter)->pt();
-        nGenJets[0]++;
-        if ( pt > 20 ) nGenJets[1]++;
-        if ( pt > 50 ) nGenJets[2]++;
-        if ( pt > 80 ) nGenJets[3]++;
-        if ( pt > 120 ) nGenJets[4]++;
-        Double_t eta = (*genJetIter)->eta();
-        Double_t phi = (*genJetIter)->phi();
-        Double_t flavB{-6};
-        switch ( (*genJetIter)->flavorForB() )
-        {
-        case -99:
-            flavB = -6;
-            break;
-        case -5:
-            flavB = -5;
-            break;
-        case -4:
-            flavB = -4;
-            break;
-        case -3:
-            flavB = -3;
-            break;
-        case -2:
-            flavB = -2;
-            break;
-        case -1:
-            flavB = -1;
-            break;
-        case 0:
-            flavB = 0;
-            break;
-        case 1:
-            flavB = 1;
-            break;
-        case 2:
-            flavB = 2;
-            break;
-        case 3:
-            flavB = 3;
-            break;
-        case 4:
-            flavB = 4;
-            break;
-        case 5:
-            flavB = 5;
-            break;
-        case 21:
-            flavB = 6;
-            break;
-        default:
-            flavB = -6;
-            break;
-        }
-
-        Double_t genJetPtEtaPhiCent[4]{ pt, eta, phi, centrality };
-        Double_t genJetPtFlavPtHatCent[4]{ pt, flavB, ptHat, centrality };
-
-        fHM->hGenJetPtEtaPhiCent->Fill( genJetPtEtaPhiCent, centW);
-        fHM->hGenJetPtEtaPhiCentWeighted->Fill( genJetPtEtaPhiCent, ptHatW * centW);
-        fHM->hGenJetPtFlavPtHatCent->Fill( genJetPtFlavPtHatCent, centW);
-        fHM->hGenJetPtFlavPtHatCentWeighted->Fill( genJetPtFlavPtHatCent, ptHatW * centW );
-    } // for ( genJetIter = event->genJetCollection()->begin();
-
-
+    processGenJets(event, weight);
 
     //
     // Reco jets
@@ -374,6 +679,5 @@ TList* JetESRAnalysis::getOutputList() {
     TList *outputList = new TList();
 
     // Add list of settings for cuts
-
     return outputList;
 }

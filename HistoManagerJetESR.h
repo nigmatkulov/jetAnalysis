@@ -90,11 +90,16 @@ class HistoManagerJetESR : public BaseHistoManager {
     //
     // Gen jet histograms
     //
-    TH1D *hNGenJets[5];   // for jets with pT cuts: >0, >20, >50, >80, >120 GeV
-    THnSparseD *hGenJetPtEtaPhiCent;              // pt, eta, phi, centrality
-    THnSparseD *hGenJetPtEtaPhiCentWeighted;      // pt, eta, phi, centrality
-    THnSparseD *hGenJetPtFlavPtHatCent;         // pt, flavorForB, ptHat, centrality
-    THnSparseD *hGenJetPtFlavPtHatCentWeighted; // pt, flavorForB, ptHat, centrality
+    THnSparseD *hGenInclusiveJetPtEtaPhiFlavPtHatCent;               // Inclusive jet pt, eta, phi, flavorForB, ptHat, centrality
+    THnSparseD *hGenInclusiveJetPtEtaPhiFlavPtHatCentWeighted;       // Inclusive jet pt, eta, phi, flavorForB, ptHat, centrality, weighted
+    THnSparseD *hGenInclusiveGoodJetPtEtaPhiFlavPtHatCent;           // Inclusive jet passed ptLow and eta cut: pt, eta, phi, flavorForB, ptHat, centrality
+    THnSparseD *hGenInclusiveGoodJetPtEtaPhiFlavPtHatCentWeighted;   // Inclusive jet assed ptLow and eta cut: pt, eta, phi, flavorForB, ptHat, centrality, weighted
+    THnSparseD *hGenLeadJetPtEtaPhiFlavPtHatCent;                    // Leading jet: pt, eta, phi, flavorForB, ptHat, centrality
+    THnSparseD *hGenLeadJetPtEtaPhiFlavPtHatCentWeighted;            // Leading jet: pt, eta, phi, flavorForB, ptHat, centrality, weighted
+    THnSparseD *hGenSubLeadJetPtEtaPhiFlavPtHatCent;                 // Subleading jet: pt, eta, phi, flavorForB, ptHat, centrality
+    THnSparseD *hGenSubLeadJetPtEtaPhiFlavPtHatCentWeighted;         // Subleading jet: pt, eta, phi, flavorForB, ptHat, centrality, weighted
+    TH3D       *hGenDijetPtEtaDphi;                                  // Dijet pt, eta, dphi
+    TH3D       *hGenDijetPtEtaDphiWeighted;                          // Dijet pt, eta, dphi, weighted
 
     //
     // Reco jet histograms

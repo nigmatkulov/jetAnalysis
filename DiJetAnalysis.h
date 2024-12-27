@@ -102,7 +102,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Dijet selection
     Bool_t isGoodDijet(const Double_t& ptLead, const Double_t& ptSublead, const Double_t& dphi);
     /// @brief Calculate delta phi between two jets in the range [-pi, pi]
-    Double_t deltaPhi(const Double_t& phi1, const Double_t phi2);
+    Double_t deltaPhi(const Double_t& phi1, const Double_t &phi2);
     /// @brief Single gen/ref jet selection criteria
     Bool_t isGoodGenJet(const GenJet* jet);
     /// @brief Single reco jet selection criteria
