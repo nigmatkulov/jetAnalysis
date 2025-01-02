@@ -551,7 +551,11 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
         fHM->hCEmF[dummyIter]->Fill( (*recoJetIter)->jtPfCEF(), weight );
         fHM->hNumOfNeutPart[dummyIter]->Fill( neutralMult, weight );
 
-        
+        // Fill inclusive jet histograms
+        fHM->hRecoInclusiveJetPt->Fill( pt, 1. );
+        fHM->hRecoInclusiveJetPtWeighted->Fill( pt, weight );
+        fHM->hRecoInclusiveJetEtaPt->Fill( eta, pt, 1. );
+        fHM->hRecoInclusiveJetEtaPtWeighted->Fill( eta, pt, weight );
 
 
     } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
