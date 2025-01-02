@@ -25,7 +25,7 @@
 JetESRAnalysis::JetESRAnalysis() : BaseAnalysis(), 
     fVerbose{false}, fHM{nullptr}, fUseCentralityWeight{false}, fEtaShift{0},
     fCollisionSystem{2}, fIsPbGoingDir{false}, fPtHatRange{15., 30.},
-    fVzWeight{nullptr} {
+    fIsLooseJetIdCut{false}, fVzWeight{nullptr} {
     /* Empty */
 }
 
@@ -153,6 +153,92 @@ bool JetESRAnalysis::isGoodTrkMax(const RecoJet* jet) {
 
     return goodTrackMax;
 }
+
+//_________________
+bool DiJetAnalysis::isGoodJetId(const RecoJet* jet) {
+
+    bool passJetId = {false};
+
+    int chm = jet->jtPfCHM();
+    int cem = jet->jtPfCEM();
+    int mum = jet->jtPfMUM();
+    int nhm = jet->jtPfNHM();
+    int nem = jet->jtPfNEM();
+
+    float chf = jet->jtPfCHF();
+    float cef = jet->jtPfCEF();
+    float nhf = jet->jtPfNHF();
+    float nef = jet->jtPfNEF();
+    float muf = jet->jtPfMUF();
+
+    int chargedMult = chm + cem + mum;
+    int neutralMult = nhm + nem;
+    int numberOfConstituents = chargedMult + neutralMult;
+
+    float eta = jet->eta();
+
+    float chargedEmFracCut{1.}, neutFracCut{1.};
+    if ( !fIsLooseJetIdCut ) {
+        chargedEmFracCut = {0.9};
+        neutFracCut = {0.9};
+    }
+    else {
+        chargedEmFracCut = {0.99};
+        neutFracCut = {0.99};
+    }
+
+    bool passNHF{false};
+    bool passNEF{false};
+    bool passNumOfConstituents{true};
+    bool passMuonFrac{true};
+    bool passChargedFrac{true};
+    bool passChargedMult{true};
+    bool passChargedEmFrac{true};
+    bool passNeutralMult{true};
+
+    // Check cuts depending on jet pseudorapdity
+    if ( TMath::Abs( eta ) <= 2.7 ) {
+        
+        passNHF = ( nhf < neutFracCut ) ? true : false;
+        passNEF = ( nhf < neutFracCut ) ? true : false;
+        passNumOfConstituents = ( numberOfConstituents > 1 ) ? true : false;
+
+        if ( !fIsLooseJetIdCut ) { 
+            passMuonFrac = ( muf < 0.8 ) ? true : false; 
+        } // if ( !fIsLooseJetIdCut )
+
+        if( TMath::Abs( eta ) <= 2.4 ) {
+            passChargedFrac = ( chf > 0 ) ? true : false;
+            passChargedMult = ( chargedMult > 0 ) ? true : false;
+            passChargedEmFrac = ( cef < chargedEmFracCut ) ? true : false;
+        } // if( TMath::Abs( eta ) <= 2.4 )
+
+    } // if ( TMath::Abs( eta ) <= 2.7 )
+    else if ( TMath::Abs( eta ) <= 3.0) {
+
+        passNEF = ( nef > 0.01 ) ? true : false;
+        passNHF = ( nhf < 0.98 ) ? true : false;
+        passNeutralMult = ( neutralMult > 2 ) ? true : false;
+
+    } // else if ( TMath::Abs( eta ) <= 3.0)
+    else  {
+        passNEF = ( nef < 0.9 ) ? true : false;
+        passNeutralMult = (neutralMult > 10 ) ? true : false; // CAUTION: JET MET says it should be >10
+    } // else 
+
+    passJetId = passNHF && passNEF && passNumOfConstituents && passMuonFrac && 
+                passChargedFrac && passChargedMult && passChargedEmFrac && passNeutralMult;
+
+    if ( fVerbose ) {
+        std::cout << "JetId selection results: " << ( (passJetId) ? "[passed]" : "[failed]" ) << " Reasons ";
+        std::cout << Form("passNHF: %d \tpassNEF: %d \tpassNumConst: %d \tpassMuonFrac: %d \tpassChFrac: %d \tpassChMult: %d \tpassChEmFrac: %d \tpassNeutMult: %d\n", 
+                            passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
+                            passChargedMult , passChargedEmFrac , passNeutralMult);
+    }
+        
+    return passJetId;
+}
+
 
 //________________
 void JetESRAnalysis::processGenJets(const Event* event, const double &weight) {
@@ -408,7 +494,67 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
            phiRefLead{0.}, phiRefSubLead{0.};
     int idRecoLead{-1}, idRecoSubLead{-1};
 
-    // TODO: Implement the rest of the code
+    int centrality = event->centrality(); // -1 if no centrality available
+    double ptHat = event->ptHat();
+
+    // Loop over reconstructed jets
+    RecoJetIterator recoJetIter;
+    Int_t counter{0};
+    double pt{-999.}, eta{-999.}, phi{-999.}, ptRaw{-999.};
+    int chargedMult{-1}, neutralMult{-1}, numberOfConstituents{-1};
+
+    for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
+
+        pt = (*recoJetIter)->ptJECCorr();
+        eta = (*recoJetIter)->eta();
+        phi = (*recoJetIter)->phi();
+        ptRaw = (*recoJetIter)->pt();
+
+        if ( fVerbose ) {
+            std::cout << "Reco jet #" << counter << " ";
+            (*recoJetIter)->print();
+        }
+
+        // JetId parameters and histograms
+        chargedMult = (*recoJetIter)->jtPfCHM() + (*recoJetIter)->jtPfCEM() + (*recoJetIter)->jtPfMUM();
+        neutralMult = (*recoJetIter)->jtPfNHM() + (*recoJetIter)->jtPfNEM();
+        numberOfConstituents = chargedMult + neutralMult;
+
+        // 4 cases for jet eta: 0 - |eta| < 2.4, 1 - 2.4 < |eta| < 2.7, 2 - 2.7 < |eta| < 3.0, 3 - 3.0 < |eta|
+        int dummyIter{0};
+        if ( TMath::Abs( eta ) <= 2.4 ) { dummyIter = {0}; }
+        else if ( TMath::Abs( eta ) <= 2.7 ) { dummyIter = {1}; }
+        else if ( TMath::Abs( eta ) <= 3.0 ) { dummyIter = {2}; }
+        else { dummyIter = {3}; }
+
+        // Fill jet with 0 - pt, 1 - eta, 2 - phi, 3 - dummyIter, 4 - NHF, 5 - NEF, 6 - num of constituents, 
+        // 7 - MUF, 8 - CHF, 9 - charged mult, 10 - CEF, 11 - neutral mult, 12 - ptHat, 13 - centrality
+        double jetPtEtaPhiDummyIterPfNhfPfNefNumOfConstPfMufPfChfChargedMultPfCefNeutralMultPtHatCent[13] = 
+        { pt, eta, phi, (double)dummyIter, 
+          (*recoJetIter)->jtPfNHF(), 
+          (*recoJetIter)->jtPfNEF(), 
+          (double)numberOfConstituents, 
+          (*recoJetIter)->jtPfMUF(), 
+          (*recoJetIter)->jtPfCHF(), 
+          (double)chargedMult, 
+          (*recoJetIter)->jtPfCEF(), 
+          (double)neutralMult, 
+          ptHat, (double)centrality 
+        };
+        
+        fHM->hNHF[dummyIter]->Fill( (*recoJetIter)->jtPfNHF(), weight );
+        fHM->hNEmF[dummyIter]->Fill( (*recoJetIter)->jtPfNEF(), weight );
+        fHM->hNumOfConst[dummyIter]->Fill( numberOfConstituents, weight );
+        fHM->hMUF[dummyIter]->Fill( (*recoJetIter)->jtPfMUF(), weight );
+        fHM->hCHF[dummyIter]->Fill( (*recoJetIter)->jtPfCHF(), weight );
+        fHM->hChargedMult[dummyIter]->Fill( chargedMult, weight );
+        fHM->hCEmF[dummyIter]->Fill( (*recoJetIter)->jtPfCEF(), weight );
+        fHM->hNumOfNeutPart[dummyIter]->Fill( neutralMult, weight );
+
+        
+
+
+    } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
     
     if ( fVerbose ) {
         std::cout << "JetESRAnalysis::processGenJets - end" << std::endl;

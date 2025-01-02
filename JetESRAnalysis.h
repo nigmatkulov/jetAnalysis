@@ -68,6 +68,9 @@ class JetESRAnalysis : public BaseAnalysis {
     /// @brief Set dijet dPhi cut
     void setDijetDPhiCut(const double& cut)      { fDijetDPhiCut = cut; }
 
+    /// @brief Set loose jetId cut (default: tight = false)
+    void setLooseJetIdCut()                      { fIsLooseJetIdCut = {true}; }
+
     /// @brief Print JetESRAnalysis setup
     void print();
 
@@ -84,6 +87,10 @@ class JetESRAnalysis : public BaseAnalysis {
     /// @brief Pass pt of the jet and check if it is leading or subleading jet
     void findLeadSubleadJets(const double &pt, const int &counter, double &ptLead, double &ptSublead, 
                              int &idLead, int &idSubLead);
+    /// @brief Check if jet passes jetId requirements
+    bool isGoodJetId(const RecoJet* jet);
+    /// @brief Check if good track max cut
+    bool isGoodTrkMax(const RecoJet* jet);
 
     /// @brief Pring debug information
     bool   fVerbose;
@@ -100,6 +107,9 @@ class JetESRAnalysis : public BaseAnalysis {
     bool   fIsPbGoingDir;
     /// @brief ptHat range for the generated events (must cut events on this one) in case of pPb
     double fPtHatRange[2];
+
+    /// @brief Is loose/tight jetId cut (default: false = tight)
+    bool   fIsLooseJetIdCut;
 
     /// @brief Leading jet pt low cut
     double fLeadJetPtLow;
