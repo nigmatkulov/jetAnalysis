@@ -499,7 +499,7 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
 
     // Loop over reconstructed jets
     RecoJetIterator recoJetIter;
-    Int_t counter{0};
+    int counter{0};
     double pt{-999.}, eta{-999.}, phi{-999.}, ptRaw{-999.};
     int chargedMult{-1}, neutralMult{-1}, numberOfConstituents{-1};
 
