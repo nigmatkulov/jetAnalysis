@@ -255,6 +255,33 @@ Double_t DiJetAnalysis::eventWeight(const Bool_t& isMc, const Bool_t& isPPb,
 }
 
 //________________
+void DiJetAnalysis::findLeadSubleadJets(const double &pt, const int &counter,
+                                        double &ptLead, double &ptSublead,
+                                        int &idLead, int &idSubLead) {
+    // Find leading and subleading jets
+    if ( fVerbose ) {
+        std::cout << "DiJetAnalysis::findLeadSubleadJets - begin" << std::endl;
+    }
+
+    if ( pt > ptLead ) {
+        ptSublead = ptLead;
+        idSubLead = idLead;
+        ptLead = pt;
+        idLead = counter;
+    }
+    else if ( pt > ptSublead ) {
+        ptSublead = pt;
+        idSubLead = counter;
+    }
+
+    if ( fVerbose ) {
+        std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f Lead id: %d SubLead id: %d\n", 
+                          ptLead, ptSublead, idLead, idSubLead);
+        std::cout << "DiJetAnalysis::findLeadSubleadJets - end" << std::endl;
+    }
+}
+
+//________________
 Double_t DiJetAnalysis::deltaPhi(const Double_t& phi1, const Double_t &phi2) {
     Double_t dphi = phi1 - phi2;
     if ( dphi > TMath::Pi() ) dphi -= TMath::TwoPi();
@@ -540,23 +567,10 @@ void DiJetAnalysis::processGenJets(const Event* event, Double_t ptHatW) {
 
         // Apply single-jet selection to gen jets
         //if ( !isGoodGenJet( *genJetIter ) ) continue;
+
+        // Find leading and subleading jets
+        findLeadSubleadJets( pt, counter, ptLead, ptSubLead, idLead, idSubLead );
         
-        if ( pt > ptLead ) {
-            ptSubLead = ptLead;
-            etaSubLead = etaLead;
-            phiSubLead = phiLead;
-            idSubLead = idLead;
-            ptLead = pt;
-            etaLead = eta;
-            phiLead = phi;
-            idLead = counter;
-        }
-        else if ( pt > ptSubLead ) {
-            ptSubLead = pt;
-            etaSubLead = eta;
-            phiSubLead = phi;
-            idSubLead = counter;
-        }
         // Fill inclusive jet pt
         fHM->hGenInclusiveJetPt->Fill(pt, ptHatW);
         fHM->hGenInclusiveJetPtEta->Fill(eta, pt, ptHatW);
@@ -805,58 +819,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             // Dijet part
             //
 
-            // Check for leading and subleading jets
-            if ( pt > ptRecoLead ) {
-                ptRecoSubLead = ptRecoLead;
-                etaRecoSubLead = etaRecoLead;
-                phiRecoSubLead = phiRecoLead;
-                ptRawRecoSubLead = ptRawRecoLead;
-                idRecoSubLead = idRecoLead;
-                ptRecoLead = pt;
-                ptRawRecoLead = ptRaw;
-                etaRecoLead = eta;
-                phiRecoLead = phi;
-                idRecoLead = counter;
-
-                if ( fIsMc ) {
-                    if ( hasMatching ) {
-                        ptRefSubLead = ptRefLead;
-                        etaRefSubLead = etaRefLead;
-                        phiRefSubLead = phiRefLead;
-                        ptRefLead = genPt;
-                        etaRefLead = genEta;
-                        phiRefLead = genPhi;
-                    }
-                    else {
-                        ptRefSubLead = ptRefLead;
-                        etaRefSubLead = etaRefLead;
-                        phiRefSubLead = phiRefLead;
-                        ptRefLead = {-999.};
-                        etaRefLead = {-999.};
-                        phiRefLead = {-999.};
-                    }
-                } // if ( fIsMc )
-            } // if ( pt > ptRecoLead )
-            else if ( pt > ptRecoSubLead ) {
-                ptRecoSubLead = pt;
-                ptRawRecoSubLead = ptRaw;
-                etaRecoSubLead = eta;
-                phiRecoSubLead = phi;
-                idRecoSubLead = counter;
-
-                if ( fIsMc ) {
-                    if ( hasMatching ) {
-                        ptRefSubLead = genPt;
-                        etaRefSubLead = genEta;
-                        phiRefSubLead = genPhi;
-                    }
-                    else {
-                        ptRefSubLead = {-999.};
-                        etaRefSubLead = {-999.};
-                        phiRefSubLead = {-999.};
-                    }
-                } // if ( fIsMc )
-            } // else if ( pt > ptRecoSubLead )
+            findLeadSubleadJets( pt, counter, ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
 
             if ( pt > 30. ) {
                 fHM->hRecoGoodInclusiveJetEtaLabFrame->Fill(eta, ptHatW);
@@ -893,54 +856,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             // Dijet part
             //
 
-            if ( pt > ptRecoLeadJetId ) {
-                ptRecoSubLeadJetId = ptRecoLeadJetId;
-                etaRecoSubLeadJetId = etaRecoLeadJetId;
-                phiRecoSubLeadJetId = phiRecoLeadJetId;
-                idRecoSubLeadJetId = idRecoLeadJetId;
-                ptRecoLeadJetId = pt;
-                etaRecoLeadJetId = eta;
-                phiRecoLeadJetId = phi;
-                idRecoLeadJetId = counter;
+            findLeadSubleadJets( pt, counter, ptRecoLeadJetId, ptRecoSubLeadJetId, idRecoLeadJetId, idRecoSubLeadJetId );
 
-                if ( fIsMc ) { 
-                    if (hasMatching ) {
-                        ptRefSubLeadJetId = ptRefLeadJetId;
-                        etaRefSubLeadJetId = etaRefLeadJetId;
-                        phiRefSubLeadJetId = phiRefLeadJetId;
-                        ptRefLeadJetId = genPt;
-                        etaRefLeadJetId = genEta;
-                        phiRefLeadJetId = genPhi;
-                    }
-                    else {
-                        ptRefSubLeadJetId = ptRefLeadJetId;
-                        etaRefSubLeadJetId = etaRefLeadJetId;
-                        phiRefSubLeadJetId = phiRefLeadJetId;
-                        ptRefLeadJetId = {-999.};
-                        etaRefLeadJetId = {-999.};
-                        phiRefLeadJetId = {-999.};                       
-                    }
-                } // if ( fIsMc )
-            } // if ( pt > ptRecoLeadJetId )
-            else if ( pt > ptRecoSubLeadJetId ) {
-                ptRecoSubLeadJetId = pt;
-                etaRecoSubLeadJetId = eta;
-                phiRecoSubLeadJetId = phi;
-                idRecoSubLeadJetId = counter;
-
-                if ( fIsMc ) {
-                    if ( hasMatching ) {
-                        ptRefSubLeadJetId = genPt;
-                        etaRefSubLeadJetId = genEta;
-                        phiRefSubLeadJetId = genPhi;
-                    }
-                    else {
-                        ptRefLeadJetId = {-999.};
-                        etaRefLeadJetId = {-999.};
-                        phiRefLeadJetId = {-999.}; 
-                    }
-                } // if ( fIsMc )
-            } // else if ( pt > ptRecoSubLeadJetId )
         } // if ( passJetId )
 
         if ( fVerbose ) {
@@ -966,6 +883,19 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
     fIsDijetFound = {kFALSE};
 
     if ( idRecoLead>=0 && idRecoSubLead>=0 ) {
+
+        RecoJet* recoLeadJet = event->recoJetCollection()->at( idRecoLead );
+        RecoJet* recoSubLeadJet = event->recoJetCollection()->at( idRecoSubLead );
+        GenJet* refLeadJet = {nullptr};
+        GenJet* refSubLeadJet = {nullptr};
+
+        ptRecoLead = recoLeadJet->ptJECCorr();
+        etaRecoLead = recoLeadJet->eta();
+        phiRecoLead = recoLeadJet->phi();
+
+        ptRecoSubLead = recoSubLeadJet->ptJECCorr();
+        etaRecoSubLead = recoSubLeadJet->eta();
+        phiRecoSubLead = recoSubLeadJet->phi();
 
         fHM->hRecoLeadJetAllPtVsEta->Fill(etaRecoLead, ptRecoLead, ptHatW);
         fHM->hRecoSubLeadJetAllPtVsEta->Fill(etaRecoSubLead, ptRecoSubLead, ptHatW);   
@@ -1060,6 +990,25 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
             if ( fIsMc ) {
 
+                refLeadJet = event->genJetCollection()->at( recoLeadJet->genJetId() );
+                if ( !refLeadJet ) {
+                    std::cerr << "Error: Leading jet has no matching gen jet\n";
+                    return;
+                }
+                refSubLeadJet = event->genJetCollection()->at( recoSubLeadJet->genJetId() );
+                if ( !refSubLeadJet ) {
+                    std::cerr << "Error: Subleading jet has no matching gen jet\n";
+                    return;
+                }
+
+                ptRefLead = refLeadJet->pt();
+                etaRefLead = refLeadJet->eta();
+                phiRefLead = refLeadJet->phi();
+
+                ptRefSubLead = refSubLeadJet->pt();
+                etaRefSubLead = refSubLeadJet->eta();
+                phiRefSubLead = refSubLeadJet->phi();
+
                 Double_t dijetRefPt = 0.5 * (ptRefLead + ptRefSubLead);
                 Double_t dijetRefEta = dijetEtaInFrame( etaRefLead, etaRefSubLead, kFALSE);
                 Double_t dijetRefDphi = deltaPhi(phiRefLead, phiRefSubLead);
@@ -1138,6 +1087,19 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
 
     if ( idRecoLeadJetId>=0 && idRecoSubLeadJetId>=0 ) {
 
+        RecoJet* recoLeadJetId = event->recoJetCollection()->at( idRecoLeadJetId );
+        RecoJet* recoSubLeadJetId = event->recoJetCollection()->at( idRecoSubLeadJetId );
+        GenJet* refLeadJetId = {nullptr};
+        GenJet* refSubLeadJetId = {nullptr};
+
+        ptRecoLeadJetId = recoLeadJetId->ptJECCorr();
+        etaRecoLeadJetId = recoLeadJetId->eta();
+        phiRecoLeadJetId = recoLeadJetId->phi();
+
+        ptRecoSubLeadJetId = recoSubLeadJetId->ptJECCorr();
+        etaRecoSubLeadJetId = recoSubLeadJetId->eta();
+        phiRecoSubLeadJetId = recoSubLeadJetId->phi();
+
         fHM->hRecoLeadJetAllPtVsEtaJetIdCut->Fill( etaLab(etaRecoLeadJetId), ptRecoLeadJetId, ptHatW);
         fHM->hRecoSubLeadJetAllPtVsEtaJetIdCut->Fill( etaLab(etaRecoSubLeadJetId), ptRecoSubLeadJetId, ptHatW);   
 
@@ -1197,6 +1159,26 @@ void DiJetAnalysis::processRecoJets(const Event* event, Double_t ptHatW) {
             fHM->hRecoDijetPtEtaDphiJetId->Fill( dijetRecoPt, dijetRecoEta, dijetRecoDphi, ptHatW );
 
             if ( fIsMc ) {
+
+                refLeadJetId = event->genJetCollection()->at( recoLeadJetId->genJetId() );
+                if ( !refLeadJetId ) {
+                    std::cerr << "Error: Leading jet has no matching gen jet\n";
+                    return;
+                }
+                refSubLeadJetId = event->genJetCollection()->at( recoSubLeadJetId->genJetId() );
+                if ( !refSubLeadJetId ) {
+                    std::cerr << "Error: Subleading jet has no matching gen jet\n";
+                    return;
+                }
+
+                ptRefLeadJetId = refLeadJetId->pt();
+                etaRefLeadJetId = refLeadJetId->eta();
+                phiRefLeadJetId = refLeadJetId->phi();
+
+                ptRefSubLeadJetId = refSubLeadJetId->pt();
+                etaRefSubLeadJetId = refSubLeadJetId->eta();
+                phiRefSubLeadJetId = refSubLeadJetId->phi();
+
 
                 Double_t dijetRefPt = 0.5 * (ptRefLeadJetId + ptRefSubLeadJetId);
                 Double_t dijetRefEta = dijetEtaInFrame( etaRefLeadJetId, etaRefSubLeadJetId, kFALSE);

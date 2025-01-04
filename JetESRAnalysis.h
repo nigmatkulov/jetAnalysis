@@ -46,12 +46,16 @@ class JetESRAnalysis : public BaseAnalysis {
 
     /// @brief Set centrality weight
     void useCentralityWeight()                   { fUseCentralityWeight = {true}; }
+    /// @brief Set jetId selection of the jets (default: trkMax)
+    void useJetIdSelection()                     { fUseJetIdSelection = {true}; }
     /// @brief Set debug information
     void setVerbose()                            { fVerbose = {true}; }
     /// @brief Add histogram manager to the analysis
     void addHistoManager(HistoManagerJetESR *hm) { fHM = hm; }
     /// @brief Set collision system
     void setCollisionSystem(const int& syst)     { fCollisionSystem = syst; }
+    /// @brief Set collision energy in GeV (default: 8160 GeV)
+    void setCollisionEnergyInGeV(const int& en)  { fCollisionEnergy = en; }
     /// @brief Set lead going direction for pPb collisions
     void setPbGoing()                            { fIsPbGoingDir = {true}; }
     /// @brief Set cut on the ptHat of the event (for MC in pPb only due to the xsection matching)
@@ -101,6 +105,8 @@ class JetESRAnalysis : public BaseAnalysis {
     bool   fUseCentralityWeight;
     /// @brief  Pseudorapidity shift for asymmetric collisions (pPb)
     double fEtaShift;
+    /// @brief Collision energy in GeV
+    int    fCollisionEnergy;
     /// @brief  Type of collision system: 0 - pp, 1 - pPb, 2 - PbPb. Default is PbPb
     int    fCollisionSystem;
     /// @brief Lead going direction for pPb collisions
@@ -108,6 +114,8 @@ class JetESRAnalysis : public BaseAnalysis {
     /// @brief ptHat range for the generated events (must cut events on this one) in case of pPb
     double fPtHatRange[2];
 
+    /// @brief Use jetId selection (default - false, i.e. trkMax)
+    bool   fUseJetIdSelection;
     /// @brief Is loose/tight jetId cut (default: false = tight)
     bool   fIsLooseJetIdCut;
 

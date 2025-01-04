@@ -117,6 +117,10 @@ class DiJetAnalysis : public BaseAnalysis {
     Double_t etaLab(const Double_t &eta);
     /// @brief Dijet eta calculation
     Double_t dijetEtaInFrame(const Double_t& eta1, const Double_t& eta2, Bool_t isCM = kFALSE);
+    
+    /// @brief Pass pt of the jet and check if it is leading or subleading jet
+    void findLeadSubleadJets(const double &pt, const int &counter, double &ptLead, double &ptSublead, 
+                             int &idLead, int &idSubLead);
 
     /// @brief Vz weight to match MC to data
     TF1 *fVzWeight;
