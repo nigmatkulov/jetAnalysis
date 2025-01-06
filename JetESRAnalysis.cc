@@ -693,7 +693,7 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
             fHM->hRecoInclusiveUnmatchedJetPtEtaPhiFlavPtHatCent->Fill( jetPtEtaPhiFlavPtHatCent, 1. );
             fHM->hRecoInclusiveUnmatchedJetPtEtaPhiFlavPtHatCentWeighted->Fill( jetPtEtaPhiFlavPtHatCent, weight );
         }
-        else {
+        else { // Matched jets
             // Retrieve matched gen jet a.k.a. ref jet
             GenJet *refJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
             double refPt = refJet->pt();
@@ -774,19 +774,334 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
 
             // 0 - pt, 1 - refPt, 2 - eta, 3 - refEta, 4 - phi, 5 - refPhi, 6 - ptHat, 7 - centrality
             double reco2refPtEtaPhiPtHatCentrality[8] = { pt, refPt, eta, refEta, phi, refPhi, ptHat, (double)centrality };
-            fHM->hReco2RefJetPt->Fill( refPt, pt, 1. );
-            fHM->hReco2RefJetPtWeighted->Fill( refPt, pt, weight );
-            fHM->hReco2RefJetEta->Fill( refEta, eta, 1. );
-            fHM->hReco2RefJetEtaWeighted->Fill( refEta, eta, weight );
-            fHM->hReco2RefJetPhi->Fill( refPhi, phi, 1. );
-            fHM->hReco2RefJetPhiWeighted->Fill( refPhi, phi, weight );
-        }
+            fHM->hReco2RefInclusiveJetPt->Fill( refPt, pt, 1. );
+            fHM->hReco2RefInclusiveJetPtWeighted->Fill( refPt, pt, weight );
+            fHM->hReco2RefInclusiveJetEta->Fill( refEta, eta, 1. );
+            fHM->hReco2RefInclusiveJetEtaWeighted->Fill( refEta, eta, weight );
+            fHM->hReco2RefInclusiveJetPhi->Fill( refPhi, phi, 1. );
+            fHM->hReco2RefInclusiveJetPhiWeighted->Fill( refPhi, phi, weight );
+            fHM->hReco2RefInclusiveJetPtEtaPhiPtHatCentrality->Fill( reco2refPtEtaPhiPtHatCentrality, 1. );
+            fHM->hReco2RefInclusiveJetPtEtaPhiPtHatCentralityWeighted->Fill( reco2refPtEtaPhiPtHatCentrality, weight );
+        } // else { // Matched jets
 
         // Search for leading and subleading jets
         findLeadSubleadJets( pt, counter, ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
 
         counter++;
     } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
+
+    // Check if leading and subleading jets were found
+    if ( idRecoLead >= 0 && idRecoSubLead >= 0 ) {
+        if ( fVerbose ) {
+            std::cout << "Reco dijet found: [true]" << std::endl;
+        }
+
+        // Retrieve leading jet
+        RecoJet *leadJet = event->recoJetCollection()->at( idRecoLead );
+        GenJet  *refLeadJet = { nullptr };
+        
+        ptRecoLead = leadJet->ptJECCorr();
+        etaRecoLead = leadJet->eta();
+        phiRecoLead = leadJet->phi();
+        
+        // 0 - pt, 1 - eta, 2 - phi, 3 - flavorForB, 4 - ptHat, 5 - centrality
+        double leadJetPtEtaPhiFlavPtHatCent[6] = { ptRecoLead, etaRecoLead, phiRecoLead, (double)-6, ptHat, (double)centrality };
+        fHM->hRecoInclusiveLeadJetPt->Fill( ptRecoLead, 1. );
+        fHM->hRecoInclusiveLeadJetPtWeighted->Fill( ptRecoLead, weight );
+        fHM->hRecoInclusiveLeadJetEtaPt->Fill( etaRecoLead, ptRecoLead, 1. );
+        fHM->hRecoInclusiveLeadJetEtaPtWeighted->Fill( etaRecoLead, ptRecoLead, weight );
+        fHM->hRecoInclusiveLeadJetPtEtaPhiFlavPtHatCent->Fill( leadJetPtEtaPhiFlavPtHatCent, 1. );
+        fHM->hRecoInclusiveLeadJetPtEtaPhiFlavPtHatCentWeighted->Fill( leadJetPtEtaPhiFlavPtHatCent, weight );
+
+        // Plot leading jet JES and correlations between reco and ref jet
+        if ( leadJet->hasMatching() ) {
+            refLeadJet = event->genJetCollection()->at( leadJet->genJetId() );
+            ptRefLead = refLeadJet->pt();
+            etaRefLead = refLeadJet->eta();
+            phiRefLead = refLeadJet->phi();
+            int flavBLead{-6};
+            switch ( refLeadJet->flavorForB() )
+            {
+            case -99:
+                flavBLead = {-6};
+                break;
+            case -5:
+                flavBLead = {-5};
+                break;
+            case -4:
+                flavBLead = {-4};
+                break;
+            case -3:
+                flavBLead = {-3};
+                break;
+            case -2:
+                flavBLead = {-2};
+                break;
+            case -1:
+                flavBLead = {-1};
+                break;
+            case 0:
+                flavBLead = {0};
+                break;
+            case 1:
+                flavBLead = {1};
+                break;
+            case 2:
+                flavBLead = {2};
+                break;
+            case 3:
+                flavBLead = {3};
+                break;
+            case 4:
+                flavBLead = {4};
+                break;
+            case 5:
+                flavBLead = {5};
+                break;
+            case 21:
+                flavBLead = {6};
+                break;
+            default:
+                flavBLead = {-6};
+                break;
+            }
+
+            // 0 - pt, 1 - eta, 2 - phi, 3 - flavorForB, 4 - ptHat, 5 - centrality
+            double refLeadJetPtEtaPhiFlavPtHatCent[6] = { ptRefLead, etaRefLead, phiRefLead, (double)flavBLead, ptHat, (double)centrality };
+
+            fHM->hRefInclusiveLeadJetPt->Fill( ptRefLead, 1. );
+            fHM->hRefInclusiveLeadJetPtWeighted->Fill( ptRefLead, weight );
+            fHM->hRefInclusiveLeadJetEtaPt->Fill( etaRefLead, ptRefLead, 1. );
+            fHM->hRefInclusiveLeadJetEtaPtWeighted->Fill( etaRefLead, ptRefLead, weight );
+            fHM->hRefInclusiveLeadJetPtEtaPhiFlavPtHatCent->Fill( refLeadJetPtEtaPhiFlavPtHatCent, 1. );
+            fHM->hRefInclusiveLeadJetPtEtaPhiFlavPtHatCentWeighted->Fill( refLeadJetPtEtaPhiFlavPtHatCent, weight );
+            
+            double JES = ptRecoLead / ptRefLead;
+            double jetJESPtEtaPhiCent[5] = { JES, ptRefLead, etaRefLead, phiRefLead, (double)centrality };
+            fHM->hRecoInclusiveLeadJetJESPtEtaPhiCent->Fill( jetJESPtEtaPhiCent, 1. );
+            fHM->hRecoInclusiveLeadJetJESPtEtaPhiCentWeighted->Fill( jetJESPtEtaPhiCent, weight );
+
+            // Correlations between reco and ref leading jets
+            // 0 - pt, 1 - refPt, 2 - eta, 3 - refEta, 4 - phi, 5 - refPhi, 6 - ptHat, 7 - centrality
+            double reco2refPtEtaPhiPtHatCentrality[8] = { ptRecoLead, ptRefLead, etaRecoLead, etaRefLead, phiRecoLead, phiRefLead, ptHat, (double)centrality };
+            fHM->hReco2RefInclusiveLeadJetPt->Fill( ptRefLead, ptRecoLead, 1. );
+            fHM->hReco2RefInclusiveLeadJetPtWeighted->Fill( ptRefLead, ptRecoLead, weight );
+            fHM->hReco2RefInclusiveLeadJetEta->Fill( etaRefLead, etaRecoLead, 1. );
+            fHM->hReco2RefInclusiveLeadJetEtaWeighted->Fill( etaRefLead, etaRecoLead, weight );
+            fHM->hReco2RefInclusiveLeadJetPhi->Fill( phiRefLead, phiRecoLead, 1. );
+            fHM->hReco2RefInclusiveLeadJetPhiWeighted->Fill( phiRefLead, phiRecoLead, weight );
+            fHM->hReco2RefInclusiveLeadJetPtEtaPhiPtHatCentrality->Fill( reco2refPtEtaPhiPtHatCentrality, 1. );
+            fHM->hReco2RefInclusiveLeadJetPtEtaPhiPtHatCentralityWeighted->Fill( reco2refPtEtaPhiPtHatCentrality, weight );
+        } // if ( leadJet->hasMatching() )
+
+        // Retrieve subleading jet
+        RecoJet *subLeadJet = event->recoJetCollection()->at( idRecoSubLead );
+        GenJet  *refSubLeadJet = { nullptr };
+
+        ptRecoSubLead = subLeadJet->ptJECCorr();
+        etaRecoSubLead = subLeadJet->eta();
+        phiRecoSubLead = subLeadJet->phi();
+        
+        // 0 - pt, 1 - eta, 2 - phi, 3 - flavorForB, 4 - ptHat, 5 - centrality
+        double subLeadJetPtEtaPhiFlavPtHatCent[6] = { ptRecoSubLead, etaRecoSubLead, phiRecoSubLead, (double)-6, ptHat, (double)centrality };
+        fHM->hRecoInclusiveSubLeadJetPt->Fill( ptRecoSubLead, 1. );
+        fHM->hRecoInclusiveSubLeadJetPtWeighted->Fill( ptRecoSubLead, weight );
+        fHM->hRecoInclusiveSubLeadJetEtaPt->Fill( etaRecoSubLead, ptRecoSubLead, 1. );
+        fHM->hRecoInclusiveSubLeadJetEtaPtWeighted->Fill( etaRecoSubLead, ptRecoSubLead, weight );
+        fHM->hRecoInclusiveSubLeadJetPtEtaPhiFlavPtHatCent->Fill( subLeadJetPtEtaPhiFlavPtHatCent, 1. );
+        fHM->hRecoInclusiveSubLeadJetPtEtaPhiFlavPtHatCentWeighted->Fill( subLeadJetPtEtaPhiFlavPtHatCent, weight );
+
+        // Plot subleading jet JES and correlations between reco and ref jet
+        if ( subLeadJet->hasMatching() ) {
+            refSubLeadJet = event->genJetCollection()->at( subLeadJet->genJetId() );
+            ptRefSubLead = refSubLeadJet->pt();
+            etaRefSubLead = refSubLeadJet->eta();
+            phiRefSubLead = refSubLeadJet->phi();
+            int flavBSubLead{-6};
+            switch ( refSubLeadJet->flavorForB() )
+            {
+            case -99:
+                flavBSubLead = {-6};
+                break;
+            case -5:
+                flavBSubLead = {-5};
+                break;
+            case -4:
+                flavBSubLead = {-4};
+                break;
+            case -3:
+                flavBSubLead = {-3};
+                break;
+            case -2:
+                flavBSubLead = {-2};
+                break;
+            case -1:
+                flavBSubLead = {-1};
+                break;
+            case 0:
+                flavBSubLead = {0};
+                break;
+            case 1:
+                flavBSubLead = {1};
+                break;
+            case 2:
+                flavBSubLead = {2};
+                break;
+            case 3:
+                flavBSubLead = {3};
+                break;
+            case 4:
+                flavBSubLead = {4};
+                break;
+            case 5:
+                flavBSubLead = {5};
+                break;
+            case 21:
+                flavBSubLead = {6};
+                break;
+            default:
+                flavBSubLead = {-6};
+                break;
+            }
+
+            // 0 - pt, 1 - eta, 2 - phi, 3 - flavorForB, 4 - ptHat, 5 - centrality
+            double refSubLeadJetPtEtaPhiFlavPtHatCent[6] = { ptRefSubLead, etaRefSubLead, phiRefSubLead, (double)flavBSubLead, ptHat, (double)centrality };
+
+            fHM->hRefInclusiveSubLeadJetPt->Fill( ptRefSubLead, 1. );
+            fHM->hRefInclusiveSubLeadJetPtWeighted->Fill( ptRefSubLead, weight );
+            fHM->hRefInclusiveSubLeadJetEtaPt->Fill( etaRefSubLead, ptRefSubLead, 1. );
+            fHM->hRefInclusiveSubLeadJetEtaPtWeighted->Fill( etaRefSubLead, ptRefSubLead, weight );
+            fHM->hRefInclusiveSubLeadJetPtEtaPhiFlavPtHatCent->Fill( refSubLeadJetPtEtaPhiFlavPtHatCent, 1. );
+            fHM->hRefInclusiveSubLeadJetPtEtaPhiFlavPtHatCentWeighted->Fill( refSubLeadJetPtEtaPhiFlavPtHatCent, weight );
+
+            double JES = ptRecoSubLead / ptRefSubLead;
+            double jetJESPtEtaPhiCent[5] = { JES, ptRefSubLead, etaRefSubLead, phiRefSubLead, (double)centrality };
+            fHM->hRecoInclusiveSubLeadJetJESPtEtaPhiCent->Fill( jetJESPtEtaPhiCent, 1. );
+            fHM->hRecoInclusiveSubLeadJetJESPtEtaPhiCentWeighted->Fill( jetJESPtEtaPhiCent, weight );
+            
+            // Correlations between reco and ref subleading jets
+            // 0 - pt, 1 - refPt, 2 - eta, 3 - refEta, 4 - phi, 5 - refPhi, 6 - ptHat, 7 - centrality
+            double reco2refPtEtaPhiPtHatCentrality[8] = { ptRecoSubLead, ptRefSubLead, etaRecoSubLead, etaRefSubLead, phiRecoSubLead, phiRefSubLead, ptHat, (double)centrality };
+            fHM->hReco2RefInclusiveSubLeadJetPt->Fill( ptRefSubLead, ptRecoSubLead, 1. );
+            fHM->hReco2RefInclusiveSubLeadJetPtWeighted->Fill( ptRefSubLead, ptRecoSubLead, weight );
+            fHM->hReco2RefInclusiveSubLeadJetEta->Fill( etaRefSubLead, etaRecoSubLead, 1. );
+            fHM->hReco2RefInclusiveSubLeadJetEtaWeighted->Fill( etaRefSubLead, etaRecoSubLead, weight );
+            fHM->hReco2RefInclusiveSubLeadJetPhi->Fill( phiRefSubLead, phiRecoSubLead, 1. );
+            fHM->hReco2RefInclusiveSubLeadJetPhiWeighted->Fill( phiRefSubLead, phiRecoSubLead, weight );
+            fHM->hReco2RefInclusiveSubLeadJetPtEtaPhiPtHatCentrality->Fill( reco2refPtEtaPhiPtHatCentrality, 1. );
+            fHM->hReco2RefInclusiveSubLeadJetPtEtaPhiPtHatCentralityWeighted->Fill( reco2refPtEtaPhiPtHatCentrality, weight );
+        } // if ( subLeadJet->hasMatching() )
+
+        // Calculate dijet quantities
+        double dijetRecoDphi = deltaPhi( phiRecoLead, phiRecoSubLead );
+        double dijetRecoEta = 0.5 * ( etaRecoLead + etaRecoSubLead );
+        double dijetRecoPt = 0.5 * ( ptRecoLead + ptRecoSubLead );
+        double dijetRecoDetaCM = 0.5 * ( etaRecoLead - etaRecoSubLead );
+
+        fHM->hRecoDijetInclusiveDphi->Fill( dijetRecoDphi, 1. );
+        fHM->hRecoDijetInclusiveDphiWeighted->Fill( dijetRecoDphi, weight );
+        fHM->hRecoDijetInclusiveEtaPt->Fill( dijetRecoEta, dijetRecoPt, 1. );
+        fHM->hRecoDijetInclusiveEtaPtWeighted->Fill( dijetRecoEta, dijetRecoPt, weight );
+        fHM->hRecoDijetInclusiveEtaPtDphi->Fill( dijetRecoEta, dijetRecoPt, dijetRecoDphi, 1. );
+        fHM->hRecoDijetInclusiveEtaPtDphiWeighted->Fill( dijetRecoEta, dijetRecoPt, dijetRecoDphi, weight );
+        fHM->hRecoDijetInclusiveDetaCM->Fill( dijetRecoDetaCM, 1. );
+        fHM->hRecoDijetInclusiveDetaCMWeighted->Fill( dijetRecoDetaCM, weight );
+        fHM->hRecoDijetInclusiveDetaCMPt->Fill( dijetRecoDetaCM, dijetRecoPt, 1. );
+        fHM->hRecoDijetInclusiveDetaCMPtWeighted->Fill( dijetRecoDetaCM, dijetRecoPt, weight );
+        fHM->hRecoDijetInclusiveEtaDetaCMPt->Fill( dijetRecoEta, dijetRecoDetaCM, dijetRecoPt, 1. );
+        fHM->hRecoDijetInclusiveEtaDetaCMPtWeighted->Fill( dijetRecoEta, dijetRecoDetaCM, dijetRecoPt, weight );
+
+        // Dijet JES
+        if ( leadJet->hasMatching() && subLeadJet->hasMatching() ) {
+            refLeadJet = event->genJetCollection()->at( leadJet->genJetId() );
+            refSubLeadJet = event->genJetCollection()->at( subLeadJet->genJetId() );
+
+            double ptRefLead = refLeadJet->pt();
+            double etaRefLead = refLeadJet->eta();
+            double phiRefLead = refLeadJet->phi();
+
+            double ptRefSubLead = refSubLeadJet->pt();
+            double etaRefSubLead = refSubLeadJet->eta();
+            double phiRefSubLead = refSubLeadJet->phi();
+
+            double dijetRefPt = 0.5 * ( ptRefLead + ptRefSubLead );
+            double dijetRefEta = 0.5 * ( etaRefLead + etaRefSubLead );
+            double dijetRefDphi = deltaPhi( phiRefLead, phiRefSubLead );
+
+            double JES = dijetRecoPt / dijetRefPt;
+            double dijetJESPtEtaDphiCent[4] = { JES, dijetRefPt, dijetRefEta, dijetRefDphi };
+            fHM->hRecoInclusiveDijetJESPtEtaDphiCent->Fill( dijetJESPtEtaDphiCent, 1. );
+            fHM->hRecoInclusiveDijetJESPtEtaDphiCentWeighted->Fill( dijetJESPtEtaDphiCent, weight );
+        } // if ( leadJet->hasMatching() && subLeadJet->hasMatching() )
+
+
+        // Check if dijet is good (on MC level, both leading and subleading 
+        // jets must have matching ref partners)
+
+        if ( !leadJet->hasMatching() || !subLeadJet->hasMatching() ) {
+            if ( fVerbose ) {
+                std::cout << "Reco dijet do not have matching ref jets" << std::endl;
+            }
+            break;
+        }
+
+        // Check dijet kinematics
+        if ( !isGoodDijet( ptRecoLead, etaRecoLead, ptRecoSubLead, etaRecoSubLead, dijetRecoDphi ) ) {
+            break;
+        }
+
+        refLeadJet = event->genJetCollection()->at( leadJet->genJetId() );
+        refSubLeadJet = event->genJetCollection()->at( subLeadJet->genJetId() );
+
+        double ptRefLead = refLeadJet->pt();
+        double etaRefLead = refLeadJet->eta();
+        double phiRefLead = refLeadJet->phi();
+
+        double ptRefSubLead = refSubLeadJet->pt();
+        double etaRefSubLead = refSubLeadJet->eta();
+        double phiRefSubLead = refSubLeadJet->phi();
+
+
+        // Fill selected leading jet histograms
+        fHM->hRecoSelectedLeadJetPt->Fill( ptRecoLead, 1. );
+        fHM->hRecoSelectedLeadJetPtWeighted->Fill( ptRecoLead, weight );
+        fHM->hRecoSelectedLeadJetEtaPt->Fill( etaRecoLead, ptRecoLead, 1. );
+        fHM->hRecoSelectedLeadJetEtaPtWeighted->Fill( etaRecoLead, ptRecoLead, weight );
+        fHM->hRecoSelectedLeadJetPtEtaPhiFlavPtHatCent->Fill( leadJetPtEtaPhiFlavPtHatCent, 1. );
+        fHM->hRecoSelectedLeadJetPtEtaPhiFlavPtHatCentWeighted->Fill( leadJetPtEtaPhiFlavPtHatCent, weight );
+
+        // Fill selected subleading jet histograms
+        fHM->hRecoSelectedSubLeadJetPt->Fill( ptRecoSubLead, 1. );
+        fHM->hRecoSelectedSubLeadJetPtWeighted->Fill( ptRecoSubLead, weight );
+        fHM->hRecoSelectedSubLeadJetEtaPt->Fill( etaRecoSubLead, ptRecoSubLead, 1. );
+        fHM->hRecoSelectedSubLeadJetEtaPtWeighted->Fill( etaRecoSubLead, ptRecoSubLead, weight );
+        fHM->hRecoSelectedSubLeadJetPtEtaPhiFlavPtHatCent->Fill( subLeadJetPtEtaPhiFlavPtHatCent, 1. );
+        fHM->hRecoSelectedSubLeadJetPtEtaPhiFlavPtHatCentWeighted->Fill( subLeadJetPtEtaPhiFlavPtHatCent, weight );
+
+        // Fill selected dijet histograms
+        fHM->hRecoDijetSelectedPt->Fill( dijetRecoPt, 1. );
+        fHM->hRecoDijetSelectedPtWeighted->Fill( dijetRecoPt, weight );
+        fHM->hRecoDijetSelectedEta->Fill( dijetRecoEta, 1. );
+        fHM->hRecoDijetSelectedEtaWeighted->Fill( dijetRecoEta, weight );
+        fHM->hRecoDijetSelectedEtaPt->Fill( dijetRecoEta, dijetRecoPt, 1. );
+        fHM->hRecoDijetSelectedEtaPtWeighted->Fill( dijetRecoEta, dijetRecoPt, weight );
+        fHM->hRecoDijetSelectedEtaPtDphi->Fill( dijetRecoEta, dijetRecoPt, dijetRecoDphi, 1. );
+        fHM->hRecoDijetSelectedEtaPtDphiWeighted->Fill( dijetRecoEta, dijetRecoPt, dijetRecoDphi, weight );
+        fHM->hRecoDijetSelectedDetaCM->Fill( dijetRecoDetaCM, 1. );
+        fHM->hRecoDijetSelectedDetaCMWeighted->Fill( dijetRecoDetaCM, weight );
+        fHM->hRecoDijetSelectedDetaCMPt->Fill( dijetRecoDetaCM, dijetRecoPt, 1. );
+        fHM->hRecoDijetSelectedDetaCMPtWeighted->Fill( dijetRecoDetaCM, dijetRecoPt, weight );
+        fHM->hRecoDijetSelectedEtaDetaCMPt->Fill( dijetRecoEta, dijetRecoDetaCM, dijetRecoPt, 1. );
+        fHM->hRecoDijetSelectedEtaDetaCMPtWeighted->Fill( dijetRecoEta, dijetRecoDetaCM, dijetRecoPt, weight );
+
+    
+
+    } // if ( idRecoLead >= 0 && idRecoSubLead >= 0 )
+    else {
+        if ( fVerbose ) {
+            std::cout << "Reco dijet found: [false]" << std::endl;
+        }
+    } // else
     
     if ( fVerbose ) {
         std::cout << "JetESRAnalysis::processGenJets - end" << std::endl;
