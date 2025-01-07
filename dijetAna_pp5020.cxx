@@ -106,7 +106,7 @@ int main(int argc, char const *argv[]) {
     //eventCut->usePVertexFilterCutVtx1();
     
     // Trigger
-    eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
+    // eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
     // eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
     // eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
 
@@ -180,13 +180,14 @@ int main(int argc, char const *argv[]) {
     if (isMc) {
         analysis->setPtHatRange(ptHatCut[0], ptHatCut[1]);
     }
-    analysis->setIsPPb();
-    if ( isPbGoingDir ) {
-        analysis->setPbGoing();
-    }
+    // analysis->setIsPPb();
+    // if ( isPbGoingDir ) {
+    //     analysis->setPbGoing();
+    // }
     analysis->setEtaShift( etaShift );
     analysis->setLeadJetPtLow( 30. );
     analysis->setSubLeadJetPtLow( 20. );
+    analysis->setJetEtaLabRange( -3., 3. ); //
     analysis->setDijetPhiCut( 2. * TMath::Pi() / 3 );
     if ( isMc ) {
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
