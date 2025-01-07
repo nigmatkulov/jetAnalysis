@@ -1444,6 +1444,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
     Double_t ptHatW{1.};
     // Check correct MC sample
     if ( fIsPPb ) { // Assume pPb8160
+    
         if ( fIsMc ) {
              
             // Skip events with ptHat that is outside the ranged embedded

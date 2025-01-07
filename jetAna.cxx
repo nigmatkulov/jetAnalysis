@@ -41,6 +41,7 @@ int main(int argc, char const *argv[]) {
     TString inFileName{};
     Int_t   collEnergyGeV{5020};
     TString collSystem{};
+    Int_t   collisionsSystem{2}; // 0 - pp, 1 - pPb, 2 - PbPb
     Int_t   collYear{2018};
     TString recoJetBranchName{};
     TString oFileName{};
@@ -143,9 +144,19 @@ int main(int argc, char const *argv[]) {
     manager->setEventReader(reader);
 
     JetESRAnalysis *analysis = new JetESRAnalysis{};
+    analysis->setCollisionSystem(collisionsSystem);
+    // analysis->useCentralityWeight();  // For PbPb
+    // analysis->setPtHatRange(15., 1e6);
+    analysis->setLeadJetPtLowCut(50.);
+    analysis->setSubleadJetPtLowCut(40.);
+    analysis->setDijetDPhiCut( 2. * TMath::Pi() / 3. );
+    analysis->setLeadJetEtaCut(-3., 3.);
+    analysis->setSubleadJetEtaCut(-3., 3.);
+
+
     HistoManagerJetESR *hm = new HistoManagerJetESR{};
-    hm->setIsMc(kTRUE);
-    hm->init(kTRUE); // kTRUE stands up for use MC; need to FIX
+    // hm->setIsMc(kTRUE);
+    hm->init(true);
     analysis->addHistoManager(hm);
     manager->addAnalysis(analysis);
 
