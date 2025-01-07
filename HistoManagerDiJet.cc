@@ -57,6 +57,9 @@ HistoManagerDiJet::HistoManagerDiJet() :
   hGenPtLeadPtSubleadMcReweight{nullptr},
   hGenEtaLeadEtaSubleadMcReweight{nullptr},
   hGenDijetEta{nullptr},
+  hGenDijetEta1D{nullptr},
+  hGenDijetEta1DOldPt{nullptr},
+  hGenDijetEta1DOldPtBinning{nullptr},
   hGenDijetPtEtaDphi{nullptr},
   hGenDijetPtEtaDphiWeighted{nullptr},
   hGenDijetEtaCM{nullptr},
@@ -165,7 +168,13 @@ HistoManagerDiJet::HistoManagerDiJet() :
 
   hRecoDijetEta{nullptr},
   hRecoDijetEtaCM{nullptr},
+  hRecoDijetEta1D{nullptr},
+  hRecoDijetEta1DOldPt{nullptr},
+  hRecoDijetEta1DOldPtBinning{nullptr},
   hRefDijetEta{nullptr},
+  hRefDijetEta1D{nullptr},
+  hRefDijetEta1DOldPt{nullptr},
+  hRefDijetEta1DOldPtBinning{nullptr},
   hRefDijetEtaVsRecoDijetEta{nullptr},
   hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt{nullptr},
   hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted{nullptr},
@@ -253,6 +262,13 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hGenPtLeadPtSubleadMcReweight) delete hGenPtLeadPtSubleadMcReweight;
         if (hGenEtaLeadEtaSubleadMcReweight) delete hGenEtaLeadEtaSubleadMcReweight;
         if (hGenDijetEta) delete hGenDijetEta;
+        for (int i=0; i<16; i++) {
+            if (hGenDijetEta1D[i]) delete hGenDijetEta1D[i];
+        }
+        for (int i=0; i<5; i++) {
+            if (hGenDijetEta1DOldPt[i]) delete hGenDijetEta1DOldPt[i];
+            if (hGenDijetEta1DOldPtBinning[i]) delete hGenDijetEta1DOldPtBinning[i];
+        }
         if (hGenDijetPtEtaDphi) delete hGenDijetPtEtaDphi;
         if (hGenDijetPtEtaDphiWeighted) delete hGenDijetPtEtaDphiWeighted;
         if (hGenDijetEtaCM) delete hGenDijetEtaCM;
@@ -328,6 +344,13 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoGoodInclusiveJetEtaLabFrame) delete hRecoGoodInclusiveJetEtaLabFrame;
     if (hRecoGoodInclusiveJetEtaCMFrame) delete hRecoGoodInclusiveJetEtaCMFrame;
     if (hRecoDijetEta) delete hRecoDijetEta;
+    for (int i=0; i<16; i++) {
+        if (hRecoDijetEta1D[i]) delete hRecoDijetEta1D[i];
+    }
+    for (int i=0; i<5; i++) {
+            if (hRecoDijetEta1DOldPt[i]) delete hRecoDijetEta1DOldPt[i];
+            if (hRecoDijetEta1DOldPtBinning[i]) delete hRecoDijetEta1DOldPtBinning[i];
+    }
     if (hRecoDijetPtEta) delete hRecoDijetPtEta;
     if (hRecoDijetPtEtaDphi) delete hRecoDijetPtEtaDphi;
     if (hRecoDijetPtEtaDphiWeighted) delete hRecoDijetPtEtaDphiWeighted;
@@ -373,6 +396,13 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted) delete hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted;
 
         if (hRefDijetEtaCM) delete hRefDijetEtaCM;
+        for (int i=0; i<16; i++) {
+            if (hRefDijetEta1D[i]) delete hRefDijetEta1D[i];
+        }
+        for (int i=0; i<5; i++) {
+            if (hRefDijetEta1DOldPt[i]) delete hRefDijetEta1DOldPt[i];
+            if (hRefDijetEta1DOldPtBinning[i]) delete hRefDijetEta1DOldPtBinning[i];
+        }
         if (hRefDijetPtEtaDphiCM) delete hRefDijetPtEtaDphiCM;
         if (hRefDijetPtEtaDphiCMWeighted) delete hRefDijetPtEtaDphiCMWeighted;
 
@@ -403,107 +433,107 @@ HistoManagerDiJet::~HistoManagerDiJet() {
 //________________
 void HistoManagerDiJet::init(const Bool_t& isMc) {
 
-//     const Int_t dijetEtaBins{30};
-//     Double_t dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
-//                                             -2.0, -1.8, -1.6, -1.4, -1.2, 
-//                                             -1.0, -0.8, -0.6, -0.4, -0.2,  
-//                                              0.0,  0.2,  0.4,  0.6,  0.8,  
-//                                              1.0,  1.2,  1.4,  1.6,  1.8,  
-//                                              2.0,  2.2,  2.4,  3.0,  4.0,  
-//                                              5.0 };
+    const int dijetEtaBins{30};
+    double dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
+                                            -2.0, -1.8, -1.6, -1.4, -1.2, 
+                                            -1.0, -0.8, -0.6, -0.4, -0.2,  
+                                             0.0,  0.2,  0.4,  0.6,  0.8,  
+                                             1.0,  1.2,  1.4,  1.6,  1.8,  
+                                             2.0,  2.2,  2.4,  3.0,  4.0,  
+                                             5.0 };
 
     // Old binning convention
-    const Int_t dijetEtaBins{18};
-    Double_t dijetEtaVals[dijetEtaBins+1] = { -2.915, -2.63333333333, -2.07, -1.78833333333, -1.50666666667,
-                                              -1.225, -0.94333333333, -0.66166666666, -0.38, -0.09833333333,
-                                              0.18333333333, 0.465, 0.74666666666, 1.02833333333, 1.31,
-                                              1.59166666667, 1.87333333333, 2.43666666667, 3.};
+    const int dijetEtaOldBins{18};
+    double dijetEtaOldVals[dijetEtaBins+1] = { -2.915, -2.63333333333, -2.07, -1.78833333333, -1.50666666667,
+                                                -1.225, -0.94333333333, -0.66166666666, -0.38, -0.09833333333,
+                                                0.18333333333, 0.465, 0.74666666666, 1.02833333333, 1.31,
+                                                1.59166666667, 1.87333333333, 2.43666666667, 3.};
 
-    const Int_t dijetEtaFBBins{13};
-    Double_t dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
+    const int dijetEtaFBBins{13};
+    double dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
                                                 1.0,  1.2,  1.4,  1.6,  1.8,  
                                                 2.0,  2.2,  2.4,  3.0 };
 
 
-    // const Int_t dijetPtBins{17};
-    // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
-    //                                        90., 100.,  110., 120., 130.,
-    //                                       140., 150.,  160., 180., 200., 
-    //                                       240., 300., 1000.};
+    const int dijetPtBins{16};
+    double dijetPtVals[dijetPtBins+1] {  50.,  60.,   70.,  80.,  90.,
+                                         100., 110.,  120., 130., 140.,
+                                         150., 160.,  180., 200., 250., 
+                                         300., 500.};
 
     // Old binning convention
-    const Int_t dijetPtBins{6};
-    Double_t dijetPtVals[dijetPtBins+1] {25., 55., 75., 95., 115., 150., 400.}; // 6 bins
+    const int dijetPtOldBins{6};
+    double dijetPtOldVals[dijetPtBins+1] {25., 55., 75., 95., 115., 150., 400.}; // 6 bins
     
-    Int_t    prescale = 2;
+    int    prescale = 2;
 
-    Int_t    vzBins = 320;
-    Double_t vzRange[2] {-31., 31.};
-    Int_t    multBins{1800};
-    Double_t multRange[2] {-0.5, 1799.5};
-    Int_t    hiBinBins{203};
-    Double_t hiBinRange[2] {-1.5, 201.5};
-    // Int_t    centralityBins{101};
-    // Double_t centralityRange[2] {-0.5, 100.5};
-    Int_t    weightBins{110};
-    Double_t weightRange[2] {-0.05, 1.05};
-    Int_t    ptHatBins{100};
-    Double_t ptHatRange[2] {0., 1000.};
-    Int_t    fJESBins{100}; 
-    Double_t fJESRange[2] {0., 2.};
+    int    vzBins = 320;
+    double vzRange[2] {-31., 31.};
+    int    multBins{1800};
+    double multRange[2] {-0.5, 1799.5};
+    int    hiBinBins{203};
+    double hiBinRange[2] {-1.5, 201.5};
+    // int    centralityBins{101};
+    // double centralityRange[2] {-0.5, 100.5};
+    int    weightBins{110};
+    double weightRange[2] {-0.05, 1.05};
+    int    ptHatBins{100};
+    double ptHatRange[2] {0., 1000.};
+    int    fJESBins{100}; 
+    double fJESRange[2] {0., 2.};
 
 
-    Int_t    bins2D_ev_VzPtHat[2] {     vzBins,     fPtHatBins };
-    Double_t xmin2D_ev_VzPtHat[2] { vzRange[0], fPtHatRange[0] };
-    Double_t xmax2D_ev_VzPtHat[2] { vzRange[1], fPtHatRange[1] };
+    int    bins2D_ev_VzPtHat[2] {     vzBins,     fPtHatBins };
+    double xmin2D_ev_VzPtHat[2] { vzRange[0], fPtHatRange[0] };
+    double xmax2D_ev_VzPtHat[2] { vzRange[1], fPtHatRange[1] };
 
-    Int_t  ptShortBins{40}; 
-    Double_t ptShortRange[2] {15., 215.};
+    int  ptShortBins{40}; 
+    double ptShortRange[2] {15., 215.};
 
-    Int_t    dEtaBins{50}; 
-    Double_t dEtaRange[2] {-0.05, 0.05};
+    int    dEtaBins{50}; 
+    double dEtaRange[2] {-0.05, 0.05};
 
     //
     // Gen
     //
-    Int_t    bins9D_gen_GenDijetPtEtaDPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi[9]
+    int    bins9D_gen_GenDijetPtEtaDPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi[9]
     { fDijetPtBins, fDijetEtaBins, fDijetDphiBins, fPtBins, fEtaBins, fPhiBins, fPtBins, fEtaBins, fPhiBins };
-    Double_t xmin9D_gen_GenDijetPtEtaDPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi[9]
+    double xmin9D_gen_GenDijetPtEtaDPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi[9]
     { fDijetPtRange[0], fDijetEtaRange[0], fDijetDphiRange[0], fPtRange[0], fEtaRange[0], fPhiRange[0], fPtRange[0], fEtaRange[0], fPhiRange[0]  };
-    Double_t xmax9D_gen_GenDijetPtEtaDPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi[9]
+    double xmax9D_gen_GenDijetPtEtaDPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi[9]
     { fDijetPtRange[1], fDijetEtaRange[1], fDijetDphiRange[1], fPtRange[1], fEtaRange[1], fPhiRange[1], fPtRange[1], fEtaRange[1], fPhiRange[1] };
 
     //
     // Reco single
     //
-    Int_t    bins5D_jet_PtPtPtEtaEta[5] { fPtBins, fPtBins, fPtBins, fEtaBins, fEtaBins };
-    Double_t xmin5D_jet_PtPtPtEtaEta[5] { fPtRange[0], fPtRange[0], fPtRange[0], fEtaRange[0], fEtaRange[0] };
-    Double_t xmax5D_jet_PtPtPtEtaEta[5] { fPtRange[1], fPtRange[1], fPtRange[1], fEtaRange[1], fEtaRange[1] };
+    int    bins5D_jet_PtPtPtEtaEta[5] { fPtBins, fPtBins, fPtBins, fEtaBins, fEtaBins };
+    double xmin5D_jet_PtPtPtEtaEta[5] { fPtRange[0], fPtRange[0], fPtRange[0], fEtaRange[0], fEtaRange[0] };
+    double xmax5D_jet_PtPtPtEtaEta[5] { fPtRange[1], fPtRange[1], fPtRange[1], fEtaRange[1], fEtaRange[1] };
 
-    Int_t    bins4D_jet_JESPtEtaPhi[4] { fJESBins,     fPtBins,     fEtaBins,     fPhiBins };
-    Double_t xmin4D_jet_JESPtEtaPhi[4] { fJESRange[0], fPtRange[0], fEtaRange[0], fPhiRange[0] };
-    Double_t xmax4D_jet_JESPtEtaPhi[4] { fJESRange[1], fPtRange[1], fEtaRange[1], fPhiRange[1] };
+    int    bins4D_jet_JESPtEtaPhi[4] { fJESBins,     fPtBins,     fEtaBins,     fPhiBins };
+    double xmin4D_jet_JESPtEtaPhi[4] { fJESRange[0], fPtRange[0], fEtaRange[0], fPhiRange[0] };
+    double xmax4D_jet_JESPtEtaPhi[4] { fJESRange[1], fPtRange[1], fEtaRange[1], fPhiRange[1] };
 
     //
     // Reco dijets
     //
-    Int_t    bins9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhi[9]
+    int    bins9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhi[9]
     { fDijetPtBins, fDijetEtaBins, fDijetDphiBins, fPtBins, fEtaBins, fPhiBins, fPtBins, fEtaBins, fPhiBins };
-    Double_t xmin9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhi[9]
+    double xmin9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhi[9]
     { fDijetPtRange[0], fDijetEtaRange[0], fDijetDphiRange[0], fPtRange[0], fEtaRange[0], fPhiRange[0], fPtRange[0], fEtaRange[0], fPhiRange[0] };
-    Double_t xmax9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhi[9]
+    double xmax9D_dijet_PtEtaDphiPtEtaPhiPtEtaPhi[9]
     { fDijetPtRange[1], fDijetEtaRange[1], fDijetDphiRange[1], fPtRange[1], fEtaRange[1], fPhiRange[1], fPtRange[1], fEtaRange[1], fPhiRange[1] };
 
-    Int_t    bins12D_dijet_PtEtaPtEtaPtEtaPtEtaPtEtaPtEta[12]
+    int    bins12D_dijet_PtEtaPtEtaPtEtaPtEtaPtEtaPtEta[12]
     { fDijetPtBins, fDijetEtaBins, fPtBins, fEtaBins, fPtBins, fEtaBins, fDijetPtBins, fDijetEtaBins, fPtBins, fEtaBins, fPtBins, fEtaBins };
-    Double_t xmin12D_dijet_PtEtaPtEtaPtEtaPtEtaPtEtaPtEta[12]
+    double xmin12D_dijet_PtEtaPtEtaPtEtaPtEtaPtEtaPtEta[12]
     { fDijetPtRange[0], fDijetEtaRange[0], fPtRange[0], fEtaRange[0], fPtRange[0], fEtaRange[0], fDijetPtRange[0], fDijetEtaRange[0], fPtRange[0], fEtaRange[0], fPtRange[0], fEtaRange[0] };
-    Double_t xmax12D_dijet_PtEtaPtEtaPtEtaPtEtaPtEtaPtEta[12]
+    double xmax12D_dijet_PtEtaPtEtaPtEtaPtEtaPtEtaPtEta[12]
     { fDijetPtRange[1], fDijetEtaRange[1], fPtRange[1], fEtaRange[1], fPtRange[1], fEtaRange[1], fDijetPtRange[1], fDijetEtaRange[1], fPtRange[1], fEtaRange[1], fPtRange[1], fEtaRange[1] };
 
-    Int_t    bins4D_dijet_PtEtaPtEta[4] { fDijetPtBins, fDijetEtaBins, fDijetPtBins, fDijetEtaBins };
-    Double_t xmin4D_dijet_PtEtaPtEta[4] { fDijetPtRange[0], fDijetEtaRange[0], fDijetPtRange[0], fDijetEtaRange[0] };
-    Double_t xmax4D_dijet_PtEtaPtEta[4] { fDijetPtRange[1], fDijetEtaRange[1], fDijetPtRange[1], fDijetEtaRange[1] };
+    int    bins4D_dijet_PtEtaPtEta[4] { fDijetPtBins, fDijetEtaBins, fDijetPtBins, fDijetEtaBins };
+    double xmin4D_dijet_PtEtaPtEta[4] { fDijetPtRange[0], fDijetEtaRange[0], fDijetPtRange[0], fDijetEtaRange[0] };
+    double xmax4D_dijet_PtEtaPtEta[4] { fDijetPtRange[1], fDijetEtaRange[1], fDijetPtRange[1], fDijetEtaRange[1] };
 
     //
     // Event histograms
@@ -539,7 +569,7 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     hVzPtHatWeighted->Sumw2();
 
     // For 4 eta ranges: <=2.4, <=2.7, <=3, >3
-    for (Int_t i{0}; i<4; i++) {
+    for (int i{0}; i<4; i++) {
         float low{0}, hi{0};
         if      ( i == 0 ) { low = {-2.4f}; hi = {2.4f}; }
         else if ( i == 1 ) { low = {2.4f}; hi = {2.7f}; }
@@ -569,7 +599,7 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hNumOfNeutPart[i] = new TH1D(Form("hNumOfNeutPart_%d",i), Form("Number of neutral particles for %3.1f< #eta<=%3.1f;Number of neutral particles;1/N dN/dNumOfNeutrals", low, hi), 
                                      fMultBins, fMultRange[0], fMultRange[1]);
         hNumOfNeutPart[i]->Sumw2();
-    } // for (Int_t i{0}; i<4; i++)
+    } // for (int i{0}; i<4; i++)
 
 
     //
@@ -629,6 +659,20 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hGenDijetEta = new TH1D("hGenDijetEta", "Gen dijet #eta;#eta^{dijet}",
                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hGenDijetEta->Sumw2();
+        for (int i=0; i<16; i++) {
+            hGenDijetEta1D[i] = new TH1D(Form("hGenDijetEta1D_%d",i), Form("Gen dijet #eta bin %d;#eta^{dijet}",i),
+                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+            hGenDijetEta1D[i]->Sumw2();
+        }
+        for (int i=0; i<5; i++) {
+            hGenDijetEta1DOldPt[i] = new TH1D(Form("hGenDijetEta1DOldPt_%d",i), Form("Gen dijet #eta old p_{T} bin %d;#eta^{dijet}",i),
+                                                   fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+            hGenDijetEta1DOldPt[i]->Sumw2();
+            hGenDijetEta1DOldPtBinning[i] = new TH1D(Form("hGenDijetEta1DOldPtBinning_%d",i), Form("Gen dijet #eta old p_{T} bin %d old #eta binning;#eta^{dijet}",i),
+                                                     dijetEtaOldBins, dijetEtaOldVals);
+            hGenDijetEta1DOldPtBinning[i]->Sumw2();
+        }
+
         hGenDijetPtEtaDphi = new TH3D("hGenDijetPtEtaDphi","Gen dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
                                       fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                       fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
@@ -985,6 +1029,22 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRefDijetEta = new TH1D("hRefDijetEta","Ref dijet #eta;Ref #eta^{dijet};Entries",
                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hRefDijetEta->Sumw2();
+
+        for (int i{0}; i<16; i++) {
+            hRefDijetEta1D[i] = new TH1D(Form("hRefDijetEta1D_%d",i),Form("Ref dijet #eta for p_{T} bin %d;Ref #eta^{dijet};Entries",i),
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+            hRefDijetEta1D[i]->Sumw2();
+        }
+        for (int i{0}; i<5; i++) {
+            hRefDijetEta1DOldPt[i] = new TH1D(Form("hRefDijetEta1DOldPt_%d",i),Form("Ref dijet #eta for old p_{T} bin %d;Ref #eta^{dijet};Entries",i),
+                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+            hRefDijetEta1DOldPt[i]->Sumw2();
+            hRefDijetEta1DOldPtBinning[i] = new TH1D(Form("hRefDijetEta1DOldPtBinning_%d",i),Form("Ref dijet #eta for old p_{T} bin %d old #eta binning;Ref #eta^{dijet};Entries",i),
+                                                     dijetEtaOldBins, dijetEtaOldVals);
+            hRefDijetEta1DOldPtBinning[i]->Sumw2();
+                                                     
+        }
+
         hRefDijetEtaVsRecoDijetEta = new TH2D("hRefDijetEtaVsRecoDijetEta","Ref dijet #eta vs reco dijet #eta;Reco #eta^{dijet};Ref #eta^{dijet}",
                                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
                                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
@@ -1101,6 +1161,13 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRefDijetEtaVsRecoDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEta->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+        for (int i{0}; i<16; i++) {
+            hRefDijetEta1D[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+        }
+        for (int i{0}; i<5; i++) {
+            hRefDijetEta1DOldPt[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+            hRefDijetEta1DOldPtBinning[i]->GetXaxis()->Set(dijetEtaOldBins, dijetEtaOldVals);
+        }
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -1142,6 +1209,13 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
         hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
         hGenDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+        for (int i{0}; i<16; i++) {
+            hGenDijetEta1D[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+        }
+        for (int i{0}; i<5; i++) {
+            hGenDijetEta1DOldPt[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+            hGenDijetEta1DOldPtBinning[i]->GetXaxis()->Set(dijetEtaOldBins, dijetEtaOldVals);
+        }
         hGenDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hGenDijetPtEtaDphiWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
 
@@ -1257,6 +1331,20 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     hRecoDijetEta = new TH1D("hRecoDijetEta","Reco dijet #eta;Reco #eta^{dijet};Entries",
                              fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
     hRecoDijetEta->Sumw2();
+    for (int i{0}; i<16; ++i) {
+        hRecoDijetEta1D[i] = new TH1D(Form("hRecoDijetEta1D_%d",i),Form("Reco dijet #eta bin %d;Reco #eta^{dijet};Entries",i),
+                                      fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRecoDijetEta1D[i]->Sumw2();
+    }
+    for (int i{0}; i<5; ++i) {
+        hRecoDijetEta1DOldPt[i] = new TH1D(Form("hRecoDijetEta1DOldPt_%d",i),Form("Reco dijet #eta old p_{T} bin %d;Reco #eta^{dijet};Entries",i),
+                                                fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hRecoDijetEta1DOldPt[i]->Sumw2();
+        hRecoDijetEta1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinning_%d",i),Form("Reco dijet #eta old p_{T} bin %d old #eta binning;Reco #eta^{dijet};Entries",i),
+                                                  dijetEtaOldBins, dijetEtaOldVals);
+        hRecoDijetEta1DOldPtBinning[i]->Sumw2();
+    }
+
     hRecoDijetPtEta = new TH2D("hRecoDijetPtEta", "Reco dijet #eta vs p_{T};p_{T}^{ave} (GeV/c);#eta^{dijet}", 
                                fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
@@ -1345,6 +1433,13 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+    for (int i{0}; i<16; i++) {
+        hRecoDijetEta1D[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+    }
+    for (int i{0}; i<5; i++) {
+        hRecoDijetEta1DOldPt[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
+        hRecoDijetEta1DOldPtBinning[i]->GetXaxis()->Set(dijetEtaOldBins, dijetEtaOldVals);
+    }
     hRecoDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDphiWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetEtaCM->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -1403,6 +1498,13 @@ void HistoManagerDiJet::writeOutput() {
         hGenPtLeadPtSubleadMcReweight->Write();
         hGenEtaLeadEtaSubleadMcReweight->Write();
         hGenDijetEta->Write();
+        for (int i{0}; i<16; i++) {
+            hGenDijetEta1D[i]->Write();
+        }
+        for (int i{0}; i<5; i++) {
+            hGenDijetEta1DOldPt[i]->Write();
+            hGenDijetEta1DOldPtBinning[i]->Write();
+        }
         hGenDijetPtEtaDphi->Write();
         hGenDijetPtEtaDphiWeighted->Write();
         hGenDijetEtaCM->Write();
@@ -1470,6 +1572,13 @@ void HistoManagerDiJet::writeOutput() {
         hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Write();
 
         hRefDijetEta->Write();
+        for (int i{0}; i<16; i++) {
+            hRefDijetEta1D[i]->Write();
+        }
+        for (int i{0}; i<5; i++) {
+            hRefDijetEta1DOldPt[i]->Write();
+            hRefDijetEta1DOldPtBinning[i]->Write();
+        }
         hRefDijetPtEtaDphi->Write();
         hRefDijetPtEtaDphiWeighted->Write();
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->Write();
@@ -1524,6 +1633,13 @@ void HistoManagerDiJet::writeOutput() {
     hRecoEtaLeadEtaSubleadMcReweight->Write();
     hRecoDijetPtEta->Write();
     hRecoDijetEta->Write();
+    for (int i{0}; i<16; i++) {
+        hRecoDijetEta1D[i]->Write();
+    }
+    for (int i{0}; i<5; i++) {
+        hRecoDijetEta1DOldPt[i]->Write();
+        hRecoDijetEta1DOldPtBinning[i]->Write();
+    }
     hRecoDijetPtEtaDphi->Write();
     hRecoDijetPtEtaDphiWeighted->Write();
     hRecoDijetEtaCM->Write();

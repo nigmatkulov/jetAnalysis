@@ -41,26 +41,26 @@ class HistoManagerDiJet : public BaseHistoManager {
     void writeOutput();
 
     // /// @brief Set number of centrality bins
-    // void setCentBins(const Int_t& n = 6) { fCentBins = n; }
+    // void setCentBins(const int& n = 6) { fCentBins = n; }
     // /// @brief Set centrality range (in percentage)
-    // void setCentRange(const Double_t& lo = 0, const Double_t& hi = 60) { fCentRange[0]=lo; fCentRange[1]=hi; }
+    // void setCentRange(const double& lo = 0, const double& hi = 60) { fCentRange[0]=lo; fCentRange[1]=hi; }
 
     /// @brief Set number of jet pT bins
-    void setJetPtBins(const Int_t& n = 200) { fPtBins = n; }
+    void setJetPtBins(const int& n = 200) { fPtBins = n; }
     /// @brief Set jet pT range
-    void setJetPtRange(const Double_t& lo=0., const Double_t& hi=1000.) { fPtRange[0]=lo; fPtRange[1]=hi; }
+    void setJetPtRange(const double& lo=0., const double& hi=1000.) { fPtRange[0]=lo; fPtRange[1]=hi; }
     /// @brief Set number of eta bins
-    void setJetEtaBins(const Int_t& n=50) { fEtaBins = n; }
+    void setJetEtaBins(const int& n=50) { fEtaBins = n; }
     /// @brief Set eta range
-    void setJetEtaRange(const Double_t& lo=-2.5, const Double_t& hi=2.5) { fEtaRange[0]=lo; fEtaRange[1]=hi; }
+    void setJetEtaRange(const double& lo=-2.5, const double& hi=2.5) { fEtaRange[0]=lo; fEtaRange[1]=hi; }
     /// @brief Set number of phi bins
-    void setJetPhiBins(const Int_t& n=64) { fPhiBins = n; }
+    void setJetPhiBins(const int& n=64) { fPhiBins = n; }
     /// @brief Set phi range
-    void setJetPhiRange(const Double_t& lo=-TMath::Pi(), const Double_t& hi=TMath::Pi()) { fPhiRange[0]=lo; fPhiRange[1]=hi; }
+    void setJetPhiRange(const double& lo=-TMath::Pi(), const double& hi=TMath::Pi()) { fPhiRange[0]=lo; fPhiRange[1]=hi; }
     /// @brief Set number of bins for ptHat
-    void setPtHatBins(const Int_t& n=10) { fPtHatBins = n; }
+    void setPtHatBins(const int& n=10) { fPtHatBins = n; }
     /// @brief Set range of ptHat
-    void setPtHatRange(const Double_t& lo=15., const Double_t& hi=215.) { fPtHatRange[0]=lo; fPtHatRange[1]=hi; }
+    void setPtHatRange(const double& lo=15., const double& hi=215.) { fPtHatRange[0]=lo; fPtHatRange[1]=hi; }
 
     //
     // Event histograms
@@ -105,6 +105,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenPtLeadPtSubleadMcReweight;
     TH2D *hGenEtaLeadEtaSubleadMcReweight;
     TH1D *hGenDijetEta;
+    TH1D *hGenDijetEta1D[16];
+    TH1D *hGenDijetEta1DOldPt[5];
+    TH1D *hGenDijetEta1DOldPtBinning[5];
     TH3D *hGenDijetPtEtaDphi;
     TH3D *hGenDijetPtEtaDphiWeighted;
     TH1D *hGenDijetEtaCM;
@@ -265,8 +268,14 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     TH1D *hRecoDijetEta;
     TH1D *hRecoDijetEtaCM;
+    TH1D *hRecoDijetEta1D[16];
+    TH1D *hRecoDijetEta1DOldPt[5];
+    TH1D *hRecoDijetEta1DOldPtBinning[5];
     
     TH1D *hRefDijetEta;
+    TH1D *hRefDijetEta1D[16];
+    TH1D *hRefDijetEta1DOldPt[5];
+    TH1D *hRefDijetEta1DOldPtBinning[5];
     TH2D *hRefDijetEtaVsRecoDijetEta;
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt;
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted;
@@ -312,43 +321,43 @@ class HistoManagerDiJet : public BaseHistoManager {
     /// @brief Is Monte Carlo
     Bool_t fIsMc;
     // /// @brief  Number of centrality bins
-    // Int_t    fCentBins;
+    // int    fCentBins;
     // /// @brief Centrality range
-    // Double_t fCentRange[2];
+    // double fCentRange[2];
     /// @brief Number of pT bins
-    Int_t    fPtBins;
+    int    fPtBins;
     /// @brief Transverse momentum range
-    Double_t fPtRange[2];
+    double fPtRange[2];
     /// @brief Number of pseudorapidity bins
-    Int_t    fEtaBins;
+    int    fEtaBins;
     /// @brief Pseudorapidity range
-    Double_t fEtaRange[2];
+    double fEtaRange[2];
     /// @brief Number of azimuthal angle bins
-    Int_t    fPhiBins;
+    int    fPhiBins;
     /// @brief Azimuthal angle range
-    Double_t fPhiRange[2];
+    double fPhiRange[2];
     /// @brief Number of dijet pT bins
-    Int_t    fDijetPtBins;
+    int    fDijetPtBins;
     /// @brief Dijet pT range
-    Double_t fDijetPtRange[2];
+    double fDijetPtRange[2];
     /// @brief Number of dijet eta bins
-    Int_t    fDijetEtaBins;
+    int    fDijetEtaBins;
     /// @brief Dijet eta range
-    Double_t fDijetEtaRange[2];
+    double fDijetEtaRange[2];
     /// @brief Number of dijet delta phi bins
-    Int_t    fDijetDphiBins;
+    int    fDijetDphiBins;
     /// @brief Dijet delta phi range
-    Double_t fDijetDphiRange[2];
+    double fDijetDphiRange[2];
     /// @brief Number of ptHat bins
-    Int_t    fPtHatBins;
+    int    fPtHatBins;
     /// @brief PtHat range
-    Double_t fPtHatRange[2];
+    double fPtHatRange[2];
     /// @brief Jet type: PF or Calo
     TString  fJetType;
-    Int_t    fFracBins;
-    Double_t fFracRange[2];
-    Int_t   fMultBins;
-    Double_t fMultRange[2];
+    int    fFracBins;
+    double fFracRange[2];
+    int   fMultBins;
+    double fMultRange[2];
 
     ClassDef(HistoManagerDiJet, 0)
 };
