@@ -30,7 +30,7 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fUseCentralityWeight{}, fHM{nullptr},
     fEtaShift{0}, fIsMc{false}, fIsPPb{true},
     fLeadJetPtLow{50.}, fSubleadJetPtLow{40.},
-    fDijetPhiCut{ 5. * TMath::Pi() / 6},
+    fDijetPhiCut{ 2. * TMath::Pi() / 3},
     fIsPbGoingDir{false}, fVerbose{false},
     fNEventsInSample{1000000},
     fIsDijetFound{false}, fIsDijetJetIdFound{false},
@@ -42,8 +42,8 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
 
     fJetEtaLab[0] = -3.; fJetEtaLab[1] = 3.;
     fJetEtaCM[0] = -2.5; fJetEtaCM[1] = 2.5;
-    fPtHatRange[0] = {15.};
-    fPtHatRange[1] = {30.};
+    fPtHatRange[0] = {-100000000};
+    fPtHatRange[1] = {100000000};
     for (int i=0; i<fJetPtBins; i++) {
         for (int j=0; j<fJetPtBins; j++) {
             fJetPtLeadPtSubleadReweightMatrix[i][j] = 1;

@@ -40,7 +40,7 @@ int main(int argc, char const *argv[]) {
     TString JECFileDataName;
     TString JEUFileName;
     TString path2JEC = "..";
-    Double_t ptHatCut[2] {15., 30.};
+    Double_t ptHatCut[2] {-100000000, 100000000};
     Int_t   useJEU{0};
     Int_t   useJERSyst{0}; //0-default, 1-JER+, -1-JER-
     Double_t etaShift = 0.465;
@@ -166,7 +166,7 @@ int main(int argc, char const *argv[]) {
     if ( isMc ) {
         reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use
         reader->setJERFitParams(0.0415552, 0.960013);
-        reader->setJERSystParams();
+        //reader->setJERSystParams();
     }
 
     //reader->setVerbose();

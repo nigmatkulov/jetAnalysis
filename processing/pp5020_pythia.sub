@@ -10,5 +10,5 @@ RequestCpus = 1
 log        = condor/log/pp5020_pythia.log
 output     = condor/log/pp5020_pythia.out
 error      = condor/log/pp5020_pythia.err
-arguments  = /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing/filelists/pp5020/PYTHIA/Pythia_pThat15.list /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing/pp5020_pythia.root 1 0 15 5000
+arguments  = /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing/filelists/pp5020/PYTHIA/Pythia_pThat15.list /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing/pp5020_pythia.root 1 0 -100000000 100000000
 queue
