@@ -97,9 +97,10 @@ int main(int argc, char const *argv[]) {
     eventCut->usePBeamScrapingFilter();
     eventCut->usePPAprimaryVertexFilter();
     eventCut->useHBHENoiseFilterResultRun2Loose();
-    eventCut->usePhfCoincFilter();
+    //eventCut->usePhfCoincFilter();
+
     // Default cut
-    eventCut->usePVertexFilterCutdz1p0();
+    // eventCut->usePVertexFilterCutdz1p0();
     // Pile-up systematics
     // eventCut->usePVertexFilterCutGplus();
     // Pile-up systematics
@@ -111,7 +112,9 @@ int main(int argc, char const *argv[]) {
     // eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
 
     // Triggers from Vipul
-    // eventCut->useHLT_HIAK4PFJet60_v1();
+    if ( !isMc ) {
+        eventCut->useHLT_HIAK4PFJet60_v1();
+    }
     // eventCut->useHLT_HIAK4PFJet80_v1();
 
     // Set ptHat cut for embedding
@@ -147,7 +150,6 @@ int main(int argc, char const *argv[]) {
         reader->useExtraJECCorr();
     }
 
-    //reader->useCaloJetBranch();
     reader->setCollidingSystem( collSystem.Data() );
     reader->setCollidingEnergy( collEnergyGeV ) ;
     reader->setYearOfDataTaking( collYear );
