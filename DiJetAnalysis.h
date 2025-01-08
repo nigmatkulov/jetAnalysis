@@ -88,6 +88,9 @@ class DiJetAnalysis : public BaseAnalysis {
     /// 4 - Jet100
     void setUseMcReweighting(const int& w = 0) { fUseMcReweighting = (Short_t)w; }
 
+    /// @brief Set jetId selection of the jets (default: trkMax)
+    void useJetIdSelection()                       { fUseJetIdSelection = {true}; }
+
     void findMcWeight(const double& ptLead, const double& ptSublead);
     /// @brief Print DiJetAnalysis setup
     void print();
@@ -104,6 +107,12 @@ class DiJetAnalysis : public BaseAnalysis {
     void processRefJets(const Event* event, double ptHatW);
     /// @brief Dijet selection
     bool isGoodDijet(const double& ptLead, const double& ptSublead, const double& dphi);
+
+    /// @brief Dijet selection
+    bool isGoodDijet(const double& ptLead, const double& etaLead, const double& ptSubLead, 
+                     const double& etaSubLead, const double& dphi, const bool& isCM = false);
+
+
     /// @brief Calculate delta phi between two jets in the range [-pi, pi]
     double deltaPhi(const double& phi1, const double &phi2);
     /// @brief Single gen/ref jet selection criteria
@@ -148,6 +157,7 @@ class DiJetAnalysis : public BaseAnalysis {
 
     /// @brief Momentum selection of the leading jet
     double fLeadJetPtLow;
+    
     /// @brief Momentum selection of the subleading jet
     double fSubleadJetPtLow;
     /// @brief Angular selection of dijet
@@ -158,6 +168,8 @@ class DiJetAnalysis : public BaseAnalysis {
     bool   fVerbose;
     /// @brief Number of events in the embedding sample
     int    fNEventsInSample;
+    /// @brief Use jetId selection (default - false, i.e. trkMax)
+    bool   fUseJetIdSelection;
     /// @brief Is loose/tight jetId cut (default: false = tight)
     bool   fIsLooseJetIdCut;
     /// @brief Check if dijet passed trkMax cut is found
