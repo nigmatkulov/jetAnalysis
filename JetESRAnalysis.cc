@@ -807,8 +807,22 @@ void JetESRAnalysis::processRecoJets(const Event* event, double weight) {
         // Check jet selection, e.g. jetId or trackMaxPt/rawPt
         bool goodTrackMax = isGoodTrkMax( (*recoJetIter) );
         bool goodJetId = isGoodJetId( (*recoJetIter) );
-        if ( fUseJetIdSelection && !goodJetId ) { if ( fVerbose ) { std::cout << "JetId selection failed. Skip jet" << std::endl; } continue; }
-        if ( !fUseJetIdSelection && !goodTrackMax ) { if ( fVerbose ) { std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; } continue; }
+        if ( fUseJetIdSelection && !goodJetId ) {
+            // Don't forget to increment counter
+            counter++;
+            if ( fVerbose ) { 
+                std::cout << "JetId selection failed. Skip jet" << std::endl; 
+            } 
+            continue; 
+        }
+        if ( !fUseJetIdSelection && !goodTrackMax ) { 
+            // Don't forget to increment counter
+            counter++;
+            if ( fVerbose ) { 
+                std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
+            } 
+            continue; 
+        }
 
         // Fill inclusive jet histograms
         fHM->hRecoInclusiveJetPt->Fill( pt, 1. );

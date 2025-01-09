@@ -53,8 +53,10 @@ class DiJetAnalysis : public BaseAnalysis {
     void setEtaShift(const double& shift)  { fEtaShift = shift; }
     /// @brief Set dataset to be MC
     void setIsMc(const bool& isMc)         { fIsMc = isMc; }
-    /// @brief Is pPb dataset
-    void setIsPPb()                          { fIsPPb = true; }
+    /// @brief Set collision system: 0 - pp, 1 - pPb, 2 - PbPb
+    void setCollisionSystem(const int& syst) { fCollisionSystem = syst; }
+    /// @brief Set collision energy in GeV (default: 8160 GeV)
+    void setCollisionEnergyInGeV(const int& en)    { fCollisionEnergy = en; }
     /// @brief Set cut on the ptHat of the event (for MC in pPb only due to the xsection matching)
     void setPtHatRange(const double& lo, const double& hi) { fPtHatRange[0] = lo; fPtHatRange[1] = hi; }
     /// @brief Cut on the lowest momentum of leading jet
@@ -95,10 +97,13 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Print DiJetAnalysis setup
     void print();
 
+    /// @brief Return collision system name 
+    TString collisionSystem() const;
+
   private:
 
     /// @brief Calculate event weight
-    double eventWeight(const bool& isMc, const bool& isPPb, const double& ptHat, const double& vz);
+    double eventWeight(const double& ptHat, const double& vz, const double& centWeight, const double& ptHatW);
     /// @brief Process gen jets
     void processGenJets(const Event* event, double ptHatW);
     /// @brief Process reco jets
@@ -138,6 +143,9 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Find dijet ptAve bin (old binning)
     int  findDijetPtAveOldBin(const double& pt);
 
+    /// @brief Initialize vz weight function
+    void initVzWeightFunction();
+
     /// @brief Vz weight to match MC to data
     TF1 *fVzWeight;
     /// @brief Dijet ptAve weight (to match PYTHIA 2 pp data)
@@ -150,8 +158,10 @@ class DiJetAnalysis : public BaseAnalysis {
     double fEtaShift;
     /// @brief Is MC sample (needed for event weight corrections)
     bool   fIsMc;
-    /// @brief  Is pPb dataset
-    bool   fIsPPb;
+    /// @brief  Type of collision system: 0 - pp, 1 - pPb, 2 - PbPb. Default is PbPb
+    int    fCollisionSystem;
+    /// @brief Collision energy in GeV
+    int    fCollisionEnergy;
     /// @brief ptHat range for the generated events (must cut events on this one)
     double fPtHatRange[2];
 
@@ -172,10 +182,20 @@ class DiJetAnalysis : public BaseAnalysis {
     bool   fUseJetIdSelection;
     /// @brief Is loose/tight jetId cut (default: false = tight)
     bool   fIsLooseJetIdCut;
-    /// @brief Check if dijet passed trkMax cut is found
-    bool   fIsDijetFound;
-    /// @brief Check if dijet passed jetId cut is found
-    bool   fIsDijetJetIdFound;
+
+    /// @brief Gen dijet in the lab frame found (default: false)
+    bool   fIsGenDijetLabFound;
+    /// @brief Gen dijet in the center-of-mass frame found
+    bool   fIsGenDijetCMFound;
+    /// @brief Reco dijet in the lab frame found
+    bool   fIsRecoDijetLabFound;
+    /// @brief Reco dijet in the center-of-mass frame found
+    bool   fIsRecoDijetCMFound;
+    /// @brief Ref-selected dijet in the lab frame found
+    bool   fIsRefSelDijetLabFound;
+    /// @brief Ref-selected dijet in the center-of-mass frame found
+    bool   fIsRefSelDijetCMFound;
+
     /// @brief Select jets in the center-of-mass frame (default: false)
     bool   fSelectJetsInCMFrame;
     /// @brief Reweight MC to data (trigger-dependent): 
@@ -195,10 +215,6 @@ class DiJetAnalysis : public BaseAnalysis {
     double  fJetEtaLab[2];
     /// Range of eta selection in the center-of-mass frame
     double  fJetEtaCM[2];
-
-    int     fEventCounter;
-    int     fCycleCounter;
-    int     fTotalCounter;
 
     std::vector<double> fPtAveBins;
     std::vector<double> fPtAveOldBins;
