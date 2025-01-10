@@ -3,9 +3,9 @@
  * @author Grigory Nigmatkulov (gnigmat@uic.edu)
  * @brief Dijet analysis
  * @version 1.1
- * @date 2025-01-07
+ * @date 2025-01-09
  * 
- * @copyright Copyright (c) 2024
+ * @copyright Copyright (c) 2025
  * 
  */
 
@@ -216,7 +216,9 @@ class DiJetAnalysis : public BaseAnalysis {
     /// Range of eta selection in the center-of-mass frame
     double  fJetEtaCM[2];
 
+    /// @brief Values for new dijet ptAve binning
     std::vector<double> fPtAveBins;
+    /// @brief Values for old dijet ptAve binning
     std::vector<double> fPtAveOldBins;
 
   ClassDef(DiJetAnalysis, 0)

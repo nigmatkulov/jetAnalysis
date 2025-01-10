@@ -2,10 +2,10 @@
  * @file DiJetAnalysis.cc
  * @author Grigory Nigmatkulov (gnigmat@uic.edu)
  * @brief Dijet analysis
- * @version 0.1
- * @date 2024-01-09
+ * @version 1.1
+ * @date 2025-01-09
  * 
- * @copyright Copyright (c) 2024
+ * @copyright Copyright (c) 2025
  * 
  */
 
@@ -268,28 +268,44 @@ void DiJetAnalysis::print() {
 
 //________________
 int DiJetAnalysis::findDijetPtAveBin(const double &ptAve) {
+    if ( fVerbose ) {
+        std::cout << "DiJetAnalysis::findDijetPtAveBin -- begin" << std::endl;
+    }
     int bin{-1};
     if ( fPtAveBins[0] < ptAve && ptAve < fPtAveBins.at( fPtAveBins.size()-1 ) ) {
-        for (unsigned int i=0; i<fPtAveBins.size()-1; i++) {
+        for (unsigned int i=0; i<fPtAveBins.size()-2; i++) {
             if ( fPtAveBins[i] <= ptAve && ptAve < fPtAveBins[i+1] ) {
                 bin = i;
                 break;
             }
         }
     }
+
+    if ( fVerbose ) {
+        std::cout << Form("ptAve: %5.2f bin: %d\n", ptAve, bin);
+        std::cout << "DiJetAnalysis::findDijetPtAveBin -- end" << std::endl;
+    }
     return bin;
 }
 
 //________________
 int DiJetAnalysis::findDijetPtAveOldBin(const double &ptAve) {
+    if ( fVerbose ) {
+        std::cout << "DiJetAnalysis::findDijetPtAveOldBin -- begin" << std::endl;
+    }
     int bin{-1};
     if ( fPtAveOldBins[0] < ptAve && ptAve < fPtAveOldBins.at( fPtAveOldBins.size()-1 ) ) {
-        for (unsigned int i=0; i<fPtAveOldBins.size()-1; i++) {
+        for (unsigned int i=0; i<fPtAveOldBins.size()-2; i++) {
             if ( fPtAveOldBins[i] <= ptAve && ptAve < fPtAveOldBins[i+1] ) {
                 bin = i;
                 break;
             }
         }
+    }
+
+    if ( fVerbose ) {
+        std::cout << Form("ptAve: %5.2f bin: %d\n", ptAve, bin);
+        std::cout << "DiJetAnalysis::findDijetPtAveOldBin -- end" << std::endl;
     }
     return bin;
 }
@@ -750,6 +766,33 @@ void DiJetAnalysis::processGenJets(const Event* event, double weight) {
         double dijetPt = 0.5 * (ptLead + ptSubLead);
         double dijetDphi = deltaPhi(phiLead, phiSubLead);
 
+        // Specifically for pPb
+        {
+            double etaLead = etaLab( leadJet->eta() );
+            double etaSubLead = etaLab( subLeadJet->eta() );    
+            double dijetEta = 0.5 * (etaLead + etaSubLead);
+            double dijetDetaCM = 0.5 * ( etaLead - etaSubLead );
+
+            double x_Pb = 2. * dijetPt / fCollisionEnergy * TMath::Exp( -1. * dijetDetaCM ) * TMath::CosH( dijetDetaCM );
+            double x_p = 2. * dijetPt / fCollisionEnergy * TMath::Exp( dijetDetaCM ) * TMath::CosH( dijetDetaCM );
+            double xPbOverXp = x_Pb / x_p;
+
+            fHM->hGenInclusiveDijetDetaCM->Fill( dijetDetaCM, 1. );
+            fHM->hGenInclusiveDijetDetaCMWeighted->Fill( dijetDetaCM, weight );
+            fHM->hGenInclusiveDijetDetaCMPt->Fill( dijetDetaCM, dijetPt, 1. );
+            fHM->hGenInclusiveDijetDetaCMPtWeighted->Fill( dijetDetaCM, dijetPt, weight );
+            fHM->hGenInclusiveDijetEtaDetaCMPt->Fill( dijetEta, dijetDetaCM, dijetPt, 1. );
+            fHM->hGenInclusiveDijetEtaDetaCMPtWeighted->Fill( dijetEta, dijetDetaCM, dijetPt, weight );
+            fHM->hGenInclusiveDijetXPb->Fill( x_Pb, 1. );
+            fHM->hGenInclusiveDijetXPbWeighted->Fill( x_Pb, weight );
+            fHM->hGenInclusiveDijetXp->Fill( x_p, 1. );
+            fHM->hGenInclusiveDijetXpWeighted->Fill( x_p, weight );
+            fHM->hGenInclusiveDijetXPbOverXp->Fill( xPbOverXp, 1. );
+            fHM->hGenInclusiveDijetXPbOverXpWeighted->Fill( xPbOverXp, weight );
+            fHM->hGenInclusiveDijetXPbOverXpEta->Fill( xPbOverXp, dijetEta, 1. );
+            fHM->hGenInclusiveDijetXPbOverXpEtaWeighted->Fill( xPbOverXp, dijetEta, weight );
+        }
+
         //
         // Lab frame
         //
@@ -768,6 +811,26 @@ void DiJetAnalysis::processGenJets(const Event* event, double weight) {
             double etaLead = etaLab( leadJet->eta() );
             double etaSubLead = etaLab( subLeadJet->eta() );
             double dijetEta = 0.5 * (etaLead + etaSubLead);
+            double dijetDetaCM = 0.5 * ( etaLead - etaSubLead );
+
+            double x_Pb = 2. * dijetPt / fCollisionEnergy * TMath::Exp( -1. * dijetDetaCM ) * TMath::CosH( dijetDetaCM );
+            double x_p = 2. * dijetPt / fCollisionEnergy * TMath::Exp( dijetDetaCM ) * TMath::CosH( dijetDetaCM );
+            double xPbOverXp = x_Pb / x_p;
+
+            fHM->hGenSelectedDijetDetaCM->Fill( dijetDetaCM, 1. );
+            fHM->hGenSelectedDijetDetaCMWeighted->Fill( dijetDetaCM, weight );
+            fHM->hGenSelectedDijetDetaCMPt->Fill( dijetDetaCM, dijetPt, 1. );
+            fHM->hGenSelectedDijetDetaCMPtWeighted->Fill( dijetDetaCM, dijetPt, weight );
+            fHM->hGenSelectedDijetEtaDetaCMPt->Fill( dijetEta, dijetDetaCM, dijetPt, 1. );
+            fHM->hGenSelectedDijetEtaDetaCMPtWeighted->Fill( dijetEta, dijetDetaCM, dijetPt, weight );
+            fHM->hGenSelectedDijetXPb->Fill( x_Pb, 1. );
+            fHM->hGenSelectedDijetXPbWeighted->Fill( x_Pb, weight );
+            fHM->hGenSelectedDijetXp->Fill( x_p, 1. );
+            fHM->hGenSelectedDijetXpWeighted->Fill( x_p, weight );
+            fHM->hGenSelectedDijetXPbOverXp->Fill( xPbOverXp, 1. );
+            fHM->hGenSelectedDijetXPbOverXpWeighted->Fill( xPbOverXp, weight );
+            fHM->hGenSelectedDijetXPbOverXpEta->Fill( xPbOverXp, dijetEta, 1. );
+            fHM->hGenSelectedDijetXPbOverXpEtaWeighted->Fill( xPbOverXp, dijetEta, weight );
             
             fHM->hGenPtLeadPtSublead->Fill( ptLead, ptSubLead, weight );
             fHM->hGenEtaLeadEtaSublead->Fill( etaLead, etaSubLead, weight );
@@ -794,6 +857,8 @@ void DiJetAnalysis::processGenJets(const Event* event, double weight) {
             if ( ptAveBin >=0 ) {
                 fHM->hGenDijetEta1D[ptAveBin]->Fill( dijetEta, 1. );
                 fHM->hGenDijetEta1DWeighted[ptAveBin]->Fill( dijetEta, weight * fMcReweight );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2D[ptAveBin]->Fill( etaLead, etaSubLead, 1. );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DWeighted[ptAveBin]->Fill( etaLead, etaSubLead, weight * fMcReweight );
 
                 (dijetEta >= 0) ? fHM->hGenDijetPtEtaForward1D[ptAveBin]->Fill(dijetEta, 1.) : fHM->hGenDijetPtEtaBackward1D[ptAveBin]->Fill(TMath::Abs(dijetEta), 1.);
                 (dijetEta >= 0) ? fHM->hGenDijetPtEtaForward1DWeighted[ptAveBin]->Fill(dijetEta, weight * fMcReweight) : fHM->hGenDijetPtEtaBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetEta), weight * fMcReweight);
@@ -804,12 +869,17 @@ void DiJetAnalysis::processGenJets(const Event* event, double weight) {
                 // New eta binning
                 fHM->hGenDijetEta1DOldPt[ptAveOldBin]->Fill( dijetEta, 1. );
                 fHM->hGenDijetEta1DOldPtWeighted[ptAveOldBin]->Fill( dijetEta, weight * fMcReweight );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DOldPt[ptAveOldBin]->Fill( etaLead, etaSubLead, 1. );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted[ptAveOldBin]->Fill( etaLead, etaSubLead, weight * fMcReweight );
+
                 (dijetEta >= 0) ? fHM->hGenDijetPtEtaForward1DOldPt[ptAveOldBin]->Fill(dijetEta, 1.) : fHM->hGenDijetPtEtaBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetEta), 1.);
                 (dijetEta >= 0) ? fHM->hGenDijetPtEtaForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetEta, weight * fMcReweight) : fHM->hGenDijetPtEtaBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetEta), weight * fMcReweight);
 
                 // Old eta binning
                 fHM->hGenDijetEta1DOldPtBinning[ptAveOldBin]->Fill( dijetEta, 1. );
                 fHM->hGenDijetEta1DOldPtBinningWeighted[ptAveOldBin]->Fill( dijetEta, weight * fMcReweight );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DOldPtBinning[ptAveOldBin]->Fill( etaLead, etaSubLead, 1. );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[ptAveOldBin]->Fill( etaLead, etaSubLead, weight * fMcReweight );
                 (dijetEta >= 0) ? fHM->hGenDijetPtEtaForward1DOldPtBinning[ptAveOldBin]->Fill(dijetEta, 1.) : fHM->hGenDijetPtEtaBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetEta), 1.);
                 (dijetEta >= 0) ? fHM->hGenDijetPtEtaForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetEta, weight * fMcReweight) : fHM->hGenDijetPtEtaBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetEta), weight * fMcReweight);
             }
@@ -849,21 +919,27 @@ void DiJetAnalysis::processGenJets(const Event* event, double weight) {
             if ( ptAveBin >=0 ) {
                 fHM->hGenDijetEta1DCM[ptAveBin]->Fill( dijetEtaCM, 1. );
                 fHM->hGenDijetEta1DCMWeighted[ptAveBin]->Fill( dijetEtaCM, weight * fMcReweight );
-                (dijetEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward1D[ptAveBin]->Fill(dijetEta, 1.) : fHM->hGenDijetPtEtaCMBackward1D[ptAveBin]->Fill(TMath::Abs(dijetEtaCM), 1.);
-                (dijetEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward1DWeighted[ptAveBin]->Fill(dijetEta, weight * fMcReweight) : fHM->hGenDijetPtEtaCMBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetEtaCM), weight * fMcReweight);
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DCM[ptAveBin]->Fill( etaLead, etaSubLead, 1. );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DCMWeighted[ptAveBin]->Fill( etaLead, etaSubLead, weight * fMcReweight );
+                (dijetEtaCM >= 0) ? fHM->hGenDijetEtaCMForward1D[ptAveBin]->Fill(dijetEta, 1.) : fHM->hGenDijetEtaCMBackward1D[ptAveBin]->Fill(TMath::Abs(dijetEtaCM), 1.);
+                (dijetEtaCM >= 0) ? fHM->hGenDijetEtaCMForward1DWeighted[ptAveBin]->Fill(dijetEta, weight * fMcReweight) : fHM->hGenDijetEtaCMBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetEtaCM), weight * fMcReweight);
             } // if ( ptAveBin >=0 )
 
             // Old ptAve binning
             if ( ptAveOldBin >=0 ) {
                 fHM->hGenDijetEta1DOldPtCM[ptAveOldBin]->Fill( dijetEtaCM, 1. );
                 fHM->hGenDijetEta1DOldPtCMWeighted[ptAveOldBin]->Fill( dijetEtaCM, weight * fMcReweight );
-                (dijetEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward1DOldPt[ptAveOldBin]->Fill(dijetEtaCM, 1.) : fHM->hGenDijetPtEtaCMBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetEtaCM), 1.);
-                (dijetEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetEtaCM, weight * fMcReweight) : fHM->hGenDijetPtEtaCMBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetEtaCM), weight * fMcReweight);
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[ptAveOldBin]->Fill( etaLead, etaSubLead, 1. );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[ptAveOldBin]->Fill( etaLead, etaSubLead, weight * fMcReweight );
+                (dijetEtaCM >= 0) ? fHM->hGenDijetEtaCMForward1DOldPt[ptAveOldBin]->Fill(dijetEtaCM, 1.) : fHM->hGenDijetEtaCMBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetEtaCM), 1.);
+                (dijetEtaCM >= 0) ? fHM->hGenDijetEtaCMForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetEtaCM, weight * fMcReweight) : fHM->hGenDijetEtaCMBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetEtaCM), weight * fMcReweight);
 
                 fHM->hGenDijetEta1DOldPtBinningCM[ptAveOldBin]->Fill( dijetEtaCM, 1. );
                 fHM->hGenDijetEta1DOldPtBinningCMWeighted[ptAveOldBin]->Fill( dijetEtaCM, weight * fMcReweight );
-                (dijetEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward1DOldPtBinning[ptAveOldBin]->Fill(dijetEtaCM, 1.) : fHM->hGenDijetPtEtaCMBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetEtaCM), 1.);
-                (dijetEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetEtaCM, weight * fMcReweight) : fHM->hGenDijetPtEtaCMBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetEtaCM), weight * fMcReweight);
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCM[ptAveOldBin]->Fill( etaLead, etaSubLead, 1. );
+                fHM->hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[ptAveOldBin]->Fill( etaLead, etaSubLead, weight * fMcReweight );
+                (dijetEtaCM >= 0) ? fHM->hGenDijetEtaCMForward1DOldPtBinning[ptAveOldBin]->Fill(dijetEtaCM, 1.) : fHM->hGenDijetEtaCMBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetEtaCM), 1.);
+                (dijetEtaCM >= 0) ? fHM->hGenDijetEtaCMForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetEtaCM, weight * fMcReweight) : fHM->hGenDijetEtaCMBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetEtaCM), weight * fMcReweight);
             } // if ( ptAveOldBin >=0 )
         } // if ( goodDijetCM )
 
@@ -947,14 +1023,14 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
         fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt, weight);
 
         // JetId histograms
-        fHM->hNHF[dummyIter]->Fill( (*recoJetIter)->jtPfNHF(), weight );
-        fHM->hNEmF[dummyIter]->Fill( (*recoJetIter)->jtPfNEF(), weight );
-        fHM->hNumOfConst[dummyIter]->Fill( numberOfConstituents, weight );
-        fHM->hMUF[dummyIter]->Fill( (*recoJetIter)->jtPfMUF(), weight );
-        fHM->hCHF[dummyIter]->Fill( (*recoJetIter)->jtPfCHF(), weight );
-        fHM->hChargedMult[dummyIter]->Fill( chargedMult, weight );
-        fHM->hCEmF[dummyIter]->Fill( (*recoJetIter)->jtPfCEF(), weight );
-        fHM->hNumOfNeutPart[dummyIter]->Fill( neutralMult, weight );
+        fHM->hRecoInclusiveJetNHF[dummyIter]->Fill( (*recoJetIter)->jtPfNHF(), weight );
+        fHM->hRecoInclusiveJetNEmF[dummyIter]->Fill( (*recoJetIter)->jtPfNEF(), weight );
+        fHM->hRecoInclusiveJetNumOfConst[dummyIter]->Fill( numberOfConstituents, weight );
+        fHM->hRecoInclusiveJetMUF[dummyIter]->Fill( (*recoJetIter)->jtPfMUF(), weight );
+        fHM->hRecoInclusiveJetCHF[dummyIter]->Fill( (*recoJetIter)->jtPfCHF(), weight );
+        fHM->hRecoInclusiveJetChargedMult[dummyIter]->Fill( chargedMult, weight );
+        fHM->hRecoInclusiveJetCEmF[dummyIter]->Fill( (*recoJetIter)->jtPfCEF(), weight );
+        fHM->hRecoInclusiveJetNumOfNeutPart[dummyIter]->Fill( neutralMult, weight );
 
         // Check selection criteria
         bool passTrkMax = isGoodTrkMax( (*recoJetIter) );
@@ -1129,8 +1205,12 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
             if ( ptAveBin >=0 ) {
                 fHM->hRecoDijetEta1D[ptAveBin]->Fill( dijetRecoEta, 1. );
                 fHM->hRecoDijetEta1DWeighted[ptAveBin]->Fill( dijetRecoEta, weight * fMcReweight );
-                (dijetRecoEta >= 0) ? fHM->hRecoDijetPtEtaForward1D[ptAveBin]->Fill(dijetRecoEta, 1.) : fHM->hRecoDijetPtEtaBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRecoEta), 1.);
-                (dijetRecoEta >= 0) ? fHM->hRecoDijetPtEtaForward1DWeighted[ptAveBin]->Fill(dijetRecoEta, weight * fMcReweight) : fHM->hRecoDijetPtEtaBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRecoEta), weight * fMcReweight);
+
+                fHM->hRecoDijetEtaLeadVsEtaSubLead2D[ptAveBin]->Fill( etaRecoLead, etaRecoSubLead, 1. );
+                fHM->hRecoDijetEtaLeadVsEtaSubLead2DWeighted[ptAveBin]->Fill( etaRecoLead, etaRecoSubLead, weight * fMcReweight );
+
+                (dijetRecoEta >= 0) ? fHM->hRecoDijetEtaForward1D[ptAveBin]->Fill(dijetRecoEta, 1.) : fHM->hRecoDijetEtaBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRecoEta), 1.);
+                (dijetRecoEta >= 0) ? fHM->hRecoDijetEtaForward1DWeighted[ptAveBin]->Fill(dijetRecoEta, weight * fMcReweight) : fHM->hRecoDijetEtaBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRecoEta), weight * fMcReweight);
             } // if ( ptAveBin >=0 )
 
             // Old ptAve binning
@@ -1139,14 +1219,22 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                 // New eta binning
                 fHM->hRecoDijetEta1DOldPt[ptAveOldBin]->Fill( dijetRecoEta, 1. );
                 fHM->hRecoDijetEta1DOldPtWeighted[ptAveOldBin]->Fill( dijetRecoEta, weight * fMcReweight );
-                (dijetRecoEta >= 0) ? fHM->hRecoDijetPtEtaForward1DOldPt[ptAveOldBin]->Fill(dijetRecoEta, 1.) : fHM->hRecoDijetPtEtaBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEta), 1.);
-                (dijetRecoEta >= 0) ? fHM->hRecoDijetPtEtaForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRecoEta, weight * fMcReweight) : fHM->hRecoDijetPtEtaBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEta), weight * fMcReweight);
+
+                fHM->hRecoDijetEtaLeadVsEtaSubLead2DOldPt[ptAveOldBin]->Fill( etaRecoLead, etaRecoSubLead, 1. );
+                fHM->hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted[ptAveOldBin]->Fill( etaRecoLead, etaRecoSubLead, weight * fMcReweight );
+
+                (dijetRecoEta >= 0) ? fHM->hRecoDijetEtaForward1DOldPt[ptAveOldBin]->Fill(dijetRecoEta, 1.) : fHM->hRecoDijetEtaBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEta), 1.);
+                (dijetRecoEta >= 0) ? fHM->hRecoDijetEtaForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRecoEta, weight * fMcReweight) : fHM->hRecoDijetEtaBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEta), weight * fMcReweight);
 
                 // Old eta binning
                 fHM->hRecoDijetEta1DOldPtBinning[ptAveOldBin]->Fill( dijetRecoEta, 1. );
                 fHM->hRecoDijetEta1DOldPtBinningWeighted[ptAveOldBin]->Fill( dijetRecoEta, weight * fMcReweight );
-                (dijetRecoEta >= 0) ? fHM->hRecoDijetPtEtaForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRecoEta, 1.) : fHM->hRecoDijetPtEtaBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEta), 1.);
-                (dijetRecoEta >= 0) ? fHM->hRecoDijetPtEtaForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRecoEta, weight * fMcReweight) : fHM->hRecoDijetPtEtaBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEta), weight * fMcReweight);
+
+                fHM->hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[ptAveOldBin]->Fill( etaRecoLead, etaRecoSubLead, 1. );
+                fHM->hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[ptAveOldBin]->Fill( etaRecoLead, etaRecoSubLead, weight * fMcReweight );
+
+                (dijetRecoEta >= 0) ? fHM->hRecoDijetEtaForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRecoEta, 1.) : fHM->hRecoDijetEtaBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEta), 1.);
+                (dijetRecoEta >= 0) ? fHM->hRecoDijetEtaForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRecoEta, weight * fMcReweight) : fHM->hRecoDijetEtaBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEta), weight * fMcReweight);
             } // if ( ptAveOldBin >=0 )
 
             // In case of MC
@@ -1194,11 +1282,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                 fHM->hRefEtaLeadEtaSubleadMcReweight->Fill( ptRefLead, ptRefSubLead, weight * fMcReweight );
 
                 double dijetRecoUnfold[12] = { dijetRecoPt, dijetRecoEta,
-                                                 ptRecoLead, etaRecoLead,
-                                                 ptRecoSubLead, etaRecoSubLead,
-                                                 dijetRefPt, dijetRefEta,
-                                                 ptRefLead, etaRefLead,
-                                                 ptRefSubLead, etaRefSubLead };
+                                               ptRecoLead, etaRecoLead,
+                                               ptRecoSubLead, etaRecoSubLead,
+                                               dijetRefPt, dijetRefEta,
+                                               ptRefLead, etaRefLead,
+                                               ptRefSubLead, etaRefSubLead };
 
                 double dijetUnfold[4] = { dijetRecoPt, dijetRecoEta, dijetRefPt, dijetRefEta };
 
@@ -1224,8 +1312,19 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                 if ( ptAveBin >=0 ) {
                     fHM->hRefDijetEta1D[ptAveBin]->Fill( dijetRefEta, 1. );
                     fHM->hRefDijetEta1DWeighted[ptAveBin]->Fill( dijetRefEta, weight * fMcReweight );
-                    (dijetRefEta >= 0) ? fHM->hRefDijetPtEtaForward1D[ptAveBin]->Fill(dijetRefEta, 1.) : fHM->hRefDijetPtEtaBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRefEta), 1.);
-                    (dijetRefEta >= 0) ? fHM->hRefDijetPtEtaForward1DWeighted[ptAveBin]->Fill(dijetRefEta, weight * fMcReweight) : fHM->hRefDijetPtEtaBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRefEta), weight * fMcReweight);
+
+                    fHM->hRefEtaLeadVsEtaSubLead2D[ptAveBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                    fHM->hRefEtaLeadVsEtaSubLead2DWeighted[ptAveBin]->Fill( etaRefLead, etaRefSubLead, weight * fMcReweight );
+
+                    fHM->hRecoVsRefDijetEta2D[ptAveBin]->Fill( dijetRecoEta, dijetRefEta, 1. );
+                    fHM->hRecoVsRefDijetEta2DWeighted[ptAveBin]->Fill( dijetRecoEta, dijetRefEta, weight * fMcReweight );
+                    fHM->hRecoVsRefLeadJetEta2D[ptAveBin]->Fill( etaRecoLead, etaRefLead, 1. );
+                    fHM->hRecoVsRefLeadJetEta2DWeighted[ptAveBin]->Fill( etaRecoLead, etaRefLead, weight * fMcReweight );
+                    fHM->hRecoVsRefSubLeadJetEta2D[ptAveBin]->Fill( etaRecoSubLead, etaRefSubLead, 1. );
+                    fHM->hRecoVsRefSubLeadJetEta2DWeighted[ptAveBin]->Fill( etaRecoSubLead, etaRefSubLead, weight * fMcReweight );
+
+                    (dijetRefEta >= 0) ? fHM->hRefDijetEtaForward1D[ptAveBin]->Fill(dijetRefEta, 1.) : fHM->hRefDijetEtaBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRefEta), 1.);
+                    (dijetRefEta >= 0) ? fHM->hRefDijetEtaForward1DWeighted[ptAveBin]->Fill(dijetRefEta, weight * fMcReweight) : fHM->hRefDijetEtaBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRefEta), weight * fMcReweight);
                 } // if ( ptAveBin >=0 )
 
                 // Old ptAve binning
@@ -1234,14 +1333,36 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                     // New eta binning
                     fHM->hRefDijetEta1DOldPt[ptAveOldBin]->Fill( dijetRefEta, 1. );
                     fHM->hRefDijetEta1DOldPt[ptAveOldBin]->Fill( dijetRefEta, weight * fMcReweight );
-                    (dijetRefEta >= 0) ? fHM->hRefDijetPtEtaForward1DOldPt[ptAveOldBin]->Fill(dijetRefEta, 1.) : fHM->hRefDijetPtEtaBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), 1.);
-                    (dijetRefEta >= 0) ? fHM->hRefDijetPtEtaForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRefEta, weight * fMcReweight) : fHM->hRefDijetPtEtaBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), weight * fMcReweight);
+
+                    fHM->hRefEtaLeadVsEtaSubLead2DOldPt[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                    fHM->hRefEtaLeadVsEtaSubLead2DOldPt[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, weight * fMcReweight );
+
+                    fHM->hRecoVsRefDijetEta2DOldPt[ptAveOldBin]->Fill( dijetRecoEta, dijetRefEta, 1. );
+                    fHM->hRecoVsRefDijetEta2DOldPt[ptAveOldBin]->Fill( dijetRecoEta, dijetRefEta, weight * fMcReweight );
+                    fHM->hRecoVsRefLeadJetEta2DOldPt[ptAveOldBin]->Fill( etaRecoLead, etaRefLead, 1. );
+                    fHM->hRecoVsRefLeadJetEta2DOldPt[ptAveOldBin]->Fill( etaRecoLead, etaRefLead, weight * fMcReweight );
+                    fHM->hRecoVsRefSubLeadJetEta2DOldPt[ptAveOldBin]->Fill( etaRecoSubLead, etaRefSubLead, 1. );
+                    fHM->hRecoVsRefSubLeadJetEta2DOldPt[ptAveOldBin]->Fill( etaRecoSubLead, etaRefSubLead, weight * fMcReweight );
+
+                    (dijetRefEta >= 0) ? fHM->hRefDijetEtaForward1DOldPt[ptAveOldBin]->Fill(dijetRefEta, 1.) : fHM->hRefDijetEtaBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), 1.);
+                    (dijetRefEta >= 0) ? fHM->hRefDijetEtaForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRefEta, weight * fMcReweight) : fHM->hRefDijetEtaBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), weight * fMcReweight);
 
                     // Old eta binning
                     fHM->hRefDijetEta1DOldPtBinning[ptAveOldBin]->Fill( dijetRefEta, 1. );
                     fHM->hRefDijetEta1DOldPtBinning[ptAveOldBin]->Fill( dijetRefEta, weight * fMcReweight );
-                    (dijetRefEta >= 0) ? fHM->hRefDijetPtEtaForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRefEta, 1.) : fHM->hRefDijetPtEtaBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), 1.);
-                    (dijetRefEta >= 0) ? fHM->hRefDijetPtEtaForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRefEta, weight * fMcReweight) : fHM->hRefDijetPtEtaBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), weight * fMcReweight);
+
+                    fHM->hRefEtaLeadVsEtaSubLead2DOldPtBinning[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                    fHM->hRefEtaLeadVsEtaSubLead2DOldPtBinning[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, weight * fMcReweight );
+
+                    fHM->hRecoVsRefDijetEta2DOldPtBinning[ptAveOldBin]->Fill( dijetRecoEta, dijetRefEta, 1. );
+                    fHM->hRecoVsRefDijetEta2DOldPtBinning[ptAveOldBin]->Fill( dijetRecoEta, dijetRefEta, weight * fMcReweight );
+                    fHM->hRecoVsRefLeadJetEta2DOldPtBinning[ptAveOldBin]->Fill( etaRecoLead, etaRefLead, 1. );
+                    fHM->hRecoVsRefLeadJetEta2DOldPtBinning[ptAveOldBin]->Fill( etaRecoLead, etaRefLead, weight * fMcReweight );
+                    fHM->hRecoVsRefSubLeadJetEta2DOldPtBinning[ptAveOldBin]->Fill( etaRecoSubLead, etaRefSubLead, 1. );
+                    fHM->hRecoVsRefSubLeadJetEta2DOldPtBinning[ptAveOldBin]->Fill( etaRecoSubLead, etaRefSubLead, weight * fMcReweight );
+
+                    (dijetRefEta >= 0) ? fHM->hRefDijetEtaForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRefEta, 1.) : fHM->hRefDijetEtaBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), 1.);
+                    (dijetRefEta >= 0) ? fHM->hRefDijetEtaForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRefEta, weight * fMcReweight) : fHM->hRefDijetEtaBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), weight * fMcReweight);
                 } // if ( ptAveOldBin >=0 )
             } // if ( fIsMc )
 
@@ -1275,14 +1396,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
             fHM->hRecoDijetEtaCM->Fill( dijetRecoEtaCM, weight * fMcReweight);
             fHM->hRecoDijetPtEtaDphiCM->Fill( dijetRecoPt, dijetRecoEtaCM, dijetRecoDphi, 1. );
             fHM->hRecoDijetPtEtaDphiCMWeighted->Fill( dijetRecoPt, dijetRecoEtaCM, dijetRecoDphi, weight * fMcReweight);
-            if (dijetRecoEtaCM >= 0) {
-                fHM->hRecoDijetPtEtaCMForward->Fill(dijetRecoPt, dijetRecoEtaCM, 1.);
-                fHM->hRecoDijetPtEtaCMForwardWeighted->Fill(dijetRecoPt, dijetRecoEtaCM, weight * fMcReweight);
-            }
-            else {
-                fHM->hRecoDijetPtEtaCMBackward->Fill(dijetRecoPt, TMath::Abs(dijetRecoEtaCM), 1.);
-                fHM->hRecoDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPt, TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
-            }
+            (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward->Fill(dijetRecoPt, dijetRecoEtaCM, 1.) : fHM->hRecoDijetPtEtaCMBackward->Fill(dijetRecoPt, TMath::Abs(dijetRecoEtaCM), 1.);
+            (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForwardWeighted->Fill(dijetRecoPt, dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPt, TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
 
             // Find exact dijet pT bin
             int ptAveBin = findDijetPtAveBin( dijetRecoPt );
@@ -1292,8 +1407,12 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
             if ( ptAveBin >=0 ) {
                 fHM->hRecoDijetEta1DCM[ptAveBin]->Fill( dijetRecoEtaCM, 1. );
                 fHM->hRecoDijetEta1DCMWeighted[ptAveBin]->Fill( dijetRecoEtaCM, weight * fMcReweight );
-                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward1D[ptAveBin]->Fill(dijetRecoEtaCM, 1.) : fHM->hRecoDijetPtEtaCMBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRecoEtaCM), 1.);
-                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward1DWeighted[ptAveBin]->Fill(dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetPtEtaCMBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
+
+                fHM->hRecoEtaLeadVsEtaSubLead2DCM[ptAveBin]->Fill( etaRecoLead, etaRecoSubLead, 1. );
+                fHM->hRecoEtaLeadVsEtaSubLead2DCMWeighted[ptAveBin]->Fill( etaRecoLead, etaRecoSubLead, weight * fMcReweight );
+
+                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetEtaCMForward1D[ptAveBin]->Fill(dijetRecoEtaCM, 1.) : fHM->hRecoDijetEtaCMBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRecoEtaCM), 1.);
+                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetEtaCMForward1DWeighted[ptAveBin]->Fill(dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetEtaCMBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
             } // if ( ptAveBin >=0 )
 
             // Old ptAve binning
@@ -1301,14 +1420,22 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                 // New eta binning
                 fHM->hRecoDijetEta1DOldPtCM[ptAveOldBin]->Fill( dijetRecoEtaCM, 1. );
                 fHM->hRecoDijetEta1DOldPtCMWeighted[ptAveOldBin]->Fill( dijetRecoEtaCM, weight * fMcReweight );
-                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward1DOldPt[ptAveOldBin]->Fill(dijetRecoEtaCM, 1.) : fHM->hRecoDijetPtEtaCMBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEtaCM), 1.);
-                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetPtEtaCMBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
+
+                fHM->hRecoEtaLeadVsEtaSubLead2DOldPtCM[ptAveOldBin]->Fill( etaRecoLead, etaRecoSubLead, 1. );
+                fHM->hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted[ptAveOldBin]->Fill( etaRecoLead, etaRecoSubLead, weight * fMcReweight );
+
+                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetEtaCMForward1DOldPt[ptAveOldBin]->Fill(dijetRecoEtaCM, 1.) : fHM->hRecoDijetEtaCMBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEtaCM), 1.);
+                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetEtaCMForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetEtaCMBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
 
                 // Old eta binning
                 fHM->hRecoDijetEta1DOldPtBinningCM[ptAveOldBin]->Fill( dijetRecoEtaCM, 1. );
                 fHM->hRecoDijetEta1DOldPtBinningCMWeighted[ptAveOldBin]->Fill( dijetRecoEtaCM, weight * fMcReweight );
-                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRecoEtaCM, 1.) : fHM->hRecoDijetPtEtaCMBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEtaCM), 1.);
-                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetPtEtaCMBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
+
+                fHM->hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM[ptAveOldBin]->Fill( etaRecoLead, etaRecoSubLead, 1. );
+                fHM->hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[ptAveOldBin]->Fill( etaRecoLead, etaRecoSubLead, weight * fMcReweight );
+
+                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetEtaCMForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRecoEtaCM, 1.) : fHM->hRecoDijetEtaCMBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEtaCM), 1.);
+                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetEtaCMForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetEtaCMBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
             } // if ( ptAveOldBin >=0 )
 
             // In case of MC
@@ -1344,8 +1471,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                 fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted->Fill( dijetRecoEtaCM, dijetRefEtaCM, dijetRecoPt, weight * fMcReweight );
                 fHM->hRefDijetPtEtaDphiCM->Fill( dijetRefPt, dijetRefEtaCM, dijetRefDphi, 1. );
                 fHM->hRefDijetPtEtaDphiCMWeighted->Fill( dijetRefPt, dijetRefEtaCM, dijetRefDphi, weight * fMcReweight );
-                (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward->Fill(dijetRefPt, dijetRefEtaCM, 1.) : fHM->hRefDijetPtEtaCMBackward->Fill(dijetRefPt, TMath::Abs(dijetRefEtaCM), 1.);
-                (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForwardWeighted->Fill(dijetRefPt, dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetPtEtaCMBackwardWeighted->Fill(dijetRefPt, TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
+            
+                (dijetRefEtaCM >= 0) ? fHM->hRefDijetEtaCMForward->Fill(dijetRefPt, dijetRefEtaCM, 1.) : fHM->hRefDijetEtaCMBackward->Fill(dijetRefPt, TMath::Abs(dijetRefEtaCM), 1.);
+                (dijetRefEtaCM >= 0) ? fHM->hRefDijetEtaCMForwardWeighted->Fill(dijetRefPt, dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetEtaCMBackwardWeighted->Fill(dijetRefPt, TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
 
                 // Find exact dijet ptAve bin
                 int ptAveBin = findDijetPtAveBin( dijetRefPt );
@@ -1355,8 +1483,19 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                 if ( ptAveBin >=0 ) {
                     fHM->hRefDijetEta1DCM[ptAveBin]->Fill( dijetRefEtaCM, 1. );
                     fHM->hRefDijetEta1DCMWeighted[ptAveBin]->Fill( dijetRefEtaCM, weight * fMcReweight );
-                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward1D[ptAveBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefDijetPtEtaCMBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
-                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward1DWeighted[ptAveBin]->Fill(dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetPtEtaCMBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
+
+                    fHM->hRefEtaLeadVsEtaSubLead2DCM[ptAveBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                    fHM->hRefEtaLeadVsEtaSubLead2DCMWeighted[ptAveBin]->Fill( etaRefLead, etaRefSubLead, weight * fMcReweight );
+
+                    fHM->hRecoVsRefDijetEta2DCM[ptAveBin]->Fill( dijetRecoEtaCM, dijetRefEta, 1. );
+                    fHM->hRecoVsRefDijetEta2DCMWeighted[ptAveBin]->Fill( dijetRecoEtaCM, dijetRefEta, weight * fMcReweight );
+                    fHM->hRecoVsRefLeadJetEta2DCM[ptAveBin]->Fill( etaRecoLead, etaRefLead, 1. );
+                    fHM->hRecoVsRefLeadJetEta2DCMWeighted[ptAveBin]->Fill( etaRecoLead, etaRefLead, weight * fMcReweight );
+                    fHM->hRecoVsRefSubLeadJetEta2DCM[ptAveBin]->Fill( etaRecoSubLead, etaRefSubLead, 1. );
+                    fHM->hRecoVsRefSubLeadJetEta2DCMWeighted[ptAveBin]->Fill( etaRecoSubLead, etaRefSubLead, weight * fMcReweight );
+
+                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetEtaCMForward1D[ptAveBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefDijetEtaCMBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
+                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetEtaCMForward1DWeighted[ptAveBin]->Fill(dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetEtaCMBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
                 }
 
                 // Old ptAve binning
@@ -1364,14 +1503,36 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                     // New eta binning
                     fHM->hRefDijetEta1DOldPtCM[ptAveOldBin]->Fill( dijetRefEtaCM, 1. );
                     fHM->hRefDijetEta1DOldPtCMWeighted[ptAveOldBin]->Fill( dijetRefEtaCM, weight * fMcReweight );
-                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward1DOldPt[ptAveOldBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefDijetPtEtaCMBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
-                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetPtEtaCMBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
+
+                    fHM->hRefEtaLeadVsEtaSubLead2DOldPtCM[ptAveBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                    fHM->hRefEtaLeadVsEtaSubLead2DOldPtCMWeighted[ptAveBin]->Fill( etaRefLead, etaRefSubLead, weight * fMcReweight );
+
+                    fHM->hRecoVsRefDijetEta2DOldPtCM[ptAveOldBin]->Fill( dijetRecoEtaCM, dijetRefEtaCM, 1. );
+                    fHM->hRecoVsRefDijetEta2DOldPtCMWeighted[ptAveOldBin]->Fill( dijetRecoEtaCM, dijetRefEtaCM, weight * fMcReweight );
+                    fHM->hRecoVsRefLeadJetEta2DOldPtCM[ptAveOldBin]->Fill( etaRecoLead, etaRefLead, 1. );
+                    fHM->hRecoVsRefLeadJetEta2DOldPtCMWeighted[ptAveOldBin]->Fill( etaRecoLead, etaRefLead, weight * fMcReweight );
+                    fHM->hRecoVsRefSubLeadJetEta2DOldPtCM[ptAveOldBin]->Fill( etaRecoSubLead, etaRefSubLead, 1. );
+                    fHM->hRecoVsRefSubLeadJetEta2DOldPtCMWeighted[ptAveOldBin]->Fill( etaRecoSubLead, etaRefSubLead, weight * fMcReweight );
+
+                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetEtaCMForward1DOldPt[ptAveOldBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefDijetEtaCMBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
+                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetEtaCMForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetEtaCMBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
 
                     // Old eta binning
                     fHM->hRefDijetEta1DOldPtBinningCM[ptAveOldBin]->Fill( dijetRefEtaCM, 1. );
                     fHM->hRefDijetEta1DOldPtBinningCMWeighted[ptAveOldBin]->Fill( dijetRefEtaCM, weight * fMcReweight );
-                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefDijetPtEtaCMBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
-                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetPtEtaCMBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
+
+                    fHM->hRefEtaLeadVsEtaSubLead2DOldPtBinningCM[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                    fHM->hRefEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, weight * fMcReweight );
+
+                    fHM->hRecoVsRefDijetEta2DOldPtBinningCM[ptAveOldBin]->Fill( dijetRecoEtaCM, dijetRefEtaCM, 1. );
+                    fHM->hRecoVsRefDijetEta2DOldPtBinningCMWeighted[ptAveOldBin]->Fill( dijetRecoEtaCM, dijetRefEtaCM, weight * fMcReweight );
+                    fHM->hRecoVsRefLeadJetEta2DOldPtBinningCM[ptAveOldBin]->Fill( etaRecoLead, etaRefLead, 1. );
+                    fHM->hRecoVsRefLeadJetEta2DOldPtBinningCMWeighted[ptAveOldBin]->Fill( etaRecoLead, etaRefLead, weight * fMcReweight );
+                    fHM->hRecoVsRefSubLeadJetEta2DOldPtBinningCM[ptAveOldBin]->Fill( etaRecoSubLead, etaRefSubLead, 1. );
+                    fHM->hRecoVsRefSubLeadJetEta2DOldPtBinningCMWeighted[ptAveOldBin]->Fill( etaRecoSubLead, etaRefSubLead, weight * fMcReweight );
+
+                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetEtaCMForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefDijetEtaCMBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
+                    (dijetRefEtaCM >= 0) ? fHM->hRefDijetEtaCMForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetEtaCMBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
                 } // if ( ptAveOldBin >=0 )
             } // if ( fIsMc )
         } // if ( goodDijetCM )
@@ -1540,8 +1701,15 @@ void DiJetAnalysis::processRefJets(const Event* event, double ptHatW) {
             if ( ptAveBin >= 0 ) {
                 fHM->hRefSelDijetEta1D[ptAveBin]->Fill( dijetRefEta, 1. );
                 fHM->hRefSelDijetEta1DWeighted[ptAveBin]->Fill( dijetRefEta, ptHatW * fMcReweight );
-                (dijetRefEta >= 0) ? fHM->hRefSelDijetPtEtaForward1D[ptAveBin]->Fill(dijetRefEta, 1.) : fHM->hRefSelDijetPtEtaBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRefEta), 1.);
-                (dijetRefEta >= 0) ? fHM->hRefSelDijetPtEtaForward1DWeighted[ptAveBin]->Fill(dijetRefEta, ptHatW * fMcReweight ) : fHM->hRefSelDijetPtEtaBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRefEta), ptHatW * fMcReweight );
+
+                fHM->hRefSelRecoDijetEta1D[ptAveBin]->Fill( dijetRecoEta, 1. );
+                fHM->hRefSelRecoDijetEta1DWeighted[ptAveBin]->Fill( dijetRecoEta, ptHatW * fMcReweight );
+
+                fHM->hRefSelEtaLeadVsEtaSubLead2D[ptAveBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                fHM->hRefSelEtaLeadVsEtaSubLead2DWeighted[ptAveBin]->Fill( etaRefLead, etaRefSubLead, ptHatW * fMcReweight );
+
+                (dijetRefEta >= 0) ? fHM->hRefSelDijetEtaForward1D[ptAveBin]->Fill(dijetRefEta, 1.) : fHM->hRefSelDijetEtaBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRefEta), 1.);
+                (dijetRefEta >= 0) ? fHM->hRefSelDijetEtaForward1DWeighted[ptAveBin]->Fill(dijetRefEta, ptHatW * fMcReweight ) : fHM->hRefSelDijetEtaBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRefEta), ptHatW * fMcReweight );
             } // if ( ptAveBin >= 0 )
 
             // Old ptAve binning
@@ -1549,14 +1717,28 @@ void DiJetAnalysis::processRefJets(const Event* event, double ptHatW) {
                 // New eta binning
                 fHM->hRefSelDijetEta1DOldPt[ptAveOldBin]->Fill( dijetRefEta, 1. );
                 fHM->hRefSelDijetEta1DOldPtWeighted[ptAveOldBin]->Fill( dijetRefEta, ptHatW * fMcReweight );
-                (dijetRefEta >= 0) ? fHM->hRefSelDijetPtEtaForward1DOldPt[ptAveOldBin]->Fill(dijetRefEta, 1.) : fHM->hRefSelDijetPtEtaBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), 1.);
-                (dijetRefEta >= 0) ? fHM->hRefSelDijetPtEtaForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRefEta, ptHatW * fMcReweight ) : fHM->hRefSelDijetPtEtaBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), ptHatW * fMcReweight );
+
+                fHM->hRefSelRecoDijetEta1DOldPt[ptAveOldBin]->Fill( dijetRecoEta, 1. );
+                fHM->hRefSelRecoDijetEta1DOldPtWeighted[ptAveOldBin]->Fill( dijetRecoEta, ptHatW * fMcReweight );
+
+                fHM->hRefSelEtaLeadVsEtaSubLead2DOldPt[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                fHM->hRefSelEtaLeadVsEtaSubLead2DOldPtWeighted[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, ptHatW * fMcReweight );
+
+                (dijetRefEta >= 0) ? fHM->hRefSelDijetEtaForward1DOldPt[ptAveOldBin]->Fill(dijetRefEta, 1.) : fHM->hRefSelDijetEtaBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), 1.);
+                (dijetRefEta >= 0) ? fHM->hRefSelDijetEtaForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRefEta, ptHatW * fMcReweight ) : fHM->hRefSelDijetEtaBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), ptHatW * fMcReweight );
 
                 // Old eta binning
                 fHM->hRefSelDijetEta1DOldPtBinning[ptAveOldBin]->Fill( dijetRefEta, 1. );
                 fHM->hRefSelDijetEta1DOldPtBinningWeighted[ptAveOldBin]->Fill( dijetRefEta, ptHatW * fMcReweight );
-                (dijetRefEta >= 0) ? fHM->hRefSelDijetPtEtaForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRefEta, 1.) : fHM->hRefSelDijetPtEtaBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), 1.);
-                (dijetRefEta >= 0) ? fHM->hRefSelDijetPtEtaForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRefEta, ptHatW * fMcReweight ) : fHM->hRefSelDijetPtEtaBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), ptHatW * fMcReweight );
+
+                fHM->hRefSelRecoDijetEta1DOldPtBinning[ptAveOldBin]->Fill( dijetRecoEta, 1. );
+                fHM->hRefSelRecoDijetEta1DOldPtBinningWeighted[ptAveOldBin]->Fill( dijetRecoEta, ptHatW * fMcReweight );
+
+                fHM->hRefSelEtaLeadVsEtaSubLead2DOldPtBinning[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                fHM->hRefSelEtaLeadVsEtaSubLead2DOldPtBinningWeighted[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, ptHatW * fMcReweight );
+
+                (dijetRefEta >= 0) ? fHM->hRefSelDijetEtaForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRefEta, 1.) : fHM->hRefSelDijetEtaBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), 1.);
+                (dijetRefEta >= 0) ? fHM->hRefSelDijetEtaForward1DOldPtBinningWeighted[ptAveOldBin]->Fill(dijetRefEta, ptHatW * fMcReweight ) : fHM->hRefSelDijetEtaBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEta), ptHatW * fMcReweight );
             } // if ( ptAveOldBin >= 0 )
 
         } // if ( goodDijetLab )
@@ -1590,7 +1772,7 @@ void DiJetAnalysis::processRefJets(const Event* event, double ptHatW) {
             double phiRecoSubLead = recoSubLeadJet->phi();
 
             double dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
-            double dijetRecoEta = 0.5 * (etaRecoLead + etaRecoSubLead);
+            double dijetRecoEtaCM = 0.5 * (etaRecoLead + etaRecoSubLead);
             double dijetRecoDphi = deltaPhi(phiRecoLead, phiRecoSubLead);
 
             fHM->hRefSelDijetEtaCM->Fill(dijetRefEtaCM, ptHatW * fMcReweight );
@@ -1605,8 +1787,15 @@ void DiJetAnalysis::processRefJets(const Event* event, double ptHatW) {
             if ( ptAveBin >= 0 ) {
                 fHM->hRefSelDijetEta1DCM[ptAveBin]->Fill( dijetRefEtaCM, 1. );
                 fHM->hRefSelDijetEta1DCMWeighted[ptAveBin]->Fill( dijetRefEtaCM, ptHatW * fMcReweight );
-                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetPtEtaCMForward1D[ptAveBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefSelDijetPtEtaCMBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
-                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetPtEtaCMForward1DWeighted[ptAveBin]->Fill(dijetRefEtaCM, ptHatW * fMcReweight ) : fHM->hRefSelDijetPtEtaCMBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRefEtaCM), ptHatW * fMcReweight );
+
+                fHM->hRefSelRecoDijetEta1DCM[ptAveBin]->Fill( dijetRecoEtaCM, 1. );
+                fHM->hRefSelRecoDijetEta1DCMWeighted[ptAveBin]->Fill( dijetRecoEtaCM, ptHatW * fMcReweight );
+
+                fHM->hRefSelEtaLeadVsEtaSubLead2DCM[ptAveBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                fHM->hRefSelEtaLeadVsEtaSubLead2DCMWeighted[ptAveBin]->Fill( etaRefLead, etaRefSubLead, ptHatW * fMcReweight );
+
+                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetEtaCMForward1D[ptAveBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefSelDijetEtaCMBackward1D[ptAveBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
+                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetEtaCMForward1DWeighted[ptAveBin]->Fill(dijetRefEtaCM, ptHatW * fMcReweight ) : fHM->hRefSelDijetEtaCMBackward1DWeighted[ptAveBin]->Fill(TMath::Abs(dijetRefEtaCM), ptHatW * fMcReweight );
             } // if ( ptAveBin >= 0 )
 
             // Old ptAve binning
@@ -1614,14 +1803,28 @@ void DiJetAnalysis::processRefJets(const Event* event, double ptHatW) {
                 // New eta binning
                 fHM->hRefSelDijetEta1DOldPtCM[ptAveOldBin]->Fill( dijetRefEtaCM, 1. );
                 fHM->hRefSelDijetEta1DOldPtCMWeighted[ptAveOldBin]->Fill( dijetRefEtaCM, ptHatW * fMcReweight );
-                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetPtEtaCMForward1DOldPt[ptAveOldBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefSelDijetPtEtaCMBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
-                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetPtEtaCMForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRefEtaCM, ptHatW * fMcReweight ) : fHM->hRefSelDijetPtEtaCMBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), ptHatW * fMcReweight );
+
+                fHM->hRefSelRecoDijetEta1DOldPtCM[ptAveOldBin]->Fill( dijetRecoEtaCM, 1. );
+                fHM->hRefSelRecoDijetEta1DOldPtCMWeighted[ptAveOldBin]->Fill( dijetRecoEtaCM, ptHatW * fMcReweight );
+
+                fHM->hRefSelEtaLeadVsEtaSubLead2DOldPtCM[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                fHM->hRefSelEtaLeadVsEtaSubLead2DOldPtCMWeighted[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, ptHatW * fMcReweight );
+
+                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetEtaCMForward1DOldPt[ptAveOldBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefSelDijetEtaCMBackward1DOldPt[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
+                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetEtaCMForward1DOldPtWeighted[ptAveOldBin]->Fill(dijetRefEtaCM, ptHatW * fMcReweight ) : fHM->hRefSelDijetEtaCMBackward1DOldPtWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), ptHatW * fMcReweight );
 
                 // Old eta binning
                 fHM->hRefSelDijetEta1DOldPtBinningCM[ptAveOldBin]->Fill( dijetRefEtaCM, 1. );
                 fHM->hRefSelDijetEta1DOldPtBinningCMWeighted[ptAveOldBin]->Fill( dijetRefEtaCM, ptHatW * fMcReweight );
-                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetPtEtaCMForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefSelDijetPtEtaCMBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
-                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetPtEtaCMForward1DOldPtBinWeighted[ptAveOldBin]->Fill(dijetRefEtaCM, ptHatW * fMcReweight ) : fHM->hRefSelDijetPtEtaCMBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), ptHatW * fMcReweight );
+
+                fHM->hRefSelRecoDijetEta1DOldPtBinningCM[ptAveOldBin]->Fill( dijetRecoEtaCM, 1. );
+                fHM->hRefSelRecoDijetEta1DOldPtBinningCMWeighted[ptAveOldBin]->Fill( dijetRecoEtaCM, ptHatW * fMcReweight );
+
+                fHM->hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCM[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, 1. );
+                fHM->hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[ptAveOldBin]->Fill( etaRefLead, etaRefSubLead, ptHatW * fMcReweight );
+
+                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetEtaCMForward1DOldPtBinning[ptAveOldBin]->Fill(dijetRefEtaCM, 1.) : fHM->hRefSelDijetEtaCMBackward1DOldPtBinning[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), 1.);
+                (dijetRefEtaCM >= 0) ? fHM->hRefSelDijetEtaCMForward1DOldPtBinWeighted[ptAveOldBin]->Fill(dijetRefEtaCM, ptHatW * fMcReweight ) : fHM->hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[ptAveOldBin]->Fill(TMath::Abs(dijetRefEtaCM), ptHatW * fMcReweight );
             } // if ( ptAveOldBin >= 0 )
         }
 

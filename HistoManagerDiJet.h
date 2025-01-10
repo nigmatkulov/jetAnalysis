@@ -2,10 +2,10 @@
  * @file HistoManagerDiJet.h
  * @author Grigory Nigmatkulov (gnigmat@uic.edu)
  * @brief Histograms for dijet studies
- * @version 0.1
- * @date 2024-01-10
+ * @version 1.2
+ * @date 2025-01-09
  * 
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2025
  * 
  */
 
@@ -25,6 +25,9 @@
 #include "THnSparse.h"
 #include "TMath.h"
 
+// C++ headers
+#include <vector>
+
 //________________
 class HistoManagerDiJet : public BaseHistoManager {
   public:
@@ -34,9 +37,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     virtual ~HistoManagerDiJet();
 
     /// @brief Initialize and create histograms
-    void init(const Bool_t& isMc = kFALSE);
+    void init(const bool& isMc = false);
     /// @brief Use MC histograms
-    void setIsMc(const Bool_t& isMc = kTRUE) { fIsMc = isMc; }
+    void setIsMc(const bool& isMc = true) { fIsMc = isMc; }
     /// @brief Write all objects to the output file
     void writeOutput();
 
@@ -67,25 +70,41 @@ class HistoManagerDiJet : public BaseHistoManager {
     //
     TH1D *hVz;
     TH1D *hVzWeighted;
-    TH1D *hMult;
-    TH1D *hHiBin;
-    TH1D *hHiBinWeighted;
     TH1D *hPtHat;
     TH1D *hPtHatWeighted;
-    TH1D *hPtHatWeight;
-    // TH1D *hCentrality;
-    // TH1D *hCentralityWeighted;
-    THnSparseD *hVzPtHat;
-    THnSparseD *hVzPtHatWeighted;
+    TH1D *hHiBin;
+    TH1D *hHiBinWeighted;
 
-    TH1D *hNHF[4];
-    TH1D *hNEmF[4];
-    TH1D *hNumOfConst[4];
-    TH1D *hMUF[4];
-    TH1D *hCHF[4];
-    TH1D *hChargedMult[4];
-    TH1D *hCEmF[4];
-    TH1D *hNumOfNeutPart[4];
+    TH1D *hVzGenDijetLab;
+    TH1D *hVzGenDijetLabWeighted;
+    TH1D *hHiBinGenDijetLab;
+    TH1D *hHiBinGenDijetLabWeighted;
+
+    TH1D *hVzGenDijetCM;
+    TH1D *hVzGenDijetCMWeighted;
+    TH1D *hHiBinGenDijetCM;
+    TH1D *hHiBinGenDijetCMWeighted;
+
+    TH1D *hVzRecoDijetLab;
+    TH1D *hVzRecoDijetLabWeighted;
+    TH1D *hHiBinRecoDijetLab;
+    TH1D *hHiBinRecoDijetLabWeighted;
+
+    TH1D *hVzRecoDijetCM;
+    TH1D *hVzRecoDijetCMWeighted;
+    TH1D *hHiBinRecoDijetCM;
+    TH1D *hHiBinRecoDijetCMWeighted;
+
+    TH1D *hVzRefSelDijetLab;
+    TH1D *hVzRefSelDijetLabWeighted;
+    TH1D *hHiBinRefSelDijetLab;
+    TH1D *hHiBinRefSelDijetLabWeighted;
+
+    TH1D *hVzRefSelDijetCM;
+    TH1D *hVzRefSelDijetCMWeighted;
+    TH1D *hHiBinRefSelDijetCM;
+    TH1D *hHiBinRefSelDijetCMWeighted;
+
 
     //
     // Gen jet histograms
@@ -105,9 +124,6 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenPtLeadPtSubleadMcReweight;
     TH2D *hGenEtaLeadEtaSubleadMcReweight;
     TH1D *hGenDijetEta;
-    TH1D *hGenDijetEta1D[16];
-    TH1D *hGenDijetEta1DOldPt[5];
-    TH1D *hGenDijetEta1DOldPtBinning[5];
     TH3D *hGenDijetPtEtaDphi;
     TH3D *hGenDijetPtEtaDphiWeighted;
     TH1D *hGenDijetEtaCM;
@@ -121,44 +137,113 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenDijetPtEtaBackwardWeighted;
     TH2D *hGenDijetPtEtaCMForwardWeighted;
     TH2D *hGenDijetPtEtaCMBackwardWeighted;
-
     TH1D *hGenGoodInclusiveJetEtaLabFrame;
     TH1D *hGenGoodInclusiveJetEtaCMFrame;
+
+    TH1D *hGenInclusiveDijetDetaCM;
+    TH1D *hGenInclusiveDijetDetaCMWeighted;
+    TH2D *hGenInclusiveDijetDetaCMPt;
+    TH2D *hGenInclusiveDijetDetaCMPtWeighted;
+    TH3D *hGenInclusiveDijetEtaDetaCMPt;
+    TH3D *hGenInclusiveDijetEtaDetaCMPtWeighted;
+    TH1D *hGenInclusiveDijetXPb;
+    TH1D *hGenInclusiveDijetXPbWeighted;
+    TH1D *hGenInclusiveDijetXp;
+    TH1D *hGenInclusiveDijetXpWeighted;
+    TH1D *hGenInclusiveDijetXPbOverXp;
+    TH1D *hGenInclusiveDijetXPbOverXpWeighted;
+    TH2D *hGenInclusiveDijetXPbOverXpEta;
+    TH2D *hGenInclusiveDijetXPbOverXpEtaWeighted;
+
+    TH1D *hGenSelectedDijetDetaCM;
+    TH1D *hGenSelectedDijetDetaCMWeighted;
+    TH2D *hGenSelectedDijetDetaCMPt;
+    TH2D *hGenSelectedDijetDetaCMPtWeighted;
+    TH3D *hGenSelectedDijetEtaDetaCMPt;
+    TH3D *hGenSelectedDijetEtaDetaCMPtWeighted;
+    TH1D *hGenSelectedDijetXPb;
+    TH1D *hGenSelectedDijetXPbWeighted;
+    TH1D *hGenSelectedDijetXp;
+    TH1D *hGenSelectedDijetXpWeighted;
+    TH1D *hGenSelectedDijetXPbOverXp;
+    TH1D *hGenSelectedDijetXPbOverXpWeighted;
+    TH2D *hGenSelectedDijetXPbOverXpEta;
+    TH2D *hGenSelectedDijetXPbOverXpEtaWeighted;
+
+    // New ptAve and eta binning
+    TH1D *hGenDijetEta1D[16];
+    TH1D *hGenDijetEta1DWeighted[16];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2D[16];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DWeighted[16];
+    TH1D *hGenDijetEtaForward1D[16];
+    TH1D *hGenDijetEtaForward1DWeighted[16];
+    TH1D *hGenDijetEtaBackward1D[16];
+    TH1D *hGenDijetEtaBackward1DWeighted[16];
+
+    TH1D *hGenDijetEta1DCM[16];
+    TH1D *hGenDijetEta1DCMWeighted[16];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DCM[16];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DCMWeighted[16];
+    TH1D *hGenDijetEtaCMForward1D[16];
+    TH1D *hGenDijetEtaCMForward1DWeighted[16];
+    TH1D *hGenDijetEtaCMBackward1D[16];
+    TH1D *hGenDijetEtaCMBackward1DWeighted[16];
+
+    // Old ptAve and new eta binning
+    TH1D *hGenDijetEta1DOldPt[5];
+    TH1D *hGenDijetEta1DOldPtWeighted[5];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPt[5];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted[5];
+    TH1D *hGenDijetEtaForward1DOldPt[5];
+    TH1D *hGenDijetEtaForward1DOldPtWeighted[5];
+    TH1D *hGenDijetEtaBackward1DOldPt[5];
+    TH1D *hGenDijetEtaBackward1DOldPtWeighted[5];
+
+    TH1D *hGenDijetEta1DCMOldPt[5];
+    TH1D *hGenDijetEta1DCMOldPtWeighted[5];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[5];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
+    TH1D *hGenDijetEtaCMForward1DOldPt[5];
+    TH1D *hGenDijetEtaCMForward1DOldPtWeighted[5];
+    TH1D *hGenDijetEtaCMBackward1DOldPt[5];
+    TH1D *hGenDijetEtaCMBackward1DOldPtWeighted[5];
+
+    // Old ptAve and old eta binning
+    TH1D *hGenDijetEta1DOldPtBinning[5];
+    TH1D *hGenDijetEta1DOldPtBinningWeighted[5];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinning[5];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[5];
+    TH1D *hGenDijetEtaForward1DOldPtBinning[5];
+    TH1D *hGenDijetEtaForward1DOldPtBinningWeighted[5];
+    TH1D *hGenDijetEtaBackward1DOldPtBinning[5];
+    TH1D *hGenDijetEtaBackward1DOldPtBinningWeighted[5];
+
+    TH1D *hGenDijetEta1DOldPtBinningCM[5];
+    TH1D *hGenDijetEta1DOldPtBinningCMWeighted[5];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCM[5];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[5];
+    TH1D *hGenDijetEtaCMForward1DOldPtBinning[5];
+    TH1D *hGenDijetEtaCMForward1DOldPtBinningWeighted[5];
+    TH1D *hGenDijetEtaCMBackward1DOldPtBinning[5];
+    TH1D *hGenDijetEtaCMBackward1DOldPtBinningWeighted[5];
+
 
     //
     // Reco jet histograms
     //
 
+    // Inclusive jets
+    TH1D *hRecoInclusiveJetNHF[4];
+    TH1D *hRecoInclusiveJetNEmF[4];
+    TH1D *hRecoInclusiveJetNumOfConst[4];
+    TH1D *hRecoInclusiveJetMUF[4];
+    TH1D *hRecoInclusiveJetCHF[4];
+    TH1D *hRecoInclusiveJetChargedMult[4];
+    TH1D *hRecoInclusiveJetCEmF[4];
+    TH1D *hRecoInclusiveJetNumOfNeutPart[4];
 
-    // Single jets
-
-    // Inclusive jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen [5]
-    THnSparseD *hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen;
-    // Inclusive jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen, weighted [5]
-    THnSparseD *hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-    // Leading jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen [5]
-    THnSparseD *hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
-    // Leading jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen, weighted [5]
-    THnSparseD *hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-    // Subleading jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen [5]
-    THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
-    // Subleading jet pt corr, pt raw, 
-    // pt ref, eta corr, eta gen, weighted [5]
-    THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
-    THnSparseD *hJESInclusiveJetPtEtaPhi;
-    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
-    THnSparseD *hJESInclusiveJetPtEtaPhiWeighted;
-    TH2D *hRecoMatchedPtEta;
-
-    // Dijets
-
-    // Experiment
+    // Reconstructed jet acceptance
+    TH2D *hRecoInclusiveAllJetPtVsEta;
 
     // Reco dijet pt, reco dijet eta, reco dijet dphi,
     // Reco lead pt, reco lead eta, reco lead phi,
@@ -188,51 +273,112 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoDijetPtEtaDphiWeighted;
     TH3D *hRecoDijetPtEtaDphiCM;
     TH3D *hRecoDijetPtEtaDphiCMWeighted;
-    TH3D *hRecoDijetPtEtaDphiJetId;
 
-    TH2D *hRecoInclusiveAllJetPtVsEta;
+    // Leading and subleading jet acceptance
+    TH2D *hRecoLeadJetAllPtVsEta;
+    TH2D *hRecoSubLeadJetAllPtVsEta;
+
+    TH1D *hRecoGoodInclusiveJetEtaLabFrame;
+    TH1D *hRecoGoodInclusiveJetEtaCMFrame;
+
+    // ptAve-integrated dijet pseudorapidity distributions
+    TH1D *hRecoDijetEta;
+    TH1D *hRecoDijetEtaCM;
+
+    // New ptAve and eta binning
+    TH1D *hRecoDijetEta1D[16];
+    TH1D *hRecoDijetEta1DWeighted[16];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2D[16];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DWeighted[16];
+    TH1D *hRecoDijetEtaForward1D[16];
+    TH1D *hRecoDijetEtaForward1DWeighted[16];
+    TH1D *hRecoDijetEtaBackward1D[16];
+    TH1D *hRecoDijetEtaBackward1DWeighted[16];
+
+    TH1D *hRecoDijetEta1DCM[16];
+    TH1D *hRecoDijetEta1DCMWeighted[16];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DCM[16];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DCMWeighted[16];
+    TH1D *hRecoDijetEtaCMForward1D[16];
+    TH1D *hRecoDijetEtaCMForward1DWeighted[16];
+    TH1D *hRecoDijetEtaCMBackward1D[16];
+    TH1D *hRecoDijetEtaCMBackward1DWeighted[16];
+
+    // Old ptAve and new eta binning
+    TH1D *hRecoDijetEta1DOldPt[5];
+    TH1D *hRecoDijetEta1DOldPtWeighted[5];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPt[5];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted[5];
+    TH1D *hRecoDijetEtaForward1DOldPt[5];
+    TH1D *hRecoDijetEtaForward1DOldPtWeighted[5];
+    TH1D *hRecoDijetEtaBackward1DOldPt[5];
+    TH1D *hRecoDijetEtaBackward1DOldPtWeighted[5];
+
+    TH1D *hRecoDijetEta1DOldPtCM[5];
+    TH1D *hRecoDijetEta1DOldPtCMWeighted[5];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtCM[5];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
+    TH1D *hRecoDijetEtaCMForward1DOldPt[5];
+    TH1D *hRecoDijetEtaCMForward1DOldPtWeighted[5];
+    TH1D *hRecoDijetEtaCMBackward1DOldPt[5];
+    TH1D *hRecoDijetEtaCMBackward1DOldPtWeighted[5];
+
+    // Old ptAve and old eta binning
+    TH1D *hRecoDijetEta1DOldPtBinning[5];
+    TH1D *hRecoDijetEta1DOldPtBinningWeighted[5];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[5];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[5];
+    TH1D *hRecoDijetEtaForward1DOldPtBinning[5];
+    TH1D *hRecoDijetEtaForward1DOldPtBinningWeighted[5];
+    TH1D *hRecoDijetEtaBackward1DOldPtBinning[5];
+    TH1D *hRecoDijetEtaBackward1DOldPtBinningWeighted[5];
+
+    TH1D *hRecoDijetEta1DOldPtBinningCM[5];
+    TH1D *hRecoDijetEta1DOldPtBinningCMWeighted[5];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM[5];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[5];
+    TH1D *hRecoDijetEtaCMForward1DOldPtBinning[5];
+    TH1D *hRecoDijetEtaCMForward1DOldPtBinningWeighted[5];
+    TH1D *hRecoDijetEtaCMBackward1DOldPtBinning[5];
+    TH1D *hRecoDijetEtaCMBackward1DOldPtBinningWeighted[5];
+  
+    //
+    // Ref jet histograms
+    //
+
+    // Inclusive jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen [5]
+    THnSparseD *hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen;
+    // Inclusive jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen, weighted [5]
+    THnSparseD *hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+    // Leading jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen [5]
+    THnSparseD *hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
+    // Leading jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen, weighted [5]
+    THnSparseD *hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+    // Subleading jet pt corr, pt raw, pt ref, 
+    // eta corr, eta gen [5]
+    THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
+    // Subleading jet pt corr, pt raw, 
+    // pt ref, eta corr, eta gen, weighted [5]
+    THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
+    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
+    THnSparseD *hJESInclusiveJetPtEtaPhi;
+    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
+    THnSparseD *hJESInclusiveJetPtEtaPhiWeighted;
+
+    // Matched and unmatched jet acceptance
     TH2D *hRecoInclusiveMatchedJetPtVsEta;
     TH2D *hRecoInclusiveUnmatchedJetPtVsEta;
-
-    TH2D *hRecoLeadJetAllPtVsEta;
     TH2D *hRecoLeadJetMatchedPtVsEta;
     TH2D *hRecoLeadJetUnmatchedPtVsEta;
-    TH2D *hRecoSubLeadJetAllPtVsEta;
     TH2D *hRecoSubLeadJetMatchedPtVsEta;
     TH2D *hRecoSubLeadJetUnmatchedPtVsEta;
 
-    TH2D *hRecoLeadJetAllPtVsEtaJetIdCut;
-    TH2D *hRecoLeadJetMatchedPtVsEtaJetIdCut;
-    TH2D *hRecoLeadJetUnmatchedPtVsEtaJetIdCut;
-    TH2D *hRecoSubLeadJetAllPtVsEtaJetIdCut;
-    TH2D *hRecoSubLeadJetMatchedPtVsEtaJetIdCut;
-    TH2D *hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut;
-
-    // Jet selection algo check
-    TH2D       *hRecoInclusiveJetPtVsEtaKineCut;
-    THnSparseD *hRecoInclusiveJetJESPtEtaPhiKineCut;
-    TH3D       *hRecoInclusiveJetDEtaPtEtaKineCut;
-    TH2D       *hRecoInclusiveMatchedJetPtVsEtaKineCut;
-    TH2D       *hRecoInclusiveUnmatchedJetPtVsEtaKineCut;
-    TH2D       *hRecoInclusiveJetRefPtVsEtaKineCut;
-
-    TH2D       *hRecoInclusiveJetPtVsEtaTrkMaxCut;
-    THnSparseD *hRecoInclusiveJetJESPtEtaPhiTrkMaxCut;
-    TH3D       *hRecoInclusiveJetDEtaPtEtaTrkMaxCut;
-    TH2D       *hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut;
-    TH2D       *hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut;
-    TH2D       *hRecoInclusiveJetRefPtVsEtaTrkMaxCut;
-
-    TH2D       *hRecoInclusiveJetPtVsEtaJetIdCut;
-    THnSparseD *hRecoInclusiveJetJESPtEtaPhiJetIdCut;
-    TH3D       *hRecoInclusiveJetDEtaPtEtaJetIdCut;
-    TH2D       *hRecoInclusiveMatchedJetPtVsEtaJetIdCut;
-    TH2D       *hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut;
-    TH2D       *hRecoInclusiveJetRefPtVsEtaJetIdCut;
-
-    TH1D       *hRecoTrkMaxToJetIdDijetMatching;
-    
-    // MC
+    TH1D *hRefInclusiveJetPt;
+    TH2D *hRefInclusiveJetPtEta;
 
     // Reco dijet pt, dijet eta, 
     // Reco lead pt, lead eta,
@@ -263,19 +409,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Ref sublead pt, sublead eta weighted [12]
     THnSparseD *hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
 
-    TH1D *hRecoGoodInclusiveJetEtaLabFrame;
-    TH1D *hRecoGoodInclusiveJetEtaCMFrame;
-
-    TH1D *hRecoDijetEta;
-    TH1D *hRecoDijetEtaCM;
-    TH1D *hRecoDijetEta1D[16];
-    TH1D *hRecoDijetEta1DOldPt[5];
-    TH1D *hRecoDijetEta1DOldPtBinning[5];
-    
     TH1D *hRefDijetEta;
-    TH1D *hRefDijetEta1D[16];
-    TH1D *hRefDijetEta1DOldPt[5];
-    TH1D *hRefDijetEta1DOldPtBinning[5];
     TH2D *hRefDijetEtaVsRecoDijetEta;
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt;
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted;
@@ -297,6 +431,109 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCM;
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted;
 
+    TH2D *hRefPtLeadPtSublead;
+    TH2D *hRefEtaLeadEtaSublead;
+    TH2D *hRefEtaCMLeadEtaCMSublead;
+    TH2D *hRefPtLeadPtSubleadMcReweight;
+    TH2D *hRefEtaLeadEtaSubleadMcReweight;
+
+    // New ptAve and eta binning
+    TH1D *hRefDijetEta1D[16];
+    TH1D *hRefDijetEta1DWeighted[16];
+    TH2D *hRefEtaLeadVsEtaSubLead2D[16];
+    TH2D *hRefEtaLeadVsEtaSubLead2DWeighted[16];
+    TH2D *hRecoVsRefDijetEta2D[16];
+    TH2D *hRecoVsRefDijetEta2DWeighted[16];
+    TH2D *hRecoVsRefLeadJetEta2D[16];
+    TH2D *hRecoVsRefLeadJetEta2DWeighted[16];
+    TH2D *hRecoVsRefSubLeadJetEta2D[16];
+    TH2D *hRecoVsRefSubLeadJetEta2DWeighted[16];
+    TH1D *hRefDijetEtaForward1D[16];
+    TH1D *hRefDijetEtaForward1DWeighted[16];
+    TH1D *hRefDijetEtaBackward1D[16];
+    TH1D *hRefDijetEtaBackward1DWeighted[16];
+
+    TH1D *hRefDijetEta1DCM[16];
+    TH1D *hRefDijetEta1DCMWeighted[16];
+    TH2D *hRefEtaLeadVsEtaSubLead2DCM[16];
+    TH2D *hRefEtaLeadVsEtaSubLead2DCMWeighted[16];
+    TH2D *hRecoVsRefDijetEta2DCM[16];
+    TH2D *hRecoVsRefDijetEta2DCMWeighted[16];
+    TH2D *hRecoVsRefLeadJetEta2DCM[16];
+    TH2D *hRecoVsRefLeadJetEta2DCMWeighted[16];
+    TH2D *hRecoVsRefSubLeadJetEta2DCM[16];
+    TH2D *hRecoVsRefSubLeadJetEta2DCMWeighted[16];
+    TH1D *hRefDijetEtaCMForward1D[16];
+    TH1D *hRefDijetEtaCMForward1DWeighted[16];
+    TH1D *hRefDijetEtaCMBackward1D[16];
+    TH1D *hRefDijetEtaCMBackward1DWeighted[16];
+
+    // Old ptAve and new eta binning
+    TH1D *hRefDijetEta1DOldPt[5];
+    TH1D *hRefDijetEta1DOldPtWeighted[5];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPt[5];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtWeighted[5];
+    TH2D *hRecoVsRefDijetEta2DOldPt[5];
+    TH2D *hRecoVsRefDijetEta2DOldPtWeighted[5];
+    TH2D *hRecoVsRefLeadJetEta2DOldPt[5];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtWeighted[5];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPt[5];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtWeighted[5];
+    TH1D *hRefDijetEtaForward1DOldPt[5];
+    TH1D *hRefDijetEtaForward1DOldPtWeighted[5];
+    TH1D *hRefDijetEtaBackward1DOldPt[5];
+    TH1D *hRefDijetEtaBackward1DOldPtWeighted[5];
+
+    TH1D *hRefDijetEta1DOldPtCM[5];
+    TH1D *hRefDijetEta1DOldPtCMWeighted[5];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtCM[5];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
+    TH2D *hRecoVsRefDijetEta2DOldPtCM[5];
+    TH2D *hRecoVsRefDijetEta2DOldPtCMWeighted[5];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtCM[5];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtCMWeighted[5];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtCM[5];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtCMWeighted[5];
+    TH1D *hRefDijetEtaCMForward1DOldPt[5];
+    TH1D *hRefDijetEtaCMForward1DOldPtWeighted[5];
+    TH1D *hRefDijetEtaCMBackward1DOldPt[5];
+    TH1D *hRefDijetEtaCMBackward1DOldPtWeighted[5];
+
+    // Old ptAve and old eta binning
+    TH1D *hRefDijetEta1DOldPtBinning[5];
+    TH1D *hRefDijetEta1DOldPtBinningWeighted[5];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinning[5];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningWeighted[5];
+    TH2D *hRecoVsRefDijetEta2DOldPtBinning[5];
+    TH2D *hRecoVsRefDijetEta2DOldPtBinningWeighted[5];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtBinning[5];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningWeighted[5];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinning[5];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningWeighted[5];
+    TH1D *hRefDijetEtaForward1DOldPtBinning[5];
+    TH1D *hRefDijetEtaForward1DOldPtBinningWeighted[5];
+    TH1D *hRefDijetEtaBackward1DOldPtBinning[5];
+    TH1D *hRefDijetEtaBackward1DOldPtBinningWeighted[5];
+
+    TH1D *hRefDijetEta1DOldPtBinningCM[5];
+    TH1D *hRefDijetEta1DOldPtBinningCMWeighted[5];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningCM[5];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[5];
+    TH2D *hRecoVsRefDijetEta2DOldPtBinningCM[5];
+    TH2D *hRecoVsRefDijetEta2DOldPtBinningCMWeighted[5];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningCM[5];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningCMWeighted[5];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningCM[5];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningCMWeighted[5];
+    TH1D *hRefDijetEtaCMForward1DOldPtBinning[5];
+    TH1D *hRefDijetEtaCMForward1DOldPtBinningWeighted[5];
+    TH1D *hRefDijetEtaCMBackward1DOldPtBinning[5];
+    TH1D *hRefDijetEtaCMBackward1DOldPtBinningWeighted[5];
+
+    //
+    // Ref-selected jet histograms
+    //
+
     TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaDphi;
     TH3D *hRefSelDijetPtEtaDphiWeighted;
@@ -304,22 +541,79 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRefSelDijetPtEtaDphiCM;
     TH3D *hRefSelDijetPtEtaDphiCMWeighted;
 
-    TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId;
-    TH3D *hRefDijetPtEtaDphiJetId;
-    TH3D *hRefDijetPtEtaDphiJetIdWeighted;
+    // New ptAve and eta binning
+    TH1D *hRefSelDijetEta1D[16];
+    TH1D *hRefSelDijetEta1DWeighted[16];
+    TH1D *hRefSelRecoDijetEta1D[16];
+    TH1D *hRefSelRecoDijetEta1DWeighted[16];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2D[16];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DWeighted[16];
+    TH1D *hRefSelDijetEtaForward1D[16];
+    TH1D *hRefSelDijetEtaForward1DWeighted[16];
+    TH1D *hRefSelDijetEtaBackward1D[16];
+    TH1D *hRefSelDijetEtaBackward1DWeighted[16];
 
-    TH1D *hRefInclusiveJetPt;
-    TH2D *hRefInclusiveJetPtEta;
-    TH2D *hRefPtLeadPtSublead;
-    TH2D *hRefEtaLeadEtaSublead;
-    TH2D *hRefEtaCMLeadEtaCMSublead;
-    TH2D *hRefPtLeadPtSubleadMcReweight;
-    TH2D *hRefEtaLeadEtaSubleadMcReweight;
+    TH1D *hRefSelDijetEta1DCM[16];
+    TH1D *hRefSelDijetEta1DCMWeighted[16];
+    TH1D *hRefSelRecoDijetEta1DCM[16];
+    TH1D *hRefSelRecoDijetEta1DCMWeighted[16];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DCM[16];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DCMWeighted[16];
+    TH1D *hRefSelDijetEtaCMForward1D[16];
+    TH1D *hRefSelDijetEtaCMForward1DWeighted[16];
+    TH1D *hRefSelDijetEtaCMBackward1D[16];
+    TH1D *hRefSelDijetEtaCMBackward1DWeighted[16];
+
+    // Old ptAve and new eta binning
+    TH1D *hRefSelDijetEta1DOldPt[5];
+    TH1D *hRefSelDijetEta1DOldPtWeighted[5];
+    TH1D *hRefSelRecoDijetEta1DOldPt[5];
+    TH1D *hRefSelRecoDijetEta1DOldPtWeighted[5];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPt[5];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtWeighted[5];
+    TH1D *hRefSelDijetEtaForward1DOldPt[5];
+    TH1D *hRefSelDijetEtaForward1DOldPtWeighted[5];
+    TH1D *hRefSelDijetEtaBackward1DOldPt[5];
+    TH1D *hRefSelDijetEtaBackward1DOldPtWeighted[5];
+
+    TH1D *hRefSelDijetEta1DOldPtCM[5];
+    TH1D *hRefSelDijetEta1DOldPtCMWeighted[5];
+    TH1D *hRefSelRecoDijetEta1DOldPtCM[5];
+    TH1D *hRefSelRecoDijetEta1DOldPtCMWeighted[5];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtCM[5];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
+    TH1D *hRefSelDijetEtaCMForward1DOldPt[5];
+    TH1D *hRefSelDijetEtaCMForward1DOldPtWeighted[5];
+    TH1D *hRefSelDijetEtaCMBackward1DOldPt[5];
+    TH1D *hRefSelDijetEtaCMBackward1DOldPtWeighted[5];
+
+    // Old ptAve and old eta binning
+    TH1D *hRefSelDijetEta1DOldPtBinning[5];
+    TH1D *hRefSelDijetEta1DOldPtBinningWeighted[5];
+    TH1D *hRefSelRecoDijetEta1DOldPtBinning[5];
+    TH1D *hRefSelRecoDijetEta1DOldPtBinningWeighted[5];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinning[5];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningWeighted[5];
+    TH1D *hRefSelDijetEtaForward1DOldPtBinning[5];
+    TH1D *hRefSelDijetEtaForward1DOldPtBinningWeighted[5];
+    TH1D *hRefSelDijetEtaBackward1DOldPtBinning[5];
+    TH1D *hRefSelDijetEtaBackward1DOldPtBinningWeighted[5];
+
+    TH1D *hRefSelDijetEta1DOldPtBinningCM[5];
+    TH1D *hRefSelDijetEta1DOldPtBinningCMWeighted[5];
+    TH1D *hRefSelRecoDijetEta1DOldPtBinningCM[5];
+    TH1D *hRefSelRecoDijetEta1DOldPtBinningCMWeighted[5];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCM[5];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[5];
+    TH1D *hRefSelDijetEtaCMForward1DOldPtBinning[5];
+    TH1D *hRefSelDijetEtaCMForward1DOldPtBinningWeighted[5];
+    TH1D *hRefSelDijetEtaCMBackward1DOldPtBinning[5];
+    TH1D *hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[5];
 
   private:
 
     /// @brief Is Monte Carlo
-    Bool_t fIsMc;
+    bool fIsMc;
     // /// @brief  Number of centrality bins
     // int    fCentBins;
     // /// @brief Centrality range
@@ -358,6 +652,11 @@ class HistoManagerDiJet : public BaseHistoManager {
     double fFracRange[2];
     int   fMultBins;
     double fMultRange[2];
+
+    /// @brief Values for new dijet ptAve binning
+    std::vector<double> fPtAveBins;
+    /// @brief Values for old dijet ptAve binning
+    std::vector<double> fPtAveOldBins;
 
     ClassDef(HistoManagerDiJet, 0)
 };
