@@ -199,8 +199,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hGenDijetEtaBackward1DOldPt[5];
     TH1D *hGenDijetEtaBackward1DOldPtWeighted[5];
 
-    TH1D *hGenDijetEta1DCMOldPt[5];
-    TH1D *hGenDijetEta1DCMOldPtWeighted[5];
+    TH1D *hGenDijetEta1DOldPtCM[5];
+    TH1D *hGenDijetEta1DOldPtCMWeighted[5];
     TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[5];
     TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
     TH1D *hGenDijetEtaCMForward1DOldPt[5];
@@ -370,6 +370,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     THnSparseD *hJESInclusiveJetPtEtaPhiWeighted;
 
     // Matched and unmatched jet acceptance
+    TH1D *hRecoInclusiveMatchedJetPt;
     TH2D *hRecoInclusiveMatchedJetPtVsEta;
     TH2D *hRecoInclusiveUnmatchedJetPtVsEta;
     TH2D *hRecoLeadJetMatchedPtVsEta;

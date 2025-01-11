@@ -192,6 +192,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hJESInclusiveJetPtEtaPhi{nullptr},
     hJESInclusiveJetPtEtaPhiWeighted{nullptr},
 
+    hRecoInclusiveMatchedJetPt{nullptr},
     hRecoInclusiveMatchedJetPtVsEta{nullptr},
     hRecoInclusiveUnmatchedJetPtVsEta{nullptr},
     hRecoLeadJetMatchedPtVsEta{nullptr},
@@ -352,8 +353,9 @@ HistoManagerDiJet::HistoManagerDiJet() :
         hGenDijetEtaForward1DOldPtWeighted[i] = nullptr;
         hGenDijetEtaBackward1DOldPt[i] = nullptr;
         hGenDijetEtaBackward1DOldPtWeighted[i] = nullptr;
-        hGenDijetEta1DCMOldPt[i] = nullptr;
-        hGenDijetEta1DCMOldPtWeighted[i] = nullptr;
+
+        hGenDijetEta1DOldPtCM[i] = nullptr;
+        hGenDijetEta1DOldPtCMWeighted[i] = nullptr;
         hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[i] = nullptr;
         hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[i] = nullptr;
         hGenDijetEtaCMForward1DOldPt[i] = nullptr;
@@ -645,12 +647,12 @@ HistoManagerDiJet::~HistoManagerDiJet() {
             if (hGenDijetEta1DOldPtWeighted[i]) delete hGenDijetEta1DOldPtWeighted[i];
             if (hGenDijetEtaLeadVsEtaSubLead2DOldPt[i]) delete hGenDijetEtaLeadVsEtaSubLead2DOldPt[i];
             if (hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted[i]) delete hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted[i];
-            if (hGenDijetEtaForward1DOldPt[i]) delete hGenDijetPtEtaForward1DOldPt[i];
-            if (hGenDijetEtaForward1DOldPtWeighted[i]) delete hGenDijetPtEtaForward1DOldPtWeighted[i];
-            if (hGenDijetEtaBackward1DOldPt[i]) delete hGenDijetPtEtaBackward1DOldPt[i];
-            if (hGenDijetEtaBackward1DOldPtWeighted[i]) delete hGenDijetPtEtaBackward1DOldPtWeighted[i];
-            if (hGenDijetEta1DCMOldPt[i]) delete hGenDijetEta1DCMOldPt[i];
-            if (hGenDijetEta1DCMOldPtWeighted[i]) delete hGenDijetEta1DCMOldPtWeighted[i];
+            if (hGenDijetEtaForward1DOldPt[i]) delete hGenDijetEtaForward1DOldPt[i];
+            if (hGenDijetEtaForward1DOldPtWeighted[i]) delete hGenDijetEtaForward1DOldPtWeighted[i];
+            if (hGenDijetEtaBackward1DOldPt[i]) delete hGenDijetEtaBackward1DOldPt[i];
+            if (hGenDijetEtaBackward1DOldPtWeighted[i]) delete hGenDijetEtaBackward1DOldPtWeighted[i];
+            if (hGenDijetEta1DOldPtCM[i]) delete hGenDijetEta1DOldPtCM[i];
+            if (hGenDijetEta1DOldPtCMWeighted[i]) delete hGenDijetEta1DOldPtCMWeighted[i];
             if (hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[i]) delete hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[i];
             if (hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[i]) delete hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[i];
             if (hGenDijetEtaCMForward1DOldPt[i]) delete hGenDijetEtaCMForward1DOldPt[i];
@@ -786,6 +788,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hJESInclusiveJetPtEtaPhi) delete hJESInclusiveJetPtEtaPhi;
         if (hJESInclusiveJetPtEtaPhiWeighted) delete hJESInclusiveJetPtEtaPhiWeighted;
 
+        if (hRecoInclusiveMatchedJetPt) delete hRecoInclusiveMatchedJetPt;
         if (hRecoInclusiveMatchedJetPtVsEta) delete hRecoInclusiveMatchedJetPtVsEta;
         if (hRecoInclusiveUnmatchedJetPtVsEta) delete hRecoInclusiveUnmatchedJetPtVsEta;
         if (hRecoLeadJetMatchedPtVsEta) delete hRecoLeadJetMatchedPtVsEta;
@@ -1042,6 +1045,11 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
     
     int    prescale = 2;
 
+    int xBins = 10000;
+    double xRange[2] = {0.0001, 1.};
+    int xPbOverXpBins = 10000;
+    double xPbOverXpRange[2] = {0.0001, 1000.};
+
     int    vzBins = 320;
     double vzRange[2] {-31., 31.};
     int    multBins{1800};
@@ -1252,7 +1260,6 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                                 fEtaBins, fEtaRange[0], fEtaRange[1]);
     hRecoGoodInclusiveJetEtaCMFrame->Sumw2();
 
-
     // Dijet histograms
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi = new THnSparseD("hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi",
             "Reconstructed dijet and jet info;p_{T}^{dijet} (GeV/c);#eta^{dijet};#Delta#phi^{dijet} (rad);p_{T}^{Leading} (GeV/c);#eta^{Leading};#phi^{Leading} (rad);p_{T}^{Subleading} (GeV/c);#eta^{Subleading};#phi^{Subleading} (rad)",
@@ -1300,53 +1307,53 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         double ptAveHi = fPtAveBins.at(i+1);
         
         // Lab frame
-        hRecoDijetEta1D[i] = new TH1D(Form("hRecoDijetEta1D_%d",i),Form("Reco #eta^{dijet} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1D[i] = new TH1D(Form("hRecoDijetEta1D_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                       dijetEtaBins, dijetEtaVals);
         hRecoDijetEta1D[i]->Sumw2();
-        hRecoDijetEta1DWeighted[i] = new TH1D(Form("hRecoDijetEta1DWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DWeighted[i] = new TH1D(Form("hRecoDijetEta1DWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                               dijetEtaBins, dijetEtaVals);
         hRecoDijetEta1DWeighted[i]->Sumw2();
-        hRecoDijetEtaLeadVsEtaSubLead2D[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2D_%d",i),Form("Reco #eta^{dijet} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaLeadVsEtaSubLead2D[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2D_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}", i, ptAveLow, ptAveHi),
                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoDijetEtaLeadVsEtaSubLead2D[i]->Sumw2();
-        hRecoDijetEtaLeadVsEtaSubLead2DWeighted[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaLeadVsEtaSubLead2DWeighted[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}", i, ptAveLow, ptAveHi),
                                                                 fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
-        hRecoDijetEtaForward1D[i] = new TH1D(Form("hRecoDijetEtaForward1D_%d",i),Form("Reco #eta^{dijet}_{forward} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaForward1D[i] = new TH1D(Form("hRecoDijetEtaForward1D_%d",i),Form("Reco #eta^{dijet}_{forward} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                              dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaForward1D[i]->Sumw2();
-        hRecoDijetEtaForward1DWeighted[i] = new TH1D(Form("hRecoDijetEtaForward1DWeighted_%d",i),Form("Reco #eta^{dijet}_{forward} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaForward1DWeighted[i] = new TH1D(Form("hRecoDijetEtaForward1DWeighted_%d",i),Form("Reco #eta^{dijet}_{forward} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                                      dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaForward1DWeighted[i]->Sumw2();
-        hRecoDijetEtaBackward1D[i] = new TH1D(Form("hRecoDijetEtaBackward1D_%d",i),Form("Reco #eta^{dijet}_{backward} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaBackward1D[i] = new TH1D(Form("hRecoDijetEtaBackward1D_%d",i),Form("Reco #eta^{dijet}_{backward} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                               dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaBackward1D[i]->Sumw2();
-        hRecoDijetEtaBackward1DWeighted[i] = new TH1D(Form("hRecoDijetEtaBackward1DWeighted_%d",i),Form("Reco #eta^{dijet}_{backward} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaBackward1DWeighted[i] = new TH1D(Form("hRecoDijetEtaBackward1DWeighted_%d",i),Form("Reco #eta^{dijet}_{backward} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                                       dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaBackward1DWeighted[i]->Sumw2();
 
         // CM frame
-        hRecoDijetEta1DCM[i] = new TH1D(Form("hRecoDijetEta1DCM_%d",i),Form("Reco #eta^{dijet}_{CM} for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DCM[i] = new TH1D(Form("hRecoDijetEta1DCM_%d",i),Form("Reco #eta^{dijet}_{CM} in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                         dijetEtaBins, dijetEtaVals);
         hRecoDijetEta1DCM[i]->Sumw2();
-        hRecoDijetEta1DCMWeighted[i] = new TH1D(Form("hRecoDijetEta1DCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DCMWeighted[i] = new TH1D(Form("hRecoDijetEta1DCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                 dijetEtaBins, dijetEtaVals);
         hRecoDijetEta1DCMWeighted[i]->Sumw2();
-        hRecoEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DCM_%d",i),Form("Reco #eta^{dijet}_{CM} for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DCM_%d",i),Form("Reco #eta^{dijet}_{CM} in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}", i, ptAveLow, ptAveHi),
                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoEtaLeadVsEtaSubLead2DCM[i]->Sumw2();
-        hRecoEtaLeadVsEtaSubLead2DCMWeighted[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoEtaLeadVsEtaSubLead2DCMWeighted[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}", i, ptAveLow, ptAveHi),
                                                            fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoEtaLeadVsEtaSubLead2DCMWeighted[i]->Sumw2();
-        hRecoDijetEtaCMForward1D[i] = new TH1D(Form("hRecoDijetEtaCMForward1D_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMForward1D[i] = new TH1D(Form("hRecoDijetEtaCMForward1D_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                             dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMForward1D[i]->Sumw2();
-        hRecoDijetEtaCMForward1DWeighted[i] = new TH1D(Form("hRecoDijetEtaCMForward1DWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMForward1DWeighted[i] = new TH1D(Form("hRecoDijetEtaCMForward1DWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                     dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMForward1DWeighted[i]->Sumw2();
-        hRecoDijetEtaCMBackward1D[i] = new TH1D(Form("hRecoDijetEtaCMBackward1D_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMBackward1D[i] = new TH1D(Form("hRecoDijetEtaCMBackward1D_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                 dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMBackward1D[i]->Sumw2();
-        hRecoDijetEtaCMBackward1DWeighted[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMBackward1DWeighted[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM", i, ptAveLow, ptAveHi),
                                                         dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMBackward1DWeighted[i]->Sumw2();
 
@@ -1359,105 +1366,105 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         double ptAveHi = fPtAveOldBins.at(i+1);
 
         // Lab frame
-        hRecoDijetEta1DOldPt[i] = new TH1D(Form("hRecoDijetEta1DOldPt_%d",i),Form("Reco #eta^{dijet} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DOldPt[i] = new TH1D(Form("hRecoDijetEta1DOldPt_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                         dijetEtaBins, dijetEtaVals);
         hRecoDijetEta1DOldPt[i]->Sumw2();
-        hRecoDijetEta1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                                 dijetEtaBins, dijetEtaVals);
         hRecoDijetEta1DOldPtWeighted[i]->Sumw2();
-        hRecoDijetEtaLeadVsEtaSubLead2DOldPt[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPt_%d",i),Form("Reco dijet #eta lead vs sublead for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaLeadVsEtaSubLead2DOldPt[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPt_%d",i),Form("Reco dijet #eta lead vs sublead in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
                                                         fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoDijetEtaLeadVsEtaSubLead2DOldPt[i]->Sumw2();
-        hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted_%d",i),Form("Reco dijet #eta lead vs sublead for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted_%d",i),Form("Reco dijet #eta lead vs sublead in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
                                                                 fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted[i]->Sumw2();
-        hRecoDijetEtaForward1DOldPt[i] = new TH1D(Form("hRecoDijetEtaForward1DOldPt_%d",i),Form("Reco #eta^{dijet} forward  in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;Reco #eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaForward1DOldPt[i] = new TH1D(Form("hRecoDijetEtaForward1DOldPt_%d",i),Form("Reco #eta^{dijet} forward in %d in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;Reco #eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                 dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaForward1DOldPt[i]->Sumw2();
-        hRecoDijetEtaForward1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEtaForward1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet} forward  in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaForward1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEtaForward1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet} forward in %d in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                         dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaForward1DOldPtWeighted[i]->Sumw2();
-        hRecoDijetEtaBackward1DOldPt[i] = new TH1D(Form("hRecoDijetEtaBackward1DOldPt_%d",i),Form("Reco #eta^{dijet} backward in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaBackward1DOldPt[i] = new TH1D(Form("hRecoDijetEtaBackward1DOldPt_%d",i),Form("Reco #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                 dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaBackward1DOldPt[i]->Sumw2();
-        hRecoDijetEtaBackward1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEtaBackward1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet} backward in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaBackward1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEtaBackward1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                         dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaBackward1DOldPtWeighted[i]->Sumw2();
 
 
-        hRecoDijetEta1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinning_%d",i),Form("Reco #eta^{dijet} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinning_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                                   dijetEtaOldBins, dijetEtaOldVals);
         hRecoDijetEta1DOldPtBinning[i]->Sumw2();
-        hRecoDijetEta1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                                           dijetEtaOldBins, dijetEtaOldVals);
-        hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning_%d",i),Form("Reco dijet #eta lead vs sublead for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning_%d",i),Form("Reco dijet #eta lead vs sublead in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
                                                               fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[i]->Sumw2();
-        hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted_%d",i),Form("Reco dijet #eta lead vs sublead for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted_%d",i),Form("Reco dijet #eta lead vs sublead in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
                                                                   fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]); 
         hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i]->Sumw2();
-        hRecoDijetEtaForward1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEtaForward1DOldPtBinning_%d",i),Form("Reco #eta^{dijet} forward  in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;Reco #eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaForward1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEtaForward1DOldPtBinning_%d",i),Form("Reco #eta^{dijet} forward  in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;Reco #eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                       dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaForward1DOldPtBinning[i]->Sumw2();
-        hRecoDijetEtaForward1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEtaForward1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet} forward  in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaForward1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEtaForward1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet} forward in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                           dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaForward1DOldPtBinningWeighted[i]->Sumw2();
-        hRecoDijetEtaBackward1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEtaBackward1DOldPtBinning_%d",i),Form("Reco #eta^{dijet} backward in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaBackward1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEtaBackward1DOldPtBinning_%d",i),Form("Reco #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                       dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaBackward1DOldPtBinning[i]->Sumw2();
-        hRecoDijetEtaBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEtaBackward1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet} backward in the lab frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+        hRecoDijetEtaBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEtaBackward1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                           dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaBackward1DOldPtBinningWeighted[i]->Sumw2();
 
         // CM frame
-        hRecoDijetEta1DOldPtCM[i] = new TH1D(Form("hRecoDijetEta1DOldPtCM_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DOldPtCM[i] = new TH1D(Form("hRecoDijetEta1DOldPtCM_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                             dijetEtaBins, dijetEtaVals);
         hRecoDijetEta1DOldPtCM[i]->Sumw2();
-        hRecoDijetEta1DOldPtCMWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DOldPtCMWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                 dijetEtaBins, dijetEtaVals);
         hRecoDijetEta1DOldPtCMWeighted[i]->Sumw2();
-        hRecoEtaLeadVsEtaSubLead2DOldPtCM[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DOldPtCM_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+        hRecoEtaLeadVsEtaSubLead2DOldPtCM[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DOldPtCM_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
                                 fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoEtaLeadVsEtaSubLead2DOldPtCM[i]->Sumw2();
-        hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+        hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
                                     fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted[i]->Sumw2();
-        hRecoDijetEtaCMForward1DOldPt[i] = new TH1D(Form("hRecoDijetEtaCMForward1DOldPt_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMForward1DOldPt[i] = new TH1D(Form("hRecoDijetEtaCMForward1DOldPt_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                 dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMForward1DOldPt[i]->Sumw2();
-        hRecoDijetEtaCMForward1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEtaCMForward1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMForward1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEtaCMForward1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                     dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMForward1DOldPtWeighted[i]->Sumw2();
-        hRecoDijetEtaCMBackward1DOldPt[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DOldPt_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMBackward1DOldPt[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DOldPt_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                 dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMBackward1DOldPt[i]->Sumw2();
-        hRecoDijetEtaCMBackward1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMBackward1DOldPtWeighted[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DOldPtWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                     dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMBackward1DOldPtWeighted[i]->Sumw2();
 
         
-        hRecoDijetEta1DOldPtBinningCM[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinningCM_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DOldPtBinningCM[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinningCM_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                   dijetEtaOldBins, dijetEtaOldVals);
         hRecoDijetEta1DOldPtBinningCM[i]->Sumw2();
-        hRecoDijetEta1DOldPtBinningCMWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinningCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEta1DOldPtBinningCMWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinningCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                           dijetEtaOldBins, dijetEtaOldVals);
         hRecoDijetEta1DOldPtBinningCMWeighted[i]->Sumw2();
-        hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+        hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
                                                               fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM[i]->Sumw2();
-        hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+        hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i] = new TH2D(Form("hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
                                     fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i]->Sumw2();
-        hRecoDijetEtaCMForward1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEtaCMForward1DOldPtBinning_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMForward1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEtaCMForward1DOldPtBinning_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                       dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMForward1DOldPtBinning[i]->Sumw2();
-        hRecoDijetEtaCMForward1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEtaCMForward1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMForward1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEtaCMForward1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} forward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                           dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMForward1DOldPtBinningWeighted[i]->Sumw2();
-        hRecoDijetEtaCMBackward1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DOldPtBinning_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMBackward1DOldPtBinning[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DOldPtBinning_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                       dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMBackward1DOldPtBinning[i]->Sumw2();
-        hRecoDijetEtaCMBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame  for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
+        hRecoDijetEtaCMBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEtaCMBackward1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet}_{CM} backward in the CM frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", i, ptAveLow, ptAveHi),
                                                           dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMBackward1DOldPtBinningWeighted[i]->Sumw2();
     }
@@ -1588,18 +1595,164 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hGenDijetEta = new TH1D("hGenDijetEta", "Gen dijet #eta;#eta^{dijet}",
                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hGenDijetEta->Sumw2();
+
         for (int i=0; i<16; i++) {
-            hGenDijetEta1D[i] = new TH1D(Form("hGenDijetEta1D_%d",i), Form("Gen dijet #eta bin %d;#eta^{dijet}",i),
-                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+            double ptAveLow = fPtAveBins.at(i);
+            double ptAveHi = fPtAveBins.at(i+1);
+            hGenDijetEta1D[i] = new TH1D(Form("hGenDijetEta1D_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
             hGenDijetEta1D[i]->Sumw2();
+            hGenDijetEta1DWeighted[i] = new TH1D(Form("hGenDijetEta1DWeighted_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                 dijetEtaBins, dijetEtaVals);
+            hGenDijetEta1DWeighted[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2D[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2D_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2D[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DWeighted[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DWeighted_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+                                                            fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DWeighted[i]->Sumw2();
+            hGenDijetEtaForward1D[i] = new TH1D(Form("hGenDijetEtaForward1D_%d",i), Form("Gen #eta^{dijet} forward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaForward1D[i]->Sumw2();
+            hGenDijetEtaForward1DWeighted[i] = new TH1D(Form("hGenDijetEtaForward1DWeighted_%d",i), Form("Gen #eta^{dijet} forward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaForward1DWeighted[i]->Sumw2();
+            hGenDijetEtaBackward1D[i] = new TH1D(Form("hGenDijetEtaBackward1D_%d",i), Form("Gen #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaBackward1D[i]->Sumw2();
+            hGenDijetEtaBackward1DWeighted[i] = new TH1D(Form("hGenDijetEtaBackward1DWeighted_%d",i), Form("Gen #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaBackward1DWeighted[i]->Sumw2();
+
+            hGenDijetEta1DCM[i] = new TH1D(Form("hGenDijetEta1DCM_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hGenDijetEta1DCM[i]->Sumw2();
+            hGenDijetEta1DCMWeighted[i] = new TH1D(Form("hGenDijetEta1DCMWeighted_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                 dijetEtaBins, dijetEtaVals);
+            hGenDijetEta1DCMWeighted[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DCM_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DCM[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DCMWeighted[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DCMWeighted_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+                                                            fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DCMWeighted[i]->Sumw2();
+            hGenDijetEtaCMForward1D[i] = new TH1D(Form("hGenDijetEtaCMForward1D_%d",i), Form("Gen #eta^{dijet} forward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMForward1D[i]->Sumw2();
+            hGenDijetEtaCMForward1DWeighted[i] = new TH1D(Form("hGenDijetEtaCMForward1DWeighted_%d",i), Form("Gen #eta^{dijet} forward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMForward1DWeighted[i]->Sumw2();
+            hGenDijetEtaCMBackward1D[i] = new TH1D(Form("hGenDijetEtaCMBackward1D_%d",i), Form("Gen #eta^{dijet} backward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMBackward1D[i]->Sumw2();
+            hGenDijetEtaCMBackward1DWeighted[i] = new TH1D(Form("hGenDijetEtaCMBackward1DWeighted_%d",i), Form("Gen #eta^{dijet} backward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMBackward1DWeighted[i]->Sumw2();
         }
+
         for (int i=0; i<5; i++) {
-            hGenDijetEta1DOldPt[i] = new TH1D(Form("hGenDijetEta1DOldPt_%d",i), Form("Gen dijet #eta old p_{T} bin %d;#eta^{dijet}",i),
-                                                   fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+
+            double ptAveLow = fPtAveOldBins.at(i);
+            double ptAveHi = fPtAveOldBins.at(i+1);
+            // New eta binning
+            hGenDijetEta1DOldPt[i] = new TH1D(Form("hGenDijetEta1DOldPt_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                              dijetEtaBins, dijetEtaVals);
             hGenDijetEta1DOldPt[i]->Sumw2();
-            hGenDijetEta1DOldPtBinning[i] = new TH1D(Form("hGenDijetEta1DOldPtBinning_%d",i), Form("Gen dijet #eta old p_{T} bin %d old #eta binning;#eta^{dijet}",i),
+            hGenDijetEta1DOldPtWeighted[i] = new TH1D(Form("hGenDijetEta1DOldPtWeighted_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                      dijetEtaBins, dijetEtaVals);
+            hGenDijetEta1DOldPtWeighted[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DOldPt[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DOldPt_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+                                                              fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DOldPt[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+                                                                  fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted[i]->Sumw2();
+            hGenDijetEtaForward1DOldPt[i] = new TH1D(Form("hGenDijetEtaForward1DOldPt_%d",i), Form("Gen #eta^{dijet} forward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                  dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaForward1DOldPt[i]->Sumw2();
+            hGenDijetEtaForward1DOldPtWeighted[i] = new TH1D(Form("hGenDijetEtaForward1DOldPtWeighted_%d",i), Form("Gen #eta^{dijet} forward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                          dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaForward1DOldPtWeighted[i]->Sumw2();
+            hGenDijetEtaBackward1DOldPt[i] = new TH1D(Form("hGenDijetEtaBackward1DOldPt_%d",i), Form("Gen #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                  dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaBackward1DOldPt[i]->Sumw2();
+
+        
+            hGenDijetEta1DOldPtCM[i] = new TH1D(Form("hGenDijetEta1DOldPtCM_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                              dijetEtaBins, dijetEtaVals);
+            hGenDijetEta1DOldPtCM[i]->Sumw2();
+            hGenDijetEta1DOldPtCMWeighted[i] = new TH1D(Form("hGenDijetEta1DOldPtCMWeighted_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                      dijetEtaBins, dijetEtaVals);
+            hGenDijetEta1DOldPtCMWeighted[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DOldPtCM_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+                                                              fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+                                                                  fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[i]->Sumw2();
+            hGenDijetEtaCMForward1DOldPt[i] = new TH1D(Form("hGenDijetEtaCMForward1DOldPt_%d",i), Form("Gen #eta^{dijet} forward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                       dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMForward1DOldPt[i]->Sumw2();
+            hGenDijetEtaCMForward1DOldPtWeighted[i] = new TH1D(Form("hGenDijetEtaCMForward1DOldPtWeighted_%d",i), Form("Gen #eta^{dijet} forward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                               dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMForward1DOldPtWeighted[i]->Sumw2();
+            hGenDijetEtaCMBackward1DOldPt[i] = new TH1D(Form("hGenDijetEtaCMBackward1DOldPt_%d",i), Form("Gen #eta^{dijet} backward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMBackward1DOldPt[i]->Sumw2();
+            hGenDijetEtaCMBackward1DOldPtWeighted[i] = new TH1D(Form("hGenDijetEtaCMBackward1DOldPtWeighted_%d",i), Form("Gen #eta^{dijet} backward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                                dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMBackward1DOldPtWeighted[i]->Sumw2();
+
+            // Old eta binning
+            hGenDijetEta1DOldPtBinning[i] = new TH1D(Form("hGenDijetEta1DOldPtBinning_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                      dijetEtaOldBins, dijetEtaOldVals);
             hGenDijetEta1DOldPtBinning[i]->Sumw2();
+            hGenDijetEta1DOldPtBinningWeighted[i] = new TH1D(Form("hGenDijetEta1DOldPtBinningWeighted_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                             dijetEtaOldBins, dijetEtaOldVals);
+            hGenDijetEta1DOldPtBinningWeighted[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtBinning[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DOldPtBinning_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+                                                                     fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtBinning[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
+                                                                             fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i]->Sumw2();
+            hGenDijetEtaForward1DOldPtBinning[i] = new TH1D(Form("hGenDijetEtaForward1DOldPtBinning_%d",i), Form("Gen #eta^{dijet} forward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                             dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaForward1DOldPtBinning[i]->Sumw2();
+            hGenDijetEtaForward1DOldPtBinningWeighted[i] = new TH1D(Form("hGenDijetEtaForward1DOldPtBinningWeighted_%d",i), Form("Gen #eta^{dijet} forward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                                 dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaForward1DOldPtBinningWeighted[i]->Sumw2();
+            hGenDijetEtaBackward1DOldPtBinning[i] = new TH1D(Form("hGenDijetEtaBackward1DOldPtBinning_%d",i), Form("Gen #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                             dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaBackward1DOldPtBinning[i]->Sumw2();
+            hGenDijetEtaBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hGenDijetEtaBackward1DOldPtBinningWeighted_%d",i), Form("Gen #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                                 dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaBackward1DOldPtBinningWeighted[i]->Sumw2();
+
+            hGenDijetEta1DOldPtBinningCM[i] = new TH1D(Form("hGenDijetEta1DOldPtBinningCM_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                     dijetEtaOldBins, dijetEtaOldVals);
+            hGenDijetEta1DOldPtBinningCM[i]->Sumw2();
+            hGenDijetEta1DOldPtBinningCMWeighted[i] = new TH1D(Form("hGenDijetEta1DOldPtBinningCMWeighted_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                             dijetEtaOldBins, dijetEtaOldVals);
+            hGenDijetEta1DOldPtBinningCMWeighted[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCM[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCM_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+                                                                     fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCM[i]->Sumw2();
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
+                                                                             fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i]->Sumw2();
+            hGenDijetEtaCMForward1DOldPtBinning[i] = new TH1D(Form("hGenDijetEtaCMForward1DOldPtBinning_%d",i), Form("Gen #eta^{dijet} forward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                             dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMForward1DOldPtBinning[i]->Sumw2();
+            hGenDijetEtaCMForward1DOldPtBinningWeighted[i] = new TH1D(Form("hGenDijetEtaCMForward1DOldPtBinningWeighted_%d",i), Form("Gen #eta^{dijet} forward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                                 dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMForward1DOldPtBinningWeighted[i]->Sumw2();
+            hGenDijetEtaCMBackward1DOldPtBinning[i] = new TH1D(Form("hGenDijetEtaCMBackward1DOldPtBinning_%d",i), Form("Gen #eta^{dijet} backward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                             dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMBackward1DOldPtBinning[i]->Sumw2();
+            hGenDijetEtaCMBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hGenDijetEtaCMBackward1DOldPtBinningWeighted_%d",i), Form("Gen #eta^{dijet} backward in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                                 dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaCMBackward1DOldPtBinningWeighted[i]->Sumw2();
         }
 
         hGenDijetPtEtaDphi = new TH3D("hGenDijetPtEtaDphi","Gen dijet info;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
@@ -1672,10 +1825,62 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                                   fEtaBins, fEtaRange[0], fEtaRange[1]);
         hGenGoodInclusiveJetEtaCMFrame->Sumw2();
 
+        // xPb and xP part
+        hGenInclusiveDijetDetaCM = new TH1D("hGenInclusiveDijetDetaCM", "Inclusive Gen Dijet #Delta#eta_{CM};#Delta#eta_{CM};Entries", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenInclusiveDijetDetaCM->Sumw2();
+        hGenInclusiveDijetDetaCMWeighted = new TH1D("hGenInclusiveDijetDetaCMWeighted", "Inclusive Gen Dijet #Delta#eta_{CM} (weighted);#Delta#eta_{CM};Entries", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenInclusiveDijetDetaCMWeighted->Sumw2();
+        hGenInclusiveDijetDetaCMPt = new TH2D("hGenInclusiveDijetDetaCMPt", "Inclusive Gen Dijet #Delta#eta_{CM} vs p_{T}^{ave};#Delta#eta_{CM};p_{T}^{ave} (GeV)", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1]);
+        hGenInclusiveDijetDetaCMPt->Sumw2();
+        hGenInclusiveDijetDetaCMPtWeighted = new TH2D("hGenInclusiveDijetDetaCMPtWeighted", "Inclusive Gen Dijet #Delta#eta_{CM} vs p_{T}^{ave} (weighted);#Delta#eta_{CM};p_{T}^{ave} (GeV)", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1]);
+        hGenInclusiveDijetDetaCMPtWeighted->Sumw2();
+        hGenInclusiveDijetEtaDetaCMPt = new TH3D("hGenInclusiveDijetEtaDetaCMPt", "Inclusive Gen Dijet #eta^{dijet} vs #Delta#eta_{CM} vs p_{T}^{ave};#eta^{dijet};#Delta#eta_{CM};p_{T}^{ave} (GeV)", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1]);
+        hGenInclusiveDijetEtaDetaCMPt->Sumw2();
+        hGenInclusiveDijetEtaDetaCMPtWeighted = new TH3D("hGenInclusiveDijetEtaDetaCMPtWeighted", "Inclusive Gen Dijet #eta^{dijet} vs #Delta#eta_{CM} vs p_{T}^{ave} (weighted);#eta^{dijet};#Delta#eta_{CM};p_{T}^{ave} (GeV)", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1]);
+        hGenInclusiveDijetEtaDetaCMPtWeighted->Sumw2();
+        hGenInclusiveDijetXPb = new TH1D("hGenInclusiveDijetXPb", "Inclusive Gen Dijet x_{Pb};x_{Pb};Entries", xBins, xRange[0], xRange[1]);
+        hGenInclusiveDijetXPb->Sumw2();
+        hGenInclusiveDijetXPbWeighted = new TH1D("hGenInclusiveDijetXPbWeighted", "Inclusive Gen Dijet x_{Pb} (weighted);x_{Pb};Entries", xBins, xRange[0], xRange[1]);
+        hGenInclusiveDijetXPbWeighted->Sumw2();
+        hGenInclusiveDijetXp = new TH1D("hGenInclusiveDijetXp", "Inclusive Gen Dijet x_{p};x_{p};Entries", xBins, xRange[0], xRange[1]);
+        hGenInclusiveDijetXp->Sumw2();
+        hGenInclusiveDijetXpWeighted = new TH1D("hGenInclusiveDijetXpWeighted", "Inclusive Gen Dijet x_{p} (weighted);x_{p};Entries", xBins, xRange[0], xRange[1]);
+        hGenInclusiveDijetXpWeighted->Sumw2();
+        hGenInclusiveDijetXPbOverXp = new TH1D("hGenInclusiveDijetXPbOverXp", "Inclusive Gen Dijet x_{Pb}/x_{p};x_{Pb}/x_{p};Entries", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1]);
+        hGenInclusiveDijetXPbOverXp->Sumw2();
+        hGenInclusiveDijetXPbOverXpWeighted = new TH1D("hGenInclusiveDijetXPbOverXpWeighted", "Inclusive Gen Dijet x_{Pb}/x_{p} (weighted);x_{Pb}/x_{p};Entries", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1]);
+        hGenInclusiveDijetXPbOverXpWeighted->Sumw2();
+        hGenInclusiveDijetXPbOverXpEta = new TH2D("hGenInclusiveDijetXPbOverXpEta", "Inclusive Gen Dijet x_{Pb}/x_{p} vs #eta^{dijet};x_{Pb}/x_{p};#eta^{dijet}", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1], fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenInclusiveDijetXPbOverXpEta->Sumw2();
+        hGenInclusiveDijetXPbOverXpEtaWeighted = new TH2D("hGenInclusiveDijetXPbOverXpEtaWeighted", "Inclusive Gen Dijet x_{Pb}/x_{p} vs #eta^{dijet} (weighted);x_{Pb}/x_{p};#eta^{dijet}", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1], fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenInclusiveDijetXPbOverXpEtaWeighted->Sumw2();
 
-        //
+        hGenSelectedDijetDetaCM = new TH1D("hGenSelectedDijetDetaCM", "Selected Gen Dijet #Delta#eta_{CM};#Delta#eta_{CM};Entries", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenSelectedDijetDetaCM->Sumw2();
+        hGenSelectedDijetDetaCMWeighted = new TH1D("hGenSelectedDijetDetaCMWeighted", "Selected Gen Dijet #Delta#eta_{CM} (weighted);#Delta#eta_{CM};Entries", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenSelectedDijetDetaCMWeighted->Sumw2();
+        hGenSelectedDijetDetaCMPt = new TH2D("hGenSelectedDijetDetaCMPt", "Selected Gen Dijet #Delta#eta_{CM} vs p_{T}^{ave};#Delta#eta_{CM};p_{T}^{ave} (GeV)", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1]);
+        hGenSelectedDijetDetaCMPt->Sumw2();
+        hGenSelectedDijetDetaCMPtWeighted = new TH2D("hGenSelectedDijetDetaCMPtWeighted", "Selected Gen Dijet #Delta#eta_{CM} vs p_{T}^{ave} (weighted);#Delta#eta_{CM};p_{T}^{ave} (GeV)", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1]);
+        hGenSelectedDijetDetaCMPtWeighted->Sumw2();
+        hGenSelectedDijetEtaDetaCMPt = new TH3D("hGenSelectedDijetEtaDetaCMPt", "Selected Gen Dijet #eta^{dijet} vs #Delta#eta_{CM} vs p_{T}^{ave};#eta^{dijet};#Delta#eta_{CM};p_{T}^{ave} (GeV)", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1]);
+        hGenSelectedDijetEtaDetaCMPt->Sumw2();
+        hGenSelectedDijetEtaDetaCMPtWeighted = new TH3D("hGenSelectedDijetEtaDetaCMPtWeighted", "Selected Gen Dijet #eta^{dijet} vs #Delta#eta_{CM} vs p_{T}^{ave} (weighted);#eta^{dijet};#Delta#eta_{CM};p_{T}^{ave} (GeV)", fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1], fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1]);
+        hGenSelectedDijetEtaDetaCMPtWeighted->Sumw2();
+        hGenSelectedDijetXPb = new TH1D("hGenSelectedDijetXPb", "Selected Gen Dijet x_{Pb};x_{Pb};Entries", xBins, xRange[0], xRange[1]);
+        hGenSelectedDijetXPb->Sumw2();
+        hGenSelectedDijetXPbWeighted = new TH1D("hGenSelectedDijetXPbWeighted", "Selected Gen Dijet x_{Pb} (weighted);x_{Pb};Entries", xBins, xRange[0], xRange[1]);
+        hGenSelectedDijetXPbWeighted->Sumw2();
+        hGenSelectedDijetXp = new TH1D("hGenSelectedDijetXp", "Selected Gen Dijet x_{p};x_{p};Entries", xBins, xRange[0], xRange[1]);
+        hGenSelectedDijetXp->Sumw2();
+        hGenSelectedDijetXpWeighted = new TH1D("hGenSelectedDijetXpWeighted", "Selected Gen Dijet x_{p} (weighted);x_{p};Entries", xBins, xRange[0], xRange[1]);
+        hGenSelectedDijetXpWeighted->Sumw2();
+        hGenSelectedDijetXPbOverXp = new TH1D("hGenSelectedDijetXPbOverXp", "Selected Gen Dijet x_{Pb}/x_{p};x_{Pb}/x_{p};Entries", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1]);
+        hGenSelectedDijetXPbOverXp->Sumw2();
+        hGenSelectedDijetXPbOverXpWeighted = new TH1D("hGenSelectedDijetXPbOverXpWeighted", "Selected Gen Dijet x_{Pb}/x_{p} (weighted);x_{Pb}/x_{p};Entries", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1]);
+        hGenSelectedDijetXPbOverXpWeighted->Sumw2();
+
         // Reco single jets
-        //
         hRecoInclusiveUnmatchedJetPtVsEta = new TH2D("hRecoInclusiveUnmatchedJetPtVsEta", "Inclusive reco jet unmatched gen pT vs eta;#eta;p_{T} (GeV/c)",
                                                      fEtaBins, fEtaRange[0], fEtaRange[1],
                                                      ptShortBins, ptShortRange[0], ptShortRange[1]);
@@ -1731,10 +1936,9 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                 xmax4D_jet_JESPtEtaPhi);
         hJESInclusiveJetPtEtaPhiWeighted->Sumw2();
 
-        hRecoMatchedPtEta = new TH2D("hRecoMatchedPtEta","Reconstructed jets that matched gen;#eta^{reco};p_{T}^{reco} (GeV/c)",
-                fEtaBins, fEtaRange[0], fEtaRange[1],
-                ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoMatchedPtEta->Sumw2();
+        hRecoInclusiveMatchedJetPt = new TH1D("hRecoInclusiveMatchedJetPt","Inclusive reco jet that has matching;p_{T} (GeV/c)",
+                                                    ptShortBins, ptShortRange[0], ptShortRange[1]);
+        hRecoInclusiveMatchedJetPt->Sumw2();
         hRecoInclusiveMatchedJetPtVsEta = new TH2D("hRecoInclusiveMatchedJetPtVsEta","Inclusive reco jet that has matching pT vs eta;#eta;p_{T} (GeV/c)",
                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
@@ -1760,104 +1964,7 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRecoSubLeadJetUnmatchedPtVsEta->Sumw2();
 
 
-        hRecoLeadJetMatchedPtVsEtaJetIdCut = new TH2D("hRecoLeadJetMatchedPtVsEtaJetIdCut","Leading jet matched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
-                                                      fEtaBins, fEtaRange[0], fEtaRange[1], 
-                                                      ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoLeadJetMatchedPtVsEtaJetIdCut->Sumw2();
-        hRecoLeadJetUnmatchedPtVsEtaJetIdCut = new TH2D("hRecoLeadJetUnmatchedPtVsEtaJetIdCut","Leading jet unmatched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
-                                                        fEtaBins, fEtaRange[0], fEtaRange[1], 
-                                                        ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoLeadJetUnmatchedPtVsEtaJetIdCut->Sumw2();
-        hRecoSubLeadJetMatchedPtVsEtaJetIdCut = new TH2D("hRecoSubLeadJetMatchedPtVsEtaJetIdCut","Subleading jet matched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
-                                                         fEtaBins, fEtaRange[0], fEtaRange[1], 
-                                                         ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoSubLeadJetMatchedPtVsEtaJetIdCut->Sumw2();
-        hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut = new TH2D("hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut","Subleading jet unmatched p_{T} vs #eta with jetId selection;#eta;p_{T} (GeV/c)", 
-                                                           fEtaBins, fEtaRange[0], fEtaRange[1], 
-                                                           ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoSubLeadJetUnmatchedPtVsEtaJetIdCut->Sumw2();
-
-        //
-        // Reco jets selection algo
-        //
-        hRecoInclusiveJetJESPtEtaPhiKineCut = new THnSparseD("hRecoInclusiveJetJESPtEtaPhiKineCut","Inclusive jet JES for kine cut;p_{T}^{reco}/p_{T}^{ref};p_{T} (GeV);#eta;#phi (rad)",
-                        4,
-                        bins4D_jet_JESPtEtaPhi,
-                        xmin4D_jet_JESPtEtaPhi,
-                        xmax4D_jet_JESPtEtaPhi);
-        hRecoInclusiveJetJESPtEtaPhiKineCut->Sumw2();
-        hRecoInclusiveJetDEtaPtEtaKineCut = new TH3D("hRecoInclusiveJetDEtaPtEtaKineCut", "#Delta#eta for kine cut;#eta^{reco}-#eta^{ref};Ref p_{T} (GeV/c);Ref #eta", 
-                                                     dEtaBins, dEtaRange[0], dEtaRange[1],
-                                                     fPtBins, fPtRange[0], fPtRange[1],
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1]);
-        hRecoInclusiveJetDEtaPtEtaKineCut->Sumw2();
-        hRecoInclusiveMatchedJetPtVsEtaKineCut = new TH2D("hRecoInclusiveMatchedJetPtVsEtaKineCut", "Inclusive reco matched jet pT vs eta kine cut;#eta;p_{T} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveMatchedJetPtVsEtaKineCut->Sumw2();
-        hRecoInclusiveUnmatchedJetPtVsEtaKineCut = new TH2D("hRecoInclusiveUnmatchedJetPtVsEtaKineCut", "Inclusive reco unmatched jet pT vs eta kine cut;#eta;p_{T} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveUnmatchedJetPtVsEtaKineCut->Sumw2();
-        hRecoInclusiveJetRefPtVsEtaKineCut = new TH2D("hRecoInclusiveJetRefPtVsEtaKineCut", "Inclusive reco jet ref pT vs ref eta kine cut;#eta^{ref};p_{T}^{ref} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveJetRefPtVsEtaKineCut->Sumw2();
-
-
-        hRecoInclusiveJetJESPtEtaPhiTrkMaxCut = new THnSparseD("hRecoInclusiveJetJESPtEtaPhiTrkMaxCut","Inclusive jet JES for trkMax cut;p_{T}^{reco}/p_{T}^{ref};p_{T} (GeV);#eta;#phi (rad)",
-                        4,
-                        bins4D_jet_JESPtEtaPhi,
-                        xmin4D_jet_JESPtEtaPhi,
-                        xmax4D_jet_JESPtEtaPhi);
-        hRecoInclusiveJetJESPtEtaPhiTrkMaxCut->Sumw2();
-        hRecoInclusiveJetDEtaPtEtaTrkMaxCut = new TH3D("hRecoInclusiveJetDEtaPtEtaTrkMaxCut", "#Delta#eta for trkMax cut;#eta^{reco}-#eta^{ref};Ref p_{T} (GeV/c);Ref #eta", 
-                                                       dEtaBins, dEtaRange[0], dEtaRange[1],
-                                                       fPtBins, fPtRange[0], fPtRange[1],
-                                                       fEtaBins, fEtaRange[0], fEtaRange[1]);
-        hRecoInclusiveJetDEtaPtEtaTrkMaxCut->Sumw2();
-        hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut = new TH2D("hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut", "Inclusive reco matched jet pT vs eta trkMax cut;#eta;p_{T} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveMatchedJetPtVsEtaTrkMaxCut->Sumw2();
-        hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut = new TH2D("hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut", "Inclusive reco unmatched jet pT vs eta trkMax cut;#eta;p_{T} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveUnmatchedJetPtVsEtaTrkMaxCut->Sumw2();
-        hRecoInclusiveJetRefPtVsEtaTrkMaxCut = new TH2D("hRecoInclusiveJetRefPtVsEtaTrkMaxCut", "Inclusive reco matched jet ref pT vs ref eta trkMax cut;#eta^{ref};p_{T}^{ref} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveJetRefPtVsEtaTrkMaxCut->Sumw2();
-
-
-        hRecoInclusiveJetJESPtEtaPhiJetIdCut = new THnSparseD("hRecoInclusiveJetJESPtEtaPhiJetIdCut","Inclusive jet JES for jetId cut;p_{T}^{reco}/p_{T}^{ref};p_{T} (GeV);#eta;#phi (rad)",
-                        4,
-                        bins4D_jet_JESPtEtaPhi,
-                        xmin4D_jet_JESPtEtaPhi,
-                        xmax4D_jet_JESPtEtaPhi);
-        hRecoInclusiveJetJESPtEtaPhiJetIdCut->Sumw2();
-        hRecoInclusiveJetDEtaPtEtaJetIdCut = new TH3D("hRecoInclusiveJetDEtaPtEtaJetIdCut", "#Delta#eta for jetId cut;#eta^{reco}-#eta^{ref};Ref p_{T} (GeV/c);Ref #eta", 
-                                                       dEtaBins, dEtaRange[0], dEtaRange[1],
-                                                       fPtBins, fPtRange[0], fPtRange[1],
-                                                       fEtaBins, fEtaRange[0], fEtaRange[1]);
-        hRecoInclusiveJetDEtaPtEtaJetIdCut->Sumw2();
-        hRecoInclusiveMatchedJetPtVsEtaJetIdCut = new TH2D("hRecoInclusiveMatchedJetPtVsEtaJetIdCut", "Inclusive reco matched jet pT vs eta jetId cut;#eta;p_{T} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveMatchedJetPtVsEtaJetIdCut->Sumw2();
-        hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut = new TH2D("hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut", "Inclusive reco unmatched jet pT vs eta jetId cut;#eta;p_{T} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveUnmatchedJetPtVsEtaJetIdCut->Sumw2();
-        hRecoInclusiveJetRefPtVsEtaJetIdCut = new TH2D("hRecoInclusiveJetRefPtVsEtaJetIdCut", "Inclusive reco matched jet ref pT vs ref eta jetId cut;#eta^{ref};p_{T}^{ref} (GeV/c)",
-                                                     fEtaBins, fEtaRange[0], fEtaRange[1],
-                                                     ptShortBins, ptShortRange[0], ptShortRange[1]);
-        hRecoInclusiveJetRefPtVsEtaJetIdCut->Sumw2();
-
-
-        //
         // Reco dijet with MC
-        //
         hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta = new THnSparseD("hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta",
                 "Reco to ref correspondence;Reco p_{T}^{dijet} (GeV/c);Reco #eta^{dijet};Reco p_{T}^{Leading} (GeV/c);Reco #eta^{Leading};Reco p_{T}^{Subleading} (GeV/c);Reco #eta^{Subleading};Ref p_{T}^{dijet};Ref #eta^{dijet};Ref p_{T}^{Leading} (GeV/c);Ref #eta^{Leading};Ref p_{T}^{Subleading} (GeV/c);Ref #eta^{Subleading}",
                 12,
@@ -1923,18 +2030,214 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                                 fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
         hRefSelDijetPtEtaDphiCMWeighted->Sumw2();
 
+        // New pT and eta binning
+        for (int i{0}; i<16; i++) {
+            double ptAveLow = fPtAveBins.at(i);
+            double ptAveHi = fPtAveBins.at(i+1);
+            hRefSelDijetEta1D[i] = new TH1D(Form("hRefSelDijetEta1D_%d",i),Form("Ref selected #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelDijetEta1D[i]->Sumw2();
+            hRefSelDijetEta1DWeighted[i] = new TH1D(Form("hRefSelDijetEta1DWeighted_%d",i),Form("Ref selected #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelDijetEta1DWeighted[i]->Sumw2();
+            hRefSelRecoDijetEta1D[i] = new TH1D(Form("hRefSelRecoDijetEta1D_%d",i),Form("Ref selected reco #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelRecoDijetEta1D[i]->Sumw2();
+            hRefSelRecoDijetEta1DWeighted[i] = new TH1D(Form("hRefSelRecoDijetEta1DWeighted_%d",i),Form("Ref selected reco #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelRecoDijetEta1DWeighted[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2D[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2D_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2D[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DWeighted[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DWeighted_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DWeighted[i]->Sumw2();
+            hRefSelDijetEtaForward1D[i] = new TH1D(Form("hRefSelDijetEtaForward1D_%d",i),Form("Ref selected #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaForward1D[i]->Sumw2();
+            hRefSelDijetEtaForward1DWeighted[i] = new TH1D(Form("hRefSelDijetEtaForward1DWeighted_%d",i),Form("Ref selected #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaForward1DWeighted[i]->Sumw2();
+            hRefSelDijetEtaBackward1D[i] = new TH1D(Form("hRefSelDijetEtaBackward1D_%d",i),Form("Ref selected #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaBackward1D[i]->Sumw2();
+            hRefSelDijetEtaBackward1DWeighted[i] = new TH1D(Form("hRefSelDijetEtaBackward1DWeighted_%d",i),Form("Ref selected #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaBackward1DWeighted[i]->Sumw2();
+
+
+            hRefSelDijetEta1DCM[i] = new TH1D(Form("hRefSelDijetEta1DCM_%d",i),Form("Ref selected #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelDijetEta1DCM[i]->Sumw2();
+            hRefSelRecoDijetEta1DCM[i] = new TH1D(Form("hRefSelRecoDijetEta1DCM_%d",i),Form("Ref selected reco #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelRecoDijetEta1DCM[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DCM_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DCM[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DCMWeighted[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DCMWeighted_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DCMWeighted[i]->Sumw2();
+            hRefSelDijetEtaCMForward1D[i] = new TH1D(Form("hRefSelDijetEtaCMForward1D_%d",i),Form("Ref selected #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMForward1D[i]->Sumw2();
+            hRefSelDijetEtaCMForward1DWeighted[i] = new TH1D(Form("hRefSelDijetEtaCMForward1DWeighted_%d",i),Form("Ref selected #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMForward1DWeighted[i]->Sumw2();
+            hRefSelDijetEtaCMBackward1D[i] = new TH1D(Form("hRefSelDijetEtaCMBackward1D_%d",i),Form("Ref selected #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMBackward1D[i]->Sumw2();
+            hRefSelDijetEtaCMBackward1DWeighted[i] = new TH1D(Form("hRefSelDijetEtaCMBackward1DWeighted_%d",i),Form("Ref selected #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMBackward1DWeighted[i]->Sumw2();
+        } // for (int i{0}; i<16; i++)
+
+        // Old pT binning
+        for (int i{0}; i<5; i++) {
+            double ptAveLow = fPtAveOldBins.at(i);
+            double ptAveHi = fPtAveOldBins.at(i+1);
+
+            // New eta binning
+            hRefSelDijetEta1DOldPt[i] = new TH1D(Form("hRefSelDijetEta1DOldPt_%d",i),Form("Ref selected #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelDijetEta1DOldPt[i]->Sumw2();
+            hRefSelDijetEta1DOldPtWeighted[i] = new TH1D(Form("hRefSelDijetEta1DOldPtWeighted_%d",i),Form("Ref selected #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelDijetEta1DOldPtWeighted[i]->Sumw2();
+            hRefSelRecoDijetEta1DOldPt[i] = new TH1D(Form("hRefSelRecoDijetEta1DOldPt_%d",i),Form("Ref selected reco #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelRecoDijetEta1DOldPt[i]->Sumw2();
+            hRefSelRecoDijetEta1DOldPtWeighted[i] = new TH1D(Form("hRefSelRecoDijetEta1DOldPtWeighted_%d",i),Form("Ref selected reco #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelRecoDijetEta1DOldPtWeighted[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DOldPt[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DOldPt_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DOldPt[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DOldPtWeighted[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DOldPtWeighted_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DOldPtWeighted[i]->Sumw2();
+            hRefSelDijetEtaForward1DOldPt[i] = new TH1D(Form("hRefSelDijetEtaForward1DOldPt_%d",i),Form("Ref selected #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaForward1DOldPt[i]->Sumw2();
+            hRefSelDijetEtaForward1DOldPtWeighted[i] = new TH1D(Form("hRefSelDijetEtaForward1DOldPtWeighted_%d",i),Form("Ref selected #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaForward1DOldPtWeighted[i]->Sumw2();
+            hRefSelDijetEtaBackward1DOldPt[i] = new TH1D(Form("hRefSelDijetEtaBackward1DOldPt_%d",i),Form("Ref selected #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaBackward1DOldPt[i]->Sumw2();
+            hRefSelDijetEtaBackward1DOldPtWeighted[i] = new TH1D(Form("hRefSelDijetEtaBackward1DOldPtWeighted_%d",i),Form("Ref selected #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaBackward1DOldPtWeighted[i]->Sumw2();
+
+            hRefSelDijetEta1DOldPtCM[i] = new TH1D(Form("hRefSelDijetEta1DOldPtCM_%d",i),Form("Ref selected #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelDijetEta1DOldPtCM[i]->Sumw2();
+            hRefSelDijetEta1DOldPtCMWeighted[i] = new TH1D(Form("hRefSelDijetEta1DOldPtCMWeighted_%d",i),Form("Ref selected #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelDijetEta1DOldPtCMWeighted[i]->Sumw2();
+            hRefSelRecoDijetEta1DOldPtCM[i] = new TH1D(Form("hRefSelRecoDijetEta1DOldPtCM_%d",i),Form("Ref selected reco #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelRecoDijetEta1DOldPtCM[i]->Sumw2();
+            hRefSelRecoDijetEta1DOldPtCMWeighted[i] = new TH1D(Form("hRefSelRecoDijetEta1DOldPtCMWeighted_%d",i),Form("Ref selected reco #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelRecoDijetEta1DOldPtCMWeighted[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DOldPtCM[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DOldPtCM_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DOldPtCM[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DOldPtCMWeighted[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DOldPtCMWeighted_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                       fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DOldPtCMWeighted[i]->Sumw2();
+            hRefSelDijetEtaCMForward1DOldPt[i] = new TH1D(Form("hRefSelDijetEtaCMForward1DOldPt_%d",i),Form("Ref selected #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMForward1DOldPt[i]->Sumw2();
+            hRefSelDijetEtaCMForward1DOldPtWeighted[i] = new TH1D(Form("hRefSelDijetEtaCMForward1DOldPtWeighted_%d",i),Form("Ref selected #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMForward1DOldPtWeighted[i]->Sumw2();
+            hRefSelDijetEtaCMBackward1DOldPt[i] = new TH1D(Form("hRefSelDijetEtaCMBackward1DOldPt_%d",i),Form("Ref selected #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMBackward1DOldPt[i]->Sumw2();
+            hRefSelDijetEtaCMBackward1DOldPtWeighted[i] = new TH1D(Form("hRefSelDijetEtaCMBackward1DOldPtWeighted_%d",i),Form("Ref selected #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMBackward1DOldPtWeighted[i]->Sumw2();
+            
+            // Old eta binning
+            hRefSelDijetEta1DOldPtBinning[i] = new TH1D(Form("hRefSelDijetEta1DOldPtBinning_%d",i),Form("Ref selected #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals);
+            hRefSelDijetEta1DOldPtBinning[i]->Sumw2();
+            hRefSelDijetEta1DOldPtBinningWeighted[i] = new TH1D(Form("hRefSelDijetEta1DOldPtBinningWeighted_%d",i),Form("Ref selected #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals);
+            hRefSelDijetEta1DOldPtBinningWeighted[i]->Sumw2();
+            hRefSelRecoDijetEta1DOldPtBinning[i] = new TH1D(Form("hRefSelRecoDijetEta1DOldPtBinning_%d",i),Form("Ref selected reco #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals);
+            hRefSelRecoDijetEta1DOldPtBinning[i]->Sumw2();
+            hRefSelRecoDijetEta1DOldPtBinningWeighted[i] = new TH1D(Form("hRefSelRecoDijetEta1DOldPtBinningWeighted_%d",i),Form("Ref selected reco #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals);
+            hRefSelRecoDijetEta1DOldPtBinningWeighted[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DOldPtBinning[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DOldPtBinning_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                                   fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DOldPtBinning[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DOldPtBinningWeighted_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                                   fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i]->Sumw2();
+            hRefSelDijetEtaForward1DOldPtBinning[i] = new TH1D(Form("hRefSelDijetEtaForward1DOldPtBinning_%d",i),Form("Ref selected #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                           dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaForward1DOldPtBinning[i]->Sumw2();
+            hRefSelDijetEtaForward1DOldPtBinningWeighted[i] = new TH1D(Form("hRefSelDijetEtaForward1DOldPtBinningWeighted_%d",i),Form("Ref selected #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                           dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaForward1DOldPtBinningWeighted[i]->Sumw2();
+            hRefSelDijetEtaBackward1DOldPtBinning[i] = new TH1D(Form("hRefSelDijetEtaBackward1DOldPtBinning_%d",i),Form("Ref selected #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                           dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaBackward1DOldPtBinning[i]->Sumw2();
+            hRefSelDijetEtaBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hRefSelDijetEtaBackward1DOldPtBinningWeighted_%d",i),Form("Ref selected #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                           dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaBackward1DOldPtBinningWeighted[i]->Sumw2();
+
+
+            hRefSelDijetEta1DOldPtBinningCM[i] = new TH1D(Form("hRefSelDijetEta1DOldPtBinningCM_%d",i),Form("Ref selected #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals);
+            hRefSelDijetEta1DOldPtBinningCM[i]->Sumw2();
+            hRefSelDijetEta1DOldPtBinningCMWeighted[i] = new TH1D(Form("hRefSelDijetEta1DOldPtBinningCMWeighted_%d",i),Form("Ref selected #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals);
+            hRefSelDijetEta1DOldPtBinningCMWeighted[i]->Sumw2();
+            hRefSelRecoDijetEta1DOldPtBinningCM[i] = new TH1D(Form("hRefSelRecoDijetEta1DOldPtBinningCM_%d",i),Form("Ref selected reco #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals);
+            hRefSelRecoDijetEta1DOldPtBinningCM[i]->Sumw2();
+            hRefSelRecoDijetEta1DOldPtBinningCMWeighted[i] = new TH1D(Form("hRefSelRecoDijetEta1DOldPtBinningCMWeighted_%d",i),Form("Ref selected reco #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals);
+            hRefSelRecoDijetEta1DOldPtBinningCMWeighted[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCM[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCM_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                                   fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCM[i]->Sumw2();
+            hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                                   fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i]->Sumw2();
+            hRefSelDijetEtaCMForward1DOldPtBinning[i] = new TH1D(Form("hRefSelDijetEtaCMForward1DOldPtBinning_%d",i),Form("Ref selected #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMForward1DOldPtBinning[i]->Sumw2();
+            hRefSelDijetEtaCMForward1DOldPtBinningWeighted[i] = new TH1D(Form("hRefSelDijetEtaCMForward1DOldPtBinningWeighted_%d",i),Form("Ref selected #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMForward1DOldPtBinningWeighted[i]->Sumw2();
+            hRefSelDijetEtaCMBackward1DOldPtBinning[i] = new TH1D(Form("hRefSelDijetEtaCMBackward1DOldPtBinning_%d",i),Form("Ref selected #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMBackward1DOldPtBinning[i]->Sumw2();
+            hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hRefSelDijetEtaCMBackward1DOldPtBinningWeighted_%d",i),Form("Ref selected #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                   dijetEtaFBBins, dijetEtaFBVals);
+            hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[i]->Sumw2();
+
+        } // for (int i{0}; i<5; i++)
+
+
         //
-        // Ref inclusive jets
+        // Ref jet histograms
         //
+
         hRefInclusiveJetPt = new TH1D("hRefInclusiveJetPt","Ref jet p_{T};Ref p_{T} (GeV/c);Entries",
                                         fPtBins, fPtRange[0], fPtRange[1]);
         hRefInclusiveJetPt->Sumw2();
         hRefInclusiveJetPtEta = new TH2D("hRefInclusiveJetPtEta","Ref jet p_{T} vs #eta;Ref #eta;Ref p_{T} (GeV/c)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1]);
-        //
         // Ref dijets
-        //
         hRefPtLeadPtSublead = new TH2D("hRefPtLeadPtSublead","Ref leading vs subleading p_{T};Ref p_{T}^{Leading} (GeV/c);Ref p_{T}^{Subleading} (GeV/c)",
                                         fPtBins, fPtRange[0], fPtRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1]);
@@ -1959,19 +2262,274 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hRefDijetEta->Sumw2();
 
+        // New pT and eta binning
         for (int i{0}; i<16; i++) {
-            hRefDijetEta1D[i] = new TH1D(Form("hRefDijetEta1D_%d",i),Form("Ref dijet #eta for p_{T} bin %d;Ref #eta^{dijet};Entries",i),
-                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+            double ptAveLow = fPtAveBins.at(i);
+            double ptAveHi = fPtAveBins.at(i+1);
+            hRefDijetEta1D[i] = new TH1D(Form("hRefDijetEta1D_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
             hRefDijetEta1D[i]->Sumw2();
+            hRefDijetEta1DWeighted[i] = new TH1D(Form("hRefDijetEta1DWeighted_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefDijetEta1DWeighted[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2D[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2D_%d",i),Form("Ref #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2D[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DWeighted[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DWeighted_%d",i),Form("Ref #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DWeighted[i]->Sumw2();
+            hRecoVsRefDijetEta2D[i] = new TH2D(Form("hRecoVsRefDijetEta2D_%d",i),Form("Reco vs Ref #eta^{dijet} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{dijet};Ref #eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
+            hRecoVsRefDijetEta2D[i]->Sumw2();
+            hRecoVsRefDijetEta2DWeighted[i] = new TH2D(Form("hRecoVsRefDijetEta2DWeighted_%d",i),Form("Reco vs Ref #eta^{dijet} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{dijet};Ref #eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
+            hRecoVsRefDijetEta2DWeighted[i]->Sumw2();
+            hRecoVsRefLeadJetEta2D[i] = new TH2D(Form("hRecoVsRefLeadJetEta2D_%d",i),Form("Reco vs Ref #eta^{Leading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Leading};Ref #eta^{Leading}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2D[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DWeighted[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DWeighted_%d",i),Form("Reco vs Ref #eta^{Leading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Leading};Ref #eta^{Leading}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DWeighted[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2D[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2D_%d",i),Form("Reco vs Ref #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Subleading};Ref #eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2D[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DWeighted[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DWeighted_%d",i),Form("Reco vs Ref #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Subleading};Ref #eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DWeighted[i]->Sumw2();
+            hRefDijetEtaForward1D[i] = new TH1D(Form("hRefDijetEtaForward1D_%d",i),Form("Ref #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaForward1D[i]->Sumw2();
+            hRefDijetEtaForward1DWeighted[i] = new TH1D(Form("hRefDijetEtaForward1DWeighted_%d",i),Form("Ref #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaForward1DWeighted[i]->Sumw2();
+            hRefDijetEtaBackward1D[i] = new TH1D(Form("hRefDijetEtaBackward1D_%d",i),Form("Ref #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaBackward1D[i]->Sumw2();
+            hRefDijetEtaBackward1DWeighted[i] = new TH1D(Form("hRefDijetEtaBackward1DWeighted_%d",i),Form("Ref #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaBackward1DWeighted[i]->Sumw2();
+
+            hRefDijetEta1DCM[i] = new TH1D(Form("hRefDijetEta1DCM_%d",i),Form("Ref #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefDijetEta1DCM[i]->Sumw2();
+            hRefDijetEta1DCMWeighted[i] = new TH1D(Form("hRefDijetEta1DCMWeighted_%d",i),Form("Ref #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefDijetEta1DCMWeighted[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DCM_%d",i),Form("Ref #eta^{Leading}_{CM} vs #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DCM[i]->Sumw2();
+            hRecoVsRefDijetEta2DCM[i] = new TH2D(Form("hRecoVsRefDijetEta2DCM_%d",i),Form("Reco vs Ref #eta^{dijet}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{dijet}_{CM};Ref #eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
+            hRecoVsRefDijetEta2DCM[i]->Sumw2();
+            hRecoVsRefDijetEta2DCMWeighted[i] = new TH2D(Form("hRecoVsRefDijetEta2DCMWeighted_%d",i),Form("Reco vs Ref #eta^{dijet}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{dijet}_{CM};Ref #eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
+            hRecoVsRefDijetEta2DCMWeighted[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DCM[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DCM_%d",i),Form("Reco vs Ref #eta^{Leading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Leading}_{CM};Ref #eta^{Leading}_{CM}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DCM[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DCMWeighted[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DCMWeighted_%d",i),Form("Reco vs Ref #eta^{Leading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Leading}_{CM};Ref #eta^{Leading}_{CM}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DCMWeighted[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DCM[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DCM_%d",i),Form("Reco vs Ref #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Subleading}_{CM};Ref #eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DCM[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DCMWeighted[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DCMWeighted_%d",i),Form("Reco vs Ref #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Subleading}_{CM};Ref #eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DCMWeighted[i]->Sumw2();
+            hRefDijetEtaCMForward1D[i] = new TH1D(Form("hRefDijetEtaCMForward1D_%d",i),Form("Ref #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMForward1D[i]->Sumw2();
+            hRefDijetEtaCMForward1DWeighted[i] = new TH1D(Form("hRefDijetEtaCMForward1DWeighted_%d",i),Form("Ref #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMForward1DWeighted[i]->Sumw2();
+            hRefDijetEtaCMBackward1D[i] = new TH1D(Form("hRefDijetEtaCMBackward1D_%d",i),Form("Ref #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMBackward1D[i]->Sumw2();
+            hRefDijetEtaCMBackward1DWeighted[i] = new TH1D(Form("hRefDijetEtaCMBackward1DWeighted_%d",i),Form("Ref #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMBackward1DWeighted[i]->Sumw2();
         }
+
+        // Old pT binning
         for (int i{0}; i<5; i++) {
-            hRefDijetEta1DOldPt[i] = new TH1D(Form("hRefDijetEta1DOldPt_%d",i),Form("Ref dijet #eta for old p_{T} bin %d;Ref #eta^{dijet};Entries",i),
-                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+
+            double ptAveLow = fPtAveOldBins.at(i);
+            double ptAveHi = fPtAveOldBins.at(i+1);
+            // New eta binning
+            hRefDijetEta1DOldPt[i] = new TH1D(Form("hRefDijetEta1DOldPt_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
             hRefDijetEta1DOldPt[i]->Sumw2();
-            hRefDijetEta1DOldPtBinning[i] = new TH1D(Form("hRefDijetEta1DOldPtBinning_%d",i),Form("Ref dijet #eta for old p_{T} bin %d old #eta binning;Ref #eta^{dijet};Entries",i),
-                                                     dijetEtaOldBins, dijetEtaOldVals);
+            hRefDijetEta1DOldPtWeighted[i] = new TH1D(Form("hRefDijetEta1DOldPtWeighted_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                      dijetEtaBins, dijetEtaVals);
+            hRefDijetEta1DOldPtWeighted[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DOldPt[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DOldPt_%d",i),Form("Ref #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DOldPt[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DOldPtWeighted[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DOldPtWeighted_%d",i),Form("Ref #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DOldPtWeighted[i]->Sumw2();
+            hRecoVsRefDijetEta2DOldPt[i] = new TH2D(Form("hRecoVsRefDijetEta2DOldPt_%d",i),Form("Reco vs Ref #eta^{dijet} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{dijet};Ref #eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
+            hRecoVsRefDijetEta2DOldPt[i]->Sumw2();
+            hRecoVsRefDijetEta2DOldPtWeighted[i] = new TH2D(Form("hRecoVsRefDijetEta2DOldPtWeighted_%d",i),Form("Reco vs Ref #eta^{dijet} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{dijet};Ref #eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
+            hRecoVsRefDijetEta2DOldPtWeighted[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DOldPt[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DOldPt_%d",i),Form("Reco vs Ref #eta^{Leading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Leading};Ref #eta^{Leading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DOldPt[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DOldPtWeighted[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DOldPtWeighted_%d",i),Form("Reco vs Ref #eta^{Leading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Leading};Ref #eta^{Leading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DOldPtWeighted[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DOldPt[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DOldPt_%d",i),Form("Reco vs Ref #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Subleading};Ref #eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DOldPt[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DOldPtWeighted[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DOldPtWeighted_%d",i),Form("Reco vs Ref #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Subleading};Ref #eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DOldPtWeighted[i]->Sumw2();
+            hRefDijetEtaForward1DOldPt[i] = new TH1D(Form("hRefDijetEtaForward1DOldPt_%d",i),Form("Ref #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaForward1DOldPt[i]->Sumw2();
+            hRefDijetEtaForward1DOldPtWeighted[i] = new TH1D(Form("hRefDijetEtaForward1DOldPtWeighted_%d",i),Form("Ref #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaForward1DOldPtWeighted[i]->Sumw2();
+            hRefDijetEtaBackward1DOldPt[i] = new TH1D(Form("hRefDijetEtaBackward1DOldPt_%d",i),Form("Ref #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaBackward1DOldPt[i]->Sumw2();
+            hRefDijetEtaBackward1DOldPtWeighted[i] = new TH1D(Form("hRefDijetEtaBackward1DOldPtWeighted_%d",i),Form("Ref #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaBackward1DOldPtWeighted[i]->Sumw2();
+
+
+            hRefDijetEta1DOldPtCM[i] = new TH1D(Form("hRefDijetEta1DOldPtCM_%d",i),Form("Ref #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefDijetEta1DOldPtCM[i]->Sumw2();
+            hRefDijetEta1DOldPtCMWeighted[i] = new TH1D(Form("hRefDijetEta1DOldPtCMWeighted_%d",i),Form("Ref #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                      dijetEtaBins, dijetEtaVals);
+            hRefDijetEta1DOldPtCMWeighted[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DOldPtCM[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DOldPtCM_%d",i),Form("Ref #eta^{Leading}_{CM} vs #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DOldPtCM[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DOldPtCMWeighted[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DOldPtCMWeighted_%d",i),Form("Ref #eta^{Leading}_{CM} vs #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DOldPtCMWeighted[i]->Sumw2();
+            hRecoVsRefDijetEta2DOldPtCM[i] = new TH2D(Form("hRecoVsRefDijetEta2DOldPtCM_%d",i),Form("Reco vs Ref #eta^{dijet}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{dijet}_{CM};Ref #eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
+            hRecoVsRefDijetEta2DOldPtCM[i]->Sumw2();
+            hRecoVsRefDijetEta2DOldPtCMWeighted[i] = new TH2D(Form("hRecoVsRefDijetEta2DOldPtCMWeighted_%d",i),Form("Reco vs Ref #eta^{dijet}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{dijet}_{CM};Ref #eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
+            hRecoVsRefDijetEta2DOldPtCMWeighted[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DOldPtCM[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DOldPtCM_%d",i),Form("Reco vs Ref #eta^{Leading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Leading}_{CM};Ref #eta^{Leading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DOldPtCM[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DOldPtCMWeighted[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DOldPtCMWeighted_%d",i),Form("Reco vs Ref #eta^{Leading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Leading}_{CM};Ref #eta^{Leading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DOldPtCMWeighted[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DOldPtCM[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DOldPtCM_%d",i),Form("Reco vs Ref #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Subleading}_{CM};Ref #eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DOldPtCM[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DOldPtCMWeighted[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DOldPtCMWeighted_%d",i),Form("Reco vs Ref #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Subleading}_{CM};Ref #eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DOldPtCMWeighted[i]->Sumw2();
+            hRefDijetEtaCMForward1DOldPt[i] = new TH1D(Form("hRefDijetEtaCMForward1DOldPt_%d",i),Form("Ref #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMForward1DOldPt[i]->Sumw2();
+            hRefDijetEtaCMForward1DOldPtWeighted[i] = new TH1D(Form("hRefDijetEtaCMForward1DOldPtWeighted_%d",i),Form("Ref #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMForward1DOldPtWeighted[i]->Sumw2();
+            hRefDijetEtaCMBackward1DOldPt[i] = new TH1D(Form("hRefDijetEtaCMBackward1DOldPt_%d",i),Form("Ref #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMBackward1DOldPt[i]->Sumw2();
+            hRefDijetEtaCMBackward1DOldPtWeighted[i] = new TH1D(Form("hRefDijetEtaCMBackward1DOldPtWeighted_%d",i),Form("Ref #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMBackward1DOldPtWeighted[i]->Sumw2();
+
+            // Old eta binning
+            hRefDijetEta1DOldPtBinning[i] = new TH1D(Form("hRefDijetEta1DOldPtBinning_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaOldBins, dijetEtaOldVals);
             hRefDijetEta1DOldPtBinning[i]->Sumw2();
-                                                     
+            hRefDijetEta1DOldPtBinningWeighted[i] = new TH1D(Form("hRefDijetEta1DOldPtBinningWeighted_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaOldBins, dijetEtaOldVals);
+            hRefDijetEta1DOldPtBinningWeighted[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DOldPtBinning[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DOldPtBinning_%d",i),Form("Ref #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DOldPtBinning[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DOldPtBinningWeighted_%d",i),Form("Ref #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DOldPtBinningWeighted[i]->Sumw2();
+            hRecoVsRefDijetEta2DOldPtBinning[i] = new TH2D(Form("hRecoVsRefDijetEta2DOldPtBinning_%d",i),Form("Reco vs Ref #eta^{dijet} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{dijet};Ref #eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals, dijetEtaOldBins, dijetEtaOldVals);
+            hRecoVsRefDijetEta2DOldPtBinning[i]->Sumw2();
+            hRecoVsRefDijetEta2DOldPtBinningWeighted[i] = new TH2D(Form("hRecoVsRefDijetEta2DOldPtBinningWeighted_%d",i),Form("Reco vs Ref #eta^{dijet} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{dijet};Ref #eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals, dijetEtaOldBins, dijetEtaOldVals);
+            hRecoVsRefDijetEta2DOldPtBinningWeighted[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DOldPtBinning[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DOldPtBinning_%d",i),Form("Reco vs Ref #eta^{Leading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Leading};Ref #eta^{Leading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);                                  
+            hRecoVsRefLeadJetEta2DOldPtBinning[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DOldPtBinningWeighted[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DOldPtBinningWeighted_%d",i),Form("Reco vs Ref #eta^{Leading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Leading};Ref #eta^{Leading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DOldPtBinningWeighted[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DOldPtBinning[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DOldPtBinning_%d",i),Form("Reco vs Ref #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Subleading};Ref #eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DOldPtBinning[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DOldPtBinningWeighted[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DOldPtBinningWeighted_%d",i),Form("Reco vs Ref #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Subleading};Ref #eta^{Subleading}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DOldPtBinningWeighted[i]->Sumw2();
+            hRefDijetEtaForward1DOldPtBinning[i] = new TH1D(Form("hRefDijetEtaForward1DOldPtBinning_%d",i),Form("Ref #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaForward1DOldPtBinning[i]->Sumw2();
+            hRefDijetEtaForward1DOldPtBinningWeighted[i] = new TH1D(Form("hRefDijetEtaForward1DOldPtBinningWeighted_%d",i),Form("Ref #eta^{dijet} forward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaForward1DOldPtBinningWeighted[i]->Sumw2();
+            hRefDijetEtaBackward1DOldPtBinning[i] = new TH1D(Form("hRefDijetEtaBackward1DOldPtBinning_%d",i),Form("Ref #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaBackward1DOldPtBinning[i]->Sumw2();
+            hRefDijetEtaBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hRefDijetEtaBackward1DOldPtBinningWeighted_%d",i),Form("Ref #eta^{dijet} backward in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaBackward1DOldPtBinningWeighted[i]->Sumw2();
+
+
+            hRefDijetEta1DOldPtBinningCM[i] = new TH1D(Form("hRefDijetEta1DOldPtBinningCM_%d",i),Form("Ref #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                    dijetEtaOldBins, dijetEtaOldVals);
+            hRefDijetEta1DOldPtBinningCM[i]->Sumw2();
+            hRefDijetEta1DOldPtBinningCMWeighted[i] = new TH1D(Form("hRefDijetEta1DOldPtBinningCMWeighted_%d",i),Form("Ref #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                               dijetEtaOldBins, dijetEtaOldVals);
+            hRefDijetEta1DOldPtBinningCMWeighted[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DOldPtBinningCM[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DOldPtBinningCM_%d",i),Form("Ref #eta^{Leading}_{CM} vs #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DOldPtBinningCM[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted_%d",i),Form("Ref #eta^{Leading}_{CM} vs #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[i]->Sumw2();
+            hRecoVsRefDijetEta2DOldPtBinningCM[i] = new TH2D(Form("hRecoVsRefDijetEta2DOldPtBinningCM_%d",i),Form("Reco vs Ref #eta^{dijet}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{dijet}_{CM};Ref #eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals, dijetEtaOldBins, dijetEtaOldVals);
+            hRecoVsRefDijetEta2DOldPtBinningCM[i]->Sumw2();
+            hRecoVsRefDijetEta2DOldPtBinningCMWeighted[i] = new TH2D(Form("hRecoVsRefDijetEta2DOldPtBinningCMWeighted_%d",i),Form("Reco vs Ref #eta^{dijet}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{dijet}_{CM};Ref #eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                        dijetEtaOldBins, dijetEtaOldVals, dijetEtaOldBins, dijetEtaOldVals);
+            hRecoVsRefDijetEta2DOldPtBinningCMWeighted[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DOldPtBinningCM[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DOldPtBinningCM_%d",i),Form("Reco vs Ref #eta^{Leading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Leading}_{CM};Ref #eta^{Leading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DOldPtBinningCM[i]->Sumw2();
+            hRecoVsRefLeadJetEta2DOldPtBinningCMWeighted[i] = new TH2D(Form("hRecoVsRefLeadJetEta2DOldPtBinningCMWeighted_%d",i),Form("Reco vs Ref #eta^{Leading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Leading}_{CM};Ref #eta^{Leading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefLeadJetEta2DOldPtBinningCMWeighted[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DOldPtBinningCM[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DOldPtBinningCM_%d",i),Form("Reco vs Ref #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{Subleading}_{CM};Ref #eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DOldPtBinningCM[i]->Sumw2();
+            hRecoVsRefSubLeadJetEta2DOldPtBinningCMWeighted[i] = new TH2D(Form("hRecoVsRefSubLeadJetEta2DOldPtBinningCMWeighted_%d",i),Form("Reco vs Ref #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;Reco #eta^{Subleading}_{CM};Ref #eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRecoVsRefSubLeadJetEta2DOldPtBinningCMWeighted[i]->Sumw2();
+            hRefDijetEtaCMForward1DOldPtBinning[i] = new TH1D(Form("hRefDijetEtaCMForward1DOldPtBinning_%d",i),Form("Ref #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMForward1DOldPtBinning[i]->Sumw2();
+            hRefDijetEtaCMForward1DOldPtBinningWeighted[i] = new TH1D(Form("hRefDijetEtaCMForward1DOldPtBinningWeighted_%d",i),Form("Ref #eta^{dijet}_{CM} forward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMForward1DOldPtBinningWeighted[i]->Sumw2();
+            hRefDijetEtaCMBackward1DOldPtBinning[i] = new TH1D(Form("hRefDijetEtaCMBackward1DOldPtBinning_%d",i),Form("Ref #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMBackward1DOldPtBinning[i]->Sumw2();
+            hRefDijetEtaCMBackward1DOldPtBinningWeighted[i] = new TH1D(Form("hRefDijetEtaCMBackward1DOldPtBinningWeighted_%d",i),Form("Ref #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                                dijetEtaFBBins, dijetEtaFBVals);
+            hRefDijetEtaCMBackward1DOldPtBinningWeighted[i]->Sumw2();
         }
 
         hRefDijetEtaVsRecoDijetEta = new TH2D("hRefDijetEtaVsRecoDijetEta","Ref dijet #eta vs reco dijet #eta;Reco #eta^{dijet};Ref #eta^{dijet}",
@@ -2059,20 +2617,8 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRefDijetPtEtaCMBackwardWeighted->Sumw2();       
 
 
-        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId = new TH3D("hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId", "Reco dijet #eta vs ref dijet #eta vs reco dijet p_{T} jetId cut;Reco #eta^{dijet};Ref #eta^{dijet}; Reco p_{T}^{dijet} (GeV/c)",
-                                                            fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
-                                                            fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
-                                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1] );
-        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->Sumw2();
-        hRefDijetPtEtaDphiJetId = new TH3D("hRefDijetPtEtaDphiJetId","Ref dijet info jetId;p_{T}^{ave} (GeV/c);#eta^{dijet};#Delta#phi (rad)",
-                                        fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
-                                        fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
-                                        fDijetDphiBins, fDijetDphiRange[0], fDijetDphiRange[1] );
-        hRefDijetPtEtaDphiJetId->Sumw2();
-
-
         //
-        // Modify bins of reco <-> ref dijets
+        // Modify axis binning
         //
         hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
         hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->GetAxis(7)->Set(dijetEtaBins, dijetEtaVals);
@@ -2090,13 +2636,6 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRefDijetEtaVsRecoDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEta->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-        for (int i{0}; i<16; i++) {
-            hRefDijetEta1D[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-        }
-        for (int i{0}; i<5; i++) {
-            hRefDijetEta1DOldPt[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-            hRefDijetEta1DOldPtBinning[i]->GetXaxis()->Set(dijetEtaOldBins, dijetEtaOldVals);
-        }
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
@@ -2128,23 +2667,12 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
         hRefDijetPtEtaCMForwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
         hRefDijetPtEtaCMBackwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
 
-        hRefDijetPtEtaDphiJetId->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
-        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-        hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtJetId->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
-
         //
         // Modify bins of gen dijets
         //
         hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
         hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
         hGenDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-        for (int i{0}; i<16; i++) {
-            hGenDijetEta1D[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-        }
-        for (int i{0}; i<5; i++) {
-            hGenDijetEta1DOldPt[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-            hGenDijetEta1DOldPtBinning[i]->GetXaxis()->Set(dijetEtaOldBins, dijetEtaOldVals);
-        }
         hGenDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
         hGenDijetPtEtaDphiWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
 
@@ -2163,28 +2691,17 @@ void HistoManagerDiJet::init(const Bool_t& isMc) {
 
     } // if (fIsMc)
 
-    
-
-
     //
-    // Modify bins of reco dijets
+    // Modify binning of reco histograms
     //
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->GetAxis(1)->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetEta->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-    for (int i{0}; i<16; i++) {
-        hRecoDijetEta1D[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-    }
-    for (int i{0}; i<5; i++) {
-        hRecoDijetEta1DOldPt[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
-        hRecoDijetEta1DOldPtBinning[i]->GetXaxis()->Set(dijetEtaOldBins, dijetEtaOldVals);
-    }
     hRecoDijetPtEtaDphi->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDphiWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetEtaCM->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDphiCM->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
     hRecoDijetPtEtaDphiCMWeighted->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
-    hRecoDijetPtEtaDphiJetId->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
 
     hRecoDijetPtEtaForward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
     hRecoDijetPtEtaBackward->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
@@ -2435,8 +2952,8 @@ void HistoManagerDiJet::writeOutput() {
             hGenDijetEtaForward1DOldPtWeighted[i]->Write();
             hGenDijetEtaBackward1DOldPt[i]->Write();
             hGenDijetEtaBackward1DOldPtWeighted[i]->Write();
-            hGenDijetEta1DCMOldPt[i]->Write();
-            hGenDijetEta1DCMOldPtWeighted[i]->Write();
+            hGenDijetEta1DOldPtCM[i]->Write();
+            hGenDijetEta1DOldPtCMWeighted[i]->Write();
             hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[i]->Write();
             hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[i]->Write();
             hGenDijetEtaCMForward1DOldPt[i]->Write();
@@ -2474,6 +2991,7 @@ void HistoManagerDiJet::writeOutput() {
         hJESInclusiveJetPtEtaPhi->Write();
         hJESInclusiveJetPtEtaPhiWeighted->Write();
 
+        hRecoInclusiveMatchedJetPt->Write();
         hRecoInclusiveMatchedJetPtVsEta->Write();
         hRecoInclusiveUnmatchedJetPtVsEta->Write();
         hRecoLeadJetMatchedPtVsEta->Write();
