@@ -88,7 +88,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// 2 - Jet60
     /// 3 - Jet80
     /// 4 - Jet100
-    void setUseMcReweighting(const int& w = 0) { fUseMcReweighting = (Short_t)w; }
+    void setUseMcReweighting(const int& w = 0) { fUseMcReweighting = (short)w; }
 
     /// @brief Set jetId selection of the jets (default: trkMax)
     void useJetIdSelection()                       { fUseJetIdSelection = {true}; }
@@ -204,7 +204,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// 2 - Jet60
     /// 3 - Jet80
     /// 4 - Jet100
-    Short_t   fUseMcReweighting;
+    short   fUseMcReweighting;
     int     fJetPtBins;
     double  fJetPtLow;
     double  fJetPtHi;

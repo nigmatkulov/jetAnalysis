@@ -11,6 +11,7 @@
 
 // ROOT headers
 #include "TFile.h"
+#include "TString.h"
 
 //________________
 void usage() {
@@ -35,14 +36,14 @@ int main(int argc, char const *argv[]) {
     // outputFileName.root            - output file name
     //
 
-    Bool_t isPbPb{kTRUE};
-    Bool_t isMc{kTRUE};
-    Bool_t isCentWeightCalc{kTRUE};
+    bool isPbPb{true};
+    bool isMc{true};
+    bool isCentWeightCalc{true};
     TString inFileName{};
-    Int_t   collEnergyGeV{5020};
+    int   collEnergyGeV{5020};
     TString collSystem{};
-    Int_t   collisionsSystem{2}; // 0 - pp, 1 - pPb, 2 - PbPb
-    Int_t   collYear{2018};
+    int   collisionsSystem{2}; // 0 - pp, 1 - pPb, 2 - PbPb
+    int   collYear{2018};
     TString recoJetBranchName{};
     TString oFileName{};
     TString JECFileName;
@@ -155,7 +156,7 @@ int main(int argc, char const *argv[]) {
 
 
     HistoManagerJetESR *hm = new HistoManagerJetESR{};
-    // hm->setIsMc(kTRUE);
+    // hm->setIsMc(true);
     hm->init(true);
     analysis->addHistoManager(hm);
     manager->addAnalysis(analysis);

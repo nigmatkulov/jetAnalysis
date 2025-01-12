@@ -1009,7 +1009,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
 }
 
 //________________
-void HistoManagerDiJet::init(const Bool_t& isMc) {
+void HistoManagerDiJet::init() {
 
     const int dijetEtaBins{30};
     double dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 

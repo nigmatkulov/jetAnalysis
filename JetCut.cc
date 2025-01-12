@@ -24,9 +24,9 @@ ClassImp(JetCut)
 
 //________________
 JetCut::JetCut() : fPt{0., 1e6}, fConeR{1e6},
-    fMustHaveGenMatching{kFALSE}, fEta{-1e6, 1e6},
+    fMustHaveGenMatching{false}, fEta{-1e6, 1e6},
     fTrackMaxPtOverRawPt{0.01, 0.98},
-	fVerbose{kFALSE}, fJetsPassed{0}, fJetsFailed{0} {
+	fVerbose{false}, fJetsPassed{0}, fJetsFailed{0} {
     /* Empty */
 }
 
@@ -48,12 +48,12 @@ void JetCut::report() {
 }
 
 //________________
-Bool_t JetCut::pass(const RecoJet* jet) {
+bool JetCut::pass(const RecoJet* jet) {
     if (fVerbose) {
         std::cout << "\n----- Reco jet cut -----\n";
     }
 
-    Bool_t goodPt = (fPt[0] <= jet->ptJECCorr() &&
+    bool goodPt = (fPt[0] <= jet->ptJECCorr() &&
                      jet->ptJECCorr() <= fPt[1]);
     if (fVerbose) {
         std::cout << Form("pT : %5.2f <= %5.2f <= %5.2f \t %s \n",
@@ -62,13 +62,13 @@ Bool_t JetCut::pass(const RecoJet* jet) {
 
     Float_t recoR = TMath::Sqrt( jet->phi() * jet->phi() + 
                                  jet->eta() * jet->eta() );
-    Bool_t goodConeR = (recoR <= fConeR);
+    bool goodConeR = (recoR <= fConeR);
     if (fVerbose) {
         std::cout << Form("cone R: %5.2f <= %5.2f \t %s \n",
                           recoR, fConeR, ( goodConeR ) ? "true" : "false" );
     }
 
-    Bool_t goodMatching {kTRUE};
+    bool goodMatching {true};
     if (fMustHaveGenMatching) {
         goodMatching = jet->hasMatching();
     }
@@ -78,20 +78,20 @@ Bool_t JetCut::pass(const RecoJet* jet) {
                           ( goodMatching ) ? "true" : "false" );        
     }
 
-    Bool_t goodEta = ( fEta[0] <= jet->eta() &&
+    bool goodEta = ( fEta[0] <= jet->eta() &&
                        jet->eta() <= fEta[1] );
     if (fVerbose) {
         std::cout << Form("eta : %5.2f <= %5.2f <= %5.2f \t %s \n",
                           fEta[0], jet->eta(), fEta[1], ( goodEta ) ? "true" : "false" );
     }
 
-    Bool_t goodChargeComponent{kTRUE};
+    bool goodChargeComponent{true};
     // Float_t rawPt = jet->rawPt();
     // Float_t trackMaxPt = jet->trackMaxPt();
     // if ( TMath::Abs( jet->eta() ) < 2.4 && 
     //      ( trackMaxPt/rawPt < fTrackMaxPtOverRawPt[0] ||
     //        trackMaxPt/rawPt > fTrackMaxPtOverRawPt[1]) ) {
-    //     goodChargeComponent = {kFALSE};
+    //     goodChargeComponent = {false};
     // }
 
     // if (fVerbose) {
@@ -100,7 +100,7 @@ Bool_t JetCut::pass(const RecoJet* jet) {
     // }
 
     // if ( goodMatching )
-    // Bool_t goodRefPt = (fRefPt[0] <= jet->refJetPt() &&
+    // bool goodRefPt = (fRefPt[0] <= jet->refJetPt() &&
     //                            jet->refJetPt() <= fRefPt[1]);
     // if (fVerbose) {
     //     std::cout << Form("gen pT    : %5.2f <= %5.2f <= %5.2f \t %s \n",
@@ -109,13 +109,13 @@ Bool_t JetCut::pass(const RecoJet* jet) {
 
     // Float_t refR = TMath::Sqrt( jet->refJetPhi() * jet->refJetPhi() + 
     //                             jet->refJetEta() * jet->refJetEta() );
-    // Bool_t goodRefConeR = (refR <= fRefConeR);
+    // bool goodRefConeR = (refR <= fRefConeR);
     // if (fVerbose) {
     //     std::cout << Form("ref cone R: %5.2f <= %5.2f \t %s \n",
     //                       refR, fRefConeR, ( goodRefConeR ) ? "true" : "false" );
     // }
 
-    // Bool_t goodFlavorForB = ( fRefFlavorForB[0] <= jet->refFlavorForB() &&
+    // bool goodFlavorForB = ( fRefFlavorForB[0] <= jet->refFlavorForB() &&
     //                                 jet->refFlavorForB() <= fRefFlavorForB[1] );
     // if (fVerbose) {
     //     std::cout << Form("ref flavorB: %d <= %d <= %d \t %s \n",
@@ -123,9 +123,9 @@ Bool_t JetCut::pass(const RecoJet* jet) {
     // }
 
 
-    Bool_t isGood = goodPt && goodConeR && goodMatching && goodEta && goodChargeComponent;
+    bool isGood = goodPt && goodConeR && goodMatching && goodEta && goodChargeComponent;
 
-    // Bool_t isGood = goodRecoPt && goodRecoConeR && goodMatching &&
+    // bool isGood = goodRecoPt && goodRecoConeR && goodMatching &&
     //                       goodRefPt && goodRefConeR && goodFlavorForB;
 
     if (fVerbose) {
@@ -136,10 +136,10 @@ Bool_t JetCut::pass(const RecoJet* jet) {
 }
 
 //________________
-Bool_t JetCut::pass(const GenJet* jet) {
+bool JetCut::pass(const GenJet* jet) {
     if (fVerbose) {
         std::cout << "\n----- Gen jet cut -----\n";
     }
     // TODO: replace with real cut info
-    return kTRUE;
+    return true;
 }

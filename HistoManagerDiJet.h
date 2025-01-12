@@ -37,7 +37,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     virtual ~HistoManagerDiJet();
 
     /// @brief Initialize and create histograms
-    void init(const bool& isMc = false);
+    void init();
     /// @brief Use MC histograms
     void setIsMc(const bool& isMc = true) { fIsMc = isMc; }
     /// @brief Write all objects to the output file

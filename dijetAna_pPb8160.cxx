@@ -12,10 +12,11 @@
 // ROOT headers
 #include "TFile.h"
 #include "TMath.h"
+#include "TString.h"
 
 //________________
 void usage() {
-    std::cout << "./programName inputFileList oFileName isMc isPbGoingDir ptHatLow ptHatHi" << std::endl;
+    std::cout << "./programName inputFileList oFileName isMc isPbGoingDir ptHatLow ptHatHi jeuSyst jerSyst" << std::endl;
 }
 
 //________________
@@ -26,13 +27,14 @@ void usage() {
 int main(int argc, char const *argv[]) {
 
     // Set default values for arguments
-    Bool_t isMc{kTRUE};
-    Bool_t isCentWeightCalc{kFALSE};
-    Bool_t isPbGoingDir{};
+    bool isMc{true};
+    bool isCentWeightCalc{false};
+    bool isPbGoingDir{};
     TString inFileName{};
-    Int_t   collEnergyGeV{8160};
-    TString collSystem{"pPb"};
-    Int_t   collYear{2016};
+    int   collEnergyGeV{8160};
+    int   collisionSystem{1}; // 0 - pp, 1 -pPb, 2 - PbPb 
+    TString collisionSystemName{"pPb"};
+    int   collYear{2016};
     //TString recoJetBranchName{"akCs4PFJetAnalyzer"};
     TString recoJetBranchName{"ak4PFJetAnalyzer"};
     TString oFileName{};
@@ -40,10 +42,10 @@ int main(int argc, char const *argv[]) {
     TString JECFileDataName;
     TString JEUFileName;
     TString path2JEC = "..";
-    Double_t ptHatCut[2] {15., 30.};
-    Int_t   useJEU{0};
-    Int_t   useJERSyst{0}; //0-default, 1-JER+, -1-JER-
-    Double_t etaShift = 0.465;
+    double ptHatCut[2] {15., 30.};
+    int   useJEUSyst{0};     // 0-default, 1-JEU+, -1-JEU-
+    int   useJERSyst{0};     // 0-default, 1-JER+, -1-JER-
+    double etaShift = 0.465;
 
     // Sequence of command line arguments:
     //
@@ -53,6 +55,8 @@ int main(int argc, char const *argv[]) {
     // isPbGoingDir                   - 1 (Pb-going), 0 (p-going)
     // ptHatLow                       - Low ptHat cut (for embedding)
     // ptHatHi                        - High ptHat cut (for embedding)
+    // useJEUSyst                     - 0 (default), 1 (JEU+), -1 (JEU-)
+    // useJERSyst                     - 0 (default), 1 (JER+), -1 (JER-)
 
     // Read input argument list 
     if (argc <= 1) {
@@ -63,19 +67,25 @@ int main(int argc, char const *argv[]) {
     else {
         inFileName   = argv[1];
         oFileName    = argv[2];
-        isMc         = atoi(argv[3]);
-        isPbGoingDir = atoi(argv[4]);
-        ptHatCut[0]  = atoi(argv[5]);
-        ptHatCut[1]  = atoi(argv[6]);
+        isMc         = atoi( argv[3] );
+        isPbGoingDir = atoi( argv[4] );
+        ptHatCut[0]  = atoi( argv[5] );
+        ptHatCut[1]  = atoi( argv[6] );
+        useJEUSyst   = atoi( argv[7] );
+        useJERSyst   = atoi( argv[8] );
     }
 
     std::cout << "Arguments passed:\n"
-              << "Input file name       : " << inFileName << std::endl
-              << "Output file name      : " << oFileName << std::endl
-              << "Is MC                 : " << isMc << std::endl
-              << "Is Pb-going direction : " << isPbGoingDir << std::endl
-              << "ptHat range           : " << ptHatCut[0] << "-" << ptHatCut[1] << std::endl
-              << "Use centrality weight : " << isCentWeightCalc << std::endl
+              << "Input file name                        : " << inFileName << std::endl
+              << "Output file name                       : " << oFileName << std::endl
+              << "Is MC                                  : " << isMc << std::endl
+              << "Collision system (0-pp, 1-pPb, 2-PbPb) : " << collisionSystem << std::endl
+              << "Collision system name                  : " << collisionSystemName.Data() << std::endl
+              << "Is Pb-going direction                  : " << isPbGoingDir << std::endl
+              << "ptHat range                            : " << ptHatCut[0] << "-" << ptHatCut[1] << std::endl
+              << "Use centrality weight                  : " << isCentWeightCalc << std::endl
+              << "Use JEU systematics                    : " << useJEUSyst << std::endl
+              << "Use JER systematics                    : " << useJERSyst << std::endl
               << std::endl;
 
     if (isMc) {
@@ -109,10 +119,9 @@ int main(int argc, char const *argv[]) {
     eventCut->usePPAprimaryVertexFilter();
     eventCut->useHBHENoiseFilterResultRun2Loose();
     eventCut->usePhfCoincFilter();
-    // Default cut
-    eventCut->usePVertexFilterCutdz1p0();
-    // Pile-up systematics
-    // eventCut->usePVertexFilterCutGplus();
+
+    eventCut->usePVertexFilterCutdz1p0();    // Default cut
+    // eventCut->usePVertexFilterCutGplus(); // Pile-up systematics
     // Pile-up systematics
     //eventCut->usePVertexFilterCutVtx1();
     
@@ -155,18 +164,17 @@ int main(int argc, char const *argv[]) {
     }
 
     //reader->useCaloJetBranch();
-    reader->setCollidingSystem( collSystem.Data() );
+    reader->setCollidingSystem( collisionSystemName.Data() );
     reader->setCollidingEnergy( collEnergyGeV ) ;
     reader->setYearOfDataTaking( collYear );
     reader->setEventCut(eventCut);
-    //reader->setJetCut(jetCut);
     reader->fixJetArrays();
 
     // Set path to jet analysis (then will automatically add path to aux_files)
     reader->setPath2JetAnalysis( path2JEC.Data() );
     reader->addJECFile( JECFileName.Data() );
     if ( !isMc ) {
-        reader->setUseJEU( useJEU );
+        reader->setUseJEU( useJEUSyst );
         reader->addJECFile( JECFileDataName.Data() );
         reader->setJEUFileName( JEUFileName );
     }
@@ -183,39 +191,42 @@ int main(int argc, char const *argv[]) {
 
     // Initialize analysis
     DiJetAnalysis *analysis = new DiJetAnalysis{};
-    analysis->setIsMc(isMc);
-    if (isMc) {
+    analysis->setCollisionSystem( collisionSystem );
+    analysis->setCollisionEnergyInGeV( collEnergyGeV );
+    analysis->setIsMc( isMc );
+    if ( isMc ) {
         analysis->setPtHatRange(ptHatCut[0], ptHatCut[1]);
     }
-    analysis->setIsPPb();
     if ( isPbGoingDir ) {
         analysis->setPbGoing();
     }
     analysis->setEtaShift( etaShift );
     analysis->setLeadJetPtLow( 50. );
     analysis->setSubLeadJetPtLow( 40. );
+    analysis->setJetEtaLabRange( -3., 3. );
+    analysis->setJetEtaCMRange( -2.5, 2.5 );
     analysis->setDijetPhiCut( 2. * TMath::Pi() / 3 );
     if ( isMc ) {
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
     }
-    analysis->selectJetsInCMFrame();
-    //analysis->setVerbose();
+    // analysis->selectJetsInCMFrame();
+    // analysis->setVerbose();
     
     // Initialize histogram manager
     HistoManagerDiJet *hm = new HistoManagerDiJet{};
     hm->setIsMc( isMc );
-    hm->init(kTRUE); // kTRUE stands up for use MC; need to FIX
+    hm->init();
 
     // Add histogram manager to analysis
-    analysis->addHistoManager(hm);
+    analysis->addHistoManager( hm );
 
     // Add analysis to manager
-    manager->addAnalysis(analysis);
+    manager->addAnalysis( analysis );
 
     // Run chain of analyses
     manager->init();
 
-    // Important for embedding reweightening
+    // Important for pPb8160 embedding reweightening
     if ( isMc ) {
         analysis->setNEventsInSample( reader->nEventsTotal() );
     }

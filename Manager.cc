@@ -70,8 +70,17 @@ void Manager::performAnalysis() {
 
     //std::cout << "Manager::performAnalysis - Number of events in chain: " << fEventsInChain << std::endl;
 
+    int nEventsPerCycle{50000};
+    double progress{0.0};
+
     // Loop over all events available
     for (Long64_t iEvent=0; iEvent<fEventsInChain; iEvent++) {
+
+        // Print progress
+        if ( iEvent % nEventsPerCycle == 0 ) {
+            progress = 100.0 * iEvent / fEventsInChain;
+            std::cout << "Processed " << iEvent << " events. Progress: " << progress << "%" << std::endl;
+        }
 
         //std::cout << "=================================" << std::endl;
         //std::cout << "Manager::performAnalysis - Processing event: " << iEvent << std::endl;

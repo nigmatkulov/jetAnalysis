@@ -35,38 +35,38 @@ class JetCut {
     //
 
     /// @brief Jet momentum cut
-    void setPt(const Double_t& lo, const Double_t& hi) { fPt[0]=lo; fPt[1]=hi; }
+    void setPt(const double& lo, const double& hi) { fPt[0]=lo; fPt[1]=hi; }
     /// @brief Jet R of cone radius maximum 
-    void setConeR(const Double_t& max) { fConeR=max; }
+    void setConeR(const double& max) { fConeR=max; }
     /// @brief Require reconstructed jet to have a matching to generated jet
-    void setMustHaveGenMathing() { fMustHaveGenMatching=kTRUE; }
+    void setMustHaveGenMathing() { fMustHaveGenMatching=true; }
     /// @brief Preudorapidity of the reconstructed jet
-    void setEta(const Double_t& lo, const Double_t& hi) { fEta[0]=lo; fEta[1]=hi; }
+    void setEta(const double& lo, const double& hi) { fEta[0]=lo; fEta[1]=hi; }
     /// @brief Cut jets with values below low and above high at midrapidity
-    void setTrackMaxPtOverRawPt(const Double_t& lo, const Double_t& hi) { fTrackMaxPtOverRawPt[0]=lo; fTrackMaxPtOverRawPt[1]=hi; }
+    void setTrackMaxPtOverRawPt(const double& lo, const double& hi) { fTrackMaxPtOverRawPt[0]=lo; fTrackMaxPtOverRawPt[1]=hi; }
     /// @brief Report cut limits and passed/failed statistics
     void report();
     /// @brief Check if jet passes the cut 
-    virtual Bool_t pass(const RecoJet* jet);
+    virtual bool pass(const RecoJet* jet);
     /// @brief Check if jet passes the cut 
-    virtual Bool_t pass(const GenJet* jet);
+    virtual bool pass(const GenJet* jet);
     /// @brief Set verbose mode
-    void setVerbose() { fVerbose = kTRUE; }
+    void setVerbose() { fVerbose = true; }
 
   private:
     
     /// @brief Jet pT
-    Double_t fPt[2];
+    double fPt[2];
     /// @brief Jet cone radius
-    Double_t fConeR;
+    double fConeR;
     /// @brief Jet must have generated jet matching
-    Bool_t   fMustHaveGenMatching;
+    bool   fMustHaveGenMatching;
     /// @brief Pseudorapidity of the jet
-    Double_t fEta[2];
+    double fEta[2];
     /// @brief Cut on charged particle fraction inside jet (at midrapidity cut jets with val<[0] and val>[1])
-    Double_t fTrackMaxPtOverRawPt[2];
+    double fTrackMaxPtOverRawPt[2];
     /// @brief Print status for each jet
-    Bool_t   fVerbose; 
+    bool   fVerbose; 
     /// @brief Number of jets passed cut
     Long64_t fJetsPassed;
     /// @brief Number of jet failed cut
