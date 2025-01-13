@@ -246,6 +246,19 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRefSelDijetPtEtaDphiCM{nullptr},
     hRefSelDijetPtEtaDphiCMWeighted{nullptr}
 { 
+
+    double dijetPtVals[17] {  50.,  60.,   70.,  80.,  90.,
+                              100., 110.,  120., 130., 140.,
+                              150., 160.,  180., 200., 250., 
+                              300., 500.};
+    int sizeOfPtVals = sizeof(dijetPtVals)/sizeof(dijetPtVals[0]);
+
+    fPtAveBins.assign(dijetPtVals, dijetPtVals + sizeOfPtVals);
+
+    double dijetPtOldVals[7] {25., 55., 75., 95., 115., 150., 400.};
+    int sizeOfPtOldVals = sizeof(dijetPtOldVals)/sizeof(dijetPtOldVals[0]);
+    fPtAveOldBins.assign(dijetPtOldVals, dijetPtOldVals + sizeOfPtOldVals);
+
     // New ptAve binning
     for (int i{0}; i<fPtAveBins.size()-2; i++) {
 
@@ -513,18 +526,6 @@ HistoManagerDiJet::HistoManagerDiJet() :
         hRefSelDijetEtaCMBackward1DOldPtBinning[i] = nullptr;
         hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[i] = nullptr;
     } // for (int i{0}; i<fPtAveOldBins.size()-2; i++)
-
-    double dijetPtVals[17] {  50.,  60.,   70.,  80.,  90.,
-                              100., 110.,  120., 130., 140.,
-                              150., 160.,  180., 200., 250., 
-                              300., 500.};
-    int sizeOfPtVals = sizeof(dijetPtVals)/sizeof(dijetPtVals[0]);
-
-    fPtAveBins.assign(dijetPtVals, dijetPtVals + sizeOfPtVals);
-
-    double dijetPtOldVals[7] {25., 55., 75., 95., 115., 150., 400.};
-    int sizeOfPtOldVals = sizeof(dijetPtOldVals)/sizeof(dijetPtOldVals[0]);
-    fPtAveOldBins.assign(dijetPtOldVals, dijetPtOldVals + sizeOfPtOldVals);
 }
 
 //________________
@@ -2039,7 +2040,7 @@ void HistoManagerDiJet::init() {
         hRefSelDijetPtEtaDphiCMWeighted->Sumw2();
 
         // New pT and eta binning
-        for (int i{0}; i<fPtAveBins.size()-2; i++) {
+        for (unsigned int i{0}; i<fPtAveBins.size()-2; i++) {
             double ptAveLow = fPtAveBins.at(i);
             double ptAveHi = fPtAveBins.at(i+1);
             hRefSelDijetEta1D[i] = new TH1D(Form("hRefSelDijetEta1D_%d",i),Form("Ref selected #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
@@ -2107,7 +2108,7 @@ void HistoManagerDiJet::init() {
         } // for (int i{0}; i<fPtAveBins.size()-2; i++)
 
         // Old pT binning
-        for (int i{0}; i<fPtAveOldBins.size()-2; i++) {
+        for (unsigned int i{0}; i<fPtAveOldBins.size()-2; i++) {
             double ptAveLow = fPtAveOldBins.at(i);
             double ptAveHi = fPtAveOldBins.at(i+1);
 
