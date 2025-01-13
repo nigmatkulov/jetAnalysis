@@ -18,14 +18,9 @@ N="$2"
 # Sample name (DATA or PYTHIA)
 if [ "$3" -eq 0 ]; then
     sample_name="DATA"
-else
-    sample_name="PYTHIA"
-fi
-
-# Prefix
-if [ "$sample_name" == "DATA" ]; then
     sample_prefix="pp5020_data"
 else
+    sample_name="PYTHIA"
     sample_prefix="pp5020_pythia"
 fi
 
