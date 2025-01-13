@@ -190,42 +190,42 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hGenDijetEtaCMBackward1DWeighted[16];
 
     // Old ptAve and new eta binning
-    TH1D *hGenDijetEta1DOldPt[5];
-    TH1D *hGenDijetEta1DOldPtWeighted[5];
-    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPt[5];
-    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted[5];
-    TH1D *hGenDijetEtaForward1DOldPt[5];
-    TH1D *hGenDijetEtaForward1DOldPtWeighted[5];
-    TH1D *hGenDijetEtaBackward1DOldPt[5];
-    TH1D *hGenDijetEtaBackward1DOldPtWeighted[5];
+    TH1D *hGenDijetEta1DOldPt[6];
+    TH1D *hGenDijetEta1DOldPtWeighted[6];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPt[6];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtWeighted[6];
+    TH1D *hGenDijetEtaForward1DOldPt[6];
+    TH1D *hGenDijetEtaForward1DOldPtWeighted[6];
+    TH1D *hGenDijetEtaBackward1DOldPt[6];
+    TH1D *hGenDijetEtaBackward1DOldPtWeighted[6];
 
-    TH1D *hGenDijetEta1DOldPtCM[5];
-    TH1D *hGenDijetEta1DOldPtCMWeighted[5];
-    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[5];
-    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
-    TH1D *hGenDijetEtaCMForward1DOldPt[5];
-    TH1D *hGenDijetEtaCMForward1DOldPtWeighted[5];
-    TH1D *hGenDijetEtaCMBackward1DOldPt[5];
-    TH1D *hGenDijetEtaCMBackward1DOldPtWeighted[5];
+    TH1D *hGenDijetEta1DOldPtCM[6];
+    TH1D *hGenDijetEta1DOldPtCMWeighted[6];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtCM[6];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtCMWeighted[6];
+    TH1D *hGenDijetEtaCMForward1DOldPt[6];
+    TH1D *hGenDijetEtaCMForward1DOldPtWeighted[6];
+    TH1D *hGenDijetEtaCMBackward1DOldPt[6];
+    TH1D *hGenDijetEtaCMBackward1DOldPtWeighted[6];
 
     // Old ptAve and old eta binning
-    TH1D *hGenDijetEta1DOldPtBinning[5];
-    TH1D *hGenDijetEta1DOldPtBinningWeighted[5];
-    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinning[5];
-    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[5];
-    TH1D *hGenDijetEtaForward1DOldPtBinning[5];
-    TH1D *hGenDijetEtaForward1DOldPtBinningWeighted[5];
-    TH1D *hGenDijetEtaBackward1DOldPtBinning[5];
-    TH1D *hGenDijetEtaBackward1DOldPtBinningWeighted[5];
+    TH1D *hGenDijetEta1DOldPtBinning[6];
+    TH1D *hGenDijetEta1DOldPtBinningWeighted[6];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinning[6];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[6];
+    TH1D *hGenDijetEtaForward1DOldPtBinning[6];
+    TH1D *hGenDijetEtaForward1DOldPtBinningWeighted[6];
+    TH1D *hGenDijetEtaBackward1DOldPtBinning[6];
+    TH1D *hGenDijetEtaBackward1DOldPtBinningWeighted[6];
 
-    TH1D *hGenDijetEta1DOldPtBinningCM[5];
-    TH1D *hGenDijetEta1DOldPtBinningCMWeighted[5];
-    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCM[5];
-    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[5];
-    TH1D *hGenDijetEtaCMForward1DOldPtBinning[5];
-    TH1D *hGenDijetEtaCMForward1DOldPtBinningWeighted[5];
-    TH1D *hGenDijetEtaCMBackward1DOldPtBinning[5];
-    TH1D *hGenDijetEtaCMBackward1DOldPtBinningWeighted[5];
+    TH1D *hGenDijetEta1DOldPtBinningCM[6];
+    TH1D *hGenDijetEta1DOldPtBinningCMWeighted[6];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCM[6];
+    TH2D *hGenDijetEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[6];
+    TH1D *hGenDijetEtaCMForward1DOldPtBinning[6];
+    TH1D *hGenDijetEtaCMForward1DOldPtBinningWeighted[6];
+    TH1D *hGenDijetEtaCMBackward1DOldPtBinning[6];
+    TH1D *hGenDijetEtaCMBackward1DOldPtBinningWeighted[6];
 
 
     //
@@ -305,64 +305,64 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRecoDijetEtaCMBackward1DWeighted[16];
 
     // Old ptAve and new eta binning
-    TH1D *hRecoDijetEta1DOldPt[5];
-    TH1D *hRecoDijetEta1DOldPtWeighted[5];
-    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPt[5];
-    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted[5];
-    TH1D *hRecoDijetEtaForward1DOldPt[5];
-    TH1D *hRecoDijetEtaForward1DOldPtWeighted[5];
-    TH1D *hRecoDijetEtaBackward1DOldPt[5];
-    TH1D *hRecoDijetEtaBackward1DOldPtWeighted[5];
+    TH1D *hRecoDijetEta1DOldPt[6];
+    TH1D *hRecoDijetEta1DOldPtWeighted[6];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPt[6];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtWeighted[6];
+    TH1D *hRecoDijetEtaForward1DOldPt[6];
+    TH1D *hRecoDijetEtaForward1DOldPtWeighted[6];
+    TH1D *hRecoDijetEtaBackward1DOldPt[6];
+    TH1D *hRecoDijetEtaBackward1DOldPtWeighted[6];
 
-    TH1D *hRecoDijetEta1DOldPtCM[5];
-    TH1D *hRecoDijetEta1DOldPtCMWeighted[5];
-    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtCM[5];
-    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
-    TH1D *hRecoDijetEtaCMForward1DOldPt[5];
-    TH1D *hRecoDijetEtaCMForward1DOldPtWeighted[5];
-    TH1D *hRecoDijetEtaCMBackward1DOldPt[5];
-    TH1D *hRecoDijetEtaCMBackward1DOldPtWeighted[5];
+    TH1D *hRecoDijetEta1DOldPtCM[6];
+    TH1D *hRecoDijetEta1DOldPtCMWeighted[6];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtCM[6];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtCMWeighted[6];
+    TH1D *hRecoDijetEtaCMForward1DOldPt[6];
+    TH1D *hRecoDijetEtaCMForward1DOldPtWeighted[6];
+    TH1D *hRecoDijetEtaCMBackward1DOldPt[6];
+    TH1D *hRecoDijetEtaCMBackward1DOldPtWeighted[6];
 
     // Old ptAve and old eta binning
-    TH1D *hRecoDijetEta1DOldPtBinning[5];
-    TH1D *hRecoDijetEta1DOldPtBinningWeighted[5];
-    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[5];
-    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[5];
-    TH1D *hRecoDijetEtaForward1DOldPtBinning[5];
-    TH1D *hRecoDijetEtaForward1DOldPtBinningWeighted[5];
-    TH1D *hRecoDijetEtaBackward1DOldPtBinning[5];
-    TH1D *hRecoDijetEtaBackward1DOldPtBinningWeighted[5];
+    TH1D *hRecoDijetEta1DOldPtBinning[6];
+    TH1D *hRecoDijetEta1DOldPtBinningWeighted[6];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[6];
+    TH2D *hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinningWeighted[6];
+    TH1D *hRecoDijetEtaForward1DOldPtBinning[6];
+    TH1D *hRecoDijetEtaForward1DOldPtBinningWeighted[6];
+    TH1D *hRecoDijetEtaBackward1DOldPtBinning[6];
+    TH1D *hRecoDijetEtaBackward1DOldPtBinningWeighted[6];
 
-    TH1D *hRecoDijetEta1DOldPtBinningCM[5];
-    TH1D *hRecoDijetEta1DOldPtBinningCMWeighted[5];
-    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM[5];
-    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[5];
-    TH1D *hRecoDijetEtaCMForward1DOldPtBinning[5];
-    TH1D *hRecoDijetEtaCMForward1DOldPtBinningWeighted[5];
-    TH1D *hRecoDijetEtaCMBackward1DOldPtBinning[5];
-    TH1D *hRecoDijetEtaCMBackward1DOldPtBinningWeighted[5];
+    TH1D *hRecoDijetEta1DOldPtBinningCM[6];
+    TH1D *hRecoDijetEta1DOldPtBinningCMWeighted[6];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtBinningCM[6];
+    TH2D *hRecoEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[6];
+    TH1D *hRecoDijetEtaCMForward1DOldPtBinning[6];
+    TH1D *hRecoDijetEtaCMForward1DOldPtBinningWeighted[6];
+    TH1D *hRecoDijetEtaCMBackward1DOldPtBinning[6];
+    TH1D *hRecoDijetEtaCMBackward1DOldPtBinningWeighted[6];
   
     //
     // Ref jet histograms
     //
 
     // Inclusive jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen [5]
+    // eta corr, eta gen [6]
     THnSparseD *hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen;
     // Inclusive jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen, weighted [5]
+    // eta corr, eta gen, weighted [6]
     THnSparseD *hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
     // Leading jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen [5]
+    // eta corr, eta gen [6]
     THnSparseD *hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
     // Leading jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen, weighted [5]
+    // eta corr, eta gen, weighted [6]
     THnSparseD *hRecoLeadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
     // Subleading jet pt corr, pt raw, pt ref, 
-    // eta corr, eta gen [5]
+    // eta corr, eta gen [6]
     THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGen;
     // Subleading jet pt corr, pt raw, 
-    // pt ref, eta corr, eta gen, weighted [5]
+    // pt ref, eta corr, eta gen, weighted [6]
     THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
     // pt corr / pt gen, gen pt, reco eta, reco phi [4]
     THnSparseD *hJESInclusiveJetPtEtaPhi;
@@ -470,66 +470,66 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRefDijetEtaCMBackward1DWeighted[16];
 
     // Old ptAve and new eta binning
-    TH1D *hRefDijetEta1DOldPt[5];
-    TH1D *hRefDijetEta1DOldPtWeighted[5];
-    TH2D *hRefEtaLeadVsEtaSubLead2DOldPt[5];
-    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtWeighted[5];
-    TH2D *hRecoVsRefDijetEta2DOldPt[5];
-    TH2D *hRecoVsRefDijetEta2DOldPtWeighted[5];
-    TH2D *hRecoVsRefLeadJetEta2DOldPt[5];
-    TH2D *hRecoVsRefLeadJetEta2DOldPtWeighted[5];
-    TH2D *hRecoVsRefSubLeadJetEta2DOldPt[5];
-    TH2D *hRecoVsRefSubLeadJetEta2DOldPtWeighted[5];
-    TH1D *hRefDijetEtaForward1DOldPt[5];
-    TH1D *hRefDijetEtaForward1DOldPtWeighted[5];
-    TH1D *hRefDijetEtaBackward1DOldPt[5];
-    TH1D *hRefDijetEtaBackward1DOldPtWeighted[5];
+    TH1D *hRefDijetEta1DOldPt[6];
+    TH1D *hRefDijetEta1DOldPtWeighted[6];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPt[6];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtWeighted[6];
+    TH2D *hRecoVsRefDijetEta2DOldPt[6];
+    TH2D *hRecoVsRefDijetEta2DOldPtWeighted[6];
+    TH2D *hRecoVsRefLeadJetEta2DOldPt[6];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtWeighted[6];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPt[6];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtWeighted[6];
+    TH1D *hRefDijetEtaForward1DOldPt[6];
+    TH1D *hRefDijetEtaForward1DOldPtWeighted[6];
+    TH1D *hRefDijetEtaBackward1DOldPt[6];
+    TH1D *hRefDijetEtaBackward1DOldPtWeighted[6];
 
-    TH1D *hRefDijetEta1DOldPtCM[5];
-    TH1D *hRefDijetEta1DOldPtCMWeighted[5];
-    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtCM[5];
-    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
-    TH2D *hRecoVsRefDijetEta2DOldPtCM[5];
-    TH2D *hRecoVsRefDijetEta2DOldPtCMWeighted[5];
-    TH2D *hRecoVsRefLeadJetEta2DOldPtCM[5];
-    TH2D *hRecoVsRefLeadJetEta2DOldPtCMWeighted[5];
-    TH2D *hRecoVsRefSubLeadJetEta2DOldPtCM[5];
-    TH2D *hRecoVsRefSubLeadJetEta2DOldPtCMWeighted[5];
-    TH1D *hRefDijetEtaCMForward1DOldPt[5];
-    TH1D *hRefDijetEtaCMForward1DOldPtWeighted[5];
-    TH1D *hRefDijetEtaCMBackward1DOldPt[5];
-    TH1D *hRefDijetEtaCMBackward1DOldPtWeighted[5];
+    TH1D *hRefDijetEta1DOldPtCM[6];
+    TH1D *hRefDijetEta1DOldPtCMWeighted[6];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtCM[6];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtCMWeighted[6];
+    TH2D *hRecoVsRefDijetEta2DOldPtCM[6];
+    TH2D *hRecoVsRefDijetEta2DOldPtCMWeighted[6];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtCM[6];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtCMWeighted[6];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtCM[6];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtCMWeighted[6];
+    TH1D *hRefDijetEtaCMForward1DOldPt[6];
+    TH1D *hRefDijetEtaCMForward1DOldPtWeighted[6];
+    TH1D *hRefDijetEtaCMBackward1DOldPt[6];
+    TH1D *hRefDijetEtaCMBackward1DOldPtWeighted[6];
 
     // Old ptAve and old eta binning
-    TH1D *hRefDijetEta1DOldPtBinning[5];
-    TH1D *hRefDijetEta1DOldPtBinningWeighted[5];
-    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinning[5];
-    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningWeighted[5];
-    TH2D *hRecoVsRefDijetEta2DOldPtBinning[5];
-    TH2D *hRecoVsRefDijetEta2DOldPtBinningWeighted[5];
-    TH2D *hRecoVsRefLeadJetEta2DOldPtBinning[5];
-    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningWeighted[5];
-    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinning[5];
-    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningWeighted[5];
-    TH1D *hRefDijetEtaForward1DOldPtBinning[5];
-    TH1D *hRefDijetEtaForward1DOldPtBinningWeighted[5];
-    TH1D *hRefDijetEtaBackward1DOldPtBinning[5];
-    TH1D *hRefDijetEtaBackward1DOldPtBinningWeighted[5];
+    TH1D *hRefDijetEta1DOldPtBinning[6];
+    TH1D *hRefDijetEta1DOldPtBinningWeighted[6];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinning[6];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningWeighted[6];
+    TH2D *hRecoVsRefDijetEta2DOldPtBinning[6];
+    TH2D *hRecoVsRefDijetEta2DOldPtBinningWeighted[6];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtBinning[6];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningWeighted[6];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinning[6];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningWeighted[6];
+    TH1D *hRefDijetEtaForward1DOldPtBinning[6];
+    TH1D *hRefDijetEtaForward1DOldPtBinningWeighted[6];
+    TH1D *hRefDijetEtaBackward1DOldPtBinning[6];
+    TH1D *hRefDijetEtaBackward1DOldPtBinningWeighted[6];
 
-    TH1D *hRefDijetEta1DOldPtBinningCM[5];
-    TH1D *hRefDijetEta1DOldPtBinningCMWeighted[5];
-    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningCM[5];
-    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[5];
-    TH2D *hRecoVsRefDijetEta2DOldPtBinningCM[5];
-    TH2D *hRecoVsRefDijetEta2DOldPtBinningCMWeighted[5];
-    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningCM[5];
-    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningCMWeighted[5];
-    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningCM[5];
-    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningCMWeighted[5];
-    TH1D *hRefDijetEtaCMForward1DOldPtBinning[5];
-    TH1D *hRefDijetEtaCMForward1DOldPtBinningWeighted[5];
-    TH1D *hRefDijetEtaCMBackward1DOldPtBinning[5];
-    TH1D *hRefDijetEtaCMBackward1DOldPtBinningWeighted[5];
+    TH1D *hRefDijetEta1DOldPtBinningCM[6];
+    TH1D *hRefDijetEta1DOldPtBinningCMWeighted[6];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningCM[6];
+    TH2D *hRefEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[6];
+    TH2D *hRecoVsRefDijetEta2DOldPtBinningCM[6];
+    TH2D *hRecoVsRefDijetEta2DOldPtBinningCMWeighted[6];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningCM[6];
+    TH2D *hRecoVsRefLeadJetEta2DOldPtBinningCMWeighted[6];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningCM[6];
+    TH2D *hRecoVsRefSubLeadJetEta2DOldPtBinningCMWeighted[6];
+    TH1D *hRefDijetEtaCMForward1DOldPtBinning[6];
+    TH1D *hRefDijetEtaCMForward1DOldPtBinningWeighted[6];
+    TH1D *hRefDijetEtaCMBackward1DOldPtBinning[6];
+    TH1D *hRefDijetEtaCMBackward1DOldPtBinningWeighted[6];
 
     //
     // Ref-selected jet histograms
@@ -566,50 +566,50 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRefSelDijetEtaCMBackward1DWeighted[16];
 
     // Old ptAve and new eta binning
-    TH1D *hRefSelDijetEta1DOldPt[5];
-    TH1D *hRefSelDijetEta1DOldPtWeighted[5];
-    TH1D *hRefSelRecoDijetEta1DOldPt[5];
-    TH1D *hRefSelRecoDijetEta1DOldPtWeighted[5];
-    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPt[5];
-    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtWeighted[5];
-    TH1D *hRefSelDijetEtaForward1DOldPt[5];
-    TH1D *hRefSelDijetEtaForward1DOldPtWeighted[5];
-    TH1D *hRefSelDijetEtaBackward1DOldPt[5];
-    TH1D *hRefSelDijetEtaBackward1DOldPtWeighted[5];
+    TH1D *hRefSelDijetEta1DOldPt[6];
+    TH1D *hRefSelDijetEta1DOldPtWeighted[6];
+    TH1D *hRefSelRecoDijetEta1DOldPt[6];
+    TH1D *hRefSelRecoDijetEta1DOldPtWeighted[6];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPt[6];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtWeighted[6];
+    TH1D *hRefSelDijetEtaForward1DOldPt[6];
+    TH1D *hRefSelDijetEtaForward1DOldPtWeighted[6];
+    TH1D *hRefSelDijetEtaBackward1DOldPt[6];
+    TH1D *hRefSelDijetEtaBackward1DOldPtWeighted[6];
 
-    TH1D *hRefSelDijetEta1DOldPtCM[5];
-    TH1D *hRefSelDijetEta1DOldPtCMWeighted[5];
-    TH1D *hRefSelRecoDijetEta1DOldPtCM[5];
-    TH1D *hRefSelRecoDijetEta1DOldPtCMWeighted[5];
-    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtCM[5];
-    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtCMWeighted[5];
-    TH1D *hRefSelDijetEtaCMForward1DOldPt[5];
-    TH1D *hRefSelDijetEtaCMForward1DOldPtWeighted[5];
-    TH1D *hRefSelDijetEtaCMBackward1DOldPt[5];
-    TH1D *hRefSelDijetEtaCMBackward1DOldPtWeighted[5];
+    TH1D *hRefSelDijetEta1DOldPtCM[6];
+    TH1D *hRefSelDijetEta1DOldPtCMWeighted[6];
+    TH1D *hRefSelRecoDijetEta1DOldPtCM[6];
+    TH1D *hRefSelRecoDijetEta1DOldPtCMWeighted[6];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtCM[6];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtCMWeighted[6];
+    TH1D *hRefSelDijetEtaCMForward1DOldPt[6];
+    TH1D *hRefSelDijetEtaCMForward1DOldPtWeighted[6];
+    TH1D *hRefSelDijetEtaCMBackward1DOldPt[6];
+    TH1D *hRefSelDijetEtaCMBackward1DOldPtWeighted[6];
 
     // Old ptAve and old eta binning
-    TH1D *hRefSelDijetEta1DOldPtBinning[5];
-    TH1D *hRefSelDijetEta1DOldPtBinningWeighted[5];
-    TH1D *hRefSelRecoDijetEta1DOldPtBinning[5];
-    TH1D *hRefSelRecoDijetEta1DOldPtBinningWeighted[5];
-    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinning[5];
-    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningWeighted[5];
-    TH1D *hRefSelDijetEtaForward1DOldPtBinning[5];
-    TH1D *hRefSelDijetEtaForward1DOldPtBinningWeighted[5];
-    TH1D *hRefSelDijetEtaBackward1DOldPtBinning[5];
-    TH1D *hRefSelDijetEtaBackward1DOldPtBinningWeighted[5];
+    TH1D *hRefSelDijetEta1DOldPtBinning[6];
+    TH1D *hRefSelDijetEta1DOldPtBinningWeighted[6];
+    TH1D *hRefSelRecoDijetEta1DOldPtBinning[6];
+    TH1D *hRefSelRecoDijetEta1DOldPtBinningWeighted[6];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinning[6];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningWeighted[6];
+    TH1D *hRefSelDijetEtaForward1DOldPtBinning[6];
+    TH1D *hRefSelDijetEtaForward1DOldPtBinningWeighted[6];
+    TH1D *hRefSelDijetEtaBackward1DOldPtBinning[6];
+    TH1D *hRefSelDijetEtaBackward1DOldPtBinningWeighted[6];
 
-    TH1D *hRefSelDijetEta1DOldPtBinningCM[5];
-    TH1D *hRefSelDijetEta1DOldPtBinningCMWeighted[5];
-    TH1D *hRefSelRecoDijetEta1DOldPtBinningCM[5];
-    TH1D *hRefSelRecoDijetEta1DOldPtBinningCMWeighted[5];
-    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCM[5];
-    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[5];
-    TH1D *hRefSelDijetEtaCMForward1DOldPtBinning[5];
-    TH1D *hRefSelDijetEtaCMForward1DOldPtBinningWeighted[5];
-    TH1D *hRefSelDijetEtaCMBackward1DOldPtBinning[5];
-    TH1D *hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[5];
+    TH1D *hRefSelDijetEta1DOldPtBinningCM[6];
+    TH1D *hRefSelDijetEta1DOldPtBinningCMWeighted[6];
+    TH1D *hRefSelRecoDijetEta1DOldPtBinningCM[6];
+    TH1D *hRefSelRecoDijetEta1DOldPtBinningCMWeighted[6];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCM[6];
+    TH2D *hRefSelEtaLeadVsEtaSubLead2DOldPtBinningCMWeighted[6];
+    TH1D *hRefSelDijetEtaCMForward1DOldPtBinning[6];
+    TH1D *hRefSelDijetEtaCMForward1DOldPtBinningWeighted[6];
+    TH1D *hRefSelDijetEtaCMBackward1DOldPtBinning[6];
+    TH1D *hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[6];
 
   private:
 
