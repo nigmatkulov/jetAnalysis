@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check if the correct number of arguments is provided
-if [ $# -ne 4 ]; then
+if [ $# -ne 3 ]; then
     echo "Usage: $0 <input_file> <N> <sample_name>"
     echo "sample_name: 0 for DATA, 1 for PYTHIA"
     exit 1
