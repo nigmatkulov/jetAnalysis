@@ -2073,9 +2073,15 @@ void HistoManagerDiJet::init() {
             hRefSelDijetEta1DCM[i] = new TH1D(Form("hRefSelDijetEta1DCM_%d",i),Form("Ref selected #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
                                          dijetEtaBins, dijetEtaVals);
             hRefSelDijetEta1DCM[i]->Sumw2();
+            hRefSelDijetEta1DCMWeighted[i] = new TH1D(Form("hRefSelDijetEta1DCMWeighted_%d",i),Form("Ref selected #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelDijetEta1DCMWeighted[i]->Sumw2();
             hRefSelRecoDijetEta1DCM[i] = new TH1D(Form("hRefSelRecoDijetEta1DCM_%d",i),Form("Ref selected reco #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
                                          dijetEtaBins, dijetEtaVals);
             hRefSelRecoDijetEta1DCM[i]->Sumw2();
+            hRefSelRecoDijetEta1DCMWeighted[i] = new TH1D(Form("hRefSelRecoDijetEta1DCMWeighted_%d",i),Form("Ref selected reco #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
+                                         dijetEtaBins, dijetEtaVals);
+            hRefSelRecoDijetEta1DCMWeighted[i]->Sumw2();
             hRefSelEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hRefSelEtaLeadVsEtaSubLead2DCM_%d",i),Form("Ref selected #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
                                                        fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
             hRefSelEtaLeadVsEtaSubLead2DCM[i]->Sumw2();
