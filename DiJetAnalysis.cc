@@ -73,7 +73,7 @@ DiJetAnalysis::~DiJetAnalysis() {
 void DiJetAnalysis::init() {
     // Initialize analysis
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::init -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::init -- begin" << std::endl;
         print();
     }
 
@@ -195,7 +195,7 @@ void DiJetAnalysis::init() {
 void DiJetAnalysis::initVzWeightFunction() {
 
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::initVzWeightFunction -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::initVzWeightFunction -- begin" << std::endl;
     }
 
     // Check if Vz weight function exists
@@ -269,7 +269,7 @@ void DiJetAnalysis::print() {
 //________________
 int DiJetAnalysis::findDijetPtAveBin(const double &ptAve) {
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::findDijetPtAveBin -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::findDijetPtAveBin -- begin" << std::endl;
     }
     int bin{-1};
     if ( fPtAveBins[0] < ptAve && ptAve < fPtAveBins.at( fPtAveBins.size()-1 ) ) {
@@ -291,7 +291,7 @@ int DiJetAnalysis::findDijetPtAveBin(const double &ptAve) {
 //________________
 int DiJetAnalysis::findDijetPtAveOldBin(const double &ptAve) {
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::findDijetPtAveOldBin -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::findDijetPtAveOldBin -- begin" << std::endl;
     }
     int bin{-1};
     if ( fPtAveOldBins[0] < ptAve && ptAve < fPtAveOldBins.at( fPtAveOldBins.size()-1 ) ) {
@@ -315,7 +315,7 @@ double DiJetAnalysis::eventWeight(const double& ptHat, const double& vz,
                                   const double& centWeight, const double& ptHatW) {
 
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::eventWeight -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::eventWeight -- begin" << std::endl;
     }
 
     // Calculate event weight
@@ -386,7 +386,7 @@ void DiJetAnalysis::findLeadSubleadJets(const double &pt, const int &counter,
                                         int &idLead, int &idSubLead) {
     // Find leading and subleading jets
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::findLeadSubleadJets -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::findLeadSubleadJets -- begin" << std::endl;
     }
 
     if ( pt > ptLead ) {
@@ -563,7 +563,7 @@ bool DiJetAnalysis::isGoodJetId(const RecoJet* jet) {
 //________________
 double DiJetAnalysis::boostEta2CM(const double &eta) {
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::boostEta2CM -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::boostEta2CM -- begin" << std::endl;
     }
     double etaCM = eta;
 
@@ -610,7 +610,7 @@ double DiJetAnalysis::boostEta2CM(const double &eta) {
 //________________
 double DiJetAnalysis::etaLab(const double &eta) {
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::etaLab -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::etaLab -- begin" << std::endl;
     }
 
     double etaL = eta;
@@ -704,7 +704,7 @@ bool DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
 void DiJetAnalysis::processGenJets(const Event* event, double weight) {
 
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::processGenJets -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::processGenJets -- begin" << std::endl;
     }
 
     fMcReweight = {1.};
@@ -766,6 +766,7 @@ void DiJetAnalysis::processGenJets(const Event* event, double weight) {
         double dijetPt = 0.5 * (ptLead + ptSubLead);
         double dijetDphi = deltaPhi(phiLead, phiSubLead);
 
+
         // Specifically for pPb
         {
             double etaLead = etaLab( leadJet->eta() );
@@ -776,6 +777,14 @@ void DiJetAnalysis::processGenJets(const Event* event, double weight) {
             double x_Pb = 2. * dijetPt / fCollisionEnergy * TMath::Exp( -1. * dijetDetaCM ) * TMath::CosH( dijetDetaCM );
             double x_p = 2. * dijetPt / fCollisionEnergy * TMath::Exp( dijetDetaCM ) * TMath::CosH( dijetDetaCM );
             double xPbOverXp = x_Pb / x_p;
+
+            if ( fVerbose ) {
+                std::cout << Form("Gen dijet in lab frame: ptLead: %5.2f etaLead: %5.2f phiLead: %5.2f\n", ptLead, etaLead, phiLead);
+                std::cout << Form("Gen dijet in lab frame: ptSubLead: %5.2f etaSubLead: %5.2f phiSubLead: %5.2f\n", ptSubLead, etaSubLead, phiSubLead);
+                std::cout << Form("Gen dijet in lab frame: dijetPt: %5.2f dijetDphi: %5.2f\n", dijetPt, dijetDphi);
+                std::cout << Form("Gen dijet in lab frame: dijetEta: %5.2f dijetDetaCM: %5.2f\n", dijetEta, dijetDetaCM);
+                std::cout << Form("Gen dijet in lab frame: x_Pb: %5.2f x_p: %5.2f xPbOverXp: %5.2f\n", x_Pb, x_p, xPbOverXp);
+            }
 
             fHM->hGenInclusiveDijetDetaCM->Fill( dijetDetaCM, 1. );
             fHM->hGenInclusiveDijetDetaCMWeighted->Fill( dijetDetaCM, weight );
@@ -955,7 +964,7 @@ void DiJetAnalysis::findMcWeight(const double& ptLead, const double& ptSublead) 
 
     if ( fUseMcReweighting !=0 ) {
         if ( fVerbose ) {
-            std::cout << Form("DiJetAnalysis::findMcWeight - ptLead: %5.1f ptSublead: %5.1f\n", ptLead, ptSublead);
+            std::cout << Form("\nDiJetAnalysis::findMcWeight - ptLead: %5.1f ptSublead: %5.1f\n", ptLead, ptSublead);
         }
 
         int ptLeadBin{-1}; 
@@ -984,7 +993,7 @@ void DiJetAnalysis::findMcWeight(const double& ptLead, const double& ptSublead) 
 void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
 
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::processRecoJets -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::processRecoJets -- begin" << std::endl;
     }
 
     fMcReweight = {1.};
@@ -1546,7 +1555,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
 //________________
 void DiJetAnalysis::processRefJets(const Event* event, double ptHatW) {
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::processRefJets -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::processRefJets -- begin" << std::endl;
     }
 
     fMcReweight = {1.};
@@ -1841,7 +1850,7 @@ bool DiJetAnalysis::isGoodDijet(const double& ptLead, const double& etaLead,
                                 const double& dphi, const bool& isCM) {
 
     if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::isGoodDijet -- begin" << std::endl;
+        std::cout << "\nDiJetAnalysis::isGoodDijet -- begin" << std::endl;
     }
 
     double eta1 = ( isCM ) ? boostEta2CM(etaLead) : etaLab(etaLead);
@@ -1883,7 +1892,7 @@ bool DiJetAnalysis::isGoodDijet(const double& ptLead, const double& etaLead,
 void DiJetAnalysis::processEvent(const Event* event) {
     // Perform the analysis
     if ( fVerbose ) {
-        std::cout << "\n++++++++++++++++++++++++++++++++++++++++" << std::endl;
+        std::cout << "\n\n++++++++++++++++++++++++++++++++++++++++" << std::endl;
         std::cout << "++++++++++++++++++++++++++++++++++++++++" << std::endl;
         std::cout << "++++++++++++++++++++++++++++++++++++++++" << std::endl;
         std::cout << "DiJetAnalysis::processEvent -- begin" << std::endl;
