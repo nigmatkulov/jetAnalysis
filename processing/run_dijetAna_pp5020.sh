@@ -28,7 +28,11 @@ echo -e "JEU syst         : ${jeuSyst}"
 echo -e "JER syst         : ${jerSyst}"
 
 # Run jetAna
-../build/dijetAna_pPb8160 ${input_file_list} ${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst}
+if [ "$is_mc" -eq 1 ]; then
+    ../build/dijetAna_pp5020 ${input_file_list} /eos/user/g/gnigmatk/ana/pp5020/pythia/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst}
+else
+    ../build/dijetAna_pp5020 ${input_file_list} /eos/user/g/gnigmatk/ana/pp5020/exp/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst}
+fi
 
 
-echo -e "Data processing of ${input_file_list} is finished"
+echo -e "Data processing of the ${input_file_list} is finished"

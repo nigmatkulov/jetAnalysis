@@ -114,19 +114,24 @@ target_link_libraries(${libname} ${ROOT_LIBRARIES})
 #         LIBRARY DESTINATION "${CMAKE_BINARY_DIR}/lib" OPTIONAL)
 
 # Create main executable (to call from the command line)
-add_executable(jetAna jetAna.cxx)
+add_executable(jetESR jetESR.cxx)
 # Link created libraries
-target_link_libraries(jetAna ${libname})
+target_link_libraries(jetESR ${libname})
 
 # Create main executable (to call from the command line)
-add_executable(dijetAna dijetAna.cxx)
+add_executable(dijetAna_pPb8160 dijetAna_pPb8160.cxx)
 # Link created libraries
-target_link_libraries(dijetAna ${libname})
+target_link_libraries(dijetAna_pPb8160 ${libname})
 
 # Create main executable (to call from the command line)
 add_executable(dijetAna_pPb5020 dijetAna_pPb5020.cxx)
 # Link created libraries
 target_link_libraries(dijetAna_pPb5020 ${libname})
+
+# Create main executable (to call from the command line)
+add_executable(dijetAna_pp5020 dijetAna_pp5020.cxx)
+# Link created libraries
+target_link_libraries(dijetAna_pp5020 ${libname})
 
 # Include directories 
 #target_include_directories(jetAna PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})

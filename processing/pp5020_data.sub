@@ -1,0 +1,14 @@
+universe   = vanilla
+getenv     = True
+executable = run_dijet_pp5020.sh
++JobFlavour  = "longlunch"
+requirements = ((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
+transfer_input_files  = voms_proxy.txt
+environment = "X509_USER_PROXY=voms_proxy.txt"
+RequestCpus = 1
+
+log        = condor/log/pp5020_pythia.log
+output     = condor/log/pp5020_pythia.out
+error      = condor/log/pp5020_pythia.err
+arguments  = /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing/filelists/pp5020/DATA/ppData2017_jet60or80Triggers.list /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing/pp5020_data.root 0 0 -100000000 100000000 0 0
+queue

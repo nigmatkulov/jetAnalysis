@@ -26,6 +26,11 @@ fi
 # Dataset number
 pd_number=$1
 
+# JEU systematics: 0 - default, -1 - JEU-, 1 - JEU+
+jeuSyst=0 
+# JER systematics: 0 - default, -1 - JER-, 1 - JER+
+jerSyst=0
+
 # Generate path to the inputfile list
 if [ "$sample_name" == "DATA_MB" ]; then
     sample_prefix="MB_PD${pd_number}_${direction}"
@@ -48,7 +53,7 @@ files_per_job=50
 #input_file_list=$HOME/filelists/test_list.txt
 
 echo -e "Splitting input file list: ${input_file_list}"
-n_sublists=$(./split_dijet_input.sh ${input_file_list} ${files_per_job} ${sample_name} ${direction} ${pd_number})
+n_sublists=$(./split_pPb8160_dataset.sh ${input_file_list} ${files_per_job} ${sample_name} ${direction} ${pd_number})
 echo -e "Input file list is splitted into ${n_sublists}"
 
 if [ ! -d "condor/sub/pPb8160/${formatted_date}" ]; then
@@ -87,7 +92,7 @@ EOF
 
 for ((jobId = 1; jobId <= $n_sublists; jobId++)); do
     cat <<EOF >>condor/sub/pPb8160/${formatted_date}/pPb8160_${sample_prefix}.sub
-arguments             = input/pPb8160/${formatted_date}/${sample_prefix}_$jobId.list ${sample_prefix}_pPb8160_$jobId.root 0 ${is_Pbgoing} 0 15000
+arguments             = input/pPb8160/${formatted_date}/${sample_prefix}_$jobId.list ${sample_prefix}_pPb8160_$jobId.root 0 ${is_Pbgoing} 0 15000 ${jeuSyst} ${jerSyst} 
 output                = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.out
 error                 = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.err
 log                   = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.log

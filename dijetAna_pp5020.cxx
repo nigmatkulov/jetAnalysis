@@ -27,24 +27,24 @@ void usage() {
 int main(int argc, char const *argv[]) {
 
     // Set default values for arguments
-    bool isMc{false};
+    bool isMc{true};
     bool isCentWeightCalc{false};
     bool isPbGoingDir{};
     TString inFileName{};
-    int  collEnergyGeV{5020}; 
-    int  collisionSystem{1}; // 0 - pp, 1 -pPb, 2 - PbPb 
-    TString collisionSystemName{"pPb"};
-    double   collYear{2016};
-    TString recoJetBranchName{"akCs4PFJetAnalyzer"};
-    //TString recoJetBranchName{"ak4PFJetAnalyzer"};
+    int   collEnergyGeV{5020}; // Keep this value intentionally to use the corrections
+    int   collisionSystem{0};  // 0 - pp, 1 -pPb, 2 - PbPb 
+    TString collisionSystemName{"pp"};
+    int   collYear{2016};
+    // TString recoJetBranchName{"akCs4PFJetAnalyzer"};
+    TString recoJetBranchName{"ak4PFJetAnalyzer"};
     TString oFileName{};
     TString JECFileName;
     TString JECFileDataName;
     TString JEUFileName;
     TString path2JEC = "..";
-    double ptHatCut[2] {-10000000, 10000000};
-    int   useJEUSyst{0};     // 0-default, 1-JEU+, -1-JEU-
-    int   useJERSyst{0};     // 0-default, 1-JER+, -1-JER-
+    double ptHatCut[2] {-100000000, 100000000};
+    int   useJEUSyst{0};  // 0-default, 1-JEU+, -1-JEU-
+    int   useJERSyst{0};  // 0-default, 1-JER+, -1-JER-
     double etaShift = 0.465;
 
     // Sequence of command line arguments:
@@ -89,23 +89,12 @@ int main(int argc, char const *argv[]) {
               << std::endl;
 
     if (isMc) {
-        if (isPbGoingDir) {
-            JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
-        }
-        else {
-            JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
-        }
+        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
     }
     else {
-        if (isPbGoingDir) { // Remember to flip to p-going for data
-            JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
-            
-        }
-        else {
-            JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
-        }
-        JECFileDataName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt";
-        JEUFileName = "Summer16_23Sep2016HV4_DATA_Uncertainty_AK4PF.txt";
+        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
+        JECFileDataName = "/Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
+        JEUFileName = "Spring18_ppRef5TeV_V6_DATA_Uncertainty_AK4PF.txt";
     } // else
 
     // Initialize package manager
@@ -118,20 +107,24 @@ int main(int argc, char const *argv[]) {
     eventCut->usePBeamScrapingFilter();
     eventCut->usePPAprimaryVertexFilter();
     eventCut->useHBHENoiseFilterResultRun2Loose();
-    eventCut->usePhfCoincFilter();
+    //eventCut->usePhfCoincFilter();
+
     // Default cut
-    eventCut->usePVertexFilterCutdz1p0();
+    // eventCut->usePVertexFilterCutdz1p0();
     // Pile-up systematics
     // eventCut->usePVertexFilterCutGplus();
     // Pile-up systematics
     //eventCut->usePVertexFilterCutVtx1();
     
-    // Trigger
+    // Triggers from Vipul
     if ( !isMc ) {
-        eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
-        // eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
-        // eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
+        eventCut->useHLT_HIAK4PFJet60_v1();
+        // eventCut->useHLT_HIAK4PFJet80_v1();
+
+        //eventCut->useHLT_HIAK4CaloJet60_v1();
+        // eventCut->useHLT_HIAK4CaloJet80_v1();
     }
+    
 
     // Set ptHat cut for embedding
     if ( isMc ) {
@@ -166,12 +159,10 @@ int main(int argc, char const *argv[]) {
         reader->useExtraJECCorr();
     }
 
-    //reader->useCaloJetBranch();
     reader->setCollidingSystem( collisionSystemName.Data() );
-    reader->setCollidingEnergy( 8160 ) ;   // Use 8160 to get the same corrections
+    reader->setCollidingEnergy( collEnergyGeV ) ;
     reader->setYearOfDataTaking( collYear );
     reader->setEventCut(eventCut);
-    //reader->setJetCut(jetCut);
     reader->fixJetArrays();
 
     // Set path to jet analysis (then will automatically add path to aux_files)
@@ -185,7 +176,7 @@ int main(int argc, char const *argv[]) {
     if ( isMc ) {
         reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use
         reader->setJERFitParams(0.0415552, 0.960013);
-        reader->setJERSystParams();
+        //reader->setJERSystParams();
     }
 
     //reader->setVerbose();
@@ -197,12 +188,9 @@ int main(int argc, char const *argv[]) {
     DiJetAnalysis *analysis = new DiJetAnalysis{};
     analysis->setCollisionSystem( collisionSystem );
     analysis->setCollisionEnergyInGeV( collEnergyGeV );
-    analysis->setIsMc( isMc );
+    analysis->setIsMc(isMc);
     if (isMc) {
         analysis->setPtHatRange(ptHatCut[0], ptHatCut[1]);
-    }
-    if ( isPbGoingDir ) {
-        analysis->setPbGoing();
     }
     analysis->setEtaShift( etaShift );
     analysis->setLeadJetPtLow( 30. );
@@ -213,13 +201,12 @@ int main(int argc, char const *argv[]) {
     if ( isMc ) {
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
     }
-    //analysis->selectJetsInCMFrame();
     //analysis->setVerbose();
     
     // Initialize histogram manager
     HistoManagerDiJet *hm = new HistoManagerDiJet{};
     hm->setIsMc( isMc );
-    hm->init(); 
+    hm->init(); // true stands up for use MC; need to FIX
 
     // Add histogram manager to analysis
     analysis->addHistoManager(hm);

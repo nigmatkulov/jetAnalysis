@@ -25,25 +25,27 @@ ClassImp(EventCut)
 EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fShiftVx{0}, fShiftVy{0}, fVR{1e9}, 
     fHiBin{-1000, 1000}, fCentVal{-1000., 1000.},
-    fPtHat{-1e9, 1e9}, fPtHatWeight{-1e9, 1e9}, fVerbose{kFALSE},
-    fPPrimaryVertexFilter{kFALSE},
-    fHBHENoiseFilterResultRun2Loose{kFALSE},
-    fCollisionEventSelectionAODc2{kFALSE},
-    fPhfCoincFilter2Th4{kFALSE},
-    fPPAprimaryVertexFilter{kFALSE},
-    fPBeamScrapingFilter{kFALSE},
-    fPClusterCompatibilityFilter{kFALSE},
-    fPhfCoincFilter{kFALSE},
-    fPVertexFilterCutdz1p0{kFALSE},
-    fPVertexFilterCutGplus{kFALSE},
-    fPVertexFilterCutVtx1{kFALSE},
-    fHLT_HIAK4CaloJet60_v1{kFALSE},
-    fHLT_HIAK4CaloJet80_v1{kFALSE},
-    fHLT_HIPuAK4CaloJet80Eta5p1_v1{kFALSE},
-    fHLT_PAAK4PFJet60_Eta5p1_v4{kFALSE},
-    fHLT_PAAK4PFJet80_Eta5p1_v3{kFALSE},
-    fHLT_PAAK4PFJet100_Eta5p1_v3{kFALSE},
-    fHLT_PAAK4PFJet120_Eta5p1_v2{kFALSE},
+    fPtHat{-100000000, 100000000}, fPtHatWeight{-1e9, 1e9}, fVerbose{false},
+    fPPrimaryVertexFilter{false},
+    fHBHENoiseFilterResultRun2Loose{false},
+    fCollisionEventSelectionAODc2{false},
+    fPhfCoincFilter2Th4{false},
+    fPPAprimaryVertexFilter{false},
+    fPBeamScrapingFilter{false},
+    fPClusterCompatibilityFilter{false},
+    fPhfCoincFilter{false},
+    fPVertexFilterCutdz1p0{false},
+    fPVertexFilterCutGplus{false},
+    fPVertexFilterCutVtx1{false},
+    fHLT_HIAK4CaloJet60_v1{false},
+    fHLT_HIAK4CaloJet80_v1{false},
+    fHLT_HIPuAK4CaloJet80Eta5p1_v1{false},
+    fHLT_PAAK4PFJet60_Eta5p1_v4{false},
+    fHLT_PAAK4PFJet80_Eta5p1_v3{false},
+    fHLT_PAAK4PFJet100_Eta5p1_v3{false},
+    fHLT_PAAK4PFJet120_Eta5p1_v2{false},
+    fHLT_HIAK4PFJet60_v1{false},
+    fHLT_HIAK4PFJet80_v1{false},
     fEventsPassed{0}, fEventsFailed{0} {
     fLumi[0] = 0;
     fLumi[1] = std::numeric_limits<unsigned int>::max();
@@ -70,29 +72,29 @@ void EventCut::report() {
 }
 
 //________________
-Bool_t EventCut::pass(const Event* ev) {
+bool EventCut::pass(const Event* ev) {
     
     if (fVerbose) {
         std::cout << "\n----- Event cut -----\n";
     }
 
-    const Bool_t goodVx = kTRUE;
-    const Bool_t goodVy = kTRUE;
+    const bool goodVx = true;
+    const bool goodVy = true;
 
-    const Bool_t goodVz = ( fVz[0] <= ev->vz() ) &&
+    const bool goodVz = ( fVz[0] <= ev->vz() ) &&
                           ( ev->vz() < fVz[1] );
     if (fVerbose) {
         std::cout << Form("vz        : %5.2f <= %5.2f < %5.2f \t %s \n",
                           fVz[0], ev->vz(), fVz[1], ( goodVz ) ? "true" : "false" );
     }
 
-    const Bool_t goodHiBin = ( fHiBin[0] <= ev->hiBin() ) &&
+    const bool goodHiBin = ( fHiBin[0] <= ev->hiBin() ) &&
                              ( ev->hiBin() < fHiBin[1] );
     if (fVerbose) {
         std::cout << Form("hiBin        : %d <= %d < %d \t %s \n",
                           fHiBin[0], ev->hiBin(), fHiBin[1], ( goodHiBin ) ? "true" : "false" );
     }
-    const Bool_t goodCent = ( fCentVal[0] <=  ev->centrality() ) &&
+    const bool goodCent = ( fCentVal[0] <=  ev->centrality() ) &&
                             ( ev->centrality() < fCentVal[1] );
 
     if (fVerbose) {
@@ -100,7 +102,7 @@ Bool_t EventCut::pass(const Event* ev) {
                           fCentVal[0], ev->centrality(), fCentVal[1], ( goodCent ) ? "true" : "false" );
     }
 
-    const Bool_t goodPtHat = ( fPtHat[0] <= ev->ptHat() ) &&
+    const bool goodPtHat = ( fPtHat[0] <= ev->ptHat() ) &&
                              ( ev->ptHat() < fPtHat[1] );
 
     if (fVerbose) {
@@ -108,7 +110,7 @@ Bool_t EventCut::pass(const Event* ev) {
                           fPtHat[0], ev->ptHat(), fPtHat[1], ( goodPtHat ) ? "true" : "false" );
     }
 
-    const Bool_t goodPtHatWeight = ( fPtHatWeight[0] <= ev->ptHatWeight() ) &&
+    const bool goodPtHatWeight = ( fPtHatWeight[0] <= ev->ptHatWeight() ) &&
                                    ( ev->ptHatWeight() < fPtHatWeight[1] );
                 
     if (fVerbose) {
@@ -116,10 +118,10 @@ Bool_t EventCut::pass(const Event* ev) {
                           fPtHatWeight[0], ev->ptHatWeight(), fPtHatWeight[1], ( goodPtHatWeight ) ? "true" : "false" );
     }
 
-    Bool_t goodFilters{kTRUE};
+    bool goodFilters{true};
     if ( fPPrimaryVertexFilter ) {
         if ( ev->trigAndSkim()->pprimaryVertexFilter() == 0 ) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad pprimaryVertexFilter\n");
             }
@@ -128,7 +130,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fHBHENoiseFilterResultRun2Loose ) {
         if ( ev->trigAndSkim()->HBHENoiseFilterResultRun2Loose() == 0 ) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad HBHENoiseFilterResultRun2Loos\n");
             }
@@ -136,7 +138,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fCollisionEventSelectionAODc2 ) {
         if ( ev->trigAndSkim()->collisionEventSelectionAODv2() == 0 ) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad collisionEventSelectionAODv2\n");
             }
@@ -144,7 +146,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPhfCoincFilter2Th4 ) {
         if ( ev->trigAndSkim()->phfCoincFilter2Th4() == 0 ) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad phfCoincFilter2Th4\n");
             }
@@ -152,7 +154,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPPAprimaryVertexFilter ) {
         if ( ev->trigAndSkim()->pPAprimaryVertexFilter() == 0 ) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad pPAprimaryVertexFilter\n");
             }
@@ -160,7 +162,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPBeamScrapingFilter ) {
         if ( ev->trigAndSkim()->pBeamScrapingFilter() == 0 ) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad pBeamScrapingFilter\n");
             }
@@ -168,7 +170,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPClusterCompatibilityFilter ) {
         if ( ev->trigAndSkim()->pClusterCompatibilityFilter() == 0 ) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad pClusterCompatibilityFilter\n");
             }
@@ -176,7 +178,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPhfCoincFilter ) {
         if ( ev->trigAndSkim()->phfCoincFilter() == 0) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad phfCoincFilter\n");
             }
@@ -184,7 +186,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPVertexFilterCutdz1p0 ) {
         if ( ev->trigAndSkim()->pVertexFilterCutdz1p0() == 0) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad pVertexFilterCutdz1p0\n");
             }
@@ -192,7 +194,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPVertexFilterCutGplus ) {
         if ( ev->trigAndSkim()->pVertexFilterCutGplus() == 0) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad pVertexFilterCutGplus\n");
             }
@@ -200,7 +202,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fPVertexFilterCutVtx1 ) {
         if ( ev->trigAndSkim()->pVertexFilterCutVtx1() == 0) {
-            goodFilters = {kFALSE};
+            goodFilters = {false};
             if ( fVerbose ) {
                 std::cout << Form("Bad pVertexFilterCutVtx1\n");
             }
@@ -210,10 +212,10 @@ Bool_t EventCut::pass(const Event* ev) {
         std::cout << Form("Event filters passed: %s\n", (goodFilters) ? "true" : "false");
     }
 
-    Bool_t goodTrigger{kTRUE};
+    bool goodTrigger{true};
     if ( fHLT_HIAK4CaloJet60_v1 ) {
         if ( ev->trigAndSkim()->HLT_HIAK4CaloJet60_v1() == 0 ) {
-            goodTrigger = { kFALSE };
+            goodTrigger = { false };
             if ( fVerbose ) {
                 std::cout << Form("Bad trigger: HLT_HIAK4CaloJet60_v1\n");
             }
@@ -221,7 +223,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fHLT_HIAK4CaloJet80_v1 ) {
         if ( ev->trigAndSkim()->HLT_HIAK4CaloJet80_v1() == 0 ) {
-            goodTrigger = { kFALSE };
+            goodTrigger = { false };
             if ( fVerbose ) {
                 std::cout << Form("Bad trigger: HLT_HIAK4CaloJet80_v1\n");
             }
@@ -229,7 +231,7 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fHLT_HIPuAK4CaloJet80Eta5p1_v1 ) {
         if ( ev->trigAndSkim()->HLT_HIPuAK4CaloJet80Eta5p1_v1() == 0 ) {
-            goodTrigger = { kFALSE };
+            goodTrigger = { false };
             if ( fVerbose ) {
                 std::cout << Form("Bad trigger: HLT_HIPuAK4CaloJet80Eta5p1_v1\n");
             }
@@ -237,33 +239,49 @@ Bool_t EventCut::pass(const Event* ev) {
     }
     if ( fHLT_PAAK4PFJet60_Eta5p1_v4 ) {
         if ( ev->trigAndSkim()->HLT_PAAK4PFJet60_Eta5p1_v4() == 0 ) {
-            goodTrigger = { kFALSE };
+            goodTrigger = { false };
             if ( fVerbose ) {
                 std::cout << Form("Bad trigger: HLT_PAAK4PFJet60_Eta5p1_v4\n");
             }
         }
     }
-        if ( fHLT_PAAK4PFJet80_Eta5p1_v3 ) {
+    if ( fHLT_PAAK4PFJet80_Eta5p1_v3 ) {
         if ( ev->trigAndSkim()->HLT_PAAK4PFJet80_Eta5p1_v3() == 0 ) {
-            goodTrigger = { kFALSE };
+            goodTrigger = { false };
             if ( fVerbose ) {
                 std::cout << Form("Bad trigger: HLT_PAAK4PFJet80_Eta5p1_v3\n");
             }
         }
     }
-        if ( fHLT_PAAK4PFJet100_Eta5p1_v3 ) {
+    if ( fHLT_PAAK4PFJet100_Eta5p1_v3 ) {
         if ( ev->trigAndSkim()->HLT_PAAK4PFJet100_Eta5p1_v3() == 0 ) {
-            goodTrigger = { kFALSE };
+            goodTrigger = { false };
             if ( fVerbose ) {
                 std::cout << Form("Bad trigger: HLT_PAAK4PFJet100_Eta5p1_v3\n");
             }
         }
     }
-        if ( fHLT_PAAK4PFJet120_Eta5p1_v2 ) {
+    if ( fHLT_PAAK4PFJet120_Eta5p1_v2 ) {
         if ( ev->trigAndSkim()->HLT_PAAK4PFJet120_Eta5p1_v2() == 0 ) {
-            goodTrigger = { kFALSE };
+            goodTrigger = { false };
             if ( fVerbose ) {
                 std::cout << Form("Bad trigger: HLT_PAAK4PFJet120_Eta5p1_v2\n");
+            }
+        }
+    }
+    if ( fHLT_HIAK4PFJet60_v1) {
+        if ( ev->trigAndSkim()->HLT_HIAK4PFJet60_v1() == 0 ) {
+            goodTrigger = { false };
+            if ( fVerbose ) {
+                std::cout << Form("Bad trigger: HLT_HIAK4PFJet60_v1\n");
+            }
+        }
+    }
+    if ( fHLT_HIAK4PFJet80_v1) {
+        if ( ev->trigAndSkim()->HLT_HIAK4PFJet80_v1() == 0 ) {
+            goodTrigger = { false };
+            if ( fVerbose ) {
+                std::cout << Form("Bad trigger: HLT_HIAK4PFJet80_v1\n");
             }
         }
     }
@@ -271,7 +289,7 @@ Bool_t EventCut::pass(const Event* ev) {
         std::cout << Form("Event triggers passed: %s\n", (goodTrigger) ? "true" : "false");
     }
 
-    Bool_t passEvent = goodVx && goodVy && goodVz && goodHiBin && goodFilters &&
+    bool passEvent = goodVx && goodVy && goodVz && goodHiBin && goodFilters &&
                        goodCent && goodPtHat && goodPtHatWeight && goodTrigger;
     ( passEvent ) ? fEventsPassed++ : fEventsFailed++;
     
