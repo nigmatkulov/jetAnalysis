@@ -768,39 +768,37 @@ void DiJetAnalysis::processGenJets(const Event* event, double weight) {
 
 
         // Specifically for pPb
-        {
-            double etaLead = etaLab( leadJet->eta() );
-            double etaSubLead = etaLab( subLeadJet->eta() );    
-            double dijetEta = 0.5 * (etaLead + etaSubLead);
-            double dijetDetaCM = 0.5 * ( etaLead - etaSubLead );
+        double etaLead = etaLab( leadJet->eta() );
+        double etaSubLead = etaLab( subLeadJet->eta() );    
+        double dijetEta = 0.5 * (etaLead + etaSubLead);
+        double dijetDetaCM = 0.5 * ( etaLead - etaSubLead );
 
-            double x_Pb = 2. * dijetPt / fCollisionEnergy * TMath::Exp( -1. * dijetDetaCM ) * TMath::CosH( dijetDetaCM );
-            double x_p = 2. * dijetPt / fCollisionEnergy * TMath::Exp( dijetDetaCM ) * TMath::CosH( dijetDetaCM );
-            double xPbOverXp = x_Pb / x_p;
+        double x_Pb = 2. * dijetPt / fCollisionEnergy * TMath::Exp( -1. * dijetDetaCM ) * TMath::CosH( dijetDetaCM );
+        double x_p = 2. * dijetPt / fCollisionEnergy * TMath::Exp( dijetDetaCM ) * TMath::CosH( dijetDetaCM );
+        double xPbOverXp = x_Pb / x_p;
 
-            if ( fVerbose ) {
-                std::cout << Form("Gen dijet in lab frame: ptLead: %5.2f etaLead: %5.2f phiLead: %5.2f\n", ptLead, etaLead, phiLead);
-                std::cout << Form("Gen dijet in lab frame: ptSubLead: %5.2f etaSubLead: %5.2f phiSubLead: %5.2f\n", ptSubLead, etaSubLead, phiSubLead);
-                std::cout << Form("Gen dijet in lab frame: dijetPt: %5.2f dijetDphi: %5.2f\n", dijetPt, dijetDphi);
-                std::cout << Form("Gen dijet in lab frame: dijetEta: %5.2f dijetDetaCM: %5.2f\n", dijetEta, dijetDetaCM);
-                std::cout << Form("Gen dijet in lab frame: x_Pb: %5.2f x_p: %5.2f xPbOverXp: %5.2f\n", x_Pb, x_p, xPbOverXp);
-            }
-
-            fHM->hGenInclusiveDijetDetaCM->Fill( dijetDetaCM, 1. );
-            fHM->hGenInclusiveDijetDetaCMWeighted->Fill( dijetDetaCM, weight );
-            fHM->hGenInclusiveDijetDetaCMPt->Fill( dijetDetaCM, dijetPt, 1. );
-            fHM->hGenInclusiveDijetDetaCMPtWeighted->Fill( dijetDetaCM, dijetPt, weight );
-            fHM->hGenInclusiveDijetEtaDetaCMPt->Fill( dijetEta, dijetDetaCM, dijetPt, 1. );
-            fHM->hGenInclusiveDijetEtaDetaCMPtWeighted->Fill( dijetEta, dijetDetaCM, dijetPt, weight );
-            fHM->hGenInclusiveDijetXPb->Fill( x_Pb, 1. );
-            fHM->hGenInclusiveDijetXPbWeighted->Fill( x_Pb, weight );
-            fHM->hGenInclusiveDijetXp->Fill( x_p, 1. );
-            fHM->hGenInclusiveDijetXpWeighted->Fill( x_p, weight );
-            fHM->hGenInclusiveDijetXPbOverXp->Fill( xPbOverXp, 1. );
-            fHM->hGenInclusiveDijetXPbOverXpWeighted->Fill( xPbOverXp, weight );
-            fHM->hGenInclusiveDijetXPbOverXpEta->Fill( xPbOverXp, dijetEta, 1. );
-            fHM->hGenInclusiveDijetXPbOverXpEtaWeighted->Fill( xPbOverXp, dijetEta, weight );
+        if ( fVerbose ) {
+            std::cout << Form("Gen dijet in lab frame: ptLead: %5.2f etaLead: %5.2f phiLead: %5.2f\n", ptLead, etaLead, phiLead);
+            std::cout << Form("Gen dijet in lab frame: ptSubLead: %5.2f etaSubLead: %5.2f phiSubLead: %5.2f\n", ptSubLead, etaSubLead, phiSubLead);
+            std::cout << Form("Gen dijet in lab frame: dijetPt: %5.2f dijetDphi: %5.2f\n", dijetPt, dijetDphi);
+            std::cout << Form("Gen dijet in lab frame: dijetEta: %5.2f dijetDetaCM: %5.2f\n", dijetEta, dijetDetaCM);
+            std::cout << Form("Gen dijet in lab frame: x_Pb: %5.2f x_p: %5.2f xPbOverXp: %5.2f\n", x_Pb, x_p, xPbOverXp);
         }
+
+        fHM->hGenInclusiveDijetDetaCM->Fill( dijetDetaCM, 1. );
+        fHM->hGenInclusiveDijetDetaCMWeighted->Fill( dijetDetaCM, weight );
+        fHM->hGenInclusiveDijetDetaCMPt->Fill( dijetDetaCM, dijetPt, 1. );
+        fHM->hGenInclusiveDijetDetaCMPtWeighted->Fill( dijetDetaCM, dijetPt, weight );
+        fHM->hGenInclusiveDijetEtaDetaCMPt->Fill( dijetEta, dijetDetaCM, dijetPt, 1. );
+        fHM->hGenInclusiveDijetEtaDetaCMPtWeighted->Fill( dijetEta, dijetDetaCM, dijetPt, weight );
+        fHM->hGenInclusiveDijetXPb->Fill( x_Pb, 1. );
+        fHM->hGenInclusiveDijetXPbWeighted->Fill( x_Pb, weight );
+        fHM->hGenInclusiveDijetXp->Fill( x_p, 1. );
+        fHM->hGenInclusiveDijetXpWeighted->Fill( x_p, weight );
+        fHM->hGenInclusiveDijetXPbOverXp->Fill( xPbOverXp, 1. );
+        fHM->hGenInclusiveDijetXPbOverXpWeighted->Fill( xPbOverXp, weight );
+        fHM->hGenInclusiveDijetXPbOverXpEta->Fill( xPbOverXp, dijetEta, 1. );
+        fHM->hGenInclusiveDijetXPbOverXpEtaWeighted->Fill( xPbOverXp, dijetEta, weight );
 
         //
         // Lab frame
