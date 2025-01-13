@@ -1879,6 +1879,10 @@ void HistoManagerDiJet::init() {
         hGenSelectedDijetXPbOverXp->Sumw2();
         hGenSelectedDijetXPbOverXpWeighted = new TH1D("hGenSelectedDijetXPbOverXpWeighted", "Selected Gen Dijet x_{Pb}/x_{p} (weighted);x_{Pb}/x_{p};Entries", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1]);
         hGenSelectedDijetXPbOverXpWeighted->Sumw2();
+        hGenSelectedDijetXPbOverXpEta = new TH2D("hGenSelectedDijetXPbOverXpEta", "Selected Gen Dijet x_{Pb}/x_{p} vs #eta^{dijet};x_{Pb}/x_{p};#eta^{dijet}", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1], fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenSelectedDijetXPbOverXpEta->Sumw2();
+        hGenSelectedDijetXPbOverXpEtaWeighted = new TH2D("hGenSelectedDijetXPbOverXpEtaWeighted", "Selected Gen Dijet x_{Pb}/x_{p} vs #eta^{dijet} (weighted);x_{Pb}/x_{p};#eta^{dijet}", xPbOverXpBins, xPbOverXpRange[0], xPbOverXpRange[1], fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+        hGenSelectedDijetXPbOverXpEtaWeighted->Sumw2();
 
         // Reco single jets
         hRecoInclusiveUnmatchedJetPtVsEta = new TH2D("hRecoInclusiveUnmatchedJetPtVsEta", "Inclusive reco jet unmatched gen pT vs eta;#eta;p_{T} (GeV/c)",
