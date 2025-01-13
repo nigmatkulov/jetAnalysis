@@ -563,7 +563,7 @@ bool DiJetAnalysis::isGoodJetId(const RecoJet* jet) {
 //________________
 double DiJetAnalysis::boostEta2CM(const double &eta) {
     if ( fVerbose ) {
-        std::cout << "\nDiJetAnalysis::boostEta2CM -- begin" << std::endl;
+        std::cout << "DiJetAnalysis::boostEta2CM -- begin" << std::endl;
     }
     double etaCM = eta;
 
@@ -610,7 +610,7 @@ double DiJetAnalysis::boostEta2CM(const double &eta) {
 //________________
 double DiJetAnalysis::etaLab(const double &eta) {
     if ( fVerbose ) {
-        std::cout << "\nDiJetAnalysis::etaLab -- begin" << std::endl;
+        std::cout << "DiJetAnalysis::etaLab -- begin" << std::endl;
     }
 
     double etaL = eta;
@@ -1268,6 +1268,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                 double dijetRefPt = 0.5 * (ptRefLead + ptRefSubLead);
                 double dijetRefEta = 0.5 * ( etaRefLead + etaRefSubLead );
                 double dijetRefDphi = deltaPhi(phiRefLead, phiRefSubLead);
+
+                if ( fVerbose ) {
+                    std::cout << Form("Ref dijet parameters: pt: %5.1f eta: %5.2f dphi: %5.2f\n", dijetRefPt, dijetRefEta, dijetRefDphi);
+                }
 
                 // Leading jet information
                 double correl[5] { ptRecoLead, ptRawRecoLead, ptRefLead, etaRecoLead, etaRefLead };
