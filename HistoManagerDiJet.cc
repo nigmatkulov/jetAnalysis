@@ -1676,6 +1676,9 @@ void HistoManagerDiJet::init() {
             hGenDijetEtaBackward1DOldPt[i] = new TH1D(Form("hGenDijetEtaBackward1DOldPt_%d",i), Form("Gen #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
                                                   dijetEtaFBBins, dijetEtaFBVals);
             hGenDijetEtaBackward1DOldPt[i]->Sumw2();
+            hGenDijetEtaBackward1DOldPtWeighted[i] = new TH1D(Form("hGenDijetEtaBackward1DOldPtWeighted_%d",i), Form("Gen #eta^{dijet} backward in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
+                                                          dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetEtaBackward1DOldPtWeighted[i]->Sumw2();
 
         
             hGenDijetEta1DOldPtCM[i] = new TH1D(Form("hGenDijetEta1DOldPtCM_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
