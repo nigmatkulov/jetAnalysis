@@ -273,7 +273,7 @@ int DiJetAnalysis::findDijetPtAveBin(const double &ptAve) {
     }
     int bin{-1};
     if ( fPtAveBins[0] < ptAve && ptAve < fPtAveBins.at( fPtAveBins.size()-1 ) ) {
-        for (unsigned int i=0; i<fPtAveBins.size()-2; i++) {
+        for (unsigned int i=0; i<fPtAveBins.size()-1; i++) {
             if ( fPtAveBins[i] <= ptAve && ptAve < fPtAveBins[i+1] ) {
                 bin = i;
                 break;
@@ -295,7 +295,7 @@ int DiJetAnalysis::findDijetPtAveOldBin(const double &ptAve) {
     }
     int bin{-1};
     if ( fPtAveOldBins[0] < ptAve && ptAve < fPtAveOldBins.at( fPtAveOldBins.size()-1 ) ) {
-        for (unsigned int i=0; i<fPtAveOldBins.size()-2; i++) {
+        for (unsigned int i=0; i<fPtAveOldBins.size()-1; i++) {
             if ( fPtAveOldBins[i] <= ptAve && ptAve < fPtAveOldBins[i+1] ) {
                 bin = i;
                 break;
