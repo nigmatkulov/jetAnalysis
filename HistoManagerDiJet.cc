@@ -247,7 +247,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRefSelDijetPtEtaDphiCMWeighted{nullptr}
 { 
     // New ptAve binning
-    for (int i{0}; i<16; i++) {
+    for (int i{0}; i<fPtAveBins.size()-2; i++) {
 
         // Gen jets
         hGenDijetEta1D[i] = nullptr;
@@ -339,10 +339,10 @@ HistoManagerDiJet::HistoManagerDiJet() :
         hRefSelDijetEtaCMBackward1D[i] = nullptr;
         hRefSelDijetEtaCMBackward1DWeighted[i] = nullptr;
 
-    } // for (int i{0}; i<16; i++)
+    } // for (int i{0}; i<fPtAveBins.size()-2; i++)
 
     // Old ptAve binning
-    for (int i{0}; i<5; i++) {
+    for (int i{0}; i<fPtAveOldBins.size()-2; i++) {
 
         // Gen jets
         hGenDijetEta1DOldPt[i] = nullptr;
@@ -512,7 +512,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
         hRefSelDijetEtaCMForward1DOldPtBinningWeighted[i] = nullptr;
         hRefSelDijetEtaCMBackward1DOldPtBinning[i] = nullptr;
         hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[i] = nullptr;
-    } // for (int i{0}; i<5; i++)
+    } // for (int i{0}; i<fPtAveOldBins.size()-2; i++)
 
     double dijetPtVals[17] {  50.,  60.,   70.,  80.,  90.,
                               100., 110.,  120., 130., 140.,
@@ -623,7 +623,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hGenSelectedDijetXPbOverXpEta) delete hGenSelectedDijetXPbOverXpEta;
         if (hGenSelectedDijetXPbOverXpEtaWeighted) delete hGenSelectedDijetXPbOverXpEtaWeighted;
 
-        for (int i{0}; i<16; i++) {
+        for (int i{0}; i<fPtAveBins.size()-2; i++) {
             if (hGenDijetEta1D[i]) delete hGenDijetEta1D[i];
             if (hGenDijetEta1DWeighted[i]) delete hGenDijetEta1DWeighted[i];
             if (hGenDijetEtaLeadVsEtaSubLead2D[i]) delete hGenDijetEtaLeadVsEtaSubLead2D[i];
@@ -642,7 +642,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
             if (hGenDijetEtaCMBackward1DWeighted[i]) delete hGenDijetEtaCMBackward1DWeighted[i];
         }
 
-        for (int i{0}; i<5; i++) {
+        for (int i{0}; i<fPtAveOldBins.size()-2; i++) {
             if (hGenDijetEta1DOldPt[i]) delete hGenDijetEta1DOldPt[i];
             if (hGenDijetEta1DOldPtWeighted[i]) delete hGenDijetEta1DOldPtWeighted[i];
             if (hGenDijetEtaLeadVsEtaSubLead2DOldPt[i]) delete hGenDijetEtaLeadVsEtaSubLead2DOldPt[i];
@@ -720,7 +720,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoDijetEtaCM) delete hRecoDijetEtaCM;
 
 
-    for (int i{0}; i<16; i++) {
+    for (int i{0}; i<fPtAveBins.size()-2; i++) {
         if (hRecoDijetEta1D[i]) delete hRecoDijetEta1D[i];
         if (hRecoDijetEta1DWeighted[i]) delete hRecoDijetEta1DWeighted[i];
         if (hRecoDijetEtaLeadVsEtaSubLead2D[i]) delete hRecoDijetEtaLeadVsEtaSubLead2D[i];
@@ -739,7 +739,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRecoDijetEtaCMBackward1DWeighted[i]) delete hRecoDijetEtaCMBackward1DWeighted[i];
     }
 
-    for (int i{0}; i<5; i++) {
+    for (int i{0}; i<fPtAveOldBins.size()-2; i++) {
         if (hRecoDijetEta1DOldPt[i]) delete hRecoDijetEta1DOldPt[i];
         if (hRecoDijetEta1DOldPtWeighted[i]) delete hRecoDijetEta1DOldPtWeighted[i];
         if (hRecoDijetEtaLeadVsEtaSubLead2DOldPt[i]) delete hRecoDijetEtaLeadVsEtaSubLead2DOldPt[i];
@@ -936,7 +936,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRefSelDijetPtEtaDphiCM) delete hRefSelDijetPtEtaDphiCM;
         if (hRefSelDijetPtEtaDphiCMWeighted) delete hRefSelDijetPtEtaDphiCMWeighted;
 
-        for (int i{0}; i<16; i++) {
+        for (int i{0}; i<fPtAveBins.size()-2; i++) {
             if (hRefSelDijetEta1D[i]) delete hRefSelDijetEta1D[i];
             if (hRefSelDijetEta1DWeighted[i]) delete hRefSelDijetEta1DWeighted[i];
             if (hRefSelRecoDijetEta1D[i]) delete hRefSelRecoDijetEta1D[i];
@@ -960,7 +960,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
             if (hRefSelDijetEtaCMBackward1DWeighted[i]) delete hRefSelDijetEtaCMBackward1DWeighted[i];
         }
 
-        for (int i{0}; i<5; i++) {
+        for (int i{0}; i<fPtAveOldBins.size()-2; i++) {
             if (hRefSelDijetEta1DOldPt[i]) delete hRefSelDijetEta1DOldPt[i];
             if (hRefSelDijetEta1DOldPtWeighted[i]) delete hRefSelDijetEta1DOldPtWeighted[i];
             if (hRefSelRecoDijetEta1DOldPt[i]) delete hRefSelRecoDijetEta1DOldPt[i];
@@ -1302,7 +1302,7 @@ void HistoManagerDiJet::init() {
     hRecoDijetEta->Sumw2();
 
     // New ptAve and eta binning
-    for (int i{0}; i<16; ++i) {
+    for (int i{0}; i<fPtAveBins.size()-2; ++i) {
         double ptAveLow = fPtAveBins.at(i);
         double ptAveHi = fPtAveBins.at(i+1);
         
@@ -1357,10 +1357,10 @@ void HistoManagerDiJet::init() {
                                                         dijetEtaFBBins, dijetEtaFBVals);
         hRecoDijetEtaCMBackward1DWeighted[i]->Sumw2();
 
-    } // for (int i{0}; i<16; ++i)
+    } // for (int i{0}; i<fPtAveBins.size()-2; ++i)
 
 
-    for (int i{0}; i<5; ++i) {
+    for (int i{0}; i<fPtAveOldBins.size()-2; ++i) {
 
         double ptAveLow = fPtAveOldBins.at(i);
         double ptAveHi = fPtAveOldBins.at(i+1);
@@ -1596,7 +1596,7 @@ void HistoManagerDiJet::init() {
                                 fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hGenDijetEta->Sumw2();
 
-        for (int i=0; i<16; i++) {
+        for (int i=0; i<fPtAveBins.size()-2; i++) {
             double ptAveLow = fPtAveBins.at(i);
             double ptAveHi = fPtAveBins.at(i+1);
             hGenDijetEta1D[i] = new TH1D(Form("hGenDijetEta1D_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
@@ -1650,7 +1650,7 @@ void HistoManagerDiJet::init() {
             hGenDijetEtaCMBackward1DWeighted[i]->Sumw2();
         }
 
-        for (int i=0; i<5; i++) {
+        for (int i=0; i<fPtAveOldBins.size()-2; i++) {
 
             double ptAveLow = fPtAveOldBins.at(i);
             double ptAveHi = fPtAveOldBins.at(i+1);
@@ -2038,7 +2038,7 @@ void HistoManagerDiJet::init() {
         hRefSelDijetPtEtaDphiCMWeighted->Sumw2();
 
         // New pT and eta binning
-        for (int i{0}; i<16; i++) {
+        for (int i{0}; i<fPtAveBins.size()-2; i++) {
             double ptAveLow = fPtAveBins.at(i);
             double ptAveHi = fPtAveBins.at(i+1);
             hRefSelDijetEta1D[i] = new TH1D(Form("hRefSelDijetEta1D_%d",i),Form("Ref selected #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
@@ -2103,10 +2103,10 @@ void HistoManagerDiJet::init() {
             hRefSelDijetEtaCMBackward1DWeighted[i] = new TH1D(Form("hRefSelDijetEtaCMBackward1DWeighted_%d",i),Form("Ref selected #eta^{dijet}_{CM} backward for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
                                                    dijetEtaFBBins, dijetEtaFBVals);
             hRefSelDijetEtaCMBackward1DWeighted[i]->Sumw2();
-        } // for (int i{0}; i<16; i++)
+        } // for (int i{0}; i<fPtAveBins.size()-2; i++)
 
         // Old pT binning
-        for (int i{0}; i<5; i++) {
+        for (int i{0}; i<fPtAveOldBins.size()-2; i++) {
             double ptAveLow = fPtAveOldBins.at(i);
             double ptAveHi = fPtAveOldBins.at(i+1);
 
@@ -2237,7 +2237,7 @@ void HistoManagerDiJet::init() {
                                                    dijetEtaFBBins, dijetEtaFBVals);
             hRefSelDijetEtaCMBackward1DOldPtBinningWeighted[i]->Sumw2();
 
-        } // for (int i{0}; i<5; i++)
+        } // for (int i{0}; i<fPtAveOldBins.size()-2; i++)
 
 
         //
@@ -2276,7 +2276,7 @@ void HistoManagerDiJet::init() {
         hRefDijetEta->Sumw2();
 
         // New pT and eta binning
-        for (int i{0}; i<16; i++) {
+        for (int i{0}; i<fPtAveBins.size()-2; i++) {
             double ptAveLow = fPtAveBins.at(i);
             double ptAveHi = fPtAveBins.at(i+1);
             hRefDijetEta1D[i] = new TH1D(Form("hRefDijetEta1D_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
@@ -2367,7 +2367,7 @@ void HistoManagerDiJet::init() {
         }
 
         // Old pT binning
-        for (int i{0}; i<5; i++) {
+        for (int i{0}; i<fPtAveOldBins.size()-2; i++) {
 
             double ptAveLow = fPtAveOldBins.at(i);
             double ptAveHi = fPtAveOldBins.at(i+1);
