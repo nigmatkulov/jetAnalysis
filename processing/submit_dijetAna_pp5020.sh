@@ -22,10 +22,10 @@ jerSyst=0
 # Generate path to the inputfile list
 if [ "$sample_name" -eq 0 ]; then
     sample_prefix="data"
-    input_file_list="${EXEC_PATH}/filelists/pp5020/DATA/ppData2017_jet60or80Triggers.txt"
+    input_file_list="${EXEC_PATH}/filelists/pp5020/DATA/ppData2017_jet60or80Triggers.list"
 else
     sample_prefix="pythia"
-    input_file_list="${EXEC_PATH}/filelists/pp5020/PYTHIA/Pythia_pThat15.txt"
+    input_file_list="${EXEC_PATH}/filelists/pp5020/PYTHIA/Pythia_pThat15.list"
 fi
 
 # Specify number of files per list to split
