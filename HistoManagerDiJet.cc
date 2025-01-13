@@ -2328,6 +2328,9 @@ void HistoManagerDiJet::init() {
             hRefEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DCM_%d",i),Form("Ref #eta^{Leading}_{CM} vs #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
                                                     fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
             hRefEtaLeadVsEtaSubLead2DCM[i]->Sumw2();
+            hRefEtaLeadVsEtaSubLead2DCMWeighted[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DCMWeighted_%d",i),Form("Ref #eta^{Leading}_{CM} vs #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
+                                                    fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
+            hRefEtaLeadVsEtaSubLead2DCMWeighted[i]->Sumw2();
             hRecoVsRefDijetEta2DCM[i] = new TH2D(Form("hRecoVsRefDijetEta2DCM_%d",i),Form("Reco vs Ref #eta^{dijet}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;Reco #eta^{dijet}_{CM};Ref #eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
                                                     dijetEtaBins, dijetEtaVals, dijetEtaBins, dijetEtaVals);
             hRecoVsRefDijetEta2DCM[i]->Sumw2();
