@@ -1397,6 +1397,7 @@ void HistoManagerDiJet::init() {
         hRecoDijetEta1DOldPtBinning[i]->Sumw2();
         hRecoDijetEta1DOldPtBinningWeighted[i] = new TH1D(Form("hRecoDijetEta1DOldPtBinningWeighted_%d",i),Form("Reco #eta^{dijet} in the lab frame in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}", i, ptAveLow, ptAveHi),
                                                           dijetEtaOldBins, dijetEtaOldVals);
+        hRecoDijetEta1DOldPtBinningWeighted[i]->Sumw2();
         hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[i] = new TH2D(Form("hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning_%d",i),Form("Reco dijet #eta lead vs sublead in %d for %3.0f<p_{T}^{ave} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
                                                               fEtaBins, fEtaRange[0], fEtaRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoDijetEtaLeadVsEtaSubLead2DOldPtBinning[i]->Sumw2();
