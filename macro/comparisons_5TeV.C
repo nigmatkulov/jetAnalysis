@@ -521,6 +521,70 @@ void crossCheckProjections(TFile *f, const char *collisionSystem = "pp5020",int 
 }
 
 //________________
+void compareNew2Old(TFile *newFile, TFile *oldFile, int iCase = 0) {
+    
+    // iCase: 0 - reco, 1 - gen, 2 - ref
+    if ( iCase < 0 || iCase > 2 ) {
+        std::cerr << "[ERROR] Invalid case: " << iCase << std::endl;
+        return;
+    }
+    TString jetType = (iCase == 0) ? "Reco" : (iCase == 1) ? "Gen" : "Ref";
+
+    // Dijet ptAve binning
+    int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
+                             100, 110,  120, 130, 140,
+                             150, 160,  180, 200, 250, 
+                             300, 500};
+    int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
+
+    std::vector<int> dijetPtVals; 
+    dijetPtVals.assign(dijetPtNewVals, dijetPtNewVals + sizeOfPtVals);
+
+    // Bins for projections from 3D
+    std::vector<int> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
+    std::vector<int> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
+
+    // Retrieve 3D histogram
+    TH3D *h3DNew = dynamic_cast<TH3D*>( newFile->Get( Form( "h%sDijetPtEtaDphiWeighted", jetType.Data() ) ) );
+    TH3D *h3DOld = dynamic_cast<TH3D*>( oldFile->Get( Form( "h%sDijetPtEtaDphiWeighted", jetType.Data() ) ) );
+    TH1D *h1DProjNew[ ptDijetBinLow.size() ];
+    TH1D *h1DProjOld[ ptDijetBinLow.size() ];
+
+    TCanvas *cComp[ ptDijetBinLow.size() ];
+
+    // Loop over dijet ptAve bins
+    for (unsigned int i = 0; i < ptDijetBinLow.size(); i++) {
+
+        int ptLow = dijetPtVals[i];
+        int ptHi = dijetPtVals[i+1];
+        int canvX{500}, canvY{1000};
+
+        // Make projection
+        h1DProjNew[i] = dynamic_cast<TH1D*>( h3DNew->ProjectionY( Form("h%sDijetEta_%d_%d", jetType.Data(), dijetPtVals[i], dijetPtVals[i+1]), 
+                                                                 ptDijetBinLow[i], ptDijetBinHi[i] ) );
+        h1DProjNew[i]->SetName( Form("h%sDijetEtaProjNew_%d_%d", jetType.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        rescaleEta( h1DProjNew[i] );
+        set1DStyle( h1DProjNew[i], 0 );
+
+        // Make projection
+        h1DProjOld[i] = dynamic_cast<TH1D*>( h3DOld->ProjectionY( Form("h%sDijetEta_%d_%d", jetType.Data(), dijetPtVals[i], dijetPtVals[i+1]), 
+                                                                 ptDijetBinLow[i], ptDijetBinHi[i] ) );
+        h1DProjOld[i]->SetName( Form("h%sDijetEtaProjOld_%d_%d", jetType.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        rescaleEta( h1DProjOld[i] );
+        set1DStyle( h1DProjOld[i], 1 );
+
+        // Create canvas
+        cComp[i] = new TCanvas( Form("c%sDijetEtaComp_%d", jetType.Data(), i), 
+                                Form("c%sDijetEtaComp_%d", jetType.Data(), i), 
+                                canvX, canvY );
+        cComp[i]->Divide(1, 2);
+        plotComparison( cComp[i], h1DProjNew[i], h1DProjOld[i], 
+                        ptLow, ptHi, Form("%s proj. new", jetType.Data()), Form("%s proj. old", jetType.Data()) );
+
+    }
+}
+
+//________________
 void comparisons_5TeV() {
 
     // Base style
@@ -597,7 +661,7 @@ void comparisons_5TeV() {
 
     // Stopped here. Need to compare distributions for pPb8160 from 3D projections
 
-    
+
 
     // Compare distributions for pp5020
     //compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile);
@@ -606,11 +670,16 @@ void comparisons_5TeV() {
     // compare_pPb5020(pubFile, pPb5020RunBDataFile, pPb5020RunDDataFile);
 
     // Compare distributions for RpPb
-    compare_RpPb(pubFile, pPb5020RunBDataFile, pp5020DataFile);
+    // compare_RpPb(pubFile, pPb5020RunBDataFile, pp5020DataFile);
 
     // Cross check projections
     // crossCheckProjections(pp5020PythiaFile, "pp5020", 0);  // Reco
     // crossCheckProjections(pp5020PythiaFile, "pp5020", 1);  // Gen
     // crossCheckProjections(pp5020PythiaFile, "pp5020", 2);  // Ref
+
+    // Compare new and old for pPb8160
+    // compareNew2Old(pPb8160EmbedNewFile, pPb8160EmbedOldFile, 0);  // Reco
+    compareNew2Old(pPb8160EmbedNewFile, pPb8160EmbedOldFile, 1);  // Gen
+    // compareNew2Old(pPb8160EmbedNewFile, pPb8160EmbedOldFile, 2);  // Ref
 
 }
