@@ -181,6 +181,27 @@ void plotComparison(TCanvas *c, TH1D* h1, TH1D* h2,
 }
 
 //________________
+void compareReco2GenInclusiveJetPt(TFile *f) {
+
+    // TH2D *hGenInclusiveJetPtEta = dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetPtEta") );
+    // TH2D *hRecoInclusiveJetPtEta = dynamic_cast<TH2D*>( f->Get("hRecoInclusiveJetPtEta") );
+
+
+    TH1D *hRecoInclusiveJetPt = dynamic_cast<TH1D*>( f->Get("hRecoInclusiveJetPt") );
+    TH1D *hGenInclusiveJetPt = dynamic_cast<TH1D*>( f->Get("hGenInclusiveJetPt") );
+
+    // hRecoInclusiveJetPt->Scale( 1./hRecoInclusiveJetPt->Integral() );
+    set1DStyle( hRecoInclusiveJetPt, 0 );
+    //hGenInclusiveJetPt->Scale( 1./hGenInclusiveJetPt->Integral() );
+    set1DStyle( hGenInclusiveJetPt, 1 );
+
+    int canvX{500}, canvY{1000};
+    TCanvas *cReco2GenComp = new TCanvas( "cReco2GenComp", "cReco2GenComp", canvX, canvY );
+    cReco2GenComp->Divide(1, 2);
+    plotComparison(cReco2GenComp, hRecoInclusiveJetPt, hGenInclusiveJetPt, 0, 1500, "Reco", "Gen");
+}
+
+//________________
 void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
 
     // Dijet ptAve binning
@@ -269,12 +290,12 @@ void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
         // Pythia gen vs. pythia reco
         //
 
-        // cPythiaGen2PythiaRecoComparison[i-1] = new TCanvas( Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
-        //                                                     Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
-        //                                                     canvX, canvY );
-        // cPythiaGen2PythiaRecoComparison[i-1]->Divide(1, 2);
-        // plotComparison( cPythiaGen2PythiaRecoComparison[i-1], hPythiaGenDijetEta[i], hPythiaRecoDijetEta[i], 
-        //                ptLow, ptHi, "pp5020 pythia gen", "pp5020 pythia reco");
+        cPythiaGen2PythiaRecoComparison[i-1] = new TCanvas( Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
+                                                            Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
+                                                            canvX, canvY );
+        cPythiaGen2PythiaRecoComparison[i-1]->Divide(1, 2);
+        plotComparison( cPythiaGen2PythiaRecoComparison[i-1], hPythiaGenDijetEta[i], hPythiaRecoDijetEta[i], 
+                       ptLow, ptHi, "pp5020 pythia gen", "pp5020 pythia reco");
 
         
         //
@@ -351,34 +372,34 @@ void compare_pPb5020(TFile *pub, TFile *runB, TFile *runD) {
         // Published vs. RunB
         //
 
-        cPub2RunBComparison[i-1] = new TCanvas( Form("pPbPub2RunBComparison_%d", i-1), 
-                                                Form("pPbPub2RunBComparison_%d", i-1), 
-                                                canvX, canvY );
-        cPub2RunBComparison[i-1]->Divide(1, 2);
-        plotComparison(cPub2RunBComparison[i-1], hPubDijetEta[i], hRunBDijetEta[i], 
-                       ptLow, ptHi, "pPb5020 pub.", "pPb5020 RunB");
+        // cPub2RunBComparison[i-1] = new TCanvas( Form("pPbPub2RunBComparison_%d", i-1), 
+        //                                         Form("pPbPub2RunBComparison_%d", i-1), 
+        //                                         canvX, canvY );
+        // cPub2RunBComparison[i-1]->Divide(1, 2);
+        // plotComparison(cPub2RunBComparison[i-1], hPubDijetEta[i], hRunBDijetEta[i], 
+        //                ptLow, ptHi, "pPb5020 pub.", "pPb5020 RunB");
 
         //
         // Published vs. RunD
         //
 
-        cPub2RunDComparison[i-1] = new TCanvas( Form("pPbPub2RunDComparison_%d", i-1), 
-                                                Form("pPbPub2RunDComparison_%d", i-1), 
-                                                canvX, canvY );
-        cPub2RunDComparison[i-1]->Divide(1, 2);
-        plotComparison(cPub2RunDComparison[i-1], hPubDijetEta[i], hRunDDijetEta[i], 
-                       ptLow, ptHi, "pPb5020 pub.", "pPb5020 RunD");
+        // cPub2RunDComparison[i-1] = new TCanvas( Form("pPbPub2RunDComparison_%d", i-1), 
+        //                                         Form("pPbPub2RunDComparison_%d", i-1), 
+        //                                         canvX, canvY );
+        // cPub2RunDComparison[i-1]->Divide(1, 2);
+        // plotComparison(cPub2RunDComparison[i-1], hPubDijetEta[i], hRunDDijetEta[i], 
+        //                ptLow, ptHi, "pPb5020 pub.", "pPb5020 RunD");
 
         //
         // RunB vs. RunD
         //
 
-        cRunB2RunDComparison[i-1] = new TCanvas( Form("pPbRunB2RunDComparison_%d", i-1), 
-                                                 Form("pPbRunB2RunDComparison_%d", i-1), 
-                                                 canvX, canvY );
-        cRunB2RunDComparison[i-1]->Divide(1, 2);
-        plotComparison(cRunB2RunDComparison[i-1], hRunBDijetEta[i], hRunDDijetEta[i], 
-                       ptLow, ptHi, "pPb5020 RunB", "pPb5020 RunD");
+        // cRunB2RunDComparison[i-1] = new TCanvas( Form("pPbRunB2RunDComparison_%d", i-1), 
+        //                                          Form("pPbRunB2RunDComparison_%d", i-1), 
+        //                                          canvX, canvY );
+        // cRunB2RunDComparison[i-1]->Divide(1, 2);
+        // plotComparison(cRunB2RunDComparison[i-1], hRunBDijetEta[i], hRunDDijetEta[i], 
+        //                ptLow, ptHi, "pPb5020 RunB", "pPb5020 RunD");
 
     } // for (int i{1}; i < dijetPtVals.size() - 1; i++)
 }
@@ -663,12 +684,14 @@ void comparisons_5TeV() {
     //
     // Compare distributions for pp5020
     //
-    // compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile);
+    //compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile);
+
+    compareReco2GenInclusiveJetPt(pp5020PythiaFile);
 
     //
     // Compare distributions for pPb5020
     //
-    compare_pPb5020(pubFile, pPb5020RunBDataFile, pPb5020RunDDataFile);
+    // compare_pPb5020(pubFile, pPb5020RunBDataFile, pPb5020RunDDataFile);
 
     //
     // Compare distributions for RpPb

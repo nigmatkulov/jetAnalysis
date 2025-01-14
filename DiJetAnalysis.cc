@@ -1026,9 +1026,6 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
         else if ( TMath::Abs( eta ) <= 3.0 ) { dummyIter = {2}; }
         else { dummyIter = {3}; }
 
-        fHM->hRecoInclusiveJetPt->Fill(pt, weight);
-        fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt, weight);
-
         // JetId histograms
         fHM->hRecoInclusiveJetNHF[dummyIter]->Fill( (*recoJetIter)->jtPfNHF(), weight );
         fHM->hRecoInclusiveJetNEmF[dummyIter]->Fill( (*recoJetIter)->jtPfNEF(), weight );
@@ -1059,6 +1056,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
             }
             continue; 
         }
+
+        fHM->hRecoInclusiveJetPt->Fill(pt, weight);
+        fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt, weight);
 
         // On MC check reco jet matching to gen
         if ( fIsMc ) {
