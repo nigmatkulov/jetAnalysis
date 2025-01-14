@@ -93,7 +93,7 @@ int main(int argc, char const *argv[]) {
     }
     else {
         JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
-        JECFileDataName = "/Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
+        JECFileDataName = "Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
         JEUFileName = "Spring18_ppRef5TeV_V6_DATA_Uncertainty_AK4PF.txt";
     } // else
 

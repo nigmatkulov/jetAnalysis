@@ -281,12 +281,12 @@ void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
         // Published vs. pythia gen
         //
 
-        cPub2PythiaGenComparison[i-1] = new TCanvas( Form("ppPub2PythiaGenComparison_%d", i-1), 
-                                                     Form("ppPub2PythiaGenComparison_%d", i-1), 
-                                                     canvX, canvY );
-        cPub2PythiaGenComparison[i-1]->Divide(1, 2);
-        plotComparison( cPub2PythiaGenComparison[i-1], hPubDijetEta[i], hPythiaGenDijetEta[i], 
-                       ptLow, ptHi, "pp5020 pub.", "pp5020 pythia gen");
+        // cPub2PythiaGenComparison[i-1] = new TCanvas( Form("ppPub2PythiaGenComparison_%d", i-1), 
+        //                                              Form("ppPub2PythiaGenComparison_%d", i-1), 
+        //                                              canvX, canvY );
+        // cPub2PythiaGenComparison[i-1]->Divide(1, 2);
+        // plotComparison( cPub2PythiaGenComparison[i-1], hPubDijetEta[i], hPythiaGenDijetEta[i], 
+        //                ptLow, ptHi, "pp5020 pub.", "pp5020 pythia gen");
 
     } // for (int i{1}; i < dijetPtVals.size() - 1; i++)
 
@@ -659,27 +659,34 @@ void comparisons_5TeV() {
         return;
     }
 
-    // Stopped here. Need to compare distributions for pPb8160 from 3D projections
 
-
-
+    //
     // Compare distributions for pp5020
-    //compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile);
+    //
+    // compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile);
 
+    //
     // Compare distributions for pPb5020
-    // compare_pPb5020(pubFile, pPb5020RunBDataFile, pPb5020RunDDataFile);
+    //
+    compare_pPb5020(pubFile, pPb5020RunBDataFile, pPb5020RunDDataFile);
 
+    //
     // Compare distributions for RpPb
+    //
     // compare_RpPb(pubFile, pPb5020RunBDataFile, pp5020DataFile);
 
+    //
     // Cross check projections
+    //
     // crossCheckProjections(pp5020PythiaFile, "pp5020", 0);  // Reco
     // crossCheckProjections(pp5020PythiaFile, "pp5020", 1);  // Gen
     // crossCheckProjections(pp5020PythiaFile, "pp5020", 2);  // Ref
 
+    //
     // Compare new and old for pPb8160
+    //
     // compareNew2Old(pPb8160EmbedNewFile, pPb8160EmbedOldFile, 0);  // Reco
-    compareNew2Old(pPb8160EmbedNewFile, pPb8160EmbedOldFile, 1);  // Gen
+    // compareNew2Old(pPb8160EmbedNewFile, pPb8160EmbedOldFile, 1);  // Gen
     // compareNew2Old(pPb8160EmbedNewFile, pPb8160EmbedOldFile, 2);  // Ref
 
 }
