@@ -1083,6 +1083,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, double weight) {
                 // Jet energy scale
                 fHM->hJESInclusiveJetPtEtaPhi->Fill(res, 1.);
                 fHM->hJESInclusiveJetPtEtaPhiWeighted->Fill( res, weight );
+                // Fill JES vs pt for |eta| < 1.4 (midrapidity)
+                if ( TMath::Abs( genEta ) < 1.4 ) {
+                    fHM->hInclusiveJetJESVsPtGen->Fill( genPt, JES, weight );
+                }
 
                 double correl[5] { pt, ptRaw, genPt, eta, genEta };
                 fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill( correl );

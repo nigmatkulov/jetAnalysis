@@ -181,10 +181,11 @@ void plotComparison(TCanvas *c, TH1D* h1, TH1D* h2,
 }
 
 //________________
-void compareReco2GenInclusiveJetPt(TFile *f) {
+void compareReco2GenInclusiveJetPtEta(TFile *f) {
 
     // Bins to project 
     int etaBinsProj[2] = {20, 32};
+    int ptBinsProj[2] = {1, 1};
     TH2D *hGenInclusiveJetPtEta = dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetPtEta") );
     TH2D *hRecoInclusiveJetPtEta = dynamic_cast<TH2D*>( f->Get("hRecoInclusiveAllJetPtVsEta") );
 
@@ -633,10 +634,10 @@ void comparisons_5TeV() {
     //
 
     // Processed data
-    // TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_wExtraJEC.root", uname.Data()) );
-    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) );
+    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_wExtraJEC.root", uname.Data()) );
+    // TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) );
     if ( !pp5020DataFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_wExtraJEC.root", uname.Data()) << std::endl;
         return;
     }
 
@@ -687,9 +688,9 @@ void comparisons_5TeV() {
     //
     // Compare distributions for pp5020
     //
-    //compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile);
+    compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile);
 
-    compareReco2GenInclusiveJetPt(pp5020PythiaFile);
+    // compareReco2GenInclusiveJetPt(pp5020PythiaFile);
 
     //
     // Compare distributions for pPb5020

@@ -24,21 +24,21 @@ ClassImp(ForestAODReader)
 
 //_________________
 ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEvents2Read{0}, fEventsProcessed{0},
-    fIsMc{kFALSE}, fCorrectCentMC{kFALSE}, fUseHltBranch{kTRUE}, fUseSkimmingBranch{kTRUE}, 
+    fIsMc{false}, fCorrectCentMC{false}, fUseHltBranch{kTRUE}, fUseSkimmingBranch{kTRUE}, 
     fUseRecoJetBranch{kTRUE}, 
-    fUseTrackBranch{kFALSE}, fUseGenTrackBranch{kFALSE},
+    fUseTrackBranch{false}, fUseGenTrackBranch{false},
     fHltTree{nullptr}, fSkimTree{nullptr}, fEventTree{nullptr},
     fRecoJetTree{nullptr}, fTrkTree{nullptr}, fGenTrkTree{nullptr},
     fRecoJetTreeName{"akCs4PFJetAnalyzer"},
     fJEC{nullptr}, fJECFiles{}, fJECPath{}, fJEU{nullptr}, fJEUInputFileName{},
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
-    fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
-    fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
+    fYearOfDataTaking{2018}, fDoJetPtSmearing{false}, 
+    fFixJetArrays{false}, fEventCut{nullptr}, fJetCut{nullptr},
     fRecoJet2GenJetId{}, fGenJet2RecoJet{}, 
-    fUseExtraJEC{kFALSE}, fJECScaleCorr{nullptr}, fUseJEU{0},
+    fUseExtraJECforAk4Cs{false}, fJECScaleCorr{nullptr}, fUseJEU{0},
     fUseJERSystematics{0}, fAlphaJER{0.0415552}, fBetaJER{0.960013},
     fJERSmearFunc{nullptr}, fRndm{nullptr},
-    fVerbose{kFALSE} {
+    fVerbose{false} {
     if ( fVerbose ) {
         std::cout << "ForestAODReader::ForestAODReader()" << std::endl;
     }
@@ -49,24 +49,24 @@ ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEve
 }
 
 //_________________
-ForestAODReader::ForestAODReader(const Char_t* inputStream,  
-                                 const Bool_t& useHltBranch, const Bool_t& useSkimmingBranch, 
-                                 const Bool_t& useRecoJetBranch, 
-                                 const Bool_t& useTrackBranch, const Bool_t& useGenTrackBranch, 
-                                 const Bool_t& isMc) : 
+ForestAODReader::ForestAODReader(const char* inputStream,  
+                                 const bool& useHltBranch, const bool& useSkimmingBranch, 
+                                 const bool& useRecoJetBranch, 
+                                 const bool& useTrackBranch, const bool& useGenTrackBranch, 
+                                 const bool& isMc) : 
     fEvent{nullptr}, fInFileName{inputStream}, fEvents2Read{0}, 
-    fEventsProcessed{0}, fIsMc{isMc}, fCorrectCentMC{kFALSE},
+    fEventsProcessed{0}, fIsMc{isMc}, fCorrectCentMC{false},
     fUseHltBranch{useHltBranch}, fUseSkimmingBranch{useSkimmingBranch}, 
     fUseRecoJetBranch{useRecoJetBranch}, 
     fUseTrackBranch{useTrackBranch}, fUseGenTrackBranch{useGenTrackBranch},
     fRecoJetTreeName{"akCs4PFJetAnalyzer"},
     fJEC{nullptr}, fJECFiles{}, fJECPath{}, fJEU{nullptr}, fJEUInputFileName{},
     fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
-    fYearOfDataTaking{2018}, fDoJetPtSmearing{kFALSE}, 
-    fFixJetArrays{kFALSE}, fEventCut{nullptr}, fJetCut{nullptr},
+    fYearOfDataTaking{2018}, fDoJetPtSmearing{false}, 
+    fFixJetArrays{false}, fEventCut{nullptr}, fJetCut{nullptr},
     fJECScaleCorr{nullptr}, fUseJEU{0}, fUseJERSystematics{0}, 
     fAlphaJER{0.0415552}, fBetaJER{0.960013}, fJERSmearFunc{nullptr}, 
-    fVerbose{kFALSE} {
+    fVerbose{false} {
     // Initialize many variables
     fRndm = new TRandom3(0);
     clearVariables();
@@ -140,16 +140,16 @@ void ForestAODReader::setJERSystParams() {
 }
 
 //________________
-Double_t ForestAODReader::retrieveResolutionFactor(const Double_t& eta) {
+double ForestAODReader::retrieveResolutionFactor(const double& eta) {
     if ( fVerbose ) {
         std::cout << "ForestAODReader::retrieveResolutionFactor\n";
     }
 
-    Double_t val{1.};
-    Double_t res{0.};
+    double val{1.};
+    double res{0.};
 
     // Search for the bin index
-    for (Int_t i{0}; i<fJerEtaLow.size(); i++) {
+    for (int i{0}; i<fJerEtaLow.size(); i++) {
         if ( eta>=fJerEtaLow.at(i) && eta<fJerEtaHi.at(i) ) {
             if ( fUseJERSystematics == -1 ) {
                 val = fJerLow.at(i);
@@ -165,7 +165,7 @@ Double_t ForestAODReader::retrieveResolutionFactor(const Double_t& eta) {
             }
             break;
         }
-    } // for (Int_t i{0}; i<fJerEtaLow.size(); i++)
+    } // for (int i{0}; i<fJerEtaLow.size(); i++)
 
     res = TMath::Sqrt( TMath::Max(val * val - 1., 0.) );
 
@@ -177,13 +177,16 @@ Double_t ForestAODReader::retrieveResolutionFactor(const Double_t& eta) {
 }
 
 //________________
-Double_t ForestAODReader::extraJERCorr(const Double_t &ptCorr, const Double_t &eta) {
+double ForestAODReader::extraJERCorr(const double &ptCorr, const double &eta) {
+    // This factor applied to the reco jet pT after JEC to match data.
+    // By default JEC is not fully cover data/MC JEC difference.
+    // Extra correction should be applied to MC only.
     if ( fVerbose ) {
         std::cout << "ForestAODReader::extraJERCorr\n";
     }
 
-    Double_t res = retrieveResolutionFactor(eta);
-    Double_t sigmaSmear{0.};
+    double res = retrieveResolutionFactor(eta);
+    double sigmaSmear{0.};
     if ( ptCorr <= 30.) {
         sigmaSmear = res * fJERSmearFunc->Eval( 31. );
     }
@@ -194,7 +197,7 @@ Double_t ForestAODReader::extraJERCorr(const Double_t &ptCorr, const Double_t &e
         sigmaSmear = res * fJERSmearFunc->Eval( ptCorr );
     }
 
-    Double_t extraCorr = fRndm->Gaus( 1., sigmaSmear );
+    double extraCorr = fRndm->Gaus( 1., sigmaSmear );
 
     if ( fVerbose ) {
         std::cout << "Resolution factor: " << res << " sigma: " << sigmaSmear 
@@ -288,7 +291,7 @@ void ForestAODReader::clearVariables() {
     fPVertexFilterCutVtx1 = {0};
 
     // Loop over jets and tracks
-    for (Short_t i{0}; i<20000; i++) {
+    for (short i{0}; i<20000; i++) {
 
         // Jet variables
         if (i<10000) {
@@ -330,8 +333,8 @@ void ForestAODReader::clearVariables() {
         fTrackCharge[i] = {0};
         fTrackNHits[i] = {0};
         fTrackNLayers[i] = {0};
-        fTrackHighPurity[i] = {kFALSE};
-    } // for (Short_t i{0}; i<9999; i++)
+        fTrackHighPurity[i] = {false};
+    } // for (short i{0}; i<9999; i++)
 
     fGenTrackPt.clear();
     fGenTrackEta.clear();
@@ -351,11 +354,11 @@ void ForestAODReader::clearVariables() {
 }
 
 //_________________
-Int_t ForestAODReader::init() {
+int ForestAODReader::init() {
     if ( fVerbose ) {
         std::cout << "ForestAODReader::init()" << std::endl;
     }
-    Int_t status = 0;
+    int status = 0;
     // Setup chains to read
     status = setupChains();
     // Setup branches to read
@@ -394,8 +397,9 @@ void ForestAODReader::setupJEC() {
         addJECFile();
     }
 
+    // Need to add path in front of the file name
     std::vector< std::string > tmp;
-    for (UInt_t i{0}; i<fJECFiles.size(); i++) {
+    for (unsigned int i{0}; i<fJECFiles.size(); i++) {
         tmp.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
                              fJECPath.Data(), fCollidingSystem.Data(),
                              fCollidingEnergyGeV, fJECFiles.at(i).c_str() ) );
@@ -405,13 +409,13 @@ void ForestAODReader::setupJEC() {
     fJECFiles = tmp;
 
     std::cout << "JEC files added: " << std::endl;
-    for (UInt_t i{0}; i<fJECFiles.size(); i++) {
+    for (unsigned int i{0}; i<fJECFiles.size(); i++) {
         std::cout << i << fJECFiles.at(i) << std::endl;
     }
 	
 	fJEC = new JetCorrector( fJECFiles );
 
-    if ( fUseExtraJEC ) {
+    if ( fUseExtraJECforAk4Cs ) {
         createExtraJECScaleCorrFunction();
     }
 
@@ -463,15 +467,15 @@ void ForestAODReader::createExtraJECScaleCorrFunction() {
 }
 
 //________________
-Double_t ForestAODReader::evalCentralityWeight(const Double_t& x) {
-    Double_t weight{1.};
-    Double_t p0{4.363352};
-    Double_t p1{-8.957467e-02};
-    Double_t p2{7.301890e-04};
-    Double_t p3{-2.885492e-06};
-    Double_t p4{4.741175e-09};
-    Double_t p5{0.};
-    //Double_t p5{-1.407975e-09};
+double ForestAODReader::evalCentralityWeight(const double& x) {
+    double weight{1.};
+    double p0{4.363352};
+    double p1{-8.957467e-02};
+    double p2{7.301890e-04};
+    double p3{-2.885492e-06};
+    double p4{4.741175e-09};
+    double p5{0.};
+    //double p5{-1.407975e-09};
 
     weight = p0 + p1 * x + p2 * TMath::Power(x, 2) +
              p3 * TMath::Power(x, 3) + p4 * TMath::Power(x, 4) +
@@ -486,14 +490,14 @@ void ForestAODReader::finish() {
 }
 
 //_________________
-Int_t ForestAODReader::setupChains() {
+int ForestAODReader::setupChains() {
 
     if ( fVerbose ) {
         std::cout << "ForestAODReader::setupChains()";
     }
 
     // Setup chains (0-good, 1-bad)
-    Int_t returnStatus = 1;
+    int returnStatus = 1;
 
     // Setup chains to read
 
@@ -555,7 +559,7 @@ Int_t ForestAODReader::setupChains() {
             std::ifstream inputStream( input.Data() );
 
             if ( !inputStream ) std::cout << Form( "ERROR: Cannot open file list: %s\n", input.Data() );
-            Int_t nFiles = 0;
+            int nFiles = 0;
             std::string file;
             size_t pos;
             while ( getline( inputStream, file ) ) {
@@ -978,7 +982,7 @@ void ForestAODReader::fixIndices() {
     if (fUseRecoJetBranch) {
 
         // Loop over reconstructed jets
-        for (Int_t iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
+        for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
 
             if ( fNGenJets <= 0 ) {
                 fRecoJet2GenJetId.push_back(-1);
@@ -991,7 +995,7 @@ void ForestAODReader::fixIndices() {
                 continue;
             }
 
-            for (Int_t iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
+            for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
                 // Skip Ref and Gen jets that do not match on pT within computational precision
                 //std::cout << "|Gen pT - Ref pT| = " << TMath::Abs(fGenJetPt[iGenJet] - fRefJetPt[iRecoJet]) << std::endl;
 
@@ -1011,11 +1015,11 @@ void ForestAODReader::fixIndices() {
                 }
 
             }
-        } //for (Int_t iRecoJet=0; iRecoJet<fNRecoJets; iRecoJet++)
+        } //for (int iRecoJet=0; iRecoJet<fNRecoJets; iRecoJet++)
 
         // Fill the corresponding index in the reco vector and fill the gen
-        for (Int_t iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
-            std::vector<Int_t>::iterator it=std::find(fRecoJet2GenJetId.begin(), fRecoJet2GenJetId.end(), iGenJet);
+        for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
+            std::vector<int>::iterator it=std::find(fRecoJet2GenJetId.begin(), fRecoJet2GenJetId.end(), iGenJet);
             if (it != fRecoJet2GenJetId.end()) {
                 fGenJet2RecoJet.push_back( std::distance(fRecoJet2GenJetId.begin(), it) );
             }
@@ -1040,7 +1044,7 @@ Event* ForestAODReader::returnEvent() {
     //std::cout << "ForestAODReader::returnEvent" << std::endl;
     readEvent();
 
-    Int_t nBadRecoJets{0};
+    int nBadRecoJets{0};
 
     if (fFixJetArrays && fIsMc) {
         fixIndices();
@@ -1059,7 +1063,7 @@ Event* ForestAODReader::returnEvent() {
     fEvent->setEventId( fEventId );
     fEvent->setLumi( fLumi );
     fEvent->setVz( fVertexZ );
-    Float_t centW{1.f};
+    float centW{1.f};
     if ( fIsMc && fCorrectCentMC) {
         // To handle centrality weight
         fEvent->setHiBin( fHiBin - 10 );
@@ -1169,7 +1173,7 @@ Event* ForestAODReader::returnEvent() {
                 std::cout << "nGenRecoJets: " << fNGenJets << std::endl;
             }
 
-            for (Int_t iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
+            for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
                 GenJet *jet = new GenJet{};
                 jet->setPt( fGenJetPt[iGenJet] );
                 jet->setEta( fGenJetEta[iGenJet] );
@@ -1180,7 +1184,7 @@ Event* ForestAODReader::returnEvent() {
                 jet->setFlavorForB( fRefJetPartonFlavorForB[fGenJet2RecoJet.at(iGenJet)] );
                 jet->setPtWeight( 1. );
                 fEvent->genJetCollection()->push_back( jet );
-            } // for (Int_t iGenJet{0}; iGenJet<fNGenJets; iGenJet++)
+            } // for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++)
 
             // Projection from filling the collection several times
             fEvent->setGenJetCollectionIsFilled();
@@ -1193,7 +1197,7 @@ Event* ForestAODReader::returnEvent() {
             std::cout << "nRecoJets: " << fNRecoJets << std::endl;
         }
 
-        for (Int_t iJet{0}; iJet<fNRecoJets; iJet++) {
+        for (int iJet{0}; iJet<fNRecoJets; iJet++) {
 
             // Create a new jet instance
             RecoJet *jet = new RecoJet{};
@@ -1225,19 +1229,20 @@ Event* ForestAODReader::returnEvent() {
                 if ( fVerbose ) {
                     std::cout << "pTCorr: " << pTcorr << std::endl; 
                 }
-                if ( fUseExtraJEC ) {
+                if ( fUseExtraJECforAk4Cs ) {
                     if ( fJECScaleCorr ){
                         pTcorr *= fJECScaleCorr->Eval( pTcorr );
                     }
                     else {
-                        std::cerr << "No extra correction exists!" << std::endl;
+                        std::cerr << "No extra correction for ak4cs exists!" << std::endl;
                     }
                 }
 
-                if ( fVerbose && fUseExtraJEC ) {
-                    std::cout << "pTCorr after axtra correction for the jetType: " << pTcorr << std::endl; 
+                if ( fVerbose && fUseExtraJECforAk4Cs ) {
+                    std::cout << "pTCorr after extra ak4cs correction for the jetType: " << pTcorr << std::endl; 
                 }
 
+                // To check JEC fUseJECSystematics should be outside [-1, 1] range
                 if ( fIsMc && ( TMath::Abs( fUseJERSystematics ) <= 1 ) ) {
                     // pTcorr *= extraJERCorr( pTcorr, fRecoJetEta[iJet]);
                     if ( jet->hasMatching() ) {
@@ -1289,7 +1294,7 @@ Event* ForestAODReader::returnEvent() {
             }
 
             fEvent->recoJetCollection()->push_back( jet );
-        } // for (Int_t iJet{0}; iJet<fNRecoJets; iJet++)
+        } // for (int iJet{0}; iJet<fNRecoJets; iJet++)
     } // if ( fUseRecoJetBranch )
 
     if ( fEventCut && !fEventCut->pass(fEvent) ) {

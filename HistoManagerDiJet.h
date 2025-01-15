@@ -368,6 +368,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     THnSparseD *hJESInclusiveJetPtEtaPhi;
     // pt corr / pt gen, gen pt, reco eta, reco phi [4]
     THnSparseD *hJESInclusiveJetPtEtaPhiWeighted;
+    // pt corr/pt gen vs pt gen at midrapidity -1.4 < eta < 1.4 
+    TH2D *hInclusiveJetJESVsPtGen;
 
     // Matched and unmatched jet acceptance
     TH1D *hRecoInclusiveMatchedJetPt;

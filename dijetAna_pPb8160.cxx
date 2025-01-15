@@ -160,7 +160,7 @@ int main(int argc, char const *argv[]) {
 
     if ( recoJetBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
         std::cout << "Extra correction will be used for JEC" << std::endl;
-        reader->useExtraJECCorr();
+        reader->useExtraJECCorrForConstSubtraction();
     }
 
     //reader->useCaloJetBranch();
