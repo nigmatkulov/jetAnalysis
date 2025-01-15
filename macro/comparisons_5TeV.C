@@ -183,12 +183,13 @@ void plotComparison(TCanvas *c, TH1D* h1, TH1D* h2,
 //________________
 void compareReco2GenInclusiveJetPt(TFile *f) {
 
-    // TH2D *hGenInclusiveJetPtEta = dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetPtEta") );
-    // TH2D *hRecoInclusiveJetPtEta = dynamic_cast<TH2D*>( f->Get("hRecoInclusiveJetPtEta") );
+    // Bins to project 
+    int etaBinsProj[2] = {20, 32};
+    TH2D *hGenInclusiveJetPtEta = dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetPtEta") );
+    TH2D *hRecoInclusiveJetPtEta = dynamic_cast<TH2D*>( f->Get("hRecoInclusiveAllJetPtVsEta") );
 
-
-    TH1D *hRecoInclusiveJetPt = dynamic_cast<TH1D*>( f->Get("hRecoInclusiveJetPt") );
-    TH1D *hGenInclusiveJetPt = dynamic_cast<TH1D*>( f->Get("hGenInclusiveJetPt") );
+    TH1D *hRecoInclusiveJetPt = dynamic_cast<TH1D*>( hRecoInclusiveJetPtEta->ProjectionY( "hRecoInclusiveJetPt", etaBinsProj[0], etaBinsProj[1] ) );
+    TH1D *hGenInclusiveJetPt = dynamic_cast<TH1D*>( hGenInclusiveJetPtEta->ProjectionY( "hGenInclusiveJetPt", etaBinsProj[0], etaBinsProj[1] ) );
 
     // hRecoInclusiveJetPt->Scale( 1./hRecoInclusiveJetPt->Integral() );
     set1DStyle( hRecoInclusiveJetPt, 0 );
