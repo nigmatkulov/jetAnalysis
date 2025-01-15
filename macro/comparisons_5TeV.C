@@ -633,16 +633,18 @@ void comparisons_5TeV() {
     //
 
     // Processed data
-    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017.root", uname.Data()) );
+    // TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_wExtraJEC.root", uname.Data()) );
+    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) );
     if ( !pp5020DataFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) << std::endl;
         return;
     }
 
-    // Pythia
-    TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8.root", uname.Data()) );
+    // Pythia 
+    // TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_wExtraJEC.root", uname.Data()) );
+    TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC.root", uname.Data()) );
     if ( !pp5020PythiaFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC.root", uname.Data()) << std::endl;
         return;
     }
 
