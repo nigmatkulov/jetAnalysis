@@ -44,7 +44,7 @@ int main(int argc, char const *argv[]) {
     TString path2JEC = "..";
     double ptHatCut[2] {15., 30.};
     int   useJEUSyst{0};     // 0-default, 1-JEU+, -1-JEU-
-    int   useJERSyst{0};     // 0-default, 1-JER+, -1-JER-
+    int   useJERSyst{-99};     // 0-default, 1-JER+, -1-JER-, other - only JEC is applied
     double etaShift = 0.465;
 
     // Sequence of command line arguments:
