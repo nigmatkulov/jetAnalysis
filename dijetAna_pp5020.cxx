@@ -44,7 +44,7 @@ int main(int argc, char const *argv[]) {
     TString path2JEC = "..";
     double ptHatCut[2] {-100000000, 100000000};
     int   useJEUSyst{0};  // 0-default, 1-JEU+, -1-JEU-
-    int   useJERSyst{0};  // 0-default, 1-JER+, -1-JER-
+    int   useJERSyst{-99};  // 0-default, 1-JER+, -1-JER-, other - not use extra JER smearing
     double etaShift = 0.465;
 
     // Sequence of command line arguments:
@@ -176,7 +176,7 @@ int main(int argc, char const *argv[]) {
     if ( isMc ) {
         reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use (to check JES and JER)
         reader->setJERFitParams(0.0415552, 0.960013);
-        //reader->setJERSystParams();
+        reader->setJERSystParams();
     }
 
     //reader->setVerbose();
