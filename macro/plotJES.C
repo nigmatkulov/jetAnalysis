@@ -124,7 +124,7 @@ void plotSimpleJES(TFile *f) {
     cSimpleJES->cd(1);
     setPadStyle();
     h2D->Draw("colz");
-    gPad->SetLogz();
+    //gPad->SetLogz();
     h2D->GetXaxis()->SetRangeUser(0, 800);
 
     plotCMSHeader();

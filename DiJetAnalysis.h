@@ -105,11 +105,11 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Calculate event weight
     double eventWeight(const double& ptHat, const double& vz, const double& centWeight, const double& ptHatW);
     /// @brief Process gen jets
-    void processGenJets(const Event* event, double ptHatW);
+    void processGenJets(const Event* event, const double &weight);
     /// @brief Process reco jets
-    void processRecoJets(const Event* event, double ptHatW);
+    void processRecoJets(const Event* event, const double &weight);
     /// @brief Process ref jets
-    void processRefJets(const Event* event, double ptHatW);
+    void processRefJets(const Event* event, const double &weight);
     /// @brief Dijet selection
     bool isGoodDijet(const double& ptLead, const double& ptSublead, const double& dphi);
 

@@ -118,6 +118,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
     TH1D *hGenInclusiveJetPt;
     TH2D *hGenInclusiveJetPtEta;
+    TH3D *hGenInclusiveJetPtEtaPtHat;
     TH2D *hGenPtLeadPtSublead;
     TH2D *hGenEtaLeadEtaSublead;
     TH2D *hGenEtaCMLeadEtaCMSublead;
@@ -254,6 +255,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Reco sublead pt, reco sublead eta, reco sublead phi weighted [9]
     THnSparseD *hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
     TH1D *hRecoInclusiveJetPt;
+    TH2D *hRecoInclusiveJetPtEta;
+    TH3D *hRecoInclusiveJetPtEtaPtHat;
     TH2D *hRecoPtLeadPtSublead;
     TH2D *hRecoEtaLeadEtaSublead;
     TH2D *hRecoEtaCMLeadEtaCMSublead;
@@ -364,12 +367,16 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Subleading jet pt corr, pt raw, 
     // pt ref, eta corr, eta gen, weighted [6]
     THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
+    // pt corr / pt gen, gen pt, gen eta, reco phi [4]
     THnSparseD *hJESInclusiveJetPtEtaPhi;
-    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
+    // pt corr / pt gen, gen pt, gen eta, reco phi [4]
     THnSparseD *hJESInclusiveJetPtEtaPhiWeighted;
     // pt corr/pt gen vs pt gen at midrapidity -1.4 < eta < 1.4 
     TH2D *hInclusiveJetJESVsPtGen;
+    // pt corr/pt, gen pt, gen eta, ptHat
+    THnSparseD *hInclusiveJetJESGenPtGenEtaPtHatWeighted;
+    // pt corr/pt, reco pt, reco eta, ptHat
+    THnSparseD *hInclusiveJetJESRecoPtRecoEtaPtHatWeighted;
 
     // Matched and unmatched jet acceptance
     TH1D *hRecoInclusiveMatchedJetPt;
@@ -382,6 +389,7 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     TH1D *hRefInclusiveJetPt;
     TH2D *hRefInclusiveJetPtEta;
+    TH3D *hRefInclusiveJetPtEtaPtHat;
 
     // Reco dijet pt, dijet eta, 
     // Reco lead pt, lead eta,

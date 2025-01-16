@@ -25,7 +25,7 @@ ClassImp(EventCut)
 EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fShiftVx{0}, fShiftVy{0}, fVR{1e9}, 
     fHiBin{-1000, 1000}, fCentVal{-1000., 1000.},
-    fPtHat{-100000000, 100000000}, fPtHatWeight{-1e9, 1e9}, fVerbose{false},
+    fPtHat{-1e9, 1e9}, fPtHatWeight{-1e9, 1e9}, fVerbose{false},
     fPPrimaryVertexFilter{false},
     fHBHENoiseFilterResultRun2Loose{false},
     fCollisionEventSelectionAODc2{false},
