@@ -29,7 +29,7 @@ pd_number=$1
 # JEU systematics: 0 - default, -1 - JEU-, 1 - JEU+
 jeuSyst=0 
 # JER systematics: 0 - default, -1 - JER-, 1 - JER+, other - no extra smearing is applied (pure JEC)
-jerSyst=0
+jerSyst=-99
 
 # Generate path to the inputfile list
 if [ "$sample_name" == "DATA_MB" ]; then

@@ -89,7 +89,7 @@ int main(int argc, char const *argv[]) {
               << std::endl;
 
     if (isMc) {
-        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
+        JECFileName = "Spring18_ppRef5TeV_V6_MC_L2Relative_AK4PF.txt";
     }
     else {
         JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
