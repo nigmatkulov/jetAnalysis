@@ -1270,6 +1270,9 @@ Event* ForestAODReader::returnEvent() {
                 jet->setPtJECCorr( pTcorr );
             }
             else { // If no JEC available
+                if ( fVerbose ) {
+                    std::cout << "No JEC available" << std::endl;
+                }
                 jet->setPtJECCorr( -999.f );
             }
             jet->setJtPfNHF( fRecoJtPfNHF[iJet] );
