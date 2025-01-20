@@ -634,7 +634,7 @@ void comparisons_5TeV() {
     //
 
     // Processed data
-    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_wExtraJEC.root", uname.Data()) );
+    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) );
     // TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) );
     if ( !pp5020DataFile ) {
         std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_wExtraJEC.root", uname.Data()) << std::endl;
