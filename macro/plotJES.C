@@ -3,13 +3,14 @@
 #include "TCanvas.h"
 #include "TH1.h"
 #include "TH2.h"
-#include "THnSparse.h"
+#include "TH3.h"
 #include "TString.h"
 #include "TLine.h"
 #include "TSystem.h"
 #include "TF1.h"
 #include "TDirectory.h"
 #include "TLatex.h"
+#include "THnSparse.h"
 
 #include <vector>
 
@@ -103,10 +104,20 @@ void plotJESvsPtHat(TFile *f) {
     t.SetTextFont( 42 );
     t.SetTextSize(0.05);
 
-    // Retrieve JES
-    THnSparseD *hJESPars = dynamic_cast<THnSparseD*>( f->Get("hInclusiveJetJESGenPtGenEtaPtHatWeighted") );
-    if ( !hJESPars ) {
-        std::cerr << "[ERROR] Could not retrieve THnSparseD from the file" << std::endl;
+    // f->ls();
+
+    TH1D *h = dynamic_cast<TH1D*>( f->Get("hRecoInclusiveMatchedJetPt") );
+    if ( !h ) {
+        std::cerr << "[ERROR] Could not retrieve hRecoInclusiveMatchedJetPt from the file: " << f->GetName() << std::endl;
+        return;
+    }
+
+
+    // Retrieve JES hInclusiveJetJESGenPtGenEtaPtHatWeighted hInclusiveJetJESRecoPtRecoEtaPtHatWeighted
+    THnSparseD *hJESPars = (THnSparseD*)f->Get("hInclusiveJetJESGenPtGenEtaPtHatWeighted");
+    hJESPars->SetName("hJESPars");
+    if ( hJESPars == nullptr ) {
+        std::cerr << Form( "[ERROR] Could not retrieve hInclusiveJetJESGenPtGenEtaPtHatWeighted from the file: %s", f->GetName() ) << std::endl;
         return;
     }
 
@@ -135,7 +146,7 @@ void plotJESvsPtHat(TFile *f) {
         hJESPars->GetAxis(3)->SetRange( ptHatBins[i], ptHatBinsMax );
 
         // Create 2D histogram
-        hJES[i] = dynamic_cast<TH2D*>( hJESPars->Projection(1, 0) );
+        hJES[i] = dynamic_cast<TH2D*>( hJESPars->Projection(0, 1) );
         hJES[i]->SetName( Form("hJES_%d", i) );
         set2DStyle(hJES[i]);
 
@@ -248,25 +259,25 @@ void plotJES() {
     gStyle->SetPalette(kBird);
 
     // Username of the machine
-    TString uname = gSystem->GetFromPipe("whoami");
+    TString username = gSystem->GetFromPipe("whoami");
 
     // pp5020 PYTHIA
-    // TFile *f = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", uname.Data()) );
-    // if ( !f ) {
-    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", uname.Data()) << std::endl;
+    // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) );
+    // if ( !inputFile ) {
+    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) << std::endl;
     //     return;
     // }
 
     // pPb8160 embedding
-    TFile *f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", uname.Data()) );
-    if ( !f ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", uname.Data()) << std::endl;
+    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) );
+    if ( !inputFile || inputFile->IsZombie() ) {
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) << std::endl;
         return;
     }
 
     // Plot simple JES
-    // plotSimpleJES(f);
+    // plotSimpleJES(inputFile);
 
     // Plot JES for different ptHat selections
-    plotJESvsPtHat(f);
+    plotJESvsPtHat( inputFile );
 }

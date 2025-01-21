@@ -3067,7 +3067,7 @@ void HistoManagerDiJet::writeOutput() {
         hRecoInclusiveUnmatchedJetPtVsEta->Write();
         hRecoLeadJetMatchedPtVsEta->Write();
         hRecoLeadJetUnmatchedPtVsEta->Write();
-        hRecoSubLeadJetMatchedPtVsEta->Write();
+        hRecoSubLeadJetMatchedPtVsEta->Write(); 
         hRecoSubLeadJetUnmatchedPtVsEta->Write();
 
         hRefInclusiveJetPt->Write();

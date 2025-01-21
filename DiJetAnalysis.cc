@@ -727,11 +727,13 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
             (*genJetIter)->print();
         }
 
+        counter++;
+
         // Apply single-jet selection to gen jets
         //if ( !isGoodGenJet( *genJetIter ) ) continue;
 
         // Find leading and subleading jets
-        findLeadSubleadJets( pt, counter, ptLead, ptSubLead, idLead, idSubLead );
+        findLeadSubleadJets( pt, (counter-1), ptLead, ptSubLead, idLead, idSubLead );
         
         // Fill inclusive jet pt
         fHM->hGenInclusiveJetPt->Fill(pt, weight);
@@ -747,8 +749,6 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
             fHM->hGenGoodInclusiveJetEtaLabFrame->Fill( etaLab(eta), weight);
             fHM->hGenGoodInclusiveJetEtaCMFrame->Fill( boostEta2CM(eta), weight );
         }
-
-        counter++;
     } // for ( genJetIter = event->genJetCollection()->begin();
 
     //
@@ -1024,6 +1024,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
             (*recoJetIter)->print();
         }
 
+        counter++;
+
         // JetId parameters
         int chargedMult = (*recoJetIter)->jtPfCHM() + (*recoJetIter)->jtPfCEM() + (*recoJetIter)->jtPfMUM();
         int neutralMult = (*recoJetIter)->jtPfNHM() + (*recoJetIter)->jtPfNEM();
@@ -1051,7 +1053,6 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
 
         if ( fUseJetIdSelection && !passJetId ) { 
             // Do not forget to increment the counter
-            counter++; 
             if ( fVerbose ) { 
                 std::cout << "JetId selection failed. Skip jet" << std::endl; 
             }
@@ -1059,7 +1060,6 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         }
         if ( !fUseJetIdSelection && !passTrkMax ) {
             // Do not forget to increment the counter
-            counter++; 
             if ( fVerbose ) { 
                 std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
             }
@@ -1118,15 +1118,13 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         //
         // Find leading and subleading reco jets
         //
-        findLeadSubleadJets( pt, counter, ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
+        findLeadSubleadJets( pt, (counter-1), ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
 
         if ( pt > 30. ) {
             fHM->hRecoGoodInclusiveJetEtaLabFrame->Fill( etaLab(eta), weight );
             fHM->hRecoGoodInclusiveJetEtaCMFrame->Fill( boostEta2CM(eta), weight );
         }
 
-        // Increment counter
-        counter++;
     } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
 
     // If leading and subleading jets are found
@@ -1593,10 +1591,10 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
     int idRecoLead{-1}, idRecoSubLead{-1};
     for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
+        counter++;
         // Analyze only jets that have matched partner
         if ( !(*recoJetIter)->hasMatching() ) {
             // Do not forget to increment the counter
-            counter++; 
             continue; 
         }
 
@@ -1606,7 +1604,6 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
 
         if ( fUseJetIdSelection && !passJetId ) { 
             // Do not forget to increment the counter
-            counter++; 
             if ( fVerbose ) { 
                 std::cout << "JetId selection failed. Skip jet" << std::endl; 
             }
@@ -1614,7 +1611,6 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
         }
         if ( !fUseJetIdSelection && !passTrkMax ) {
             // Do not forget to increment the counter
-            counter++; 
             if ( fVerbose ) { 
                 std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
             }
@@ -1628,22 +1624,20 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
         double genPhi = matchedJet->phi();
 
         if ( fVerbose ) {
-            std::cout << "Ref jet info for reco jet #" << counter;
+            std::cout << "Ref jet info for reco jet #" << counter-1;
             matchedJet->print();
-            std::cout << "Reco jet #" << counter << " ";
+            std::cout << "Reco jet #" << counter-1 << " ";
             (*recoJetIter)->print();
         }
 
         // Find leading and subleading ref jets, but store id of reco jets
-        findLeadSubleadJets( genPt, counter, ptRefLead, ptRefSubLead, idRecoLead, idRecoSubLead );
+        findLeadSubleadJets( genPt, (counter-1), ptRefLead, ptRefSubLead, idRecoLead, idRecoSubLead );
         
         if ( fVerbose ) {
             std::cout << Form("ref lead pT: %5.2f refSubLead pT: %5.2f idRecoLead: %d idRecoSubLead: %d genId: %d \n", 
                               ptRefLead, ptRefSubLead, idRecoLead, idRecoSubLead, (*recoJetIter)->genJetId());
         }
 
-        // Increment counter
-        counter++;
     } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
 
     //
