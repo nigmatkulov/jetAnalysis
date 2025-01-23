@@ -20,8 +20,6 @@
 // C++ headers
 #include <iostream>
 
-ClassImp(JetCut)
-
 //________________
 JetCut::JetCut() : fPt{0., 1e6}, fConeR{1e6},
     fMustHaveGenMatching{false}, fEta{-1e6, 1e6},

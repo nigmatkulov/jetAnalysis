@@ -18,8 +18,6 @@
 // C++ headers
 #include <iostream>
 
-ClassImp(GenJet)
-
 //________________
 GenJet::GenJet() : BaseJet{}, fFlavor{0}, fFlavorForB{0}, fPtWeight{0} {
     /* Emtpy */

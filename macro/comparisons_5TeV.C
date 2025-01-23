@@ -270,12 +270,12 @@ void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
         // Published vs. data
         //
 
-        // cPub2DataComparison[i-1] = new TCanvas( Form("ppPub2DataComparison_%d", i-1), 
-        //                                         Form("ppPub2DataComparison_%d", i-1), 
-        //                                          canvX, canvY );
-        // cPub2DataComparison[i-1]->Divide(1, 2);
-        // plotComparison(cPub2DataComparison[i-1], hPubDijetEta[i], hDataDijetEta[i], 
-        //                ptLow, ptHi, "pp5020 pub.", "pp5020 my");
+        cPub2DataComparison[i-1] = new TCanvas( Form("ppPub2DataComparison_%d", i-1), 
+                                                Form("ppPub2DataComparison_%d", i-1), 
+                                                 canvX, canvY );
+        cPub2DataComparison[i-1]->Divide(1, 2);
+        plotComparison(cPub2DataComparison[i-1], hPubDijetEta[i], hDataDijetEta[i], 
+                       ptLow, ptHi, "pp5020 pub.", "pp5020 my");
 
         //
         // Data vs. pythia reco
@@ -292,12 +292,12 @@ void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
         // Pythia gen vs. pythia reco
         //
 
-        cPythiaGen2PythiaRecoComparison[i-1] = new TCanvas( Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
-                                                            Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
-                                                            canvX, canvY );
-        cPythiaGen2PythiaRecoComparison[i-1]->Divide(1, 2);
-        plotComparison( cPythiaGen2PythiaRecoComparison[i-1], hPythiaGenDijetEta[i], hPythiaRecoDijetEta[i], 
-                       ptLow, ptHi, "pp5020 pythia gen", "pp5020 pythia reco");
+        // cPythiaGen2PythiaRecoComparison[i-1] = new TCanvas( Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
+        //                                                     Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
+        //                                                     canvX, canvY );
+        // cPythiaGen2PythiaRecoComparison[i-1]->Divide(1, 2);
+        // plotComparison( cPythiaGen2PythiaRecoComparison[i-1], hPythiaGenDijetEta[i], hPythiaRecoDijetEta[i], 
+        //                ptLow, ptHi, "pp5020 pythia gen", "pp5020 pythia reco");
 
         
         //
@@ -634,18 +634,18 @@ void comparisons_5TeV() {
     //
 
     // Processed data
-    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) );
-    // TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) );
+    // TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC_9020.root", uname.Data()) );
+    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC_3020.root", uname.Data()) );
     if ( !pp5020DataFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_wExtraJEC.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC_3020.root", uname.Data()) << std::endl;
         return;
     }
 
     // Pythia 
     // TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_wExtraJEC.root", uname.Data()) );
-    TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC.root", uname.Data()) );
+    TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", uname.Data()) );
     if ( !pp5020PythiaFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", uname.Data()) << std::endl;
         return;
     }
 
@@ -672,9 +672,9 @@ void comparisons_5TeV() {
     //
 
     // MC p-going direction new (coincides with the pPb5020)
-    TFile *pPb8160EmbedNewFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pPb8160_pgoing_new.root", uname.Data()) );
+    TFile *pPb8160EmbedNewFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pPb8160_pgoing_ak4.root", uname.Data()) );
     if ( !pPb8160EmbedNewFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pPb8160_pgoing_new.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pPb8160_pgoing_ak4.root", uname.Data()) << std::endl;
         return;
     }
 

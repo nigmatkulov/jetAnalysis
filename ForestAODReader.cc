@@ -20,8 +20,6 @@
 #include <cstring>
 #include <fstream>
 
-ClassImp(ForestAODReader)
-
 //_________________
 ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEvents2Read{0}, fEventsProcessed{0},
     fIsMc{false}, fCorrectCentMC{false}, fUseHltBranch{kTRUE}, fUseSkimmingBranch{kTRUE}, 

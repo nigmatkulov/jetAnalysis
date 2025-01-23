@@ -15,8 +15,6 @@
 // C++ headers
 #include <limits>
 
-ClassImp(TriggerAndSkim)
-
 //________________
 TriggerAndSkim::TriggerAndSkim() :
   fHLT_HIAK4CaloJet60_v1{0},

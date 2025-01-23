@@ -68,9 +68,9 @@ class JetCut {
     /// @brief Print status for each jet
     bool   fVerbose; 
     /// @brief Number of jets passed cut
-    Long64_t fJetsPassed;
+    long int fJetsPassed;
     /// @brief Number of jet failed cut
-    Long64_t fJetsFailed;
+    long int fJetsFailed;
 
     ClassDef(JetCut, 0)
 };

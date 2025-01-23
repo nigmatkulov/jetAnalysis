@@ -55,7 +55,6 @@ void setRatioPadStyle(TPad *pad, bool isUpper = true) {
     }
 }
 
-
 //________________
 void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
@@ -286,11 +285,11 @@ void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
     int ptHatStart = 0;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins { 1, 3, 5 }; // 0, 30, 50, 
+    std::vector<int> ptHatBins { 2, 3, 4, 5 }; // 10, 20, 40
     int jetPtStart = 5;
     int jetPtStep = 10;  // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins { 1, 3, 5, 7 }; // 5, 25, 45, 65
+    std::vector<int> jetPtBins { 1, 2, 3, 4, 5, 6 }; // 5, 15, 25, 35, 45, 55
 
     // Declare canvases and histograms
     TCanvas *cPtVsEta[ ptHatBins.size() ];

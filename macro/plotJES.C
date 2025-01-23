@@ -15,13 +15,16 @@
 #include <vector>
 
 //________________
-void plotCMSHeader() {
+void plotCMSHeader(int collSystem = 0, double energy = 5.02) {
+    // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
+    // energy in TeV
+    TString collSystemStr = (collSystem == 0) ? "pp" : (collSystem == 1) ? "pPb" : "PbPb";
     TLatex t;
     t.SetTextFont( 42 );
     t.SetTextSize(0.05);
-    t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
+    t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Simulation}");
     t.SetTextSize(0.04);
-    t.DrawLatexNDC(0.55, 0.93, "pp #sqrt{s_{NN}} = 5.02 TeV");
+    t.DrawLatexNDC(0.6, 0.93, Form("%s #sqrt{s_{NN}} = %3.2f TeV", collSystemStr.Data(), energy) );
     t.SetTextSize(0.05);
 }
 
@@ -75,7 +78,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     h->GetYaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetTitleSize(0.06);
     h->GetXaxis()->SetLabelSize(0.06);
-    h->GetXaxis()->SetNdivisions(205);
+    h->GetXaxis()->SetNdivisions(210);
     h->GetYaxis()->SetNdivisions(205);    
     h->GetYaxis()->SetTitleOffset(1.1);
 
@@ -96,22 +99,15 @@ void set2DStyle(TH2* h) {
 }
 
 //________________
-void plotJESvsPtHat(TFile *f) {
+void plotJESvsPtHat(TFile *f, int collSystem = 0, double energy = 5.02) {
+    // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
+    // energy in TeV
 
-    double xTextPosition = 0.7;
+    double xTextPosition = 0.5;
     double yTextPosition = 0.8;
     TLatex t;
     t.SetTextFont( 42 );
     t.SetTextSize(0.05);
-
-    // f->ls();
-
-    TH1D *h = dynamic_cast<TH1D*>( f->Get("hRecoInclusiveMatchedJetPt") );
-    if ( !h ) {
-        std::cerr << "[ERROR] Could not retrieve hRecoInclusiveMatchedJetPt from the file: " << f->GetName() << std::endl;
-        return;
-    }
-
 
     // Retrieve JES hInclusiveJetJESGenPtGenEtaPtHatWeighted hInclusiveJetJESRecoPtRecoEtaPtHatWeighted
     THnSparseD *hJESPars = (THnSparseD*)f->Get("hInclusiveJetJESGenPtGenEtaPtHatWeighted");
@@ -165,6 +161,10 @@ void plotJESvsPtHat(TFile *f) {
         set1DStyle(hJESSigma[i], 2);
         hJESSigma[i]->GetYaxis()->SetTitle("JER");
 
+        //
+        // Plot distributions
+        //
+
         // Create canvas
         cJES[i] = new TCanvas( Form("cJES_%d", i), Form("cJES_%d", i), 1500, 500 );
         cJES[i]->Divide(3, 1);
@@ -172,30 +172,35 @@ void plotJESvsPtHat(TFile *f) {
         cJES[i]->cd(1);
         setPadStyle();
         hJES[i]->Draw("colz");
-        hJES[i]->GetXaxis()->SetRangeUser(0, 600);
+        hJES[i]->GetXaxis()->SetRangeUser(0, 150);
         hJES[i]->GetYaxis()->SetRangeUser(0., 2.);
-        plotCMSHeader();
-        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("#hat{p}_{T} > %d GeV",  ptHatStart + (ptHatBins.at(i) - 1) * ptHatStep) );
+        gPad->SetLogz();
+        plotCMSHeader(collSystem, energy);
 
         cJES[i]->cd(2);
         setPadStyle();
         hJESMean[i]->Draw();
-        hJESMean[i]->GetXaxis()->SetRangeUser(0, 600);
-        hJESMean[i]->GetYaxis()->SetRangeUser(0.98, 1.3);
-        plotCMSHeader();
-        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("%2.1f < #eta^{jet} < %2.1f", -5.2 + etaBinsProj[0] * 0.2, -5.2 + etaBinsProj[1] * 0.2) );
+        hJESMean[i]->GetXaxis()->SetRangeUser(0, 100);
+        hJESMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        plotCMSHeader(collSystem, energy);
+        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("#hat{p}_{T} > %d GeV",  ptHatStart + (ptHatBins.at(i) - 1) * ptHatStep) );
 
         cJES[i]->cd(3);
         setPadStyle();
         hJESSigma[i]->Draw();
-        hJESSigma[i]->GetXaxis()->SetRangeUser(0, 600);
-        hJESSigma[i]->GetYaxis()->SetRangeUser(0.005, 0.17);
+        hJESSigma[i]->GetXaxis()->SetRangeUser(0, 100);
+        hJESSigma[i]->GetYaxis()->SetRangeUser(0.05, 0.25);
+        plotCMSHeader(collSystem, energy);
+        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("%2.1f < #eta^{jet} < %2.1f", -5.2 + etaBinsProj[0] * 0.2, -5.2 + etaBinsProj[1] * 0.2) );
     } // for (unsigned int i{0}; i<ptHatBins.size(); i++)
 
 }
 
 //________________
-void plotSimpleJES(TFile *f) {
+void plotSimpleJES(TFile *f, int collSystem = 0, double energy = 5.02) {
+    // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
+    // energy in TeV
+
     // The function reads the JES (reco pt/gen pt vs. gen pt for |eta|<1.4) from the file
 
     double xTextPosition = 0.7;
@@ -229,14 +234,13 @@ void plotSimpleJES(TFile *f) {
     h2D->Draw("colz");
     //gPad->SetLogz();
     h2D->GetXaxis()->SetRangeUser(0, 800);
-
-    plotCMSHeader();
+    plotCMSHeader(collSystem, energy);
     t.DrawLatexNDC(xTextPosition, yTextPosition, "|#eta|<1.4");
 
     cSimpleJES->cd(2);
     setPadStyle();
     hJESMean->Draw();
-    plotCMSHeader();
+    plotCMSHeader(collSystem, energy);
     t.DrawLatexNDC(xTextPosition, yTextPosition, "|#eta|<1.4");
     hJESMean->GetXaxis()->SetRangeUser(0, 800);
     hJESMean->GetYaxis()->SetRangeUser(0.98, 1.3);
@@ -244,7 +248,7 @@ void plotSimpleJES(TFile *f) {
     cSimpleJES->cd(3);
     setPadStyle();
     hJESSigma->Draw();
-    plotCMSHeader();
+    plotCMSHeader(collSystem, energy);
     t.DrawLatexNDC(xTextPosition, yTextPosition, "|#eta|<1.4");
     hJESSigma->GetXaxis()->SetRangeUser(0, 800);
     hJESSigma->GetYaxis()->SetRangeUser(-0.005, 0.17);
@@ -261,23 +265,31 @@ void plotJES() {
     // Username of the machine
     TString username = gSystem->GetFromPipe("whoami");
 
-    // pp5020 PYTHIA
-    // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) );
-    // if ( !inputFile ) {
-    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) << std::endl;
-    //     return;
-    // }
+    // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
+    int collSystem = 0;
+    double energy = 5.02;
 
-    // pPb8160 embedding
-    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) );
-    if ( !inputFile || inputFile->IsZombie() ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) << std::endl;
+    // pp5020 PYTHIA
+    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) );
+    if ( !inputFile ) {
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) << std::endl;
         return;
     }
+    collSystem = 0;
+    energy = 5.02;
+
+    // pPb8160 embedding
+    // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) );
+    // if ( !inputFile || inputFile->IsZombie() ) {
+    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) << std::endl;
+    //     return;
+    // }
+    // collSystem = 1;
+    // energy = 8.16;
 
     // Plot simple JES
-    // plotSimpleJES(inputFile);
+    // plotSimpleJES( inputFile, collSystem, energy );
 
     // Plot JES for different ptHat selections
-    plotJESvsPtHat( inputFile );
+    plotJESvsPtHat( inputFile, collSystem, energy );
 }

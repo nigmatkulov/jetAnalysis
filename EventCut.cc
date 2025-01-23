@@ -19,8 +19,6 @@
 // C++ headers
 #include <iostream>
 
-ClassImp(EventCut)
-
 //________________
 EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fShiftVx{0}, fShiftVy{0}, fVR{1e9}, 

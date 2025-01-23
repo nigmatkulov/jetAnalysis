@@ -22,8 +22,6 @@
 // Jet analysis headers
 #include "DiJetAnalysis.h"
 
-ClassImp(DiJetAnalysis)
-
 //________________
 DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(), 
     fVzWeight{nullptr}, fDijetPtAveWeight{nullptr},

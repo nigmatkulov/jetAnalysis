@@ -13,8 +13,6 @@
 #include "Manager.h"
 #include "Event.h"
 
-ClassImp(Manager)
-
 //________________
 Manager::Manager() : 
     fAnalysisCollection{nullptr}, fEventReader{nullptr},

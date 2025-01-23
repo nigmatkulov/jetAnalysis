@@ -19,8 +19,6 @@
 // Jet analysis headers
 #include "JetUncertainty.h"
 
-ClassImp(JetUncertainty)
-
 //________________
 void JetUncertainty::Initialize(std::string FileName) {
     int nvar = 0, npar = 0;
