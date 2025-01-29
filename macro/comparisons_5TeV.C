@@ -9,19 +9,24 @@
 #include "TLegend.h"
 #include "TLine.h"
 #include "TSystem.h"
+#include "TRatioPlot.h"
+#include "TPad.h"
 
 // C++ headers
 #include <iostream>
 #include <vector>
 
 //________________
-void plotCMSHeader() {
+void plotCMSHeader(int collSystem = 0, double energy = 5.02) {
+    // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
+    // energy in TeV
+    TString collSystemStr = (collSystem == 0) ? "pp" : (collSystem == 1) ? "pPb" : "PbPb";
     TLatex t;
     t.SetTextFont( 42 );
     t.SetTextSize(0.05);
     t.DrawLatexNDC(0.15, 0.93, "#bf{CMS} #it{Preliminary}");
     t.SetTextSize(0.04);
-    t.DrawLatexNDC(0.65, 0.93, "#sqrt{s_{NN}} = 5.02 TeV");
+    t.DrawLatexNDC(0.6, 0.93, Form("%s #sqrt{s_{NN}} = %3.2f TeV", collSystemStr.Data(), energy) );
     t.SetTextSize(0.05);
 }
 
@@ -63,10 +68,10 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     h->SetMarkerColor( color );
     h->SetMarkerSize( markerSize );
 
-    h->GetYaxis()->SetTitleSize(0.06);
-    h->GetYaxis()->SetLabelSize(0.06);
-    h->GetXaxis()->SetTitleSize(0.06);
-    h->GetXaxis()->SetLabelSize(0.06);
+    h->GetYaxis()->SetTitleSize(0.05);
+    h->GetYaxis()->SetLabelSize(0.05);
+    h->GetXaxis()->SetTitleSize(0.05);
+    h->GetXaxis()->SetLabelSize(0.05);
     h->GetXaxis()->SetNdivisions(208);
     h->GetYaxis()->SetNdivisions(208);    
     h->GetYaxis()->SetTitleOffset(1.1);
@@ -98,86 +103,86 @@ void rescaleEta(TH1* h) {
 
 //________________
 void plotComparison(TCanvas *c, TH1D* h1, TH1D* h2, 
-                    int ptLow=55, int ptHi=75,
-                    const char* h1Name="h1", const char* h2Name="h2",
+                    int ptLow=50, int ptHi=60,
+                    const char* h1Name="Reco", const char* h2Name="Gen",
+                    int collSystem = 0, double energy = 5.02,
                     bool isRpPb = false) {
+
+    // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
+    // Energy in TeV
 
     // Text 
     TLatex t;
     t.SetTextFont( 42 );
-    t.SetTextSize(0.06);
+    t.SetTextSize( 0.05 );
+
+    int maximumBin = h1->GetMaximumBin();
+    double maximumVal = h1->GetBinContent( maximumBin );
 
     // Number for plotting position
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0., 0.14};
-    if (isRpPb) {
-        yRange[0] = 0.8; yRange[1] = 1.2;
+    double xRange[2] = { -4.2, 4.2 };
+    // double yRange[2] = {0.0000001, maximumVal * 1.25 };
+    double yRange[2] = {0.0000001, 0.14 };
+    if ( isRpPb ) {
+        yRange[0] = 0.7; yRange[1] = 1.3;
     }
-    Double_t legX[2] = {0.4, 0.65};
-    Double_t legY[2] = {0.2, 0.35};
+    double legX[2] = {0.2, 0.4};
+    double legY[2] = {0.55, 0.7};
+    double ratioYRange[2] = {0.8, 1.2};
 
-    // Make ratios
-    TH1D *hRatio = dynamic_cast<TH1D*>( h2->Clone("hRatio") );
-    hRatio->Divide( h1 );
-
-    // Create pad
-    TLegend *leg;
-    TLine *line;
-
-    //
-    // Plot comparison
-    //
-
-    c->cd(1);
-
-    setPadStyle();
-    // Plot distributions
-    h1->Draw();
-    h2->Draw("same");
-    // Set ranges
-    h1->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    // h1->GetXaxis()->SetTitle( Form("#eta^{dijet}_{%s}", frameT.Data() ));
+    // h1->GetYaxis()->SetTitle( Form("1/N_{dijet} dN/d#eta^{dijet}_{%s}", frameT.Data() ) );
+    if ( isRpPb ) {
+        h1->GetYaxis()->SetTitle( Form("R_{pPb}}") );
+    }
     h1->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-    h1->GetYaxis()->SetTitle("dN/d#eta^{dijet}");
-    h1->GetXaxis()->SetTitle("#eta^{dijet}");
 
-    t.DrawLatexNDC(0.3, 0.85, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi));
-    plotCMSHeader();
+    std::vector<double> gridLineValues { 0.95, 1.0, 1.05 };
+
+    // Create ratio plot
+    TRatioPlot *ratioPlot = new TRatioPlot( h1, h2 );
+    ratioPlot->SetH1DrawOpt("E");
+    ratioPlot->SetH2DrawOpt("E");
+    ratioPlot->SetGridlines( gridLineValues );
+    ratioPlot->Draw();
+
+    // Set pad parameters
+    ratioPlot->GetUpperPad()->SetFrameLineWidth(2);
+    ratioPlot->GetLowerPad()->SetFrameLineWidth(2);
+    ratioPlot->SetLeftMargin(0.15);
+    ratioPlot->SetRightMargin(0.05);
+    ratioPlot->SetSeparationMargin(0.03);
+
+    // Lower plot style and titles
+    ratioPlot->GetLowerRefXaxis()->SetTitleSize(0.05);
+    ratioPlot->GetLowerRefXaxis()->SetTitleOffset(0.85);
+    ratioPlot->GetLowerRefYaxis()->SetTitle( Form( "%s / %s", h1Name, h2Name ) );
+    ratioPlot->GetLowerRefYaxis()->SetTitleSize(0.05);
+    ratioPlot->GetLowerRefYaxis()->SetTitleOffset(1.2);
     
 
-    // Legend
-    leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    ratioPlot->GetLowerRefGraph()->SetMarkerStyle(20);
+    ratioPlot->GetLowerRefGraph()->SetMarkerSize(1.2);
+    ratioPlot->GetLowerRefGraph()->SetMarkerColor(kBlack);
+    ratioPlot->GetLowerRefGraph()->SetLineColor(kBlack);
+    ratioPlot->GetLowerRefGraph()->SetLineWidth(2);
+    ratioPlot->GetLowYaxis()->SetNdivisions(205);
+
+    ratioPlot->GetLowerRefGraph()->SetMinimum( ratioYRange[0] );
+    ratioPlot->GetLowerRefGraph()->SetMaximum( ratioYRange[1] );
+    ratioPlot->GetLowerRefXaxis()->SetRangeUser( xRange[0], xRange[1] );
+
+    ratioPlot->GetUpperPad()->cd();
+    t.DrawLatexNDC(0.4, 0.84, Form("%d< p_{T}^{ave} (GeV) < %d ", ptLow, ptHi));
+    plotCMSHeader(collSystem, energy);
+    TLegend *leg = new TLegend( legX[0], legY[0], legX[1], legY[1] );
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
-    leg->SetTextFont( 42 );
-    leg->AddEntry(h1, Form("%s", h1Name), "p");
-    leg->AddEntry(h2, Form("%s", h2Name), "p");
+    leg->SetTextSize(0.04);
+    leg->SetTextFont(42);
+    leg->AddEntry( h1, h1Name, "p" );
+    leg->AddEntry( h2, h2Name, "p" );
     leg->Draw();
-
-    //
-    // Plot ratio
-    //
-
-    c->cd(2);
-    setPadStyle();
-    hRatio->Draw();
-    hRatio->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-    hRatio->GetYaxis()->SetRangeUser(0.5, 1.5);
-    hRatio->GetYaxis()->SetTitle( Form( "%s / %s", h2Name, h1Name ) );
-    hRatio->GetXaxis()->SetTitle("#eta^{dijet}");
-
-    // Legend
-    leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
-    leg->SetBorderSize(0);
-    leg->SetFillStyle(0);
-    leg->SetTextFont( 42 );
-    //leg->AddEntry(hRatio, Form( "%s / %s", h2Name, h1Name ), "p");
-    leg->Draw();
-
-    // Line at unity
-    line = new TLine(xRange[0], 1.0, xRange[1], 1.0);
-    line->SetLineStyle(2);
-    line->SetLineColor(kMagenta);
-    line->Draw();
 }
 
 //________________
@@ -204,7 +209,10 @@ void compareReco2GenInclusiveJetPtEta(TFile *f) {
 }
 
 //________________
-void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
+void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile, const int &collisionSystem, const double &collisionEnergy) {
+
+    // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
+    // Energy in TeV
 
     // Dijet ptAve binning
     int dijetPtOldVals[7] {25, 55, 75, 95, 115, 150, 400};
@@ -256,6 +264,7 @@ void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
 
     TCanvas *cPub2DataComparison[5];
     TCanvas *cData2PythiaRecoComparison[5];
+    TCanvas *cData2PythiaGenComparison[5];
     TCanvas *cPythiaGen2PythiaRecoComparison[5];
     TCanvas *cPub2PythiaGenComparison[5];
 
@@ -264,18 +273,18 @@ void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
 
         int ptLow = dijetPtVals[i];
         int ptHi = dijetPtVals[i+1];
-        int canvX{500}, canvY{1000};
+        int canvX{700}, canvY{800};
 
         //
         // Published vs. data
         //
 
-        cPub2DataComparison[i-1] = new TCanvas( Form("ppPub2DataComparison_%d", i-1), 
-                                                Form("ppPub2DataComparison_%d", i-1), 
-                                                 canvX, canvY );
-        cPub2DataComparison[i-1]->Divide(1, 2);
-        plotComparison(cPub2DataComparison[i-1], hPubDijetEta[i], hDataDijetEta[i], 
-                       ptLow, ptHi, "pp5020 pub.", "pp5020 my");
+        // cPub2DataComparison[i-1] = new TCanvas( Form("ppPub2DataComparison_%d", i-1), 
+        //                                         Form("ppPub2DataComparison_%d", i-1), 
+        //                                          canvX, canvY );
+        // cPub2DataComparison[i-1]->Divide(1, 2);
+        // plotComparison(cPub2DataComparison[i-1], hPubDijetEta[i], hDataDijetEta[i], 
+        //                ptLow, ptHi, "Pub.", "Data (my)", collisionSystem, collisionEnergy);
 
         //
         // Data vs. pythia reco
@@ -286,18 +295,31 @@ void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
         //                                                canvX, canvY );
         // cData2PythiaRecoComparison[i-1]->Divide(1, 2);
         // plotComparison( cData2PythiaRecoComparison[i-1], hDataDijetEta[i], hPythiaRecoDijetEta[i], 
-        //                ptLow, ptHi, "pp5020 my", "pp5020 pythia reco");
+        //                 ptLow, ptHi, "Data", "MC Reco", collisionSystem, collisionEnergy );
+
 
         //
-        // Pythia gen vs. pythia reco
+        // Data vs. pythia gen
+        //
+
+        cData2PythiaGenComparison[i-1] = new TCanvas( Form("ppData2PythiaGenComparison_%d", i-1), 
+                                                      Form("ppData2PythiaGenComparison_%d", i-1), 
+                                                      canvX, canvY );
+        cData2PythiaGenComparison[i-1]->Divide(1, 2);
+        plotComparison( cData2PythiaGenComparison[i-1], hDataDijetEta[i], hPythiaGenDijetEta[i], 
+                        ptLow, ptHi, "Data", "MC Gen", collisionSystem, collisionEnergy );
+
+
+        //
+        // Pythia reco vs. pythia gen
         //
 
         // cPythiaGen2PythiaRecoComparison[i-1] = new TCanvas( Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
         //                                                     Form("ppPythiaGen2PythiaRecoComparison_%d", i-1), 
         //                                                     canvX, canvY );
         // cPythiaGen2PythiaRecoComparison[i-1]->Divide(1, 2);
-        // plotComparison( cPythiaGen2PythiaRecoComparison[i-1], hPythiaGenDijetEta[i], hPythiaRecoDijetEta[i], 
-        //                ptLow, ptHi, "pp5020 pythia gen", "pp5020 pythia reco");
+        // plotComparison( cPythiaGen2PythiaRecoComparison[i-1], hPythiaRecoDijetEta[i], hPythiaGenDijetEta[i],
+        //                 ptLow, ptHi, "MC Reco", "MC Gen",  collisionSystem, collisionEnergy );
 
         
         //
@@ -309,7 +331,7 @@ void compare_pp5020(TFile *pubFile, TFile *dataFile, TFile *pythiaFile) {
         //                                              canvX, canvY );
         // cPub2PythiaGenComparison[i-1]->Divide(1, 2);
         // plotComparison( cPub2PythiaGenComparison[i-1], hPubDijetEta[i], hPythiaGenDijetEta[i], 
-        //                ptLow, ptHi, "pp5020 pub.", "pp5020 pythia gen");
+        //                ptLow, ptHi, "Pub.", "MC Gen", collisionSystem, collisionEnergy);
 
     } // for (int i{1}; i < dijetPtVals.size() - 1; i++)
 
@@ -629,23 +651,29 @@ void comparisons_5TeV() {
         return;
     }
 
+    int collisionSystem = 0;  // 0 - pp, 1 - pPb, 2 - pPb5020, 3 - pPb8160
+    double collisionEnergy = 5.02;  // 5.02 TeV
+
     //
     // pp5020
     //
 
+    collisionSystem = 0;
+    collisionEnergy = 5.02;
+
     // Processed data
-    // TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC_9020.root", uname.Data()) );
-    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC_3020.root", uname.Data()) );
+    // TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC.root", uname.Data()) );
+    TFile *pp5020DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC_5040_eta2.root", uname.Data()) );
     if ( !pp5020DataFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC_3020.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/exp/pp5020_2017_woExtraJEC_5040_eta2.root", uname.Data()) << std::endl;
         return;
     }
 
     // Pythia 
-    // TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_wExtraJEC.root", uname.Data()) );
-    TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", uname.Data()) );
+    TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_5040_eta2.root", uname.Data()) );
+    // TFile *pp5020PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC.root", uname.Data()) );
     if ( !pp5020PythiaFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_5040_eta2.root", uname.Data()) << std::endl;
         return;
     }
 
@@ -653,42 +681,48 @@ void comparisons_5TeV() {
     // pPb5020
     //
 
-    // RunB
-    TFile *pPb5020RunBDataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb5020/exp/RunB/PAEGJet_RunB_pPb5020_ak4PF.root", uname.Data() ) );
-    if ( !pPb5020RunBDataFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb5020/exp/RunB/PAEGJet_RunB_pPb5020_ak4PF.root", uname.Data()) << std::endl;
-        return;
-    }
+    // collisionSystem = 1;
+    // collisionEnergy = 5.02;
 
-    // RunD
-    TFile *pPb5020RunDDataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb5020/exp/RunD/PAEGJet_RunD_pPb5020_ak4PF.root", uname.Data() ) );
-    if ( !pPb5020RunDDataFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb5020/exp/RunD/PAEGJet_RunD_pPb5020_ak4PF.root", uname.Data()) << std::endl;
-        return;
-    }
+    // // RunB
+    // TFile *pPb5020RunBDataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb5020/exp/RunB/PAEGJet_RunB_pPb5020_ak4PF.root", uname.Data() ) );
+    // if ( !pPb5020RunBDataFile ) {
+    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb5020/exp/RunB/PAEGJet_RunB_pPb5020_ak4PF.root", uname.Data()) << std::endl;
+    //     return;
+    // }
+
+    // // RunD
+    // TFile *pPb5020RunDDataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb5020/exp/RunD/PAEGJet_RunD_pPb5020_ak4PF.root", uname.Data() ) );
+    // if ( !pPb5020RunDDataFile ) {
+    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb5020/exp/RunD/PAEGJet_RunD_pPb5020_ak4PF.root", uname.Data()) << std::endl;
+    //     return;
+    // }
 
     //
     // pPb8160
     //
 
-    // MC p-going direction new (coincides with the pPb5020)
-    TFile *pPb8160EmbedNewFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pPb8160_pgoing_ak4.root", uname.Data()) );
-    if ( !pPb8160EmbedNewFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pPb8160_pgoing_ak4.root", uname.Data()) << std::endl;
-        return;
-    }
+    // collisionSystem = 1;
+    // collisionEnergy = 8.16;
 
-    TFile *pPb8160EmbedOldFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/jer/oEmbedding_pPb8160_pgoing_jerDef_ak4.root", uname.Data()) );
-    if ( !pPb8160EmbedOldFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/jer/oEmbedding_pPb8160_pgoing_jerDef_ak4.root", uname.Data()) << std::endl;
-        return;
-    }
+    // // MC p-going direction new (coincides with the pPb5020)
+    // TFile *pPb8160EmbedNewFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pPb8160_pgoing_new.root", uname.Data()) );
+    // if ( !pPb8160EmbedNewFile ) {
+    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pPb8160_pgoing_new.root", uname.Data()) << std::endl;
+    //     return;
+    // }
+
+    // TFile *pPb8160EmbedOldFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/jer/oEmbedding_pPb8160_pgoing_jerDef_ak4.root", uname.Data()) );
+    // if ( !pPb8160EmbedOldFile ) {
+    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/jer/oEmbedding_pPb8160_pgoing_jerDef_ak4.root", uname.Data()) << std::endl;
+    //     return;
+    // }
 
 
     //
     // Compare distributions for pp5020
     //
-    compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile);
+    compare_pp5020(pubFile, pp5020DataFile, pp5020PythiaFile, collisionSystem, collisionEnergy);
 
     // compareReco2GenInclusiveJetPt(pp5020PythiaFile);
 
