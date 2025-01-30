@@ -55,7 +55,7 @@ int fontFamily{42}; // Times New Roman
 void fillDijetPtBins(std::vector<int> &ptDijetLow, std::vector<int> &ptDijetHi) {
     int ptStep {5};
     int ptLow {30};
-    for (Uint i{0}; i<ptDijetBinLow.size(); i++) {
+    for (int i{0}; i<ptDijetBinLow.size(); i++) {
         ptDijetLow.push_back( ptLow + (ptDijetBinLow.at(i)-1) * ptStep );
         ptDijetHi.push_back( ptLow + ptDijetBinHi.at(i) * ptStep );
     }
@@ -6078,7 +6078,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist = makeFinalAbsSystUncrt(hFinalDist, hFinalRelSystUncrtDist);
 
     // Plot final distributions
-    plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
+    // plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
 
     // Plot comparison of data and nPDF
     int etaType{0};
@@ -6092,7 +6092,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     //                          date, isCM);
 
     // Plot comparison of data and Monte Carlo
-    // plotData2McComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, date, isCM);
+    plotData2McComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, date, isCM);
 
     // plotRelativeSystematicUncertainties(hMBJeuRelSystDist, hJet60JeuRelSystDist, hJet80JeuRelSystDist, hJet100JeuRelSystDist,
     //                                     hEmbeddingJerRelSystDist, hPointingResRelSystDist,
@@ -6372,7 +6372,7 @@ void runCalculations(bool isCM = false, bool drawFits = false) {
     // File names
     //
 
-    TString pathPrefix = "/Users/gnigmat/cernbox";
+    TString pathPrefix = "/Users/nigmatkulov/cernbox";
 
     // Data file names
     TString mbFileName( Form("%s/ana/pPb8160/exp/MB_pPb8160_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
@@ -6546,11 +6546,11 @@ void systematics() {
 
     // CMS or Lab frame
     bool isCM{true};
-    isCM = {false};
+    // isCM = {false};
 
     // bool drawFits{true};
     bool drawFits{false};
 
     // Run new calculations
     runCalculations(isCM, drawFits);
-}I 
+} 
