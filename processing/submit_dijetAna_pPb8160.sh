@@ -16,7 +16,7 @@ formatted_date=$(date +"%Y%m%d")
 sample_name=DATA_PAEGJet
 
 # Beam direction
-is_Pbgoing=1
+is_Pbgoing=0
 if [ "$is_Pbgoing" -eq 1 ]; then
     direction=Pbgoing
 else
@@ -80,7 +80,7 @@ fi
 
 cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${sample_prefix}.sub
 universe = vanilla
-executable = ${EXEC_PATH}/run_dijetAna.sh
+executable = ${EXEC_PATH}/run_dijetAna_pPb8160.sh
 +JobFlavour           = "longlunch"
 getenv     = True
 requirements =((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
