@@ -566,11 +566,11 @@ double DiJetAnalysis::boostEta2CM(const double &eta) {
     double etaCM = eta;
 
     // Apply lab frame boost to CM
-    if ( fCollisionSystem == 0 ) {
+    if ( fCollisionSystem == 0 ) { // pp
         // For pp do nothing. Already in the CM frame
     }
 
-    else if ( fCollisionSystem == 1 ) {
+    else if ( fCollisionSystem == 1 ) { // pPb
         if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
             if ( fIsPbGoingDir ) {
                 etaCM += fEtaShift;
@@ -590,7 +590,7 @@ double DiJetAnalysis::boostEta2CM(const double &eta) {
             }
         }
     } 
-    else if ( fCollisionSystem == 2 ) { 
+    else if ( fCollisionSystem == 2 ) { // PbPb
         // For PbPb do nothing. Already in the CM frame
     }
     else {
@@ -1197,6 +1197,13 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
             etaRecoSubLead = etaLab( recoSubLeadJet->eta() );
             double dijetRecoEta = 0.5 * (etaRecoLead + etaRecoSubLead);
 
+            if ( fVerbose ) {
+                std::cout << "Reco dijet parameters in the lab frame: " << std::endl;
+                std::cout << Form("ptLead: %5.2f ptSubLead: %5.2f phiLead: %5.2f phiSubLead: %5.2f\n", ptRecoLead, ptRecoSubLead, phiRecoLead, phiRecoSubLead);
+                std::cout << Form("etaLead: %5.2f -> (lab) %5.2f etaSubLead: %5.2f -> (lab) %5.2f\n", recoLeadJet->eta(), etaRecoLead, recoSubLeadJet->eta(), etaRecoSubLead);
+                std::cout << Form("dijet ptAve: %5.2f dijet eta: %5.2f dijet dphi: %5.2f\n", dijetRecoPt, dijetRecoEta, dijetRecoDphi);
+            }
+
             // Correlation between leading and subleading
             fHM->hRecoPtLeadPtSublead->Fill( ptRecoLead, ptRecoSubLead, weight );
             fHM->hRecoEtaLeadEtaSublead->Fill( etaRecoLead, etaRecoSubLead, weight );
@@ -1419,6 +1426,14 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
             double etaRecoSubLead = boostEta2CM( recoSubLeadJet->eta() );
             // double dijetRecoEta = dijetEtaInFrame(recoLeadJet->eta(), recoSubLeadJet->eta(), false);
             double dijetRecoEtaCM = 0.5 * (etaRecoLead + etaRecoSubLead);
+
+    
+            if ( fVerbose ) {
+                std::cout << "Reco dijet parameters in the c.m. frame: " << std::endl;
+                std::cout << Form("ptLead: %5.2f ptSubLead: %5.2f phiLead: %5.2f phiSubLead: %5.2f\n", ptRecoLead, ptRecoSubLead, phiRecoLead, phiRecoSubLead);
+                std::cout << Form("etaLead: %5.2f -> (c.m.) %5.2f etaSubLead: %5.2f -> (c.m.) %5.2f\n", recoLeadJet->eta(), etaRecoLead, recoSubLeadJet->eta(), etaRecoSubLead);
+                std::cout << Form("dijet ptAve: %5.2f dijet eta (CM): %5.2f dijet dphi: %5.2f\n", dijetRecoPt, dijetRecoEtaCM, dijetRecoDphi);
+            }
 
             fHM->hRecoEtaCMLeadEtaCMSublead->Fill( etaRecoLead, etaRecoSubLead, weight );
             fHM->hRecoDijetEtaCM->Fill( dijetRecoEtaCM, weight * fMcReweight);
