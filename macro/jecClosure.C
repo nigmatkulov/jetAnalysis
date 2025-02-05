@@ -285,11 +285,11 @@ void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
     int ptHatStart = 0;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins { 2, 3, 4, 5 }; // 10, 20, 40
+    std::vector<int> ptHatBins { 2 }; // 20
     int jetPtStart = 5;
     int jetPtStep = 10;  // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins { 1, 2, 3, 4, 5, 6 }; // 5, 15, 25, 35, 45, 55
+    std::vector<int> jetPtBins { 4, 6, 9 }; //35, 55, 105
 
     // Declare canvases and histograms
     TCanvas *cPtVsEta[ ptHatBins.size() ];
@@ -413,9 +413,10 @@ void jecClosure() {
     // energy = 5.02;
 
     // Embedding for pPb8160
-    TFile *f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", uname.Data()) );
+    // TFile *f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", uname.Data()) );
+    TFile *f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_eta2.root", uname.Data()) );
     if ( !f ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_eta2.root", uname.Data()) << std::endl;
         return;
     }
     collSystem = 1;
