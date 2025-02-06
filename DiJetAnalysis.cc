@@ -717,7 +717,7 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
     for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ ) {
 
         double pt = (*genJetIter)->pt();
-        double eta = (*genJetIter)->eta();
+        double eta = etaLab( (*genJetIter)->eta() );
         double phi = (*genJetIter)->phi();
 
         if ( fVerbose ) {
@@ -1013,7 +1013,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
     for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
         double pt = (*recoJetIter)->ptJECCorr();
-        double eta = (*recoJetIter)->eta();
+        double eta = etaLab( (*recoJetIter)->eta() );
         double phi = (*recoJetIter)->phi();
         double ptRaw = (*recoJetIter)->pt();
 
@@ -1073,7 +1073,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
             if ( (*recoJetIter)->hasMatching() ) {
                 GenJet *matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
                 double genPt = matchedJet->pt();
-                double genEta = matchedJet->eta();
+                double genEta = etaLab( matchedJet->eta() );
                 double genPhi = matchedJet->phi();
 
                 double JES = pt/genPt;
@@ -1633,7 +1633,7 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
         // Retrieve matched gen jet
         GenJet *matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
         double genPt = matchedJet->pt();
-        double genEta = matchedJet->eta();
+        double genEta = etaLab( matchedJet->eta() );
         double genPhi = matchedJet->phi();
 
         if ( fVerbose ) {

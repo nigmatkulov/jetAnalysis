@@ -285,11 +285,11 @@ void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
     int ptHatStart = 0;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins { 2 }; // 20
+    std::vector<int> ptHatBins { 1 }; // 20
     int jetPtStart = 5;
     int jetPtStep = 10;  // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins { 4, 6, 9 }; //35, 55, 105
+    std::vector<int> jetPtBins { 1, 2, 3 }; //35, 55, 105
 
     // Declare canvases and histograms
     TCanvas *cPtVsEta[ ptHatBins.size() ];
