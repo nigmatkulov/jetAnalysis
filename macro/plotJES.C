@@ -269,23 +269,24 @@ void plotJES() {
     int collSystem = 0;
     double energy = 5.02;
 
-    // pp5020 PYTHIA
-    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) );
-    if ( !inputFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) << std::endl;
-        return;
-    }
-    collSystem = 0;
-    energy = 5.02;
+    // // pp5020 PYTHIA
+    // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) );
+    // if ( !inputFile ) {
+    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) << std::endl;
+    //     return;
+    // }
+    // collSystem = 0;
+    // energy = 5.02;
 
     // pPb8160 embedding
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) );
-    // if ( !inputFile || inputFile->IsZombie() ) {
-    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) << std::endl;
-    //     return;
-    // }
-    // collSystem = 1;
-    // energy = 8.16;
+    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_eta2.root", username.Data()) );
+    if ( !inputFile || inputFile->IsZombie() ) {
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) << std::endl;
+        return;
+    }
+    collSystem = 1;
+    energy = 8.16;
 
     // Plot simple JES
     // plotSimpleJES( inputFile, collSystem, energy );

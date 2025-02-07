@@ -170,7 +170,10 @@ void plotComparison(TCanvas *c, TH1D* h1, TH1D* h2,
                     const char* h1Name="Reco", const char* h2Name="Gen",
                     int collSystem = 0, double energy = 5.02,
                     bool isCM = false,
-                    bool isJet = true) {
+                    bool isJet = true,
+                    bool isPt = false,
+                    double etaLow = -1.6,
+                    double etaHi = 1.6) {
 
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
     // Energy in TeV
@@ -186,15 +189,29 @@ void plotComparison(TCanvas *c, TH1D* h1, TH1D* h2,
     double maximumVal = h1->GetBinContent( maximumBin );
 
     // Number for plotting position
-    double xRange[2] = { -4.2, 4.2 };
+    double xRange[2] = { -3.2, 3.2 };
+    if ( isPt ) {
+        xRange[0] = 0;
+        xRange[1] = 500;
+    }
     double yRange[2] = {0.0000001, maximumVal * 1.25 };
-    double legX[2] = {0.4, 0.65};
+    double legX[2] = {0.5, 0.7};
     double legY[2] = {0.2, 0.35};
-    double ratioYRange[2] = {0.6, 1.4};
+    double ratioYRange[2] = {0.8, 1.2};
+    if ( isPt ) {
+        ratioYRange[0] = 0.9;
+        ratioYRange[1] = 1.3;
+    }
 
-    h1->GetXaxis()->SetTitle( Form("#eta^{%s}", jetType.Data() ));
-    h1->GetYaxis()->SetTitle( Form("1/N_{%s} dN/d#eta^{%s}", jetType.Data(), jetType.Data() ) );
-    h1->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    if ( !isPt ) {
+        h1->GetXaxis()->SetTitle( Form("#eta^{%s}", jetType.Data() ));
+        h1->GetYaxis()->SetTitle( Form("1/N_{%s} dN/d#eta^{%s}", jetType.Data(), jetType.Data() ) );
+        h1->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    }
+    else {
+        h1->GetXaxis()->SetTitle( Form("p_{T}^{%s} (GeV)", jetType.Data() ));
+        h1->GetYaxis()->SetTitle( Form("1/N_{%s} dN/dp_{T}^{%s}", jetType.Data(), jetType.Data() ) );
+    }
 
     std::vector<double> gridLineValues { 0.95, 1.0, 1.05 };
 
@@ -232,9 +249,26 @@ void plotComparison(TCanvas *c, TH1D* h1, TH1D* h2,
     ratioPlot->GetLowerRefXaxis()->SetRangeUser( xRange[0], xRange[1] );
 
     ratioPlot->GetUpperPad()->cd();
-    t.DrawLatexNDC(0.5, 0.84, Form("p_{T}^{%s} > %d GeV #hat{p}_{T} > %d GeV", jetType.Data(), ptLow, ptHatLow));
+    if ( !isPt ) {
+        t.DrawLatexNDC(0.5, 0.84, Form("p_{T}^{%s} > %d GeV #hat{p}_{T} > %d GeV", jetType.Data(), ptLow, ptHatLow));
+    }
+    else {
+        t.DrawLatexNDC(0.5, 0.84, Form("%2.1f< #eta^{jet} < %2.1f #hat{p}_{T} > %d GeV", etaLow, etaHi, ptHatLow));
+    }
     t.DrawLatexNDC(0.2, 0.84, Form("%s frame", frameT.Data() ) );
     plotCMSHeader(collSystem, energy);
+    if ( isPt ) {
+        ratioPlot->GetUpperPad()->SetLogy();
+    }
+
+    TLegend *leg = new TLegend( legX[0], legY[0], legX[1], legY[1] );
+    leg->SetTextSize(0.05);
+    leg->SetTextFont(42);
+    leg->SetFillStyle(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry( h1, h1Name, "p" );
+    leg->AddEntry( h2, h2Name, "p" );
+    leg->Draw();
 }
 
 //________________
@@ -251,6 +285,7 @@ void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
     // Retrieve histograms
     TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetPtEtaPtHat") );
     TH3D *hGenPtEtaPtHat = dynamic_cast<TH3D*>( f->Get("hGenInclusiveJetPtEtaPtHat") );
+    TH3D *hRefPtEtaPtHat = dynamic_cast<TH3D*>( f->Get("hRefInclusiveJetPtEtaPtHat") );
 
     TH2D *hRecoPtVsPtHat = dynamic_cast<TH2D*>( hRecoPtEtaPtHat->Project3D("yz") );
     hRecoPtVsPtHat->SetName("hRecoPtVsPtHat");
@@ -286,18 +321,31 @@ void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
     std::vector<int> ptHatBins { 1 }; // 20
+
+    // Jet pT binning
     int jetPtStart = 5;
     int jetPtStep = 10;  // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins { 1, 2, 3 }; //35, 55, 105
+    std::vector<int> jetPtBins { 2, 3, 4, 8 }; //35, 55, 105
+
+    // Eta binning
+    // 52 bins from (-5.2, 5.2)
+    int nEtaBins = 52;
+    double etaStep = 0.2;
+    std::vector<int> jetEtaBinsLow{19, 12, 38};
+    std::vector<int> jetEtaBinsHigh{35, 16, 42};
 
     // Declare canvases and histograms
     TCanvas *cPtVsEta[ ptHatBins.size() ];
-    TCanvas *cClosure[ ptHatBins.size() ][ jetPtBins.size() ];
+    TCanvas *cClosureEta[ ptHatBins.size() ][ jetPtBins.size() ];
+    TCanvas *cClosurePt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
+
     TH2D *hRecoPtVsEta[ ptHatBins.size() ];
     TH1D *hRecoEta[ ptHatBins.size() ][ jetPtBins.size() ];
     TH2D *hGenPtVsEta[ ptHatBins.size() ];
     TH1D *hGenEta[ ptHatBins.size() ][ jetPtBins.size() ];
+    TH1D *hRecoPt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
+    TH1D *hGenPt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
 
     // Loop over ptHat and jet pT bins
     for (unsigned int i = 0; i < ptHatBins.size(); i++) {
@@ -340,7 +388,7 @@ void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
         for (unsigned int j = 0; j < jetPtBins.size(); j++) {
 
             // Create canvas
-            cClosure[i][j] = new TCanvas( Form("cClosure_%d_%d", i, j), Form("cClosure_%d_%d", i, j), 700, 800 );
+            cClosureEta[i][j] = new TCanvas( Form("cClosureEta_%d_%d", i, j), Form("cClosureEta_%d_%d", i, j), 700, 800 );
             // Make projection of the 3D histograms
             hRecoEta[i][j] = dynamic_cast<TH1D*>( hRecoPtEtaPtHat->ProjectionX( Form("hRecoEta_%d_%d", i, j), 
                                                                                jetPtBins[j], jetPtBinsMax, 
@@ -352,12 +400,36 @@ void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
             set1DStyle( hGenEta[i][j], 1, kTRUE );
 
             // Plot distributions
-            plotComparison(cClosure[i][j], hRecoEta[i][j], hGenEta[i][j], 
+            plotComparison(cClosureEta[i][j], hRecoEta[i][j], hGenEta[i][j], 
                            jetPtStart + (jetPtBins[j] - 1) * jetPtStep, 
                            ptHatStart + (ptHatBins[i] - 1) * ptHatStep, 
                            "Reco", "Gen", collSystem, energy, false, true);
                            
         } // for (unsigned int j = 0; j < jetPtBins.size(); j++)
+
+
+        for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++) {
+
+            // Create canvas
+            cClosurePt[i][j] = new TCanvas( Form("cClosurePt_%d_%d", i, j), Form("cClosurePt_%d_%d", i, j), 700, 800 );
+            // Make projection of the 3D histograms
+            hRecoPt[i][j] = dynamic_cast<TH1D*>( hRecoPtEtaPtHat->ProjectionY( Form("hRecoPt_%d_%d", i, j), 
+                                                                               jetEtaBinsLow[j], jetEtaBinsHigh[j], 
+                                                                               ptHatBins[i], ptHatBinsMax ) );
+            set1DStyle( hRecoPt[i][j], 0, kFALSE );
+            hGenPt[i][j] = dynamic_cast<TH1D*>( hGenPtEtaPtHat->ProjectionY( Form("hGenPt_%d_%d", i, j), 
+                                                                              jetEtaBinsLow[j], jetEtaBinsHigh[j], 
+                                                                              ptHatBins[i], ptHatBinsMax ) );
+            set1DStyle( hGenPt[i][j], 1, kFALSE );
+
+            // Plot distributions
+            plotComparison(cClosurePt[i][j], hRecoPt[i][j], hGenPt[i][j], 
+                           jetPtStart + (jetPtBins[j] - 1) * jetPtStep, 
+                           ptHatStart + (ptHatBins[i] - 1) * ptHatStep, 
+                           "Reco", "Gen", collSystem, energy, false, true, true,
+                           -5.2 + (jetEtaBinsLow[j]-1) * etaStep, -5.2 + (jetEtaBinsHigh[j]-1) * etaStep);
+                           
+        } // for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++)
     } // for (unsigned int i = 0; i < ptHatBins.size(); i++)
 
 }
@@ -414,9 +486,9 @@ void jecClosure() {
 
     // Embedding for pPb8160
     // TFile *f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", uname.Data()) );
-    TFile *f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_eta2.root", uname.Data()) );
+    TFile *f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_eta2.root", uname.Data()) );
     if ( !f ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_eta2.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pbgoing_eta2.root", uname.Data()) << std::endl;
         return;
     }
     collSystem = 1;
