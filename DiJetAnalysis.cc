@@ -1066,6 +1066,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
 
         fHM->hRecoInclusiveJetPt->Fill(pt, weight);
         fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt, weight);
+        fHM->hRecoInclusiveJetPtRawVsEta->Fill(eta, ptRaw, weight);
         fHM->hRecoInclusiveJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
 
         // On MC check reco jet matching to gen
@@ -1096,6 +1097,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 // Jet energy scale
                 fHM->hJESInclusiveJetPtEtaPhi->Fill(res, 1.);
                 fHM->hJESInclusiveJetPtEtaPhiWeighted->Fill( res, weight );
+
+                fHM->hRecoInclusiveJetJECFactorVsPtEta->Fill( JES, genPt, genEta, weight );
+                // fHM->hRecoInclusiveJetJEC2FactorVsPtGen->Fill( JES2, genPt, genEta, weight );
+                fHM->hRecoInclusiveJetPtRawOverPtRefVsPtEta->Fill( ptRaw/genPt, genPt, genEta, weight );
+
                 // Fill JES vs pt for |eta| < 1.4 (midrapidity)
                 if ( TMath::Abs( genEta ) < 1.4 ) {
                     fHM->hInclusiveJetJESVsPtGen->Fill( genPt, JES, weight );

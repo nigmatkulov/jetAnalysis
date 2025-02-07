@@ -245,6 +245,7 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     // Reconstructed jet acceptance
     TH2D *hRecoInclusiveAllJetPtVsEta;
+    TH2D *hRecoInclusiveJetPtRawVsEta;
 
     // Reco dijet pt, reco dijet eta, reco dijet dphi,
     // Reco lead pt, reco lead eta, reco lead phi,
@@ -371,6 +372,14 @@ class HistoManagerDiJet : public BaseHistoManager {
     THnSparseD *hJESInclusiveJetPtEtaPhi;
     // pt corr / pt gen, gen pt, gen eta, reco phi [4]
     THnSparseD *hJESInclusiveJetPtEtaPhiWeighted;
+
+    // pt corr / pt raw, gen pt, gen eta
+    TH3D *hRecoInclusiveJetJECFactorVsPtEta;
+    // pt corr (my) / pt raw, gen pt, gen eta
+    TH3D *hRecoInclusiveJetJEC2FactorVsPtEta;
+    // pt raw / ref pt, gen pt, gen eta
+    TH3D *hRecoInclusiveJetPtRawOverPtRefVsPtEta;
+
     // pt corr/pt gen vs pt gen at midrapidity -1.4 < eta < 1.4 
     TH2D *hInclusiveJetJESVsPtGen;
     // pt corr/pt, gen pt, gen eta, ptHat
