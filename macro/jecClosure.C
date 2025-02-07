@@ -271,6 +271,8 @@ void plotComparison(TCanvas *c, TH1D* h1, TH1D* h2,
     leg->Draw();
 }
 
+
+
 //________________
 void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
     // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
@@ -316,7 +318,7 @@ void plot3DClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
     hGenPtVsPtHat->GetYaxis()->SetTitle("Gen p_{T}^{jet} (GeV)");
     plotCMSHeader(collSystem, energy);
 
-    // Create vector of ptHat and jet pT bins for projecitons
+    // Create vector of ptHat and jet pT bins for projections
     int ptHatStart = 0;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
