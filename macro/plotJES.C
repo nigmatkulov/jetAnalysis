@@ -113,7 +113,7 @@ void plotJESandJER(TCanvas *c, TH2D *h2D,
     t.SetTextSize(0.05);
 
     // Set xAxis range
-    double xRange[2] = {10., 500.};
+    double xRange[2] = {10., 800.};
     double yMuRange[2] = {0.95, 1.05};
     double ySigmaRange[2] = {0., 0.25};
     
@@ -171,7 +171,7 @@ void plotJESandJER(TCanvas *c, TH2D *h2D,
 
     TF1 *jerFit;
     if ( performFit ) {
-        jerFit = new TF1( Form("%s_fit", hJER->GetName()), "sqrt([0] + [1] / x)", 30., 400.);
+        jerFit = new TF1( Form("%s_fit", hJER->GetName()), "sqrt([0] + [1] / x)", 30., 600.);
         jerFit->SetParameters(0.002, 1.0);
         jerFit->SetLineColor(kRed);
         jerFit->SetLineWidth(2);
@@ -215,10 +215,10 @@ void plotJESvsPtHat(TFile *f, int collSystem = 0, double energy = 5.02) {
     double etaStep = 0.2;
     // Eta binning start: etaStart + (jetEtaBinsLow[j] - 1) * etaStep
     // Eta binning end: etaStart + jetEtaBinsHi[j] * etaStep
-    // -5.2, -4.0, -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 4.0
-    std::vector<int> jetEtaBinsLow {1, 7,  9, 12, 13, 14, 15, 16, 17, 19, 27, 35, 37, 39, 40, 41, 42, 45, 47};
-    // -4.0, -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 4.0, 5.2
-    std::vector<int> jetEtaBinsHi  {6, 8, 11, 12, 13, 14, 15, 16, 18, 26, 34, 36, 38, 39, 40, 41, 44, 46, 52};
+    // -5.2, -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6
+    std::vector<int> jetEtaBinsLow {1,  9, 12, 13, 14, 15, 16, 17, 19, 27, 35, 37, 39, 40, 41, 42, 45};
+    // -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 5.2
+    std::vector<int> jetEtaBinsHi  {8, 11, 12, 13, 14, 15, 16, 18, 26, 34, 36, 38, 39, 40, 41, 44, 52};
 
     // pT binning
     // TODO: Implement pT binning
