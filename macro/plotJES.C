@@ -78,7 +78,7 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     h->GetYaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetTitleSize(0.06);
     h->GetXaxis()->SetLabelSize(0.06);
-    h->GetXaxis()->SetNdivisions(210);
+    h->GetXaxis()->SetNdivisions(205);
     h->GetYaxis()->SetNdivisions(205);    
     h->GetYaxis()->SetTitleOffset(1.1);
 
@@ -96,6 +96,91 @@ void set2DStyle(TH2* h) {
     h->GetXaxis()->SetNdivisions(205);
     h->GetYaxis()->SetNdivisions(205);    
     h->GetYaxis()->SetTitleOffset(1.0);
+}
+
+//________________
+void plotJESandJER(TCanvas *c, TH2D *h2D, 
+                   double lowVal = -1.6, double hiVal = 1.6,
+                   int collSystem = 1, double energy = 8.16,
+                   bool isPt = true, bool performFit = false) {
+    // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
+    // energy in TeV
+
+    double xTextPosition = 0.35;
+    double yTextPosition = 0.8;
+    TLatex t;
+    t.SetTextFont( 42 );
+    t.SetTextSize(0.05);
+
+    // Set xAxis range
+    double xRange[2] = {10., 500.};
+    double yMuRange[2] = {0.95, 1.05};
+    double ySigmaRange[2] = {0., 0.25};
+    
+    if ( !isPt ) {
+        xRange[0] = -3.5;
+        xRange[1] = 3.5;
+    }
+    else {
+        h2D->RebinX(2);
+    }
+
+    // Retrieve JES and JER
+    h2D->FitSlicesY();
+
+    // Jet energy scale
+    TH1D *hJES = (TH1D*)gDirectory->Get( Form("%s_1", h2D->GetName()) );
+    set1DStyle(hJES, 2);
+    hJES->GetYaxis()->SetTitle("JES");
+
+    // Jet energy resolution
+    TH1D *hJER = (TH1D*)gDirectory->Get( Form("%s_2", h2D->GetName()) );
+    set1DStyle(hJER, 2);
+    hJER->GetYaxis()->SetTitle("JER");
+
+    // Plot 2D distribution
+    c->cd(1);
+    setPadStyle();
+    h2D->Draw("colz");
+    h2D->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    h2D->GetYaxis()->SetRangeUser(0., 2.);
+    gPad->SetLogz();
+    plotCMSHeader(collSystem, energy);
+
+    // Plot JES
+    c->cd(2);
+    setPadStyle();
+    hJES->Draw();
+    hJES->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    hJES->GetYaxis()->SetRangeUser(yMuRange[0], yMuRange[1]);
+    if ( isPt ) {
+        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("%2.1f < #eta^{jet} < %2.1f ", lowVal, hiVal) );
+    }
+    else {
+        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("%4.0f < p_{T}^{jet} (GeV) < %4.0f ", lowVal, hiVal) );
+    }
+    plotCMSHeader(collSystem, energy);
+
+    // Plot JER
+    c->cd(3);
+    setPadStyle();
+    hJER->Draw();
+    hJER->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    hJER->GetYaxis()->SetRangeUser(ySigmaRange[0], ySigmaRange[1]);
+    plotCMSHeader(collSystem, energy);
+
+    TF1 *jerFit;
+    if ( performFit ) {
+        jerFit = new TF1( Form("%s_fit", hJER->GetName()), "sqrt([0] + [1] / x)", 30., 400.);
+        jerFit->SetParameters(0.002, 1.0);
+        jerFit->SetLineColor(kRed);
+        jerFit->SetLineWidth(2);
+        hJER->Fit(jerFit, "MRE");
+        jerFit->Draw("same");
+
+        t.DrawLatexNDC(0.35, 0.8, Form("Fit: #sqrt{a+b/x}")); 
+        t.DrawLatexNDC(0.35, 0.7, Form("a = %5.4f, b = %4.3f", jerFit->GetParameter(0), jerFit->GetParameter(1)) );
+    }
 }
 
 //________________
@@ -121,77 +206,62 @@ void plotJESvsPtHat(TFile *f, int collSystem = 0, double energy = 5.02) {
     int ptHatStart = 0;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins { 1, 4, 5, 6, 7 };
+    std::vector<int> ptHatBins { 3 };
 
-    int etaBinsProj[2] = {20, 32};   // eta range from (-1.2, 1.2):  52 bins from -5.2, 5.2
+    int etaBinsProj[2] = {20, 32};   
 
-    TH2D *hJES[ ptHatBins.size() ];
-    TH1D *hJESMean[ ptHatBins.size() ];
-    TH1D *hJESSigma[ ptHatBins.size() ];;
-    TCanvas *cJES[ ptHatBins.size() ];
+    // 52 bins from -5.2, 5.2
+    double etaStart = -5.2;
+    double etaStep = 0.2;
+    // Eta binning start: etaStart + (jetEtaBinsLow[j] - 1) * etaStep
+    // Eta binning end: etaStart + jetEtaBinsHi[j] * etaStep
+    // -5.2, -4.0, -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 4.0
+    std::vector<int> jetEtaBinsLow {1, 7,  9, 12, 13, 14, 15, 16, 17, 19, 27, 35, 37, 39, 40, 41, 42, 45, 47};
+    // -4.0, -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 4.0, 5.2
+    std::vector<int> jetEtaBinsHi  {6, 8, 11, 12, 13, 14, 15, 16, 18, 26, 34, 36, 38, 39, 40, 41, 44, 46, 52};
+
+    // pT binning
+    // TODO: Implement pT binning
+
+
+    TH2D *hJESvsPt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
+    TCanvas *cJESvsPt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
 
     // Loop over ptHat bins
     for (unsigned int i{0}; i<ptHatBins.size(); i++) {
 
-        //
-        // JES vs. jet pT
-        //
-
-        // Set axis limits for THnSparse
-        hJESPars->GetAxis(2)->SetRange( etaBinsProj[0], etaBinsProj[1] );
         hJESPars->GetAxis(3)->SetRange( ptHatBins[i], ptHatBinsMax );
 
-        // Create 2D histogram
-        hJES[i] = dynamic_cast<TH2D*>( hJESPars->Projection(0, 1) );
-        hJES[i]->SetName( Form("hJES_%d", i) );
-        set2DStyle(hJES[i]);
+        //
+        // JES vs. jet pT for different eta bins
+        //
+        for (unsigned int j{0}; j<jetEtaBinsLow.size(); j++) {
 
-        // Retrieve JES and JER
-        hJES[i]->FitSlicesY();
+            // Set axis limits for THnSparse
+            hJESPars->GetAxis(2)->SetRange( jetEtaBinsLow[j], jetEtaBinsHi[j] );
 
-        // Jet energy scale
-        hJESMean[i] = (TH1D*)gDirectory->Get( Form("hJES_%d_1", i) );
-        hJESMean[i]->SetName( Form("hJESMean_%d", i) );
-        set1DStyle(hJESMean[i], 2);
-        hJESMean[i]->GetYaxis()->SetTitle("JES");
+            // Create 2D histogram
+            hJESvsPt[i][j] = dynamic_cast<TH2D*>( hJESPars->Projection(0, 1) );
+            hJESvsPt[i][j]->SetName( Form("hJES_%d_%d", i, j) );
+            set2DStyle(hJESvsPt[i][j]);
 
-        // Jet energy resolution
-        hJESSigma[i] = (TH1D*)gDirectory->Get( Form("hJES_%d_2", i) );
-        hJESSigma[i]->SetName( Form("hJESSigma_%d", i) );
-        set1DStyle(hJESSigma[i], 2);
-        hJESSigma[i]->GetYaxis()->SetTitle("JER");
+            // Create canvas
+            cJESvsPt[i][j] = new TCanvas( Form("cJES_%d_%d", i, j), Form("cJES_%d_%d", i, j), 1500, 500 );
+            cJESvsPt[i][j]->Divide(3, 1);
+
+            double lowVal = etaStart + (jetEtaBinsLow[j] - 1) * etaStep;
+            double hiVal = etaStart + jetEtaBinsHi[j] * etaStep;
+            plotJESandJER(cJESvsPt[i][j], hJESvsPt[i][j], lowVal, hiVal, collSystem, energy, true, true);
+
+        } // for (unsigned int j{0}; j<jetEtaBinsLow.size(); j++)
+
+        hJESPars->GetAxis(2)->SetRange( 1, 52 ); // Restore eta binning
 
         //
-        // Plot distributions
+        // JES vs. jet eta for different pt bins
         //
+        // TODO: Implement JES vs. eta
 
-        // Create canvas
-        cJES[i] = new TCanvas( Form("cJES_%d", i), Form("cJES_%d", i), 1500, 500 );
-        cJES[i]->Divide(3, 1);
-        
-        cJES[i]->cd(1);
-        setPadStyle();
-        hJES[i]->Draw("colz");
-        hJES[i]->GetXaxis()->SetRangeUser(0, 150);
-        hJES[i]->GetYaxis()->SetRangeUser(0., 2.);
-        gPad->SetLogz();
-        plotCMSHeader(collSystem, energy);
-
-        cJES[i]->cd(2);
-        setPadStyle();
-        hJESMean[i]->Draw();
-        hJESMean[i]->GetXaxis()->SetRangeUser(0, 100);
-        hJESMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
-        plotCMSHeader(collSystem, energy);
-        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("#hat{p}_{T} > %d GeV",  ptHatStart + (ptHatBins.at(i) - 1) * ptHatStep) );
-
-        cJES[i]->cd(3);
-        setPadStyle();
-        hJESSigma[i]->Draw();
-        hJESSigma[i]->GetXaxis()->SetRangeUser(0, 100);
-        hJESSigma[i]->GetYaxis()->SetRangeUser(0.05, 0.25);
-        plotCMSHeader(collSystem, energy);
-        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("%2.1f < #eta^{jet} < %2.1f", -5.2 + etaBinsProj[0] * 0.2, -5.2 + etaBinsProj[1] * 0.2) );
     } // for (unsigned int i{0}; i<ptHatBins.size(); i++)
 
 }
