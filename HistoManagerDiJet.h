@@ -554,6 +554,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Ref-selected jet histograms
     //
 
+    TH1D *hRefSelInclusiveJetPt;
+    TH2D *hRefSelInclusiveJetPtEta;
+    TH3D *hRefSelInclusiveJetPtEtaPtHat;
+
     TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaDphi;
     TH3D *hRefSelDijetPtEtaDphiWeighted;

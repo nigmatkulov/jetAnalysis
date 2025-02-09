@@ -219,6 +219,10 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoDijetPtEtaRefDijetPtEtaWeighted{nullptr},
     hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted{nullptr},
 
+    hRefSelInclusiveJetPt{nullptr},
+    hRefSelInclusiveJetPtEta{nullptr},
+    hRefSelInclusiveJetPtEtaPtHat{nullptr},
+
     hRefDijetEta{nullptr},
     hRefDijetEtaVsRecoDijetEta{nullptr},
     hRefDijetEtaVsRecoDijetEtaVsRecoDijetPt{nullptr},
@@ -952,6 +956,10 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         } // for (int i = 0; i < 5; ++i)
 
         // Ref-selected jet histograms
+
+        if (hRefSelInclusiveJetPt) delete hRefSelInclusiveJetPt;
+        if (hRefSelInclusiveJetPtEta) delete hRefSelInclusiveJetPt;
+        if (hRefSelInclusiveJetPtEtaPtHat) delete hRefSelInclusiveJetPt;
 
         if (hRefSelDijetEta) delete hRefSelDijetEta;
         if (hRefSelDijetPtEtaDphi) delete hRefSelDijetPtEtaDphi;
@@ -2072,6 +2080,20 @@ void HistoManagerDiJet::init() {
         //
         // Ref selected dijets
         //
+
+        hRefSelInclusiveJetPt = new TH1D("hRefSelInclusiveJetPt","Ref-selected jet p_{T};Ref p_{T} (GeV);Entries",
+                                        fPtBins, fPtRange[0], fPtRange[1]);
+        hRefSelInclusiveJetPt->Sumw2();
+        hRefSelInclusiveJetPtEta = new TH2D("hRefSelInclusiveJetPtEta","Ref-selected jet p_{T} vs #eta;Ref #eta;Ref p_{T} (GeV)",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1]);
+        hRefSelInclusiveJetPtEta->Sumw2();
+        hRefSelInclusiveJetPtEtaPtHat = new TH3D("hRefSelInclusiveJetPtEtaPtHat","Ref-selected jet p_{T} vs #eta vs #hat{p}_{T};Ref #eta;Ref p_{T} (GeV);#hat{p}_{T} (GeV)",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1],
+                                        fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
+        hRefSelInclusiveJetPtEtaPtHat->Sumw2();
+
         hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted = new THnSparseD("hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted",
                 "Reco to ref correspondence (via ref selection) weighted;Reco p_{T}^{dijet} (GeV);Reco #eta^{dijet};Reco p_{T}^{Leading} (GeV);Reco #eta^{Leading};Reco p_{T}^{Subleading} (GeV);Reco #eta^{Subleading};Ref p_{T}^{dijet};Ref #eta^{dijet};Ref p_{T}^{Leading} (GeV);Ref #eta^{Leading};Ref p_{T}^{Subleading} (GeV);Ref #eta^{Subleading}",
                 12,
@@ -3241,6 +3263,10 @@ void HistoManagerDiJet::writeOutput() {
         //
         // Ref-seletected histograms
         //
+
+        hRefSelInclusiveJetPt->Sumw2();
+        hRefSelInclusiveJetPtEta->Sumw2();
+        hRefSelInclusiveJetPtEtaPtHat->Sumw2();
 
         hRefSelDijetEta->Write();
         hRefSelDijetPtEtaDphi->Write();

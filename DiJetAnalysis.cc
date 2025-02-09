@@ -1602,6 +1602,9 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
     fIsRefSelDijetLabFound = {false};
     fIsRefSelDijetCMFound = {false};
 
+    // ptHat value
+    double ptHat = event->ptHat();
+
     // Loop over reconstructed jets and select leading and subleading jets
     // using reference jets
     RecoJetIterator recoJetIter;
@@ -1648,6 +1651,10 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
             std::cout << "Reco jet #" << counter-1 << " ";
             (*recoJetIter)->print();
         }
+
+        fHM->hRefSelInclusiveJetPt->Fill( genPt, weight * fMcReweight );
+        fHM->hRefSelInclusiveJetPtEta->Fill(genEta, genPt, weight * fMcReweight);
+        fHM->hRefSelInclusiveJetPtEtaPtHat->Fill(genEta, genPt, ptHat, weight * fMcReweight);
 
         // Find leading and subleading ref jets, but store id of reco jets
         findLeadSubleadJets( genPt, (counter-1), ptRefLead, ptRefSubLead, idRecoLead, idRecoSubLead );
