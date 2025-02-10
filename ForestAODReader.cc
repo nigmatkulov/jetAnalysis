@@ -1185,7 +1185,7 @@ Event* ForestAODReader::returnEvent() {
                 jet->setFlavorForB( fRefJetPartonFlavorForB[fGenJet2RecoJet.at(iGenJet)] );
                 jet->setPtWeight( 1. );
                 if ( fVerbose ) {
-                    jet->Print();
+                    jet->print();
                 }
                 
                 fEvent->genJetCollection()->push_back( jet );
