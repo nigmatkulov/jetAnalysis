@@ -1171,6 +1171,9 @@ Event* ForestAODReader::returnEvent() {
                 std::cout << "nGenRecoJets: " << fNGenJets << std::endl;
             }
 
+            if ( fVerbose ) {
+                std::cout << "Filling GenJets: " << fNGenJets << std::endl;
+            }
             for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
                 GenJet *jet = new GenJet{};
                 jet->setPt( fGenJetPt[iGenJet] );
@@ -1181,8 +1184,15 @@ Event* ForestAODReader::returnEvent() {
                 jet->setFlavor( fRefJetPartonFlavor[fGenJet2RecoJet.at(iGenJet)] );
                 jet->setFlavorForB( fRefJetPartonFlavorForB[fGenJet2RecoJet.at(iGenJet)] );
                 jet->setPtWeight( 1. );
+                if ( fVerbose ) {
+                    jet->Print();
+                }
+                
                 fEvent->genJetCollection()->push_back( jet );
             } // for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++)
+            if ( fVerbose) {
+                std::cout << "GenJetCollection filled" << std::endl;
+            }
 
             // Projection from filling the collection several times
             fEvent->setGenJetCollectionIsFilled();
