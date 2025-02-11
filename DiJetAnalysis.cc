@@ -458,7 +458,7 @@ bool DiJetAnalysis::isGoodTrkMax(const RecoJet* jet) {
     bool goodTrackMax = {true};
     double rawPt = jet->rawPt();
     double trackMaxPt = jet->trackMaxPt();
-    if ( /* TMath::Abs( jet->eta() ) < 2.4 && */
+    if ( TMath::Abs( jet->eta() ) < 2.4 &&
          ( trackMaxPt/rawPt < 0.01 ||
            trackMaxPt/rawPt > 0.98) ) {
         goodTrackMax = {false};
