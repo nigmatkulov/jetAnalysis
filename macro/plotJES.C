@@ -184,7 +184,7 @@ void plotJESandJER(TCanvas *c, TH2D *h2D,
 }
 
 //________________
-void plotJESvsPtHat(TFile *f, int collSystem = 0, double energy = 5.02) {
+void plotDijetEta(TFile *f, int collSystem = 0, double energy = 5.02) {
     // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
 
