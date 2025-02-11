@@ -75,6 +75,8 @@ HistoManagerDiJet::HistoManagerDiJet() :
     // Gen jets
     //
 
+    hGenJetCollectionSize{nullptr},
+    hGenVsRecoJetCollectionSize{nullptr},
     hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi{nullptr},
     hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted{nullptr},
     hGenInclusiveJetPt{nullptr},
@@ -136,6 +138,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     // Reco jets
     //
 
+    hRecoJetCollectionSize{nullptr},
     hRecoInclusiveJetNHF{nullptr}, 
     hRecoInclusiveJetNEmF{nullptr}, 
     hRecoInclusiveJetNumOfConst{nullptr}, 
@@ -200,6 +203,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoInclusiveJetJECFactorVsPtEta{nullptr},
     hRecoInclusiveJetJEC2FactorVsPtEta{nullptr},
     hRecoInclusiveJetPtRawOverPtRefVsPtEta{nullptr},
+    hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning{nullptr},
 
     hRecoInclusiveMatchedJetPt{nullptr},
     hRecoInclusiveMatchedJetPtVsEta{nullptr},
@@ -584,6 +588,8 @@ HistoManagerDiJet::~HistoManagerDiJet() {
 
     if ( fIsMc ) {
         // Gen histograms
+        if (hGenJetCollectionSize) delete hGenJetCollectionSize;
+        if (hGenVsRecoJetCollectionSize) delete hGenVsRecoJetCollectionSize;
         if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
         if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
         if (hGenInclusiveJetPt) delete hGenInclusiveJetPt;
@@ -695,6 +701,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     } // if ( fIsMc )
 
     // Reco jet histograms
+    if (hRecoJetCollectionSize) delete hRecoJetCollectionSize;
     for (int i{0}; i<4; i++) {
         if (hRecoInclusiveJetNHF[i]) delete hRecoInclusiveJetNHF[i];
         if (hRecoInclusiveJetNEmF[i]) delete hRecoInclusiveJetNEmF[i];
@@ -810,6 +817,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRecoInclusiveJetJECFactorVsPtEta) delete hRecoInclusiveJetJECFactorVsPtEta;
         if (hRecoInclusiveJetJEC2FactorVsPtEta) delete hRecoInclusiveJetJEC2FactorVsPtEta;
         if (hRecoInclusiveJetPtRawOverPtRefVsPtEta) delete hRecoInclusiveJetPtRawOverPtRefVsPtEta;
+        if (hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning) delete hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning;
 
         if ( hInclusiveJetJESVsPtGen ) delete hInclusiveJetJESVsPtGen;
         if ( hInclusiveJetJESGenPtGenEtaPtHatWeighted ) delete hInclusiveJetJESGenPtGenEtaPtHatWeighted;
@@ -1059,6 +1067,22 @@ void HistoManagerDiJet::init() {
                                                 0.18333333333, 0.465, 0.74666666666, 1.02833333333, 1.31,
                                                 1.59166666667, 1.87333333333, 2.43666666667, 3.};
 
+    double jetEtaL2L3StdVals[] = { -5.191, -4.889, -4.716, -4.538, -4.363, -4.191, 
+                                 -4.013, -3.839, -3.664, -3.489, -3.314, -3.139, 
+                                 -2.964, -2.853, -2.650, -2.500, -2.322, -2.172, 
+                                 -2.043, -1.930, -1.830, -1.740, -1.653, -1.566, 
+                                 -1.479, -1.392, -1.305, -1.218, -1.131, -1.044, 
+                                 -0.957, -0.879, -0.783, -0.696, -0.609, -0.522, 
+                                 -0.435, -0.348, -0.261, -0.174, -0.087,  0.000, 
+                                  0.087,  0.174,  0.261,  0.348,  0.435,  0.522, 
+                                  0.609,  0.696,  0.783,  0.879,  0.957,  1.044, 
+                                  1.131,  1.218,  1.305,  1.392,  1.479,  1.566, 
+                                  1.653,  1.740,  1.830,  1.930,  2.043,  2.172, 
+                                  2.322,  2.500,  2.650,  2.853,  2.964,  3.139, 
+                                  3.314,  3.489,  3.664,  3.839,  4.013,  4.191, 
+                                  4.363,  4.538,  4.716,  4.889,  5.191 };
+    int jetEtaL2L3StdBins = sizeof(jetEtaL2L3StdVals)/sizeof(double) - 1;
+
     const int dijetEtaFBBins{13};
     double dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
                                                 1.0,  1.2,  1.4,  1.6,  1.8,  
@@ -1267,6 +1291,9 @@ void HistoManagerDiJet::init() {
                                      fMultBins, fMultRange[0], fMultRange[1]);
         hRecoInclusiveJetNumOfNeutPart[i]->Sumw2();
     } // for (int i{0}; i<4; i++)
+
+    hRecoJetCollectionSize = new TH1D("hRecoJetCollectionSize","Reco jet collection size;Number of jets;Entries", 100, -0.5, 99.5);
+    hRecoJetCollectionSize->Sumw2();
 
     hRecoLeadJetAllPtVsEta = new TH2D("hRecoLeadJetAllPtVsEta","Leading jet all p_{T} vs #eta;#eta;p_{T} (GeV)", 
                                         fEtaBins, fEtaRange[0], fEtaRange[1], 
@@ -1582,11 +1609,6 @@ void HistoManagerDiJet::init() {
                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
     hRecoDijetPtEtaCMBackwardWeighted->Sumw2();
 
-
-
-    // TODO: stopped here. Need to update the rest of the histograms
-
-
     //
     // Monte Carlo information
     //
@@ -1595,6 +1617,12 @@ void HistoManagerDiJet::init() {
         //
         // Gen inclusive jets
         //
+
+        hGenJetCollectionSize = new TH1D("hGenJetCollectionSize","Gen jet collection size;Gen jet collection size;Entries", 100, -0.5, 99.5);
+        hGenJetCollectionSize->Sumw2();
+
+        hGenVsRecoJetCollectionSize = new TH2D("hGenVsRecoJetCollectionSize","Reco vs Gen jet collection size;Reco jet collection size;Gen jet collection size", 100, -0.5, 99.5, 100, -0.5, 99.5);
+        hGenVsRecoJetCollectionSize->Sumw2();
 
         hGenInclusiveJetPt = new TH1D("hGenInclusiveJetPt","Inclusive gen jet;Gen p_{T}^{inclusive} (GeV)",
                                         fPtBins, fPtRange[0], fPtRange[1] );
@@ -2007,6 +2035,11 @@ void HistoManagerDiJet::init() {
         hRecoInclusiveJetPtRawOverPtRefVsPtEta = new TH3D("hRecoInclusiveJetPtRawOverPtRefVsPtEta","p_{T}^{raw}/p_{T}^{ref} vs p_{T} and #eta;p_{T}^{raw}/p_{T}^{ref};p_{T}^{gen} (GeV);#eta^{gen}",
                                            20, 0., 2., fPtBins, fPtRange[0], fPtRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
         hRecoInclusiveJetPtRawOverPtRefVsPtEta->Sumw2();
+        hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning = new TH3D("hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning","p_{T}^{raw}/p_{T}^{ref} vs p_{T} and #eta (std binning);p_{T}^{raw}/p_{T}^{ref};p_{T}^{gen} (GeV);#eta^{gen}",
+                                                                    20, 0., 2., 1300, 10., 6510., 104, -5.2, 5.2);
+        hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning->Sumw2();
+        hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning->GetZaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+
 
         hInclusiveJetJESVsPtGen = new TH2D("hInclusiveJetJESVsPtGen","JES vs p_{T}^{gen} for |#eta|<1.4;p_{T}^{gen} (GeV);p_{T}^{reco}/p_{T}^{gen}",
                                            fPtBins, fPtRange[0], fPtRange[1], fJESBins, fJESRange[0], fJESRange[1]);
@@ -2887,6 +2920,7 @@ void HistoManagerDiJet::writeOutput() {
         hRecoInclusiveJetNumOfNeutPart[i]->Write();
     }
 
+    hRecoJetCollectionSize->Write();
     hRecoInclusiveAllJetPtVsEta->Write();
     hRecoInclusiveJetPtRawVsEta->Write();
     hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Write();
@@ -2985,6 +3019,8 @@ void HistoManagerDiJet::writeOutput() {
         // Gen histograms
         //
 
+        hGenJetCollectionSize->Write();
+        hGenVsRecoJetCollectionSize->Write();
         hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Write();
         hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Write();
         hGenInclusiveJetPt->Write();
@@ -3112,6 +3148,7 @@ void HistoManagerDiJet::writeOutput() {
         hRecoInclusiveJetJECFactorVsPtEta->Write();
         hRecoInclusiveJetJEC2FactorVsPtEta->Write();
         hRecoInclusiveJetPtRawOverPtRefVsPtEta->Write();
+        hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning->Write();
 
         hInclusiveJetJESVsPtGen->Write();
         hInclusiveJetJESGenPtGenEtaPtHatWeighted->Write();

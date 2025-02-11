@@ -110,6 +110,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Gen jet histograms
     //
 
+    TH1D *hGenJetCollectionSize;
+    TH2D *hGenVsRecoJetCollectionSize;
+
     // Dijet pt, dijet eta, dijet dphi, lead pt, lead eta, lead phi, 
     // sublead pt, sublead eta, sublead phi [9]
     THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
@@ -232,6 +235,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     //
     // Reco jet histograms
     //
+
+    TH1D *hRecoJetCollectionSize;
 
     // Inclusive jets
     TH1D *hRecoInclusiveJetNHF[4];
@@ -379,6 +384,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoInclusiveJetJEC2FactorVsPtEta;
     // pt raw / ref pt, gen pt, gen eta
     TH3D *hRecoInclusiveJetPtRawOverPtRefVsPtEta;
+    // pt raw / ref pt, gen pt, gen eta
+    TH3D *hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning;
 
     // pt corr/pt gen vs pt gen at midrapidity -1.4 < eta < 1.4 
     TH2D *hInclusiveJetJESVsPtGen;
