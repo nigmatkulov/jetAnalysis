@@ -238,6 +238,101 @@ void rescaleForwardBackward(TH1D *hForward, TH1D *hBackward) {
 }
 
 //________________
+void drawComparison(TCanvas *c, TH1D *hReco, TH1D *hRef, TH1D *hGen, 
+                    int ptLow = 50, int ptHi = 60, 
+                    bool isCM = false, bool isFB = false,
+                    int collisionSystem = 1, double energy = 8.16) {
+
+    TLatex t;
+    t.SetTextFont( 42 );
+    t.SetTextSize( 0.05 );
+    TLegend *leg;
+
+    double xRange[2] = { -3.2, 3.2 };
+    double yRange[2] = {0.0000001, 0.08 };
+
+    if ( isCM ) {
+        if ( !isFB ) {
+            xRange[0] = -2.5; xRange[1] = 2.5;
+            yRange[0] = 0.0000001; yRange[1] = 0.08;
+        }
+        else {
+            xRange[0] = 0; xRange[1] = 2.5;
+            yRange[0] = 0.8; yRange[1] = 1.2;
+        }
+    }
+
+    c->cd();
+    setPadStyle();
+    hReco->Draw();
+    hGen->Draw("same");
+    hRef->Draw("same");
+    hReco->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    hReco->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    gPad->SetGrid();
+    plotCMSHeader(collisionSystem, energy);        
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi) );
+    if ( isFB ) {
+        leg = new TLegend(0.2, 0.25, 0.4, 0.4);
+    }
+    else {
+        leg = new TLegend(0.2, 0.55, 0.4, 0.7);
+    }
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    leg->SetTextSize(0.04);
+    leg->SetTextFont(42);
+    leg->AddEntry( hReco, "Reco", "p" );
+    leg->AddEntry( hGen, "Gen", "p" );
+    leg->AddEntry( hRef, "Ref", "p" );        
+    leg->Draw();
+}
+
+//________________
+void drawRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen, 
+               int ptLow = 50, int ptHi = 60, 
+               bool isCM = false, bool isFB = false,
+               int collisionSystem = 1, double energy = 8.16) {
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+    TLegend *leg;
+
+    double xRange[2] = {-3.2, 3.2};
+    double yRange[2] = {0.7, 1.3};
+
+    if (isCM) {
+        if (!isFB) {
+            xRange[0] = -2.5; xRange[1] = 2.5;
+            yRange[0] =0.7; yRange[1] = 1.3;
+        }
+        else {
+            xRange[0] = 0; xRange[1] = 2.5;
+            yRange[0] = 0.7; yRange[1] = 1.3;
+        }
+    }
+
+    c->cd();
+    setPadStyle();
+    hReco2Gen->Draw();
+    hRef2Gen->Draw("same");
+    hReco2Gen->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    hReco2Gen->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    gPad->SetGrid();
+    plotCMSHeader(collisionSystem, energy);
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi));
+    leg = new TLegend(0.2, 0.25, 0.4, 0.4);
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    leg->SetTextSize(0.04);
+    leg->SetTextFont(42);
+    leg->AddEntry(hReco2Gen, "Reco/Gen", "p");
+    leg->AddEntry(hRef2Gen, "Ref/Gen", "p");
+    leg->Draw();
+}
+
+//________________
 void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy = 5.02, TString date = "20250129") {
     
     // collisionSystem: 0 = pp, 1 = pPb, 2 = PbPb
@@ -331,9 +426,9 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
         rescaleEta( hRefDijetEta1DLab[i] );
 
         hReco2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DLab[i]->Clone( Form("hReco2GenDijetEta1DLab_%d", i) ) );
-        hReco2GenDijetEta1DLab[i]->Divide( hGenDijetEta1DLab[i] );
+        hReco2GenDijetEta1DLab[i]->Divide( hReco2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
         hRef2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRefDijetEta1DLab[i]->Clone( Form("hRef2GenDijetEta1DLab_%d", i) ) );
-        hRef2GenDijetEta1DLab[i]->Divide( hGenDijetEta1DLab[i] );
+        hRef2GenDijetEta1DLab[i]->Divide( hRef2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
 
         //
         // CM frame
@@ -351,9 +446,9 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
         set1DStyle( hRefDijetEta1DCM[i], 1 );
         rescaleEta( hRefDijetEta1DCM[i] );
         hReco2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DCM[i]->Clone( Form("hReco2GenDijetEta1DCM_%d", i) ) );
-        hReco2GenDijetEta1DCM[i]->Divide( hGenDijetEta1DCM[i] );
+        hReco2GenDijetEta1DCM[i]->Divide( hReco2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
         hRef2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRefDijetEta1DCM[i]->Clone( Form("hRef2GenDijetEta1DCM_%d", i) ) );
-        hRef2GenDijetEta1DCM[i]->Divide( hGenDijetEta1DCM[i] );
+        hRef2GenDijetEta1DCM[i]->Divide( hRef2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
 
         //
         // Forward/backward ratios
@@ -398,23 +493,9 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
         cDijetEtaLabComp[i] = new TCanvas( Form("cDijetEtaLabComp_%d", i), 
                                            Form("cDijetEtaLabComp_%d", i), 
                                            canvX, canvY );
-        setPadStyle();
-        hRecoDijetEta1DLab[i]->Draw();
-        hGenDijetEta1DLab[i]->Draw("same");
-        hRefDijetEta1DLab[i]->Draw("same");
-        hRecoDijetEta1DLab[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-        hRecoDijetEta1DLab[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-        plotCMSHeader(collisionSystem, collisionEnergy);        
-        t.DrawLatexNDC(0.4, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", dijetPtVals[i], dijetPtVals[i+1]) );
-        leg = new TLegend(0.2, 0.55, 0.4, 0.7);
-        leg->SetBorderSize(0);
-        leg->SetFillStyle(0);
-        leg->SetTextSize(0.04);
-        leg->SetTextFont(42);
-        leg->AddEntry( hRecoDijetEta1DLab[i], "Reco", "p" );
-        leg->AddEntry( hGenDijetEta1DLab[i], "Gen", "p" );
-        leg->AddEntry( hRefDijetEta1DLab[i], "Ref", "p" );        
-        leg->Draw();
+        drawComparison(cDijetEtaLabComp[i], hRecoDijetEta1DLab[i], hRefDijetEta1DLab[i], hGenDijetEta1DLab[i],
+                       dijetPtVals[i], dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
+
 
         //
         // Plot ratios in the lab frame
@@ -422,21 +503,8 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
         cDijetEtaLabRat[i] = new TCanvas( Form("cDijetEtaLabRat_%d", i), 
                                           Form("cDijetEtaLabRat_%d", i), 
                                           canvX, canvY );
-        setPadStyle();
-        hReco2GenDijetEta1DLab[i]->Draw();
-        hRef2GenDijetEta1DLab[i]->Draw("same");
-        hReco2GenDijetEta1DLab[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-        hReco2GenDijetEta1DLab[i]->GetYaxis()->SetRangeUser(0.6, 1.4);
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        t.DrawLatexNDC(0.4, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", dijetPtVals[i], dijetPtVals[i+1]) );
-        leg = new TLegend(0.4, 0.2, 0.6, 0.4);
-        leg->SetBorderSize(0);
-        leg->SetFillStyle(0);
-        leg->SetTextSize(0.04);
-        leg->SetTextFont(42);
-        leg->AddEntry( hReco2GenDijetEta1DLab[i], "Reco/Gen", "p" );
-        leg->AddEntry( hRef2GenDijetEta1DLab[i], "Ref/Gen", "p" );
-        leg->Draw();
+        drawRatio(cDijetEtaLabRat[i], hReco2GenDijetEta1DLab[i], hRef2GenDijetEta1DLab[i],
+                  dijetPtVals[i], dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
 
         //
         // Plot comparisons in the CM frame
@@ -447,23 +515,8 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
         cDijetEtaCMComp[i] = new TCanvas( Form("cDijetEtaCMComp_%d", i), 
                                            Form("cDijetEtaCMComp_%d", i), 
                                            canvX, canvY );
-        setPadStyle();
-        hRecoDijetEta1DCM[i]->Draw();
-        hGenDijetEta1DCM[i]->Draw("same");
-        hRefDijetEta1DCM[i]->Draw("same");
-        hRecoDijetEta1DCM[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-        hRecoDijetEta1DCM[i]->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        t.DrawLatexNDC(0.4, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", dijetPtVals[i], dijetPtVals[i+1]) );
-        leg = new TLegend(0.2, 0.55, 0.4, 0.7);
-        leg->SetBorderSize(0);
-        leg->SetFillStyle(0);
-        leg->SetTextSize(0.04);
-        leg->SetTextFont(42);
-        leg->AddEntry( hRecoDijetEta1DCM[i], "Reco", "p" );
-        leg->AddEntry( hGenDijetEta1DCM[i], "Gen", "p" );
-        leg->AddEntry( hRefDijetEta1DCM[i], "Ref", "p" );
-        leg->Draw();
+        drawComparison(cDijetEtaCMComp[i], hRecoDijetEta1DCM[i], hRefDijetEta1DCM[i], hGenDijetEta1DCM[i],
+                       dijetPtVals[i], dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
 
         //
         // Plot ratios in the CM frame
@@ -472,21 +525,8 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
                                           Form("cDijetEtaCMRat_%d", i), 
                                           canvX, canvY );
 
-        setPadStyle();
-        hReco2GenDijetEta1DCM[i]->Draw();
-        hRef2GenDijetEta1DCM[i]->Draw("same");
-        hReco2GenDijetEta1DCM[i]->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
-        hReco2GenDijetEta1DCM[i]->GetYaxis()->SetRangeUser(0.6, 1.4);
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        t.DrawLatexNDC(0.4, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", dijetPtVals[i], dijetPtVals[i+1]) );
-        leg = new TLegend(0.4, 0.2, 0.6, 0.4);
-        leg->SetBorderSize(0);
-        leg->SetFillStyle(0);
-        leg->SetTextSize(0.04);
-        leg->SetTextFont(42);
-        leg->AddEntry( hReco2GenDijetEta1DCM[i], "Reco/Gen", "p" );
-        leg->AddEntry( hRef2GenDijetEta1DCM[i], "Ref/Gen", "p" );
-        leg->Draw();
+        drawRatio(cDijetEtaCMRat[i], hReco2GenDijetEta1DCM[i], hRef2GenDijetEta1DCM[i],
+                  dijetPtVals[i], dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
 
         //
         // Forward/backward ratios
@@ -494,24 +534,8 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
         cDijetEtaFB[i] = new TCanvas( Form("cDijetEtaFB_%d", i), 
                                       Form("cDijetEtaFB_%d", i), 
                                       canvX, canvY );
-        setPadStyle();
-        hRecoDijetFBEtaCM1D[i]->Draw();
-        hGenDijetFBEtaCM1D[i]->Draw("same");
-        hRefDijetFBEtaCM1D[i]->Draw("same");
-        hRecoDijetFBEtaCM1D[i]->GetXaxis()->SetRangeUser(0, 2.5);
-        hRecoDijetFBEtaCM1D[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        gPad->SetGrid();
-        t.DrawLatexNDC(0.4, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", dijetPtVals[i], dijetPtVals[i+1]) );
-        leg = new TLegend(0.4, 0.2, 0.6, 0.4);
-        leg->SetBorderSize(0);
-        leg->SetFillStyle(0);
-        leg->SetTextSize(0.04);
-        leg->SetTextFont(42);
-        leg->AddEntry( hRecoDijetFBEtaCM1D[i], "Reco", "p" );
-        leg->AddEntry( hGenDijetFBEtaCM1D[i], "Gen", "p" );
-        leg->AddEntry( hRefDijetFBEtaCM1D[i], "Ref", "p" );
-        leg->Draw();        
+        drawComparison(cDijetEtaFB[i], hRecoDijetFBEtaCM1D[i], hRefDijetFBEtaCM1D[i], hGenDijetFBEtaCM1D[i],
+                       dijetPtVals[i], dijetPtVals[i+1], true, true, collisionSystem, collisionEnergy);
 
     } // end loop over dijet pt bins
 }
