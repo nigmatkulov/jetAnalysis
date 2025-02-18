@@ -223,6 +223,7 @@ double ForestAODReader::jecManualCorrection(const double &pt, const double &eta)
 
     if ( fVerbose ) {
         std::cout << "ForestAODReader::jecManualCorrection - begin\n";
+        std::cout << "pt: " << pt << " eta: " << eta << std::endl;
     }
 
     // Array of eta bin edges (left edge included, right edge excluded)
