@@ -102,6 +102,10 @@ class ForestAODReader : public BaseReader {
     void setJERFitParams(const double &a = 0.0415552, const double &b = 0.960013) { fAlphaJER = a; fBetaJER = b; }
     /// @brief Set default parameters of JER for systematics
     void setJERSystParams();
+    /// @brief Set use manually calculate JEC correction function
+    void setUseManualJEC() { fUseManualJEC = true; }
+    /// @brief Set Pb-direction (default is true)
+    void setPbGoing(const bool &pb = true) { fIsPbGoing = pb; }
 
     /// @brief Return amount of events to read
     Long64_t nEventsTotal() const { return fEvents2Read; }
@@ -141,6 +145,11 @@ class ForestAODReader : public BaseReader {
     /// @brief Calculate centrality weight
     double evalCentralityWeight(const double& hiBin);
 
+    /// @brief Find bin index for the given value in the array
+    int findBinIndex(const double &val, double *array, int nBins);
+    /// @brief Manual JEC correction
+    double jecManualCorrection(const double &pt, const double &eta);
+
     /// @brief Event with jets and other variables
     Event *fEvent;
 
@@ -155,6 +164,10 @@ class ForestAODReader : public BaseReader {
     bool fIsMc;
     /// @brief Use to apply hiBin shift for centrality correction
     bool fCorrectCentMC;
+    /// @brief Use JEC computed manually (default false)
+    bool fUseManualJEC;
+    /// @brief Pb-direction (default true)
+    bool fIsPbGoing;
 
     /// @brief Switch HLT branch ON
     bool fUseHltBranch;

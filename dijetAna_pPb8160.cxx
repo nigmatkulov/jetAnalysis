@@ -155,6 +155,7 @@ int main(int argc, char const *argv[]) {
             reader->setCorrectCentMC();
         }
     }
+    reader->setPbGoingDir( isPbGoingDir );
     reader->useHltBranch();
     reader->useSkimmingBranch();
     reader->useRecoJetBranch();
@@ -185,6 +186,8 @@ int main(int argc, char const *argv[]) {
         reader->setJERFitParams(0.0415552, 0.960013);
         reader->setJERSystParams();
     }
+    // If want to use manual JEC
+    reader->setUseManualJEC();
 
     //reader->setVerbose();
 
