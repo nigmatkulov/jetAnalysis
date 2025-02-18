@@ -1393,7 +1393,7 @@ Event* ForestAODReader::returnEvent() {
                 fJEC->SetJetPhi( fRecoJetPhi[iJet] );
                 double pTcorr = fJEC->GetCorrectedPT();
                 if ( fUseManualJEC ) {
-                    pTcorr = fRecoJetPt[iJet] * jecManualCorrection( fRecoJetEta[iJet], fRecoJetEta[iJet] );
+                    pTcorr = fRecoJetPt[iJet] * jecManualCorrection( fRecoJetPt[iJet], fRecoJetEta[iJet] );
                 }
                 if ( fVerbose ) {
                     std::cout << "pTCorr: " << pTcorr << std::endl; 
