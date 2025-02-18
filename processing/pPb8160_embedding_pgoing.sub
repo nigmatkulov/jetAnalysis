@@ -5,7 +5,7 @@ executable = run_dijetAna_pPb8160.sh
 requirements = ((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
 transfer_input_files  = voms_proxy.txt
 environment = "X509_USER_PROXY=voms_proxy.txt"
-RequestCpus = 4
+RequestCpus = 2
 
 log        = condor/log/pthat15_emb_pgoing.log
 output     = condor/log/pthat15_emb_pgoing.out
