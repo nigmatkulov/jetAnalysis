@@ -105,7 +105,7 @@ class ForestAODReader : public BaseReader {
     /// @brief Set use manually calculate JEC correction function
     void setUseManualJEC() { fUseManualJEC = true; }
     /// @brief Set Pb-direction (default is true)
-    void setPbGoing(const bool &pb = true) { fIsPbGoing = pb; }
+    void setPbGoingDir(const bool &pb = true) { fIsPbGoing = pb; }
 
     /// @brief Return amount of events to read
     Long64_t nEventsTotal() const { return fEvents2Read; }
