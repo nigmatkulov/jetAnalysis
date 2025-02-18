@@ -349,7 +349,7 @@ double ForestAODReader::jecManualCorrection(const double &pt, const double &eta)
 
         // L2L3Residual
         if ( iEta >= 0 && iEta < jetNEtaL2L3StdBins && iPt >= 0 && iPt < jetNPtBins ) {
-            retVal = corrFactor[iEta][iPt];
+            retVal = 1./corrFactor[iEta][iPt];
         }
     }
 
