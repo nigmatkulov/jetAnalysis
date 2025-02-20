@@ -155,27 +155,25 @@ void calculateMeanAndErrorInRange(TH1D* h, int x1, int x2, double &mean, double 
 
     // std::cout << Form("hName: %s, x1 = %d, x2 = %d", h->GetName(), x1, x2) << std::endl;
 
-    for (int i = x1; i < x2; ++i) {
-        double binContent = h->GetBinContent(i);
-        double binCenter = h->GetBinCenter(i);
-        double binError = h->GetBinError(i);
+    // In case entries exist in the specified range
+    if (h->Integral(x1, x2) > 0) {
+        for (int i = x1; i < x2; ++i) {
+            double binContent = h->GetBinContent(i);
+            double binCenter = h->GetBinCenter(i);
+            double binError = h->GetBinError(i);
 
-        sum += binContent;
-        weightedSum += binContent * binCenter;
-        sumOfWeights += binContent;
-        sumOfWeightsSquared += binError * binError;
+            sum += binContent;
+            weightedSum += binContent * binCenter;
+            sumOfWeights += binContent;
+            sumOfWeightsSquared += binError * binError;
+        }
 
-        // std::cout << Form("Bin %d: content = %.6f, center = %.2f, error = %.6f", i, binContent, binCenter, binError) << std::endl;
-    }
-
-    if (sum == 0) {
-        // std::cerr << "Warning: Sum of bin contents is zero in the specified range." << std::endl;
-        mean = 0.0;
-        meanError = 0.0;
-    } 
-    else {
         mean = weightedSum / sum;
         meanError = std::sqrt(sumOfWeightsSquared) / sum;
+    }
+    else { // In case of empty bins just assign the mean of the interval
+        mean = ( h->GetXaxis()->GetBinLowEdge(x1) + h->GetXaxis()->GetBinUpEdge(x2) ) / 2;
+        meanError = 0.000001;
     }
 
     // std::cout << Form("Mean = %.4f, Mean error = %.4f", mean, meanError) << std::endl;
@@ -187,9 +185,24 @@ void calculateMeanAndErrorInRange(TH1D* h, int x1, int x2, double &mean, double 
 double fitL2L3Corrections(double *x, double *par) {
     double xx = x[0];
     // double value = par[0] * exp( par[1] / pow(xx, par[2]) ) ; // Simple-efficiency
-    double value = par[0] * exp( (par[1] + par[6]*xx) / pow(xx, par[2]) ) + par[3] * TMath::Gaus(xx, par[4], par[5]); // Simple-efficiency + Gaussian
-    // double value = par[0] + par[1] / (pow(log10(xx),2) + par[2]) + par[3]*exp(-par[4]*pow((log10(xx)-par[5]),2)) - par[6]*exp(-par[7]*(pow(log10(xx)+par[8],2))); // From pp 2017
+    // double value = par[0] * exp( (par[1] + par[6]*xx) / pow(xx, par[2]) ) + par[3] * TMath::Gaus(xx, par[4], par[5]); // Simple-efficiency + Gaussian
+    double value = par[0] + par[1] / (pow(log10(xx),2) + par[2]) + par[3]*exp(-par[4]*pow((log10(xx)-par[5]),2)) - par[6]*exp(-par[7]*(pow(log10(xx)+par[8],2))); // From pp 2017
     return value;
+}
+
+//________________
+void print1DArray(double *array, int size) {
+    std::cout << "Array with size: " << size << std::endl;
+    std::cout << "{";
+    for (int i{0}; i<size; i++) {
+        if (i == size - 1) {
+            std::cout << array[i];
+        }
+        else {
+            std::cout << array[i] << ", ";
+        }
+    }
+    std::cout << "};" << std::endl;
 }
 
 //________________
@@ -260,9 +273,9 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         143, // 720.0
         171, // 860.0
         219, // 1100.0
-        1301 // 6510.0
+        1300 // 6510.0
     };
-    int jetNPtBins = sizeof(jetPtBinNumbers) / sizeof(int)-1;
+    int jetNPtBins = sizeof(jetPtBinNumbers) / sizeof(int);
     std::cout << "pt bins: " << jetNPtBins << std::endl;
 
     double jetEtaL2L3StdVals[] = { -5.191, -4.889, -4.716, -4.538, -4.363, -4.191, 
@@ -279,19 +292,24 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
                                     2.322,  2.500,  2.650,  2.853,  2.964,  3.139, 
                                     3.314,  3.489,  3.664,  3.839,  4.013,  4.191, 
                                     4.363,  4.538,  4.716,  4.889,  5.191 };
-    int jetNEtaL2L3StdBins = sizeof(jetEtaL2L3StdVals)/sizeof(double)-1;
-    std::cout << "eta bins: " << jetNEtaL2L3StdBins << std::endl;
+    int jetNEtaL2L3StdBins = sizeof(jetEtaL2L3StdVals)/sizeof(double);
+    std::cout << "eta values: " << std::endl;
+    print1DArray(jetEtaL2L3StdVals, jetNEtaL2L3StdBins);
 
     // Create array with correction factors
     double jetPtVals[jetNPtBins];
-    std::cout << "pt values: \n {\n";
     for (int i{0}; i<jetNPtBins; i++) {
-        jetPtVals[i] = 10. + (jetPtBinNumbers[i] - 1) * 5.;
-        std::cout << ((i == jetNPtBins - 1) ? jetPtVals[i] : jetPtVals[i]) << ", ";
+        if ( i < (jetNPtBins - 1 ) ) {
+            jetPtVals[i] = 10. + (jetPtBinNumbers[i] - 1) * 5.;
+        }
+        else {
+            jetPtVals[i] = 10. + jetPtBinNumbers[i] * 5.;
+        }
     }
-    std::cout << "\n};" << std::endl;
+    std::cout << "pt values: " << std::endl;
+    print1DArray(jetPtVals, jetNPtBins);
 
-    double corrFactor[jetNEtaL2L3StdBins][jetNPtBins];
+    double corrFactor[jetNEtaL2L3StdBins-1][jetNPtBins-1];
 
     TCanvas *cRawOverGenPt[jetNEtaL2L3StdBins];
     TH1D *hRawOverGenPt[jetNEtaL2L3StdBins][jetNPtBins];
@@ -308,58 +326,102 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
     int nRawsPt = ( jetNPtBins % nColumns ) ? (jetNPtBins / nColumns) + 1 : jetNPtBins / nColumns;
     int nRawsEta = ( jetNEtaL2L3StdBins % nColumns ) ? (jetNEtaL2L3StdBins / nColumns) + 1 : jetNEtaL2L3StdBins / nColumns;
 
-    TCanvas *cMeanValues = new TCanvas("cMeanValues", "cMeanValues", 1200, 800);
-    cMeanValues->Divide(nColumns, nRawsEta);
+    // TCanvas *cMeanValues = new TCanvas("cMeanValues", "cMeanValues", 1200, 800);
+    // cMeanValues->Divide(nColumns, nRawsEta);
 
     TCanvas *c = new TCanvas("c", "c", 1000, 800);
 
     TF1 *l2l3CorrectionsFit[jetNEtaL2L3StdBins];
 
-    for (int iEta{0}; iEta<jetNEtaL2L3StdBins; iEta++) {
+    for (int iEta{0}; iEta<(jetNEtaL2L3StdBins-1); iEta++) {
 
         // Create canvas (to draw histograms)
         // cRawOverGenPt[iEta] = new TCanvas(Form("cRawOverGenPt_%d", iEta), Form("cRawOverGenPt_%d", iEta), 1200, 800);        
         // cRawOverGenPt[iEta]->Divide(nColumns, nRawsPt);
-        hPtRaw[iEta] = (TH1D*)h3D->ProjectionY(Form("hPtRaw_%d", iEta), 1, -1, iEta+1, iEta+2);
+        hPtRaw[iEta] = (TH1D*)h3D->ProjectionY(Form("hPtRaw_%d", iEta), 1, -1, iEta+1, iEta+1);
+        set1DStyle(hPtRaw[iEta], 2);
+        hPtRaw[iEta]->Scale( 1./hPtRaw[iEta]->Integral() );
+
+        // std::cout << "Eta bin: " << iEta << std::endl;
+        // std::cout << "Expected projection range: " << jetEtaL2L3StdVals[iEta] << " - " << jetEtaL2L3StdVals[iEta+1] << std::endl;
+        // std::cout << Form("Eta bin: %d, range: %.3f - %.3f", iEta, h3D->GetZaxis()->GetBinLowEdge(iEta + 1), h3D->GetZaxis()->GetBinUpEdge(iEta + 1)) << std::endl;
+        // std::cout << "Eta bin center: " << h3D->GetZaxis()->GetBinCenter(iEta + 1) << std::endl;
 
         gCorrFactorVsPt[iEta] = new TGraphErrors();
         gCorrFactorVsPt[iEta]->SetName(Form("gCorrFactorVsPt_%d", iEta));
 
+
+        // Draw and save ptRaw spectra
+        c->cd();
+        setPadStyle();
+        hPtRaw[iEta]->Draw();
+        hPtRaw[iEta]->GetXaxis()->SetTitle("p_{T}^{jet} (GeV)");
+        hPtRaw[iEta]->GetYaxis()->SetTitle("1/N dN/dp_{T}^{jet}");
+        hPtRaw[iEta]->GetXaxis()->SetRangeUser(10., 400.);
+        c->SetLogy(1);
+        t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+        c->SaveAs(Form("%s/%s_ptRaw_%d.pdf", date.Data(), collSystemStr.Data(), iEta));
+        
+
         // Loop over pT bins
-        for (int jPt{0}; jPt<jetNPtBins; jPt++) {
+        for (int jPt{0}; jPt<(jetNPtBins-1); jPt++) {
+
+            corrFactor[iEta][jPt] = 0.;
+            // std::cout << "Pt bin: " << jPt << std::endl;
+            // std::cout << "Expected projection range: " << jetPtVals[jPt] << " - " << jetPtVals[jPt+1] << std::endl;
+            // std::cout << Form("Pt bin: %d, range: %.3f - %.3f", jPt, 
+            //                   h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), 
+            //                   h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1)) << std::endl;
 
             // Make projection
-            hRawOverGenPt[iEta][jPt] = (TH1D*)h3D->ProjectionX(Form("hRawOverGenPt_%d_%d", iEta, jPt), jetPtBinNumbers[jPt], jetPtBinNumbers[jPt+1], iEta+1, iEta+2);
+            hRawOverGenPt[iEta][jPt] = (TH1D*)h3D->ProjectionX(Form("hRawOverGenPt_%d_%d", iEta, jPt), 
+                                                               jetPtBinNumbers[jPt], jetPtBinNumbers[jPt+1]-1, iEta+1, iEta+1);
             set1DStyle(hRawOverGenPt[iEta][jPt], 2);
+            hRawOverGenPt[iEta][jPt]->Scale( 1./hRawOverGenPt[iEta][jPt]->Integral() );
+
+            // Draw and save raw over gen pt spectra
+            c->cd();
+            setPadStyle();
+            hRawOverGenPt[iEta][jPt]->Draw();
+            t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+            t.DrawLatexNDC(0.45, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
+            c->SetLogy(0);
+            c->SaveAs( Form("%s/%s_rawOverGenPt_%d_pt_%d_%d.pdf", date.Data(), collSystemStr.Data(), iEta, 
+                           (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
 
             // Calculate mean and error
             double meanX{0.}, meanXError{0.};
             calculateMeanAndErrorInRange(hPtRaw[iEta], jetPtBinNumbers[jPt], jetPtBinNumbers[jPt+1], meanX, meanXError);
             double meanY{0.}, meanYError{0.};
             meanY = hRawOverGenPt[iEta][jPt]->GetMean();
+            // std::cout << "Mean: " << meanY << std::endl;
             meanYError = hRawOverGenPt[iEta][jPt]->GetMeanError();
 
+            // Process the case of zero mean
             if ( fabs(meanY) < 0.00001 ) {
-                // std::cerr << "Warning: Mean value is zero in the specified range." << std::endl;
-                if (gCorrFactorVsPt[iEta]->GetN() == 0) {
-                    meanY = 0.;
-                    gCorrFactorVsPt[iEta]->AddPoint(0., 0.);
-                    gCorrFactorVsPt[iEta]->SetPointError(0, 0., 0.);                    
+                double tmpX{0.};
+
+                // If not the first point, copy values from the previous point. Otherwise, set to 0.
+                if ( gCorrFactorVsPt[iEta]->GetN() != 0 ) {
+                    gCorrFactorVsPt[iEta]->GetPoint(gCorrFactorVsPt[iEta]->GetN()-1, tmpX, meanY);
+                    meanYError = gCorrFactorVsPt[iEta]->GetErrorY(gCorrFactorVsPt[iEta]->GetN()-1);
+                }
+            } // if ( fabs(meanY) < 0.00001 )
+            else {
+                if ( !std::isnan(meanY) ) {
+                    meanY = 1. / meanY;
+                    meanYError = meanYError / (meanY * meanY);
                 }
                 else {
-                    double prevX{0}, prevY{0};
-                    gCorrFactorVsPt[iEta]->GetPoint(gCorrFactorVsPt[iEta]->GetN()-1, prevX, prevY);
-                    double prevXError = gCorrFactorVsPt[iEta]->GetErrorX(gCorrFactorVsPt[iEta]->GetN()-1);
-                    double prevYError = gCorrFactorVsPt[iEta]->GetErrorY(gCorrFactorVsPt[iEta]->GetN()-1);
-                    gCorrFactorVsPt[iEta]->AddPoint(prevX, prevY);
-                    gCorrFactorVsPt[iEta]->SetPointError(gCorrFactorVsPt[iEta]->GetN()-1, prevXError, prevYError);
-                    meanY = prevY;
+                    meanY = 0.;
+                    meanYError = 0.;
                 }
-            }
-            else {
+
                 gCorrFactorVsPt[iEta]->AddPoint(meanX, meanY);
                 gCorrFactorVsPt[iEta]->SetPointError(gCorrFactorVsPt[iEta]->GetN()-1, meanXError, meanYError);
             }
+
+            // std::cout << Form("Filling values to the graph: %.3f, %.3f", meanX, meanY) << std::endl;
             
             // Draw
             // cRawOverGenPt[iEta]->cd(jPt+1);
@@ -368,12 +430,14 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
             // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
             // t.DrawLatexNDC(0.45, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
 
-            corrFactor[iEta][jPt] = meanY;
+
+            // Remember, the correction factor is already inverted!!
+            corrFactor[iEta][jPt] = meanY; 
 
         } // for (int jPt{0}; jPt<jetNPtBins; jPt++)
 
-        cMeanValues->cd(iEta+1);
-        setPadStyle();
+        // cMeanValues->cd(iEta+1);
+        // setPadStyle();
         gCorrFactorVsPt[iEta]->SetMarkerStyle(20);
         gCorrFactorVsPt[iEta]->SetMarkerSize(1.2);
         gCorrFactorVsPt[iEta]->SetMarkerColor(kBlack);
@@ -381,19 +445,21 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         gCorrFactorVsPt[iEta]->SetLineWidth(2);
         gCorrFactorVsPt[iEta]->Draw("AP");
         gCorrFactorVsPt[iEta]->GetXaxis()->SetTitle("p_{T}^{raw} (GeV)");
-        gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 1500.);
+        gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 300.);
         gCorrFactorVsPt[iEta]->GetYaxis()->SetTitle("L2L3 Correction Factor");
-        gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.4, 1.1);
-        t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+        gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.5, 3.1);
+        // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
 
-        // c->cd();
-        // setPadStyle();
-        // gCorrFactorVsPt[iEta]->Draw("AP");
-        // t.DrawLatexNDC(0.4, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
-        // // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 6500., 9);
-        // // l2l3CorrectionsFit[iEta]->SetParameters(12., 775., 0.5, 8.7, 4.3, -0.98, 0.35, 0.6, 6.9, 1.9, 0.45);
-        // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 6500., 7);
-        // l2l3CorrectionsFit[iEta]->SetParameters(0.746, -0.0007, 2.3, 0.1, 30., 15., 0.);
+        c->cd();
+        setPadStyle();
+        c->SetLogy(0);
+        gCorrFactorVsPt[iEta]->Draw("AP");
+        t.DrawLatexNDC(0.4, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+
+        // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 9);
+        // l2l3CorrectionsFit[iEta]->SetParameters(12., 775., 0.5, 8.7, 4.3, -0.98, 0.35, 0.6, 6.9, 1.9, 0.45);
+        // // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 6500., 7);
+        // // l2l3CorrectionsFit[iEta]->SetParameters(0.746, -0.0007, 2.3, 0.1, 30., 15., 0.);
         // // l2l3CorrectionsFit[iEta]->SetParLimits(0, 0., 2.0);
         // // l2l3CorrectionsFit[iEta]->SetParLimits(1, -2., 2.);
         // // l2l3CorrectionsFit[iEta]->SetParLimits(2, -5., 10.);
@@ -401,12 +467,13 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         // // l2l3CorrectionsFit[iEta]->SetParLimits(4, 0., 150.);
         // // l2l3CorrectionsFit[iEta]->SetParLimits(5, 0., 80.);
         // gCorrFactorVsPt[iEta]->Fit(l2l3CorrectionsFit[iEta], "MRE");
-        // c->SaveAs(Form("%s/%s_L2L3Correction_%d.pdf", date.Data(), collSystemStr.Data(), iEta));
+
+        c->SaveAs(Form("%s/%s_L2L3Correction_%d.pdf", date.Data(), collSystemStr.Data(), iEta));
     } // for (int i{0}; i<jetNEtaL2L3StdBins; i++)
 
 
     // Print correction factor array
-    printCorrFactorArray(&corrFactor[0][0], jetNEtaL2L3StdBins, jetNPtBins);
+    printCorrFactorArray(&corrFactor[0][0], jetNEtaL2L3StdBins-1, jetNPtBins-1);
 }
 
 //________________
