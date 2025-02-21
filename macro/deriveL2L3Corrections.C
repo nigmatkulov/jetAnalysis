@@ -352,15 +352,15 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
 
 
         // Draw and save ptRaw spectra
-        c->cd();
-        setPadStyle();
-        hPtRaw[iEta]->Draw();
-        hPtRaw[iEta]->GetXaxis()->SetTitle("p_{T}^{jet} (GeV)");
-        hPtRaw[iEta]->GetYaxis()->SetTitle("1/N dN/dp_{T}^{jet}");
-        hPtRaw[iEta]->GetXaxis()->SetRangeUser(10., 400.);
-        c->SetLogy(1);
-        t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
-        c->SaveAs(Form("%s/%s_ptRaw_%d.pdf", date.Data(), collSystemStr.Data(), iEta));
+        // c->cd();
+        // setPadStyle();
+        // hPtRaw[iEta]->Draw();
+        // hPtRaw[iEta]->GetXaxis()->SetTitle("p_{T}^{jet} (GeV)");
+        // hPtRaw[iEta]->GetYaxis()->SetTitle("1/N dN/dp_{T}^{jet}");
+        // hPtRaw[iEta]->GetXaxis()->SetRangeUser(10., 400.);
+        // c->SetLogy(1);
+        // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+        // c->SaveAs(Form("%s/%s_ptRaw_%d.pdf", date.Data(), collSystemStr.Data(), iEta));
         
 
         // Loop over pT bins
@@ -380,14 +380,14 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
             hRawOverGenPt[iEta][jPt]->Scale( 1./hRawOverGenPt[iEta][jPt]->Integral() );
 
             // Draw and save raw over gen pt spectra
-            c->cd();
-            setPadStyle();
-            hRawOverGenPt[iEta][jPt]->Draw();
-            t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
-            t.DrawLatexNDC(0.45, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
-            c->SetLogy(0);
-            c->SaveAs( Form("%s/%s_rawOverGenPt_%d_pt_%d_%d.pdf", date.Data(), collSystemStr.Data(), iEta, 
-                           (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
+            // c->cd();
+            // setPadStyle();
+            // hRawOverGenPt[iEta][jPt]->Draw();
+            // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+            // t.DrawLatexNDC(0.45, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
+            // c->SetLogy(0);
+            // c->SaveAs( Form("%s/%s_rawOverGenPt_%d_pt_%d_%d.pdf", date.Data(), collSystemStr.Data(), iEta, 
+            //                (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
 
             // Calculate mean and error
             double meanX{0.}, meanXError{0.};
@@ -447,7 +447,7 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         gCorrFactorVsPt[iEta]->GetXaxis()->SetTitle("p_{T}^{raw} (GeV)");
         gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 300.);
         gCorrFactorVsPt[iEta]->GetYaxis()->SetTitle("L2L3 Correction Factor");
-        gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.5, 3.1);
+        gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.9, 1.6);
         // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
 
         c->cd();

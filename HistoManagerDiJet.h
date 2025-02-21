@@ -386,6 +386,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoInclusiveJetPtRawOverPtRefVsPtEta;
     // pt raw / ref pt, gen pt, gen eta
     TH3D *hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning;
+    // pt raw / ref pt, raw pt, reco eta
+    TH3D *hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning;
 
     // pt corr/pt gen vs pt gen at midrapidity -1.4 < eta < 1.4 
     TH2D *hInclusiveJetJESVsPtGen;

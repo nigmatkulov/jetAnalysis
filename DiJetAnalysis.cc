@@ -1102,6 +1102,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 // fHM->hRecoInclusiveJetJEC2FactorVsPtGen->Fill( JES2, genPt, genEta, weight );
                 fHM->hRecoInclusiveJetPtRawOverPtRefVsPtEta->Fill( ptRaw/genPt, genPt, genEta, weight );
                 fHM->hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning->Fill( ptRaw/genPt, genPt, genEta, weight );
+                fHM->hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning->Fill( ptRaw/genPt, ptRaw, eta, weight );
 
                 // Fill JES vs pt for |eta| < 1.4 (midrapidity)
                 if ( TMath::Abs( genEta ) < 1.4 ) {

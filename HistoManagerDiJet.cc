@@ -204,6 +204,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoInclusiveJetJEC2FactorVsPtEta{nullptr},
     hRecoInclusiveJetPtRawOverPtRefVsPtEta{nullptr},
     hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning{nullptr},
+    hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning{nullptr},
 
     hRecoInclusiveMatchedJetPt{nullptr},
     hRecoInclusiveMatchedJetPtVsEta{nullptr},
@@ -818,6 +819,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRecoInclusiveJetJEC2FactorVsPtEta) delete hRecoInclusiveJetJEC2FactorVsPtEta;
         if (hRecoInclusiveJetPtRawOverPtRefVsPtEta) delete hRecoInclusiveJetPtRawOverPtRefVsPtEta;
         if (hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning) delete hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning;
+        if (hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning) delete hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning;;
 
         if ( hInclusiveJetJESVsPtGen ) delete hInclusiveJetJESVsPtGen;
         if ( hInclusiveJetJESGenPtGenEtaPtHatWeighted ) delete hInclusiveJetJESGenPtGenEtaPtHatWeighted;
@@ -2063,6 +2065,10 @@ void HistoManagerDiJet::init() {
                                                                     20, 0., 2., 1300, 10., 6510., 104, -5.2, 5.2);
         hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning->Sumw2();
         hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning->GetZaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+        hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning = new TH3D("hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning","p_{T}^{raw}/p_{T}^{ref} vs p_{T}^{reco} and #eta (std binning);p_{T}^{raw}/p_{T}^{ref};p_{T}^{reco} (GeV);#eta^{reco}",
+                                                                    20, 0., 2., 1300, 10., 6510., 104, -5.2, 5.2);
+        hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning->Sumw2();
+        hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning->GetZaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
 
 
         hInclusiveJetJESVsPtGen = new TH2D("hInclusiveJetJESVsPtGen","JES vs p_{T}^{gen} for |#eta|<1.4;p_{T}^{gen} (GeV);p_{T}^{reco}/p_{T}^{gen}",
@@ -3202,6 +3208,7 @@ void HistoManagerDiJet::writeOutput() {
         hRecoInclusiveJetJEC2FactorVsPtEta->Write();
         hRecoInclusiveJetPtRawOverPtRefVsPtEta->Write();
         hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning->Write();
+        hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning->Write();
 
         hInclusiveJetJESVsPtGen->Write();
         hInclusiveJetJESGenPtGenEtaPtHatWeighted->Write();
