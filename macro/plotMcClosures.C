@@ -537,7 +537,7 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
 }
 
 //________________
-void plot3DJECClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
+void plotInclusiveJetJECClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
     // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
 
@@ -701,7 +701,7 @@ void plot3DJECClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
 }
 
 //________________
-void plotSimple1DJECClosure(TFile *f, int collSystem = 0, double energy = 5.02) {
+void plotSimpleInclusiveJetJECClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
 
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
     // Energy in TeV
@@ -758,18 +758,19 @@ void plotMcClosures() {
     collisionEnergy = 8.16;
 
     // MC p-going direction new (coincides with the pPb5020)
+    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_80.root", uname.Data()) );
     TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) );
     if ( !pPb8160EmbedFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) << std::endl;
         return;
     }
 
     // Comparison of dijet reco and ref to gen distributions
     comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
-    // Plot simple JES
-    // plotSimple1DJECClosure(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+    // Plot simple inclusicve jet JEC closure (inclusive jets within |eta|<1.4)
+    // plotSimpleInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
     
-    // Plot 3D JES closures
-    // plot3DJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+    // Plot for inclusive jets JEC closures (scan in eta and pT)
+    // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
 }

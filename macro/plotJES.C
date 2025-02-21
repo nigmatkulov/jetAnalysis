@@ -184,7 +184,7 @@ void plotJESandJER(TCanvas *c, TH2D *h2D,
 }
 
 //________________
-void plotDijetEta(TFile *f, int collSystem = 0, double energy = 5.02) {
+void plotJESandJER(TFile *f, int collSystem = 0, double energy = 5.02) {
     // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
 
@@ -350,9 +350,9 @@ void plotJES() {
 
     // pPb8160 embedding
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) );
-    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_eta2.root", username.Data()) );
+    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25_newJEC.root", username.Data()) );
     if ( !inputFile || inputFile->IsZombie() ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25_newJEC.root", username.Data()) << std::endl;
         return;
     }
     collSystem = 1;
@@ -362,5 +362,5 @@ void plotJES() {
     // plotSimpleJES( inputFile, collSystem, energy );
 
     // Plot JES for different ptHat selections
-    plotJESvsPtHat( inputFile, collSystem, energy );
+    plotJESandJER( inputFile, collSystem, energy );
 }
