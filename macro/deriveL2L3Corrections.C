@@ -495,7 +495,7 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         gCorrFactorVsPt[iEta]->SetLineWidth(2);
         gCorrFactorVsPt[iEta]->Draw("AP");
         gCorrFactorVsPt[iEta]->GetXaxis()->SetTitle("p_{T}^{raw} (GeV)");
-        gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 150.);
+        gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 600.);
         gCorrFactorVsPt[iEta]->GetYaxis()->SetTitle("L2L3 Correction Factor");
         gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.8, 2.2);
         // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
@@ -556,9 +556,9 @@ void deriveL2L3Corrections() {
 
     // pPb8160 embedding
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", uname.Data()) );
-    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_def_ak4_eta25.root", uname.Data()) );
+    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) );
     if ( !inputFile || inputFile->IsZombie() ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_def_ak4_eta25.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) << std::endl;
         return;
     }
     collSystem = 1;
