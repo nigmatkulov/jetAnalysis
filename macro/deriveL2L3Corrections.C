@@ -186,7 +186,8 @@ double fitL2L3Corrections(double *x, double *par) {
     double xx = x[0];
     // double value = par[0] * exp( par[1] / pow(xx, par[2]) ) ; // Simple-efficiency
     // double value = par[0] * exp( (par[1] + par[6]*xx) / pow(xx, par[2]) ) + par[3] * TMath::Gaus(xx, par[4], par[5]); // Simple-efficiency + Gaussian
-    double value = par[0] + par[1] / (pow(log10(xx),2) + par[2]) + par[3]*exp(-par[4]*pow((log10(xx)-par[5]),2)) - par[6]*exp(-par[7]*(pow(log10(xx)+par[8],2))); // From pp 2017
+    double value = par[0] + par[1] / ( par[2] * xx + par[3] ) + par[4] * exp( par[5] / pow(xx, par[6]) ) + par[7] * exp( par[8] * log10(xx) + par[9]); // Simple-efficiency + Gaussian + Gaussian
+    // double value = par[0] + par[1] / (pow(log10(xx),2) + par[2]) + par[3]*exp(-par[4]*pow((log10(xx)-par[5]),2)) - par[6]*exp(-par[7]*(pow(log10(xx)+par[8],2))); // From pp 2017
     return value;
 }
 
@@ -457,7 +458,9 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         t.DrawLatexNDC(0.4, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
 
         // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 9);
-        // l2l3CorrectionsFit[iEta]->SetParameters(12., 775., 0.5, 8.7, 4.3, -0.98, 0.35, 0.6, 6.9, 1.9, 0.45);
+        // l2l3CorrectionsFit[iEta]->SetParameters(12., 775., 0.5, 8.7, 4.3, -0.98, 0.35, 0.6, 6.9);
+        l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 10);
+        l2l3CorrectionsFit[iEta]->SetParameters(1., 1., 0.5, 8.7, 4.3, -0.98, 0.35, 1., 1., 0. );
         // // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 6500., 7);
         // // l2l3CorrectionsFit[iEta]->SetParameters(0.746, -0.0007, 2.3, 0.1, 30., 15., 0.);
         // // l2l3CorrectionsFit[iEta]->SetParLimits(0, 0., 2.0);
@@ -466,7 +469,7 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         // // l2l3CorrectionsFit[iEta]->SetParLimits(3, 0., 1000.);
         // // l2l3CorrectionsFit[iEta]->SetParLimits(4, 0., 150.);
         // // l2l3CorrectionsFit[iEta]->SetParLimits(5, 0., 80.);
-        // gCorrFactorVsPt[iEta]->Fit(l2l3CorrectionsFit[iEta], "MRE");
+        gCorrFactorVsPt[iEta]->Fit(l2l3CorrectionsFit[iEta], "MRE");
 
         c->SaveAs(Form("%s/%s_L2L3Correction_%d.pdf", date.Data(), collSystemStr.Data(), iEta));
     } // for (int i{0}; i<jetNEtaL2L3StdBins; i++)
