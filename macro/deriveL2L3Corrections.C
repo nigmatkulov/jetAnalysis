@@ -384,8 +384,8 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
             // c->cd();
             // setPadStyle();
             // hRawOverGenPt[iEta][jPt]->Draw();
-            // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
-            // t.DrawLatexNDC(0.45, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
+            // t.DrawLatexNDC(0.18, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+            // t.DrawLatexNDC(0.18, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
             // c->SetLogy(0);
             // c->SaveAs( Form("%s/%s_rawOverGenPt_%d_pt_%d_%d.pdf", date.Data(), collSystemStr.Data(), iEta, 
             //                (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
@@ -446,9 +446,9 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         gCorrFactorVsPt[iEta]->SetLineWidth(2);
         gCorrFactorVsPt[iEta]->Draw("AP");
         gCorrFactorVsPt[iEta]->GetXaxis()->SetTitle("p_{T}^{raw} (GeV)");
-        gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 300.);
+        gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 250.);
         gCorrFactorVsPt[iEta]->GetYaxis()->SetTitle("L2L3 Correction Factor");
-        gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.9, 1.6);
+        gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.8, 1.6);
         // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
 
         c->cd();
@@ -460,7 +460,7 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 9);
         // l2l3CorrectionsFit[iEta]->SetParameters(12., 775., 0.5, 8.7, 4.3, -0.98, 0.35, 0.6, 6.9);
         l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 10);
-        l2l3CorrectionsFit[iEta]->SetParameters(1., 1., 0.5, 8.7, 4.3, -0.98, 0.35, 1., 1., 0. );
+        l2l3CorrectionsFit[iEta]->SetParameters(1.86529, -1.61543e+03, 1.62368e+01, 3.57560e+03, -4.32881e+05, -5.24556e+01, -1.93128e+15, -8.56230e-02, 3.99420e-01, 9.76207e-01 );
         // // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 6500., 7);
         // // l2l3CorrectionsFit[iEta]->SetParameters(0.746, -0.0007, 2.3, 0.1, 30., 15., 0.);
         // // l2l3CorrectionsFit[iEta]->SetParLimits(0, 0., 2.0);
@@ -512,9 +512,9 @@ void deriveL2L3Corrections() {
 
     // pPb8160 embedding
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", uname.Data()) );
-    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) );
+    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_def_ak4_eta25.root", uname.Data()) );
     if ( !inputFile || inputFile->IsZombie() ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_def_ak4_eta25.root", uname.Data()) << std::endl;
         return;
     }
     collSystem = 1;
