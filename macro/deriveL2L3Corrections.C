@@ -231,6 +231,17 @@ void printCorrFactorArray(double *corrFactor, int jetNEtaL2L3StdBins, int jetNPt
     std::cout << "};\n" << std::endl;
 }
 
+//________________
+bool histogramWithAtLeastThreeNonEmptyBins(TH1D *h) {
+    int nBins = h->GetNbinsX();
+    int nNonEmptyBins = 0;
+    for (int i{1}; i<=nBins; i++) {
+        if ( h->GetBinContent(i) > 0 ) {
+            nNonEmptyBins++;
+        }
+    }
+    return (nNonEmptyBins >= 3);
+}
 
 //________________
 void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
@@ -316,6 +327,8 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
     TH1D *hRawOverGenPt[jetNEtaL2L3StdBins][jetNPtBins];
     TH1D *hPtRaw[jetNEtaL2L3StdBins];
 
+    TF1 *ratioFit[jetNEtaL2L3StdBins][jetNPtBins];
+
     TGraphErrors *gCorrFactorVsPt[jetNEtaL2L3StdBins];
 
     TLatex t;
@@ -368,6 +381,12 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         for (int jPt{0}; jPt<(jetNPtBins-1); jPt++) {
 
             corrFactor[iEta][jPt] = 0.;
+            double meanX{0.}, meanXError{0.};
+            double meanY{0.}, meanYError{0.};
+
+            // Calculate mean X (ptRaw) and its error
+            calculateMeanAndErrorInRange(hPtRaw[iEta], jetPtBinNumbers[jPt], jetPtBinNumbers[jPt+1], meanX, meanXError);
+
             // std::cout << "Pt bin: " << jPt << std::endl;
             // std::cout << "Expected projection range: " << jetPtVals[jPt] << " - " << jetPtVals[jPt+1] << std::endl;
             // std::cout << Form("Pt bin: %d, range: %.3f - %.3f", jPt, 
@@ -380,57 +399,87 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
             set1DStyle(hRawOverGenPt[iEta][jPt], 2);
             hRawOverGenPt[iEta][jPt]->Scale( 1./hRawOverGenPt[iEta][jPt]->Integral() );
 
-            // Draw and save raw over gen pt spectra
-            // c->cd();
-            // setPadStyle();
-            // hRawOverGenPt[iEta][jPt]->Draw();
-            // t.DrawLatexNDC(0.18, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
-            // t.DrawLatexNDC(0.18, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
-            // c->SetLogy(0);
-            // c->SaveAs( Form("%s/%s_rawOverGenPt_%d_pt_%d_%d.pdf", date.Data(), collSystemStr.Data(), iEta, 
-            //                (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
-
-            // Calculate mean and error
-            double meanX{0.}, meanXError{0.};
-            calculateMeanAndErrorInRange(hPtRaw[iEta], jetPtBinNumbers[jPt], jetPtBinNumbers[jPt+1], meanX, meanXError);
-            double meanY{0.}, meanYError{0.};
-            meanY = hRawOverGenPt[iEta][jPt]->GetMean();
-            // std::cout << "Mean: " << meanY << std::endl;
-            meanYError = hRawOverGenPt[iEta][jPt]->GetMeanError();
-
-            // Process the case of zero mean
-            if ( fabs(meanY) < 0.00001 ) {
-                double tmpX{0.};
-
+            //
+            // If empty histogram (no entries for the given eta and pt bin)
+            //
+            if ( hRawOverGenPt[iEta][jPt]->GetEntries() <= 0 ) {
                 // If not the first point, copy values from the previous point. Otherwise, set to 0.
                 if ( gCorrFactorVsPt[iEta]->GetN() != 0 ) {
+                    double tmpX{0.};
                     gCorrFactorVsPt[iEta]->GetPoint(gCorrFactorVsPt[iEta]->GetN()-1, tmpX, meanY);
                     meanYError = gCorrFactorVsPt[iEta]->GetErrorY(gCorrFactorVsPt[iEta]->GetN()-1);
                 }
-            } // if ( fabs(meanY) < 0.00001 )
-            else {
-                if ( !std::isnan(meanY) ) {
-                    meanY = 1. / meanY;
-                    meanYError = meanYError / (meanY * meanY);
-                }
+            } // if ( hRawOverGenPt[iEta][jPt]->GetEntries() <= 0 )
+            //
+            // Non-empty histogram
+            //
+            else { 
+
+                //
+                // Analyze only histograms with at least three non-empty bins
+                // (otherwise large fluctuations)
+                //
+                if ( histogramWithAtLeastThreeNonEmptyBins( hRawOverGenPt[iEta][jPt] ) ) {
+                    // Mean y and its error from histogram
+                    meanY = hRawOverGenPt[iEta][jPt]->GetMean();
+                    meanYError = hRawOverGenPt[iEta][jPt]->GetMeanError();
+                    // std::cout << "Mean: " << meanY << std::endl;
+                    // std::cout << "Mean error: " << meanYError << std::endl;
+                
+                    // Draw and save raw over ref pt and perform fit
+                    c->cd();
+                    setPadStyle();
+                    hRawOverGenPt[iEta][jPt]->Draw();
+                    ratioFit[iEta][jPt] = new TF1(Form("ratioFit_%d_%d", iEta, jPt), "gaus", 0., 1.7);
+                    ratioFit[iEta][jPt]->SetLineColor(kRed);
+                    ratioFit[iEta][jPt]->SetParameters(0.6, 1., 0.1);
+                    hRawOverGenPt[iEta][jPt]->Fit(ratioFit[iEta][jPt], "MRQE");
+                    double fitMeanY = ratioFit[iEta][jPt]->GetParameter(1);
+                    double fitSigmaY = ratioFit[iEta][jPt]->GetParameter(2);
+                    t.SetTextSize(0.04);
+                    t.DrawLatexNDC(0.18, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+                    t.DrawLatexNDC(0.18, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
+                    t.DrawLatexNDC(0.6, 0.8, Form("#mu = %.3f #pm %.3f", ratioFit[iEta][jPt]->GetParameter(1), ratioFit[iEta][jPt]->GetParError(1)));
+                    t.DrawLatexNDC(0.6, 0.7, Form("#sigma = %.3f #pm %.3f", ratioFit[iEta][jPt]->GetParameter(2), ratioFit[iEta][jPt]->GetParError(2)));
+                    t.DrawLatexNDC(0.6, 0.6, Form("#chi^{2}/ndf = %.2f", ratioFit[iEta][jPt]->GetChisquare() / ratioFit[iEta][jPt]->GetNDF()));
+                    c->SetLogy(0);
+                    c->SaveAs( Form("%s/%s_rawOverGenPt_%d_pt_%d_%d.pdf", date.Data(), collSystemStr.Data(), iEta, 
+                                (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
+
+                    // Use fitted values    
+                    // meanY = fitMeanY;
+                    // meanYError = fitSigmaY;
+
+                    if ( !std::isnan(meanY) ) {
+                        meanY = 1. / meanY;
+                        meanYError = meanYError / (meanY * meanY);
+                    }
+                    else {
+                        meanY = 0.;
+                        meanYError = 0.;
+                    }
+
+                    // std::cout << Form("Filling values to the graph: %.3f, %.3f", meanX, meanY) << std::endl;
+                    gCorrFactorVsPt[iEta]->AddPoint(meanX, meanY);
+                    gCorrFactorVsPt[iEta]->SetPointError(gCorrFactorVsPt[iEta]->GetN()-1, meanXError, meanYError);
+                } // if ( histogramWithAtLeastThreeNonEmptyBins ( hRawOverGenPt[iEta][jPt] ) )
                 else {
-                    meanY = 0.;
-                    meanYError = 0.;
+                    // If not the first point, copy values from the previous point. Otherwise, set to 0.
+                    if ( gCorrFactorVsPt[iEta]->GetN() != 0 ) {
+                        double tmpX{0.};
+                        gCorrFactorVsPt[iEta]->GetPoint(gCorrFactorVsPt[iEta]->GetN()-1, tmpX, meanY);
+                        meanYError = gCorrFactorVsPt[iEta]->GetErrorY(gCorrFactorVsPt[iEta]->GetN()-1);
+                    }
                 }
 
-                gCorrFactorVsPt[iEta]->AddPoint(meanX, meanY);
-                gCorrFactorVsPt[iEta]->SetPointError(gCorrFactorVsPt[iEta]->GetN()-1, meanXError, meanYError);
-            }
-
-            // std::cout << Form("Filling values to the graph: %.3f, %.3f", meanX, meanY) << std::endl;
-            
+            } // else { // Non-empty histogram
+    
             // Draw
             // cRawOverGenPt[iEta]->cd(jPt+1);
             // setPadStyle();
             // hRawOverGenPt[iEta][jPt]->Draw();
             // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
             // t.DrawLatexNDC(0.45, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
-
 
             // Remember, the correction factor is already inverted!!
             corrFactor[iEta][jPt] = meanY; 
@@ -446,9 +495,9 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         gCorrFactorVsPt[iEta]->SetLineWidth(2);
         gCorrFactorVsPt[iEta]->Draw("AP");
         gCorrFactorVsPt[iEta]->GetXaxis()->SetTitle("p_{T}^{raw} (GeV)");
-        gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 250.);
+        gCorrFactorVsPt[iEta]->GetXaxis()->SetRangeUser(0., 150.);
         gCorrFactorVsPt[iEta]->GetYaxis()->SetTitle("L2L3 Correction Factor");
-        gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.8, 1.6);
+        gCorrFactorVsPt[iEta]->GetYaxis()->SetRangeUser(0.8, 2.2);
         // t.DrawLatexNDC(0.45, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
 
         c->cd();
@@ -457,19 +506,14 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         gCorrFactorVsPt[iEta]->Draw("AP");
         t.DrawLatexNDC(0.4, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
 
+        // pp2017 fit
         // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 9);
         // l2l3CorrectionsFit[iEta]->SetParameters(12., 775., 0.5, 8.7, 4.3, -0.98, 0.35, 0.6, 6.9);
-        l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 10);
-        l2l3CorrectionsFit[iEta]->SetParameters(1.86529, -1.61543e+03, 1.62368e+01, 3.57560e+03, -4.32881e+05, -5.24556e+01, -1.93128e+15, -8.56230e-02, 3.99420e-01, 9.76207e-01 );
-        // // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 6500., 7);
-        // // l2l3CorrectionsFit[iEta]->SetParameters(0.746, -0.0007, 2.3, 0.1, 30., 15., 0.);
-        // // l2l3CorrectionsFit[iEta]->SetParLimits(0, 0., 2.0);
-        // // l2l3CorrectionsFit[iEta]->SetParLimits(1, -2., 2.);
-        // // l2l3CorrectionsFit[iEta]->SetParLimits(2, -5., 10.);
-        // // l2l3CorrectionsFit[iEta]->SetParLimits(3, 0., 1000.);
-        // // l2l3CorrectionsFit[iEta]->SetParLimits(4, 0., 150.);
-        // // l2l3CorrectionsFit[iEta]->SetParLimits(5, 0., 80.);
-        gCorrFactorVsPt[iEta]->Fit(l2l3CorrectionsFit[iEta], "MRE");
+
+        // Current fit
+        // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 10);
+        // l2l3CorrectionsFit[iEta]->SetParameters(1.86529, -1.61543e+03, 1.62368e+01, 3.57560e+03, -4.32881e+05, -5.24556e+01, -1.93128e+15, -8.56230e-02, 3.99420e-01, 9.76207e-01 );
+        // gCorrFactorVsPt[iEta]->Fit(l2l3CorrectionsFit[iEta], "MRE");
 
         c->SaveAs(Form("%s/%s_L2L3Correction_%d.pdf", date.Data(), collSystemStr.Data(), iEta));
     } // for (int i{0}; i<jetNEtaL2L3StdBins; i++)
