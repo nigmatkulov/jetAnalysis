@@ -187,7 +187,7 @@ int main(int argc, char const *argv[]) {
         reader->setJERSystParams();
     }
     // If want to use manual JEC
-    reader->setUseManualJEC();
+    // reader->setUseManualJEC();
 
     //reader->setVerbose();
 

@@ -1053,13 +1053,13 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Fill( ptRecoLead/ptHat, ptRecoLead, 1. );
         fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Fill( ptRecoLead/ptHat, ptRecoLead, weight );
 
-        // if ( isOverweightedEvent( ptRecoLead, ptHat ) ) {
-        //     if ( fVerbose ) {
-        //         std::cout << Form("Overweighted event. ptLead/ptHat = %3.2f", ptRecoLead/ptHat) << std::endl;
-        //     }
-        //     fIsOverweightedEvent = {true};
-        //     return;
-        // } // if ( isOverweightedEvent( ptRecoLead, ptHat ) )
+        if ( isOverweightedEvent( ptRecoLead, ptHat ) ) {
+            if ( fVerbose ) {
+                std::cout << Form("Overweighted event. ptLead/ptHat = %3.2f", ptRecoLead/ptHat) << std::endl;
+            }
+            fIsOverweightedEvent = {true};
+            return;
+        } // if ( isOverweightedEvent( ptRecoLead, ptHat ) )
     } // if ( fIsMc )
 
 
