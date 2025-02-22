@@ -1166,7 +1166,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 fHM->hJESInclusiveJetPtEtaPhi->Fill(res, 1.);
                 fHM->hJESInclusiveJetPtEtaPhiWeighted->Fill( res, weight );
 
-                fHM->hRecoInclusiveJetJECFactorVsPtEta->Fill( JES, genPt, genEta, weight );
+                fHM->hRecoInclusiveJetJECFactorVsPtEta->Fill( pt / ptRaw, genPt, genEta, weight );
                 // fHM->hRecoInclusiveJetJEC2FactorVsPtGen->Fill( JES2, genPt, genEta, weight );
                 fHM->hRecoInclusiveJetPtRawOverPtRefVsPtEta->Fill( ptRaw/genPt, genPt, genEta, weight );
                 fHM->hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning->Fill( ptRaw/genPt, genPt, genEta, weight );
