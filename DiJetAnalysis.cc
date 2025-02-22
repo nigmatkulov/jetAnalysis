@@ -992,6 +992,11 @@ void DiJetAnalysis::findMcWeight(const double& ptLead, const double& ptSublead) 
 }
 
 //________________
+bool DiJetAnalysis::isOverweightedEvent(const double& ptLead, const double& ptHat) {
+    return (  ( ptLead / ptHat ) > 1.5);
+}
+
+//________________
 void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
 
     if ( fVerbose ) {
@@ -1010,6 +1015,58 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
     int idRecoLead{-1}, idRecoSubLead{-1};
     RecoJetIterator recoJetIter;
     int counter{0};
+
+    //
+    // Loop over reco jets to search for the leading and subleading jets
+    //
+    for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
+
+        double pt = (*recoJetIter)->ptJECCorr();
+        counter++;
+
+        // Check selection criteria
+        bool passTrkMax = isGoodTrkMax( (*recoJetIter) );
+        bool passJetId = isGoodJetId( (*recoJetIter) );
+
+        if ( fUseJetIdSelection && !passJetId ) { 
+            // Do not forget to increment the counter
+            if ( fVerbose ) { 
+                std::cout << "JetId selection failed. Skip jet" << std::endl; 
+            }
+            continue; 
+        }
+        if ( !fUseJetIdSelection && !passTrkMax ) {
+            // Do not forget to increment the counter
+            if ( fVerbose ) { 
+                std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
+            }
+            continue; 
+        }
+
+        // Find leading and subleading reco jets
+        findLeadSubleadJets( pt, (counter-1), ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
+    } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
+
+    // Checking overweighting
+    if ( fIsMc ) {
+        // Leading jet pt over ptHat vs leading jet pt
+        fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Fill( ptRecoLead/ptHat, ptRecoLead, 1. );
+        fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeight->Fill( ptRecoLead/ptHat, ptRecoLead, weight );
+
+        // if ( isOverweightedEvent( ptRecoLead, ptHat ) ) {
+        //     if ( fVerbose ) {
+        //         std::cout << Form("Overweighted event. ptLead/ptHat = %3.2f", ptRecoLead/ptHat) << std::endl;
+        //     }
+        //     fIsOverweightedEvent = {true};
+        //     return;
+        // } // if ( isOverweightedEvent( ptRecoLead, ptHat ) )
+    } // if ( fIsMc )
+
+
+    //
+    // Inclusive jet analysis
+    //
+    counter = 0;
     for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
         double pt = (*recoJetIter)->ptJECCorr();
@@ -1069,9 +1126,21 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         fHM->hRecoInclusiveJetPtRawVsEta->Fill(eta, ptRaw, weight);
         fHM->hRecoInclusiveJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
 
+
+        if ( (counter-1) == idRecoLead ) {
+            fHM->hRecoLeadJetAllPtVsEta->Fill( eta, pt, weight );
+        }
+
+        if (  (counter-1) == idRecoSubLead ) {
+            fHM->hRecoSubLeadJetAllPtVsEta->Fill( eta, pt, weight );
+        }
+
         // On MC check reco jet matching to gen
         if ( fIsMc ) {
+
+            // If reco jet has matching to gen jet
             if ( (*recoJetIter)->hasMatching() ) {
+
                 GenJet *matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
                 double genPt = matchedJet->pt();
                 double genEta = etaLab( matchedJet->eta() );
@@ -1093,7 +1162,6 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 fHM->hRecoInclusiveMatchedJetPt->Fill( pt, weight );
                 fHM->hRecoInclusiveMatchedJetPtVsEta->Fill( eta, pt, weight );
 
-
                 // Jet energy scale
                 fHM->hJESInclusiveJetPtEtaPhi->Fill(res, 1.);
                 fHM->hJESInclusiveJetPtEtaPhiWeighted->Fill( res, weight );
@@ -1114,17 +1182,35 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 double correl[5] { pt, ptRaw, genPt, eta, genEta };
                 fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill( correl );
                 fHM->hRecoInclusiveJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Fill( correl, weight );
+
+                // Leading jet
+                if ( (counter-1) == idRecoLead ) {
+                    fHM->hRecoLeadJetMatchedPtVsEta->Fill( eta, pt, weight);
+                    fHM->hLeadingJetJESGenPtEtaPtHatWeighted->Fill( res1, weight );
+                }
+
+                // Subleading jet
+                if ( (counter-1) == idRecoSubLead ) {
+                    fHM->hRecoSubLeadJetMatchedPtVsEta->Fill( eta, pt, weight);
+                    fHM->hSubleadingJetJESGenPtEtaPtHatWeighted->Fill( res1, weight );
+                }
+
             } // if ( (*recoJetIter)->hasMatching() )
             else {
                 // Fill unmatched jets
                 fHM->hRecoInclusiveUnmatchedJetPtVsEta->Fill(eta, pt, weight);
+
+                // Leading jet
+                if ( (counter-1) == idRecoLead ) {
+                    fHM->hRecoLeadJetUnmatchedPtVsEta->Fill( eta, pt, weight);
+                }
+
+                // Subleading jet
+                if ( (counter-1) == idRecoSubLead ) {
+                    fHM->hRecoSubLeadJetUnmatchedPtVsEta->Fill( eta, pt, weight);
+                }
             } // else
         } // if ( fIsMc )
-
-        //
-        // Find leading and subleading reco jets
-        //
-        findLeadSubleadJets( pt, (counter-1), ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
 
         if ( pt > 30. ) {
             fHM->hRecoGoodInclusiveJetEtaLabFrame->Fill( etaLab(eta), weight );
@@ -1153,27 +1239,6 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
 
         double dijetRecoPt = 0.5 * (ptRecoLead + ptRecoSubLead);
         double dijetRecoDphi = deltaPhi(phiRecoLead, phiRecoSubLead);
-
-        fHM->hRecoLeadJetAllPtVsEta->Fill( etaRecoLead, ptRecoLead, weight );
-        fHM->hRecoSubLeadJetAllPtVsEta->Fill( etaRecoSubLead, ptRecoSubLead, weight );   
-
-        if ( fIsMc ) {
-            // Check leading jet matching to gen
-            if (recoLeadJet->hasMatching() ) {
-                fHM->hRecoLeadJetMatchedPtVsEta->Fill( etaRecoLead, ptRecoLead, weight);
-            }
-            else {
-                fHM->hRecoLeadJetUnmatchedPtVsEta->Fill( etaRecoLead, ptRecoLead, weight);
-            }
-
-            // Check subleading jet matching to gen
-            if ( recoSubLeadJet->hasMatching() ) {
-                fHM->hRecoSubLeadJetMatchedPtVsEta->Fill( etaRecoSubLead, ptRecoSubLead, weight);
-            }
-            else {
-                fHM->hRecoSubLeadJetUnmatchedPtVsEta->Fill( etaRecoSubLead, ptRecoSubLead, weight);
-            }
-        } // if ( fIsMc )
 
         // For dijet analysis (in Monte Carlo) reco leading and subleading jets must have matching MC partners
         if ( fIsMc ) {
@@ -1954,6 +2019,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
     fIsRecoDijetCMFound = {false};
     fIsRefSelDijetLabFound = {false};
     fIsRefSelDijetCMFound = {false};
+    fIsOverweightedEvent = {false};
 
     //
     // Event quantities
@@ -2005,13 +2071,8 @@ void DiJetAnalysis::processEvent(const Event* event) {
     fHM->hRecoJetCollectionSize->Fill( event->recoJetCollection()->size(), 1. );
     processRecoJets(event, weight);
 
-
-    if ( fIsMc ) {
-        fHM->hGenJetCollectionSize->Fill( event->genJetCollection()->size(), 1. );
-        fHM->hGenVsRecoJetCollectionSize->Fill( event->recoJetCollection()->size(), event->genJetCollection()->size(), 1. );
-        // Process and analyze gen jets
-        processGenJets(event, weight);
-        processRefJets(event, weight);
+    if (fIsOverweightedEvent) {
+        return;
     }
 
     // Fill event histograms
@@ -2023,6 +2084,14 @@ void DiJetAnalysis::processEvent(const Event* event) {
 
     fHM->hHiBin->Fill( event->hiBin(), 1. );
     fHM->hHiBinWeighted->Fill( event->hiBin(), weight );
+
+    if ( fIsMc ) {
+        fHM->hGenJetCollectionSize->Fill( event->genJetCollection()->size(), 1. );
+        fHM->hGenVsRecoJetCollectionSize->Fill( event->recoJetCollection()->size(), event->genJetCollection()->size(), 1. );
+        // Process and analyze gen jets
+        processGenJets(event, weight);
+        processRefJets(event, weight);
+    }
 
     if ( fIsGenDijetLabFound ) {
         fHM->hVzGenDijetLab->Fill( vz, 1. );

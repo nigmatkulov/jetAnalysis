@@ -196,9 +196,15 @@ HistoManagerDiJet::HistoManagerDiJet() :
 
     hJESInclusiveJetPtEtaPhi{nullptr},
     hJESInclusiveJetPtEtaPhiWeighted{nullptr},
+
+    hRecoLeadingJetPtOverPtHatVsLeadingJetPt{nullptr},
+    hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted{nullptr},
+
     hInclusiveJetJESVsPtGen{nullptr},
     hInclusiveJetJESGenPtGenEtaPtHatWeighted{nullptr},
     hInclusiveJetJESRecoPtRecoEtaPtHatWeighted{nullptr},
+    hLeadingJetJESGenPtEtaPtHatWeighted{nullptr},
+    hSubleadingJetJESGenPtEtaPtHatWeighted{nullptr},
 
     hRecoInclusiveJetJECFactorVsPtEta{nullptr},
     hRecoInclusiveJetJEC2FactorVsPtEta{nullptr},
@@ -814,6 +820,8 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted) delete hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
         if (hJESInclusiveJetPtEtaPhi) delete hJESInclusiveJetPtEtaPhi;
         if (hJESInclusiveJetPtEtaPhiWeighted) delete hJESInclusiveJetPtEtaPhiWeighted;
+        if (hRecoLeadingJetPtOverPtHatVsLeadingJetPt) delete hRecoLeadingJetPtOverPtHatVsLeadingJetPt;
+        if (hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted) delete hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted;
 
         if (hRecoInclusiveJetJECFactorVsPtEta) delete hRecoInclusiveJetJECFactorVsPtEta;
         if (hRecoInclusiveJetJEC2FactorVsPtEta) delete hRecoInclusiveJetJEC2FactorVsPtEta;
@@ -824,6 +832,8 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if ( hInclusiveJetJESVsPtGen ) delete hInclusiveJetJESVsPtGen;
         if ( hInclusiveJetJESGenPtGenEtaPtHatWeighted ) delete hInclusiveJetJESGenPtGenEtaPtHatWeighted;
         if ( hInclusiveJetJESRecoPtRecoEtaPtHatWeighted ) delete hInclusiveJetJESRecoPtRecoEtaPtHatWeighted;
+        if ( hLeadingJetJESGenPtEtaPtHatWeighted ) delete hLeadingJetJESGenPtEtaPtHatWeighted;
+        if ( hSubleadingJetJESGenPtEtaPtHatWeighted ) delete hSubleadingJetJESGenPtEtaPtHatWeighted;
 
         if (hRecoInclusiveMatchedJetPt) delete hRecoInclusiveMatchedJetPt;
         if (hRecoInclusiveMatchedJetPtVsEta) delete hRecoInclusiveMatchedJetPtVsEta;
@@ -2051,6 +2061,13 @@ void HistoManagerDiJet::init() {
                 xmax4D_jet_JESPtEtaPhi);
         hJESInclusiveJetPtEtaPhiWeighted->Sumw2();
 
+        hRecoLeadingJetPtOverPtHatVsLeadingJetPt = new TH2D("hRecoLeadingJetPtOverPtHatVsLeadingJetPt", "Leading jet p_{T}^{reco}/#hat{p}_{T} vs leading jet p_{T}^{reco};p_{T}^{reco} (GeV);p_{T}^{reco}/#hat{p}_{T}",
+                                                            fPtBins, fPtRange[0], fPtRange[1], 250, 0., 2.5);
+        hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Sumw2();
+        hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted = new TH2D("hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted", "Leading jet p_{T}^{reco}/#hat{p}_{T} vs leading jet p_{T}^{reco} weighted;p_{T}^{reco} (GeV);p_{T}^{reco}/#hat{p}_{T}",
+                                                                    fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Sumw2();
+
 
         hRecoInclusiveJetJECFactorVsPtEta = new TH3D("hRecoInclusiveJetJECFactorVsPtEta","JEC factor vs p_{T} and #eta;p_{T}^{corr}/p_{T}^{raw};p_{T}^{gen} (GeV);#eta^{gen};JEC factor",
                                            20, 0., 2., fPtBins, fPtRange[0], fPtRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
@@ -2082,6 +2099,14 @@ void HistoManagerDiJet::init() {
                 4,
                 bins4D_jet_JESPtEtaPtHat, xmin4D_jet_JESPtEtaPtHat, xmax4D_jet_JESPtEtaPtHat);
         hInclusiveJetJESRecoPtRecoEtaPtHatWeighted->Sumw2();
+        hLeadingJetJESGenPtEtaPtHatWeighted = new THnSparseD("hLeadingJetJESGenPtEtaPtHatWeighted","JES vs p_{T}^{gen} vs #eta^{gen} vs #hat{p}_{T} weighted;p_{T}^{reco}/p_{T}^{gen};p_{T}^{gen} (GeV);#eta^{gen};#hat{p}_{T} (GeV)",
+                4,
+                bins4D_jet_JESPtEtaPtHat, xmin4D_jet_JESPtEtaPtHat, xmax4D_jet_JESPtEtaPtHat);
+        hLeadingJetJESGenPtEtaPtHatWeighted->Sumw2();
+        hSubleadingJetJESGenPtEtaPtHatWeighted = new THnSparseD("hSubleadingJetJESGenPtEtaPtHatWeighted","JES vs p_{T}^{gen} vs #eta^{gen} vs #hat{p}_{T} weighted;p_{T}^{reco}/p_{T}^{gen};p_{T}^{gen} (GeV);#eta^{gen};#hat{p}_{T} (GeV)",
+                4,
+                bins4D_jet_JESPtEtaPtHat, xmin4D_jet_JESPtEtaPtHat, xmax4D_jet_JESPtEtaPtHat);
+        hSubleadingJetJESGenPtEtaPtHatWeighted->Sumw2();
 
         hRecoInclusiveMatchedJetPt = new TH1D("hRecoInclusiveMatchedJetPt","Inclusive reco jet that has matching;p_{T} (GeV)",
                                                     fPtBins, fPtRange[0], fPtRange[1]);
@@ -3203,6 +3228,8 @@ void HistoManagerDiJet::writeOutput() {
         hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted->Write();
         hJESInclusiveJetPtEtaPhi->Write();
         hJESInclusiveJetPtEtaPhiWeighted->Write();
+        hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Write();
+        hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Write();
 
         hRecoInclusiveJetJECFactorVsPtEta->Write();
         hRecoInclusiveJetJEC2FactorVsPtEta->Write();
@@ -3213,6 +3240,8 @@ void HistoManagerDiJet::writeOutput() {
         hInclusiveJetJESVsPtGen->Write();
         hInclusiveJetJESGenPtGenEtaPtHatWeighted->Write();
         hInclusiveJetJESRecoPtRecoEtaPtHatWeighted->Write();
+        hLeadingJetJESGenPtEtaPtHatWeighted->Write();
+        hSubleadingJetJESGenPtEtaPtHatWeighted->Write();
 
         hRecoInclusiveMatchedJetPt->Write();
         hRecoInclusiveMatchedJetPtVsEta->Write();

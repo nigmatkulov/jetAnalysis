@@ -116,7 +116,8 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Dijet selection
     bool isGoodDijet(const double& ptLead, const double& etaLead, const double& ptSubLead, 
                      const double& etaSubLead, const double& dphi, const bool& isCM = false);
-
+    /// @brief Check that event is not overweighted
+    bool isOverweightedEvent(const double& ptLead, const double& ptHat);
 
     /// @brief Calculate delta phi between two jets in the range [-pi, pi]
     double deltaPhi(const double& phi1, const double &phi2);
@@ -164,6 +165,8 @@ class DiJetAnalysis : public BaseAnalysis {
     int    fCollisionEnergy;
     /// @brief ptHat range for the generated events (must cut events on this one)
     double fPtHatRange[2];
+    /// @brief Is event overweighted
+    bool   fIsOverweightedEvent;
 
     /// @brief Momentum selection of the leading jet
     double fLeadJetPtLow;
