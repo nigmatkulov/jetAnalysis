@@ -993,7 +993,7 @@ void DiJetAnalysis::findMcWeight(const double& ptLead, const double& ptSublead) 
 
 //________________
 bool DiJetAnalysis::isOverweightedEvent(const double& ptLead, const double& ptHat) {
-    return (  ( ptLead / ptHat ) > 1.5);
+    return (  ( ptLead / ptHat ) > 2.0);
 }
 
 //________________

@@ -728,6 +728,98 @@ void plotSimpleInclusiveJetJECClosures(TFile *f, int collSystem = 0, double ener
 }
 
 //________________
+void calculateMeanAndErrorInRange(TH2D* h2D, TH1D *h1D) {
+
+
+    double xValue = 0.0; double yValue = 0.0;
+    double sum = 0.0;
+    double weightedSum = 0.0;
+    double sumOfWeights = 0.0;
+    double sumOfWeightsSquared = 0.0;
+
+    // Loop over x bins
+    for (int i = 1; i <= h2D->GetNbinsX(); i++) {
+        xValue = h2D->GetXaxis()->GetBinCenter(i);
+
+        sum = 0.0;
+        weightedSum = 0.0;
+
+        int nonEmptyBins = 0;
+        // Loop over y bins
+        for (int j = 1; j <= h2D->GetNbinsY(); j++) {
+            if (h2D->GetBinContent(i, j) <= 0) continue;
+            nonEmptyBins++;
+            yValue = h2D->GetYaxis()->GetBinCenter(j);
+            weightedSum += yValue * h2D->GetBinContent(i, j);
+        } // for (int j = 1; j <= h2D->GetNbinsY(); j++)
+
+        if (nonEmptyBins != 0) {
+            weightedSum /= nonEmptyBins;
+        }
+    }
+    
+
+    double mean = weightedSum / sum;
+    double error = sqrt(sumOfWeightsSquared - pow(sumOfWeights, 2)) / sumOfWeights;
+
+    
+
+    h1D->SetBinContent(1, mean);
+    h1D->SetBinError(1, error);
+}
+
+
+///________________
+///
+/// Plot JEC factor as a function of eta for the given pt bin ranges
+///
+void plotJECFactor(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250222" ) {
+
+    // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
+    // Energy in TeV
+
+    // Retrieve histogram
+    TH3D *hJecFactor = dynamic_cast<TH3D *>(f->Get("hRecoInclusiveJetJECFactorVsPtEta"));
+    if (!hJecFactor) {
+        std::cerr << "Histogram 'hRecoInclusiveJetJECFactorVsPtEta' not found." << std::endl;
+        return;
+    }
+
+    // Default histogram has 150 bins from 5 to 1505 GeV with 10 GeV step
+    // int nPtBins = hJecFactor->GetNbinsY();
+    // double ptMin = hJecFactor->GetYaxis()->GetBinLowEdge(1);
+    // double ptMax = hJecFactor->GetYaxis()->GetBinUpEdge(nPtBins);
+    // double ptStep = (ptMax - ptMin) / nPtBins;
+    int nPtBins = 150;
+    double ptMin = 5;
+    double ptMax = 1505;
+    double ptStep = 10;
+    std::vector<int> ptBinsLow{1};
+    std::vector<int> ptBinsHigh{150};
+    // std::vector<int> ptBinsLow{2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 25};
+    // std::vector<int> ptBinsHigh{2, 3, 4, 5, 6, 7, 8, 9, 11, 14, 24, 150};
+
+    TH2D *hJecVsEta[ptBinsLow.size()];
+
+    //
+    // Loop over pt bins, make projection on JEC factor vs. eta, calculate
+    // mean of JEC as a factor of eta and fill corresponding histograms
+    //
+    for (unsigned int iPt = 0; iPt < ptBinsLow.size(); ++iPt) {
+
+        // Set pt range
+        hJecFactor->GetYaxis()->SetRange( ptBinsLow[iPt], ptBinsHigh[iPt] );
+
+        // Projection into JEC vs. eta axis
+        hJecVsEta[iPt] = dynamic_cast<TH2D *>( hJecFactor->Project3D("zx") );
+        hJecVsEta[iPt]->SetName( Form("hJecVsEta_%d", iPt) );
+        set2DStyle( hJecVsEta[iPt] );
+
+    } // for (unsigned int i = 0; i < ptBinsLow.size(); ++i)
+
+}
+
+//________________
 void plotMcClosures() {
 
     // Base style
