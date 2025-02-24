@@ -199,6 +199,10 @@ HistoManagerDiJet::HistoManagerDiJet() :
 
     hRecoLeadingJetPtOverPtHatVsLeadingJetPt{nullptr},
     hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted{nullptr},
+    hRecoDijetPtOverPtHatVsDijetPt{nullptr},
+    hRecoDijetPtOverPtHatVsDijetPtWeighted{nullptr},
+    hRecoDijetPtAveOverPtHatVsDijetPtAve{nullptr},
+    hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted{nullptr},
 
     hInclusiveJetJESVsPtGen{nullptr},
     hInclusiveJetJESGenPtGenEtaPtHatWeighted{nullptr},
@@ -822,6 +826,10 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hJESInclusiveJetPtEtaPhiWeighted) delete hJESInclusiveJetPtEtaPhiWeighted;
         if (hRecoLeadingJetPtOverPtHatVsLeadingJetPt) delete hRecoLeadingJetPtOverPtHatVsLeadingJetPt;
         if (hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted) delete hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted;
+        if (hRecoDijetPtOverPtHatVsDijetPt) delete hRecoDijetPtOverPtHatVsDijetPt;
+        if (hRecoDijetPtOverPtHatVsDijetPtWeighted) delete hRecoDijetPtOverPtHatVsDijetPtWeighted;
+        if (hRecoDijetPtAveOverPtHatVsDijetPtAve) delete hRecoDijetPtAveOverPtHatVsDijetPtAve;
+        if (hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted) delete hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted;
 
         if (hRecoInclusiveJetJECFactorVsPtEta) delete hRecoInclusiveJetJECFactorVsPtEta;
         if (hRecoInclusiveJetJEC2FactorVsPtEta) delete hRecoInclusiveJetJEC2FactorVsPtEta;
@@ -2062,12 +2070,23 @@ void HistoManagerDiJet::init() {
         hJESInclusiveJetPtEtaPhiWeighted->Sumw2();
 
         hRecoLeadingJetPtOverPtHatVsLeadingJetPt = new TH2D("hRecoLeadingJetPtOverPtHatVsLeadingJetPt", "Leading jet p_{T}^{reco}/#hat{p}_{T} vs leading jet p_{T}^{reco};p_{T}^{reco} (GeV);p_{T}^{reco}/#hat{p}_{T}",
-                                                            fPtBins, fPtRange[0], fPtRange[1], 250, 0., 2.5);
+                                                            fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Sumw2();
         hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted = new TH2D("hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted", "Leading jet p_{T}^{reco}/#hat{p}_{T} vs leading jet p_{T}^{reco} weighted;p_{T}^{reco} (GeV);p_{T}^{reco}/#hat{p}_{T}",
                                                                     fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Sumw2();
-
+        hRecoDijetPtOverPtHatVsDijetPt = new TH2D("hRecoDijetPtOverPtHatVsDijetPt", "Dijet p_{T}^{reco}/#hat{p}_{T} vs dijet p_{T}^{reco};Dijet p_{T}^{reco} (GeV);Dijet p_{T}^{reco}/#hat{p}_{T}",
+                                                  fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hRecoDijetPtOverPtHatVsDijetPt->Sumw2();
+        hRecoDijetPtOverPtHatVsDijetPtWeighted = new TH2D("hRecoDijetPtOverPtHatVsDijetPtWeighted", "Dijet p_{T}^{reco}/#hat{p}_{T} vs dijet p_{T}^{reco} weighted;Dijet p_{T}^{reco} (GeV);Dijet p_{T}^{reco}/#hat{p}_{T}",
+                                                          fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hRecoDijetPtOverPtHatVsDijetPtWeighted->Sumw2();
+        hRecoDijetPtAveOverPtHatVsDijetPtAve = new TH2D("hRecoDijetPtAveOverPtHatVsDijetPtAve", "Dijet p_{T}^{ave}/#hat{p}_{T} vs dijet p_{T}^{ave};Dijet p_{T}^{ave} (GeV);Dijet p_{T}^{ave}/#hat{p}_{T}",
+                                                          fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hRecoDijetPtAveOverPtHatVsDijetPtAve->Sumw2();
+        hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted = new TH2D("hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted", "Dijet p_{T}^{ave}/#hat{p}_{T} vs dijet p_{T}^{ave} weighted;Dijet p_{T}^{ave} (GeV);Dijet p_{T}^{ave}/#hat{p}_{T}",
+                                                                fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted->Sumw2();
 
         hRecoInclusiveJetJECFactorVsPtEta = new TH3D("hRecoInclusiveJetJECFactorVsPtEta","JEC factor vs p_{T} and #eta;p_{T}^{corr}/p_{T}^{raw};p_{T}^{gen} (GeV);#eta^{gen};JEC factor",
                                            20, 0., 2., fPtBins, fPtRange[0], fPtRange[1], fEtaBins, fEtaRange[0], fEtaRange[1]);
@@ -3230,6 +3249,10 @@ void HistoManagerDiJet::writeOutput() {
         hJESInclusiveJetPtEtaPhiWeighted->Write();
         hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Write();
         hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Write();
+        hRecoDijetPtOverPtHatVsDijetPt->Write();
+        hRecoDijetPtOverPtHatVsDijetPtWeighted->Write();
+        hRecoDijetPtAveOverPtHatVsDijetPtAve->Write();
+        hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted->Write();
 
         hRecoInclusiveJetJECFactorVsPtEta->Write();
         hRecoInclusiveJetJEC2FactorVsPtEta->Write();

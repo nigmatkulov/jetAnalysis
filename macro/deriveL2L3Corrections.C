@@ -447,9 +447,9 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
                     //             (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
 
                     // Use fitted values    
-                    meanY = fitMeanY;
+                    // meanY = fitMeanY;
                     // meanYError = fitSigmaY;
-                    meanYError = 0.01;
+                    // meanYError = 0.01;
 
                     if ( !std::isnan(meanY) ) {
                         meanY = 1. / meanY;

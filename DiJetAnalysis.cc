@@ -1052,6 +1052,12 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         // Leading jet pt over ptHat vs leading jet pt
         fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Fill( ptRecoLead, ptRecoLead/ptHat, 1. );
         fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Fill( ptRecoLead, ptRecoLead/ptHat, weight );
+        double dijetPt = ptRecoLead + ptRecoSubLead;
+        double dijetPtAve = 0.5 * dijetPt;
+        fHM->hRecoDijetPtOverPtHatVsDijetPt->Fill(dijetPt, dijetPt/ptHat, 1.);
+        fHM->hRecoDijetPtOverPtHatVsDijetPtWeighted->Fill(dijetPt, dijetPt/ptHat, weight);
+        fHM->hRecoDijetPtAveOverPtHatVsDijetPtAve->Fill(dijetPtAve, dijetPtAve/ptHat, 1.);
+        fHM->hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted->Fill(dijetPtAve, dijetPtAve/ptHat, weight);
 
         if ( isOverweightedEvent( ptRecoLead, ptHat ) ) {
             if ( fVerbose ) {

@@ -380,6 +380,10 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     TH2D *hRecoLeadingJetPtOverPtHatVsLeadingJetPt;
     TH2D *hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted;
+    TH2D *hRecoDijetPtOverPtHatVsDijetPt;
+    TH2D *hRecoDijetPtOverPtHatVsDijetPtWeighted;
+    TH2D *hRecoDijetPtAveOverPtHatVsDijetPtAve;
+    TH2D *hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted;
 
     // pt corr / pt raw, gen pt, gen eta
     TH3D *hRecoInclusiveJetJECFactorVsPtEta;
