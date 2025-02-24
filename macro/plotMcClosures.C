@@ -585,13 +585,13 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 0, double energy = 5
     int ptHatStart = 0;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins{1, 7}; // 20
+    std::vector<int> ptHatBins{1}; // 20
 
     // Jet pT binning
     int jetPtStart = 5;
     int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins{12}; // 35, 55, 105
+    std::vector<int> jetPtBins{4, 7, 12}; // 35, 55, 105
 
     // Eta binning
     // 52 bins from (-5.2, 5.2)
@@ -613,8 +613,7 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 0, double energy = 5
     TH1D *hGenPt[ptHatBins.size()][jetEtaBinsLow.size()];
 
     // Loop over ptHat and jet pT bins
-    for (unsigned int i = 0; i < ptHatBins.size(); i++)
-    {
+    for (unsigned int i = 0; i < ptHatBins.size(); i++) {
 
         hRecoPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i], ptHatBinsMax);
         hGenPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i], ptHatBinsMax);
@@ -851,18 +850,18 @@ void plotMcClosures() {
 
     // MC p-going direction new (coincides with the pPb5020)
     // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_80.root", uname.Data()) );
-    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25_newJEC.root", uname.Data()) );
+    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) );
     if ( !pPb8160EmbedFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25_newJEC.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) << std::endl;
         return;
     }
 
     // Comparison of dijet reco and ref to gen distributions
-    // comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
     // Plot simple inclusicve jet JEC closure (inclusive jets within |eta|<1.4)
     // plotSimpleInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
     
     // Plot for inclusive jets JEC closures (scan in eta and pT)
-    plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+    // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
 }

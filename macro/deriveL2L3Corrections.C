@@ -427,28 +427,29 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
                     // std::cout << "Mean error: " << meanYError << std::endl;
                 
                     // Draw and save raw over ref pt and perform fit
-                    c->cd();
-                    setPadStyle();
-                    hRawOverGenPt[iEta][jPt]->Draw();
+                    // c->cd();
+                    // setPadStyle();
+                    // hRawOverGenPt[iEta][jPt]->Draw();
                     ratioFit[iEta][jPt] = new TF1(Form("ratioFit_%d_%d", iEta, jPt), "gaus", 0., 1.7);
                     ratioFit[iEta][jPt]->SetLineColor(kRed);
                     ratioFit[iEta][jPt]->SetParameters(0.6, 1., 0.1);
                     hRawOverGenPt[iEta][jPt]->Fit(ratioFit[iEta][jPt], "MRQE");
                     double fitMeanY = ratioFit[iEta][jPt]->GetParameter(1);
                     double fitSigmaY = ratioFit[iEta][jPt]->GetParameter(2);
-                    t.SetTextSize(0.04);
-                    t.DrawLatexNDC(0.18, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
-                    t.DrawLatexNDC(0.18, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
-                    t.DrawLatexNDC(0.6, 0.8, Form("#mu = %.3f #pm %.3f", ratioFit[iEta][jPt]->GetParameter(1), ratioFit[iEta][jPt]->GetParError(1)));
-                    t.DrawLatexNDC(0.6, 0.7, Form("#sigma = %.3f #pm %.3f", ratioFit[iEta][jPt]->GetParameter(2), ratioFit[iEta][jPt]->GetParError(2)));
-                    t.DrawLatexNDC(0.6, 0.6, Form("#chi^{2}/ndf = %.2f", ratioFit[iEta][jPt]->GetChisquare() / ratioFit[iEta][jPt]->GetNDF()));
-                    c->SetLogy(0);
-                    c->SaveAs( Form("%s/%s_rawOverGenPt_%d_pt_%d_%d.pdf", date.Data(), collSystemStr.Data(), iEta, 
-                                (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
+                    // t.SetTextSize(0.04);
+                    // t.DrawLatexNDC(0.18, 0.8, Form("%.2f < #eta < %.2f", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1]));
+                    // t.DrawLatexNDC(0.18, 0.7, Form("%.0f < p_{T}^{jet} < %.0f", 10.+(jetPtBinNumbers[jPt]-1) * 5., 10. + (jetPtBinNumbers[jPt+1]-1) * 5.));
+                    // t.DrawLatexNDC(0.6, 0.8, Form("#mu = %.3f #pm %.3f", ratioFit[iEta][jPt]->GetParameter(1), ratioFit[iEta][jPt]->GetParError(1)));
+                    // t.DrawLatexNDC(0.6, 0.7, Form("#sigma = %.3f #pm %.3f", ratioFit[iEta][jPt]->GetParameter(2), ratioFit[iEta][jPt]->GetParError(2)));
+                    // t.DrawLatexNDC(0.6, 0.6, Form("#chi^{2}/ndf = %.2f", ratioFit[iEta][jPt]->GetChisquare() / ratioFit[iEta][jPt]->GetNDF()));
+                    // c->SetLogy(0);
+                    // c->SaveAs( Form("%s/%s_rawOverGenPt_%d_pt_%d_%d.pdf", date.Data(), collSystemStr.Data(), iEta, 
+                    //             (int)h3D->GetYaxis()->GetBinLowEdge(jetPtBinNumbers[jPt]), (int)h3D->GetYaxis()->GetBinUpEdge(jetPtBinNumbers[jPt+1]-1) ) );
 
                     // Use fitted values    
-                    // meanY = fitMeanY;
+                    meanY = fitMeanY;
                     // meanYError = fitSigmaY;
+                    meanYError = 0.01;
 
                     if ( !std::isnan(meanY) ) {
                         meanY = 1. / meanY;
@@ -511,9 +512,9 @@ void findCorrections(TFile *f, int collisionSystem = 1, double collisionEnergy =
         // l2l3CorrectionsFit[iEta]->SetParameters(12., 775., 0.5, 8.7, 4.3, -0.98, 0.35, 0.6, 6.9);
 
         // Current fit
-        // l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 10., 400., 10);
-        // l2l3CorrectionsFit[iEta]->SetParameters(1.86529, -1.61543e+03, 1.62368e+01, 3.57560e+03, -4.32881e+05, -5.24556e+01, -1.93128e+15, -8.56230e-02, 3.99420e-01, 9.76207e-01 );
-        // gCorrFactorVsPt[iEta]->Fit(l2l3CorrectionsFit[iEta], "MRE");
+        l2l3CorrectionsFit[iEta] = new TF1( Form("l2l3CorrectionsFit_%d", iEta), fitL2L3Corrections, 30., 800., 10);
+        l2l3CorrectionsFit[iEta]->SetParameters(1.86529, -1.61543e+03, 1.62368e+01, 3.57560e+03, -4.32881e+05, -5.24556e+01, -1.93128e+15, -8.56230e-02, 3.99420e-01, 9.76207e-01 );
+        gCorrFactorVsPt[iEta]->Fit(l2l3CorrectionsFit[iEta], "MRE");
 
         c->SaveAs(Form("%s/%s_L2L3Correction_%d.pdf", date.Data(), collSystemStr.Data(), iEta));
     } // for (int i{0}; i<jetNEtaL2L3StdBins; i++)
