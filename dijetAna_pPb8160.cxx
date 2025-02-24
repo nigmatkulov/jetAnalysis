@@ -183,7 +183,12 @@ int main(int argc, char const *argv[]) {
     }
     if ( isMc ) {
         reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use
-        reader->setJERFitParams(0.0415552, 0.960013);
+        if ( isPbGoingDir ) {
+            reader->setJERFitParams(0.0018, 0.9352); // in |eta|<1.6
+        }
+        else {
+            reader->setJERFitParams(0.0018, 0.9352); // in |eta|<1.6
+        }
         reader->setJERSystParams();
     }
     // If want to use manual JEC
