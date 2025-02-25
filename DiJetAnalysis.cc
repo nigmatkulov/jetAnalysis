@@ -992,8 +992,8 @@ void DiJetAnalysis::findMcWeight(const double& ptLead, const double& ptSublead) 
 }
 
 //________________
-bool DiJetAnalysis::isOverweightedEvent(const double& ptLead, const double& ptHat) {
-    return (  ( ptLead / ptHat ) > 2.0);
+bool DiJetAnalysis::isOverweightedEvent(const double& ptLead, const double& dijetPtAve, const double& ptHat) {
+    return (  ( ( ptLead / ptHat ) > 2.5) || ( ( dijetPtAve / ptHat ) > 1.7) );
 }
 
 //________________
@@ -1059,9 +1059,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         fHM->hRecoDijetPtAveOverPtHatVsDijetPtAve->Fill(dijetPtAve, dijetPtAve/ptHat, 1.);
         fHM->hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted->Fill(dijetPtAve, dijetPtAve/ptHat, weight);
 
-        if ( isOverweightedEvent( ptRecoLead, ptHat ) ) {
+        if ( isOverweightedEvent( ptRecoLead, dijetPtAve, ptHat ) ) {
             if ( fVerbose ) {
-                std::cout << Form("Overweighted event. ptLead/ptHat = %3.2f", ptRecoLead/ptHat) << std::endl;
+                std::cout << Form("Overweighted event. ptLead/ptHat = %3.2f ptAve/ptHat = %3.2f", ptRecoLead/ptHat, dijetPtAve/ptHat) << std::endl;
             }
             fIsOverweightedEvent = {true};
             return;

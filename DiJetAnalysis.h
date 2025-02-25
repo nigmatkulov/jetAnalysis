@@ -117,7 +117,7 @@ class DiJetAnalysis : public BaseAnalysis {
     bool isGoodDijet(const double& ptLead, const double& etaLead, const double& ptSubLead, 
                      const double& etaSubLead, const double& dphi, const bool& isCM = false);
     /// @brief Check that event is not overweighted
-    bool isOverweightedEvent(const double& ptLead, const double& ptHat);
+    bool isOverweightedEvent(const double& ptLead, const double& dijetPtAve, const double& ptHat);
 
     /// @brief Calculate delta phi between two jets in the range [-pi, pi]
     double deltaPhi(const double& phi1, const double &phi2);
