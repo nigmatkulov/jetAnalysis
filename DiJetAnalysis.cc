@@ -1147,6 +1147,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
             // If reco jet has matching to gen jet
             if ( (*recoJetIter)->hasMatching() ) {
 
+                fHM->hRecoMatchedJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
+
                 GenJet *matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
                 double genPt = matchedJet->pt();
                 double genEta = etaLab( matchedJet->eta() );

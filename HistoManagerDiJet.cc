@@ -156,6 +156,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoInclusiveJetPt{nullptr},
     hRecoInclusiveJetPtEta{nullptr},
     hRecoInclusiveJetPtEtaPtHat{nullptr},
+    hRecoMatchedJetPtEtaPtHat{nullptr},
     hRecoPtLeadPtSublead{nullptr},
     hRecoEtaLeadEtaSublead{nullptr},
     hRecoEtaCMLeadEtaCMSublead{nullptr},
@@ -731,6 +732,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoInclusiveJetPt) delete hRecoInclusiveJetPt;
     if (hRecoInclusiveJetPtEta) delete hRecoInclusiveJetPtEta;
     if (hRecoInclusiveJetPtEtaPtHat) delete hRecoInclusiveJetPtEtaPtHat;
+    if (hRecoMatchedJetPtEtaPtHat) delete hRecoMatchedJetPtEtaPtHat;
     if (hRecoPtLeadPtSublead) delete hRecoPtLeadPtSublead;
     if (hRecoEtaLeadEtaSublead) delete hRecoEtaLeadEtaSublead;
     if (hRecoEtaCMLeadEtaCMSublead) delete hRecoEtaCMLeadEtaCMSublead;
@@ -1343,6 +1345,11 @@ void HistoManagerDiJet::init() {
                                            fPtBins, fPtRange[0], fPtRange[1],
                                            fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
     hRecoInclusiveJetPtEtaPtHat->Sumw2();
+    hRecoMatchedJetPtEtaPtHat = new TH3D("hRecoMatchedJetPtEtaPtHat","Matched reco jet p_{T} vs #eta vs #hat{p_{T}};#eta;p_{T} (GeV);#hat{p_{T}} (GeV)",
+                                         fEtaBins, fEtaRange[0], fEtaRange[1],
+                                         fPtBins, fPtRange[0], fPtRange[1],
+                                         fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
+    hRecoMatchedJetPtEtaPtHat->Sumw2();
     hRecoInclusiveAllJetPtVsEta = new TH2D("hRecoInclusiveAllJetPtVsEta", "Inclusive reco jet pT vs eta;#eta;p_{T} (GeV)",
                                            fEtaBins, fEtaRange[0], fEtaRange[1],
                                            fPtBins, fPtRange[0], fPtRange[1]);
@@ -3031,6 +3038,7 @@ void HistoManagerDiJet::writeOutput() {
     hRecoInclusiveJetPt->Write();
     hRecoInclusiveJetPtEta->Write();
     hRecoInclusiveJetPtEtaPtHat->Write();
+    hRecoMatchedJetPtEtaPtHat->Write();
     hRecoPtLeadPtSublead->Write();
     hRecoEtaLeadEtaSublead->Write();
     hRecoEtaCMLeadEtaCMSublead->Write();

@@ -350,7 +350,7 @@ void drawToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen,
 }
 
 //________________
-void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy = 5.02, TString date = "20250129") {
+void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
     
     // collisionSystem: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
@@ -537,7 +537,7 @@ void comparisons2gen(TFile *f, int collisionSystem = 0, double collisionEnergy =
 }
 
 //________________
-void plotInclusiveJetJECClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
+void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8.16) {
     // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
 
@@ -585,13 +585,13 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 0, double energy = 5
     int ptHatStart = 0;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins{1}; // 20
+    std::vector<int> ptHatBins{7}; // 20
 
     // Jet pT binning
     int jetPtStart = 5;
     int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins{4, 7, 12}; // 35, 55, 105
+    std::vector<int> jetPtBins{6, 9, 12}; // 35, 55, 105
 
     // Eta binning
     // 52 bins from (-5.2, 5.2)
@@ -700,7 +700,7 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 0, double energy = 5
 }
 
 //________________
-void plotSimpleInclusiveJetJECClosures(TFile *f, int collSystem = 0, double energy = 5.02) {
+void plotSimpleInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8.16) {
 
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
     // Energy in TeV
@@ -727,95 +727,102 @@ void plotSimpleInclusiveJetJECClosures(TFile *f, int collSystem = 0, double ener
 }
 
 //________________
-void calculateMeanAndErrorInRange(TH2D* h2D, TH1D *h1D) {
-
-
-    double xValue = 0.0; double yValue = 0.0;
-    double sum = 0.0;
-    double weightedSum = 0.0;
-    double sumOfWeights = 0.0;
-    double sumOfWeightsSquared = 0.0;
-
-    // Loop over x bins
-    for (int i = 1; i <= h2D->GetNbinsX(); i++) {
-        xValue = h2D->GetXaxis()->GetBinCenter(i);
-
-        sum = 0.0;
-        weightedSum = 0.0;
-
-        int nonEmptyBins = 0;
-        // Loop over y bins
-        for (int j = 1; j <= h2D->GetNbinsY(); j++) {
-            if (h2D->GetBinContent(i, j) <= 0) continue;
-            nonEmptyBins++;
-            yValue = h2D->GetYaxis()->GetBinCenter(j);
-            weightedSum += yValue * h2D->GetBinContent(i, j);
-        } // for (int j = 1; j <= h2D->GetNbinsY(); j++)
-
-        if (nonEmptyBins != 0) {
-            weightedSum /= nonEmptyBins;
-        }
-    }
+//
+// Plot comparison of inclusive jet distributions for different pT and eta bins
+// Compare both reco data to reco MC and reco data to gen MC
+//
+void plotData2McComparison(TFile *fData, TFile *fMc, int collSystem = 1, double energy = 8.16, TString date = "20250224") {
     
+    // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
+    // energy in TeV
 
-    double mean = weightedSum / sum;
-    double error = sqrt(sumOfWeightsSquared - pow(sumOfWeights, 2)) / sumOfWeights;
+    TString collSystemStr = (collSystem == 0) ? "pp" : (collSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", (int)(1000 * energy));
 
-    
+    TH3D *hRecoDataPtEtaPtHat = dynamic_cast<TH3D *>(fData->Get("hRecoInclusiveJetPtEtaPtHat"));
+    hRecoDataPtEtaPtHat->SetName("hRecoDataPtEtaPtHat");
+    TH3D *hRecoMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hRecoInclusiveJetPtEtaPtHat"));
+    hRecoMcPtEtaPtHat->SetName("hRecoMcPtEtaPtHat");
+    TH3D *hGenMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hGenInclusiveJetPtEtaPtHat"));
+    hGenMcPtEtaPtHat->SetName("hGenMcPtEtaPtHat");
 
-    h1D->SetBinContent(1, mean);
-    h1D->SetBinError(1, error);
-}
+    // Create vector of ptHat and jet pT bins for projections
+    int ptHatStart = 0;
+    int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
+    int ptHatBinsMax = 100;
+    std::vector<int> ptHatBins{4}; // 30
+
+    // Jet pT binning
+    int jetPtStart = 5;
+    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
+    int jetPtBinsMax = 150;
+    std::vector<int> jetPtBins{4, 6, 9, 12}; // 35, 55, 85, 115
+
+    // Eta binning
+    // 52 bins from (-5.2, 5.2)
+    int nEtaBins = 52;
+    double etaStep = 0.2;
+    std::vector<int> jetEtaBinsLow{19, 12, 38};
+    std::vector<int> jetEtaBinsHigh{35, 16, 42};
+
+    TH1D *hRecoDataEta[jetPtBins.size()];
+    TH1D *hRecoMcEta[jetPtBins.size()];
+    TH1D *hGenMcEta[jetPtBins.size()];
+
+    TCanvas *cClosureEtaReco2Reco[jetPtBins.size()];
+    TCanvas *cClosureEtaReco2Gen[jetPtBins.size()];
+
+    // Jet pT binning
+    for (unsigned int i = 0; i < jetPtBins.size(); i++) {
+
+        //
+        // Reco data 2 Reco MC comparison
+        //
+
+        // Create canvas
+        cClosureEtaReco2Reco[i] = new TCanvas(Form("cClosureEtaReco2Reco_%d", i), Form("cClosureEtaReco2Reco_%d", i), 700, 800);
+
+        // Make projection of the 3D histograms
+        hRecoDataEta[i] = dynamic_cast<TH1D *>(hRecoDataPtEtaPtHat->ProjectionX(Form("hRecoDataEta_%d", i),
+                                                                                 jetPtBins[i], jetPtBinsMax,
+                                                                                 1, -1));
+        set1DStyle(hRecoDataEta[i], 0, kTRUE);
+
+        hRecoMcEta[i] = dynamic_cast<TH1D *>(hRecoMcPtEtaPtHat->ProjectionX(Form("hRecoMcEta_%d", i),
+                                                                              jetPtBins[i], jetPtBinsMax,
+                                                                              ptHatBins[0], hRecoMcPtEtaPtHat->GetNbinsZ()));
+        set1DStyle(hRecoMcEta[i], 1, kTRUE);
+
+        // Plot distributions
+        drawJecComparison(cClosureEtaReco2Reco[i], hRecoDataEta[i], hRecoMcEta[i],
+                          jetPtStart + (jetPtBins[i] - 1) * jetPtStep,
+                          ptHatStart + (ptHatBins[0] - 1) * ptHatStep,
+                          "Data", "Reco MC", collSystem, energy, false, true);
+        cClosureEtaReco2Reco[i]->SaveAs( Form("%s/%s_closureEta_Reco2Reco_pt_%d.pdf", date.Data(), collSystemStr.Data(), int(jetPtStart + (jetPtBins[i] - 1) * jetPtStep) ) );
 
 
-///________________
-///
-/// Plot JEC factor as a function of eta for the given pt bin ranges
-///
-void plotJECFactor(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250222" ) {
+        //
+        // Reco data 2 Gen MC comparison
+        //
 
-    // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
-    // Energy in TeV
+        // Create canvas
+        cClosureEtaReco2Gen[i] = new TCanvas(Form("cClosureEtaReco2Gen_%d", i), Form("cClosureEtaReco2Gen_%d", i), 700, 800);
+        // Make projection of the 3D histograms
+        hGenMcEta[i] = dynamic_cast<TH1D *>(hGenMcPtEtaPtHat->ProjectionX(Form("hGenMcEta_%d", i),
+                                                                            jetPtBins[i], jetPtBinsMax,
+                                                                            ptHatBins[0], hGenMcPtEtaPtHat->GetNbinsZ()));
+        set1DStyle(hGenMcEta[i], 1, kTRUE);
 
-    // Retrieve histogram
-    TH3D *hJecFactor = dynamic_cast<TH3D *>(f->Get("hRecoInclusiveJetJECFactorVsPtEta"));
-    if (!hJecFactor) {
-        std::cerr << "Histogram 'hRecoInclusiveJetJECFactorVsPtEta' not found." << std::endl;
-        return;
-    }
+        // Plot distributions
+        drawJecComparison(cClosureEtaReco2Gen[i], hRecoDataEta[i], hGenMcEta[i],
+                          jetPtStart + (jetPtBins[i] - 1) * jetPtStep,
+                          ptHatStart + (ptHatBins[0] - 1) * ptHatStep,
+                          "Data", "Gen MC", collSystem, energy, false, true);
 
-    // Default histogram has 150 bins from 5 to 1505 GeV with 10 GeV step
-    // int nPtBins = hJecFactor->GetNbinsY();
-    // double ptMin = hJecFactor->GetYaxis()->GetBinLowEdge(1);
-    // double ptMax = hJecFactor->GetYaxis()->GetBinUpEdge(nPtBins);
-    // double ptStep = (ptMax - ptMin) / nPtBins;
-    int nPtBins = 150;
-    double ptMin = 5;
-    double ptMax = 1505;
-    double ptStep = 10;
-    std::vector<int> ptBinsLow{1};
-    std::vector<int> ptBinsHigh{150};
-    // std::vector<int> ptBinsLow{2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 25};
-    // std::vector<int> ptBinsHigh{2, 3, 4, 5, 6, 7, 8, 9, 11, 14, 24, 150};
+        // Save canvas
+        cClosureEtaReco2Gen[i]->SaveAs( Form("%s/%s_closureEta_Reco2Gen_pt_%d.pdf", date.Data(), collSystemStr.Data(), int(jetPtStart + (jetPtBins[i] - 1) * jetPtStep) ) );
 
-    TH2D *hJecVsEta[ptBinsLow.size()];
-
-    //
-    // Loop over pt bins, make projection on JEC factor vs. eta, calculate
-    // mean of JEC as a factor of eta and fill corresponding histograms
-    //
-    for (unsigned int iPt = 0; iPt < ptBinsLow.size(); ++iPt) {
-
-        // Set pt range
-        hJecFactor->GetYaxis()->SetRange( ptBinsLow[iPt], ptBinsHigh[iPt] );
-
-        // Projection into JEC vs. eta axis
-        hJecVsEta[iPt] = dynamic_cast<TH2D *>( hJecFactor->Project3D("zx") );
-        hJecVsEta[iPt]->SetName( Form("hJecVsEta_%d", iPt) );
-        set2DStyle( hJecVsEta[iPt] );
-
-    } // for (unsigned int i = 0; i < ptBinsLow.size(); ++i)
-
+    } // for (unsigned int i = 0; i < jetPtBins.size(); i++)
 }
 
 //________________
@@ -847,21 +854,36 @@ void plotMcClosures() {
 
     collisionSystem = 1;
     collisionEnergy = 8.16;
+    int direction = 1; // 0-p-going, 1-Pb-going
+    TString directionStr = (direction == 0) ? "pgoing" : "Pbgoing";
 
     // MC p-going direction new (coincides with the pPb5020)
     // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_80.root", uname.Data()) );
-    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) );
+    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
     if ( !pPb8160EmbedFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta25.root", uname.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+        return;
+    }
+
+    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/pgoing/PAEGJet60_pgoing_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    if ( !pPb8160DataFile ) {
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
         return;
     }
 
     // Comparison of dijet reco and ref to gen distributions
-    comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    // comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
     // Plot simple inclusicve jet JEC closure (inclusive jets within |eta|<1.4)
     // plotSimpleInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
     
     // Plot for inclusive jets JEC closures (scan in eta and pT)
-    // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+    plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+
+    // Plot comparison of inclusive jet eta distributions to check/validate the JEC
+    // plotData2McComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+
 }
