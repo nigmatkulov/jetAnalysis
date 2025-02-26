@@ -1683,16 +1683,16 @@ void HistoManagerDiJet::init() {
         hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted = new TH2D("hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted", "Leading jet p_{T}^{Gen}/#hat{p}_{T} vs leading jet p_{T}^{Gen} weighted;p_{T}^{Gen} (GeV);p_{T}^{Gen}/#hat{p}_{T}",
                                                                     fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Sumw2();
-        hGenDijetPtOverPtHatVsDijetPt = new TH2D("hGenDijetPtOverPtHatVsDijetPt", "Dijet p_{T}^{Gen}/#hat{p}_{T} vs dijet p_{T}^{Gen};Dijet p_{T}^{Gen} (GeV);Dijet p_{T}^{Gen}/#hat{p}_{T}",
+        hGenDijetPtOverPtHatVsDijetPt = new TH2D("hGenDijetPtOverPtHatVsDijetPt", "Gen dijet p_{T}/#hat{p}_{T} vs gen dijet p_{T};Gen dijet p_{T} (GeV);Gen dijet p_{T}/#hat{p}_{T}",
                                                   fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hGenDijetPtOverPtHatVsDijetPt->Sumw2();
-        hGenDijetPtOverPtHatVsDijetPtWeighted = new TH2D("hGenDijetPtOverPtHatVsDijetPtWeighted", "Dijet p_{T}^{Gen}/#hat{p}_{T} vs dijet p_{T}^{Gen} weighted;Dijet p_{T}^{Gen} (GeV);Dijet p_{T}^{Gen}/#hat{p}_{T}",
+        hGenDijetPtOverPtHatVsDijetPtWeighted = new TH2D("hGenDijetPtOverPtHatVsDijetPtWeighted", "Gen dijet p_{T}/#hat{p}_{T} vs gen dijet p_{T} weighted;Gen dijet p_{T} (GeV);Gen dijet p_{T}/#hat{p}_{T}",
                                                           fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hGenDijetPtOverPtHatVsDijetPtWeighted->Sumw2();
-        hGenDijetPtAveOverPtHatVsDijetPtAve = new TH2D("hGenDijetPtAveOverPtHatVsDijetPtAve", "Dijet p_{T}^{ave}/#hat{p}_{T} vs dijet p_{T}^{ave};Dijet p_{T}^{ave} (GeV);Dijet p_{T}^{ave}/#hat{p}_{T}",
+        hGenDijetPtAveOverPtHatVsDijetPtAve = new TH2D("hGenDijetPtAveOverPtHatVsDijetPtAve", "Gen dijet p_{T}^{ave}/#hat{p}_{T} vs gen dijet p_{T}^{ave};Gen dijet p_{T}^{ave} (GeV);Gen dijet p_{T}^{ave}/#hat{p}_{T}",
                                                           fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hGenDijetPtAveOverPtHatVsDijetPtAve->Sumw2();
-        hGenDijetPtAveOverPtHatVsDijetPtAveWeighted = new TH2D("hGenDijetPtAveOverPtHatVsDijetPtAveWeighted", "Dijet p_{T}^{ave}/#hat{p}_{T} vs dijet p_{T}^{ave} weighted;Dijet p_{T}^{ave} (GeV);Dijet p_{T}^{ave}/#hat{p}_{T}",
+        hGenDijetPtAveOverPtHatVsDijetPtAveWeighted = new TH2D("hGenDijetPtAveOverPtHatVsDijetPtAveWeighted", "Gen dijet p_{T}^{ave}/#hat{p}_{T} vs gen dijet p_{T}^{ave} weighted;Gen dijet p_{T}^{ave} (GeV);Gen dijet p_{T}^{ave}/#hat{p}_{T}",
                                                                 fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hGenDijetPtAveOverPtHatVsDijetPtAveWeighted->Sumw2();
 
@@ -2109,22 +2109,22 @@ void HistoManagerDiJet::init() {
                 xmax4D_jet_JESPtEtaPhi);
         hJESInclusiveJetPtEtaPhiWeighted->Sumw2();
 
-        hRecoLeadingJetPtOverPtHatVsLeadingJetPt = new TH2D("hRecoLeadingJetPtOverPtHatVsLeadingJetPt", "Leading jet p_{T}^{reco}/#hat{p}_{T} vs leading jet p_{T}^{reco};p_{T}^{reco} (GeV);p_{T}^{reco}/#hat{p}_{T}",
+        hRecoLeadingJetPtOverPtHatVsLeadingJetPt = new TH2D("hRecoLeadingJetPtOverPtHatVsLeadingJetPt", "Reco leading jet p_{T}/#hat{p}_{T} vs reco leading jet p_{T}^{reco};Reco leading jet p_{T} (GeV);Reco leading jet p_{T}/#hat{p}_{T}",
                                                             fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Sumw2();
-        hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted = new TH2D("hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted", "Leading jet p_{T}^{reco}/#hat{p}_{T} vs leading jet p_{T}^{reco} weighted;p_{T}^{reco} (GeV);p_{T}^{reco}/#hat{p}_{T}",
+        hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted = new TH2D("hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted", "Reco leading jet p_{T}/#hat{p}_{T} vs reco leading jet p_{T}^{reco} weighted;Reco leading jet p_{T} (GeV);Reco leading jet p_{T}/#hat{p}_{T}",
                                                                     fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Sumw2();
-        hRecoDijetPtOverPtHatVsDijetPt = new TH2D("hRecoDijetPtOverPtHatVsDijetPt", "Dijet p_{T}^{reco}/#hat{p}_{T} vs dijet p_{T}^{reco};Dijet p_{T}^{reco} (GeV);Dijet p_{T}^{reco}/#hat{p}_{T}",
+        hRecoDijetPtOverPtHatVsDijetPt = new TH2D("hRecoDijetPtOverPtHatVsDijetPt", "Reco dijet p_{T}/#hat{p}_{T} vs dijet p_{T};Reco dijet p_{T} (GeV);Reco dijet p_{T}/#hat{p}_{T}",
                                                   fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hRecoDijetPtOverPtHatVsDijetPt->Sumw2();
-        hRecoDijetPtOverPtHatVsDijetPtWeighted = new TH2D("hRecoDijetPtOverPtHatVsDijetPtWeighted", "Dijet p_{T}^{reco}/#hat{p}_{T} vs dijet p_{T}^{reco} weighted;Dijet p_{T}^{reco} (GeV);Dijet p_{T}^{reco}/#hat{p}_{T}",
+        hRecoDijetPtOverPtHatVsDijetPtWeighted = new TH2D("hRecoDijetPtOverPtHatVsDijetPtWeighted", "Reco dijet p_{T}/#hat{p}_{T} vs reco dijet p_{T} weighted;Reco dijet p_{T}^{reco} (GeV);Reco dijet p_{T}^{reco}/#hat{p}_{T}",
                                                           fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hRecoDijetPtOverPtHatVsDijetPtWeighted->Sumw2();
-        hRecoDijetPtAveOverPtHatVsDijetPtAve = new TH2D("hRecoDijetPtAveOverPtHatVsDijetPtAve", "Dijet p_{T}^{ave}/#hat{p}_{T} vs dijet p_{T}^{ave};Dijet p_{T}^{ave} (GeV);Dijet p_{T}^{ave}/#hat{p}_{T}",
+        hRecoDijetPtAveOverPtHatVsDijetPtAve = new TH2D("hRecoDijetPtAveOverPtHatVsDijetPtAve", "Reco dijet p_{T}^{ave}/#hat{p}_{T} vs reco dijet p_{T}^{ave};Reco dijet p_{T}^{ave} (GeV);Reco dijet p_{T}^{ave}/#hat{p}_{T}",
                                                           fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hRecoDijetPtAveOverPtHatVsDijetPtAve->Sumw2();
-        hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted = new TH2D("hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted", "Dijet p_{T}^{ave}/#hat{p}_{T} vs dijet p_{T}^{ave} weighted;Dijet p_{T}^{ave} (GeV);Dijet p_{T}^{ave}/#hat{p}_{T}",
+        hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted = new TH2D("hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted", "Reco dijet p_{T}^{ave}/#hat{p}_{T} vs reco dijet p_{T}^{ave} weighted;Reco dijet p_{T}^{ave} (GeV);Reco dijet p_{T}^{ave}/#hat{p}_{T}",
                                                                 fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
         hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted->Sumw2();
 

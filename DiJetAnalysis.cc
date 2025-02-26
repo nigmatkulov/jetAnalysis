@@ -1156,6 +1156,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
     int idRecoLead{-1}, idRecoSubLead{-1};
     RecoJetIterator recoJetIter;
     int counter{0};
+
     for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
         double pt = (*recoJetIter)->ptJECCorr();
@@ -2171,8 +2172,13 @@ void DiJetAnalysis::processEvent(const Event* event) {
     // (x-jets and purelly overweighted gen jets) in Monte Carlo
     if ( fIsMc ) {
         bool overweight = isOverweightedEvent( event, weight );
-        if ( overweight ) return;
-    }
+        if ( overweight ) {
+            if ( fVerbose ) {
+                std::cout << "Overweighted event. Skip it." << std::endl;
+            }
+            return;
+        }
+    } // if ( fIsMc )
 
     // Process and analyze reco jets
     fHM->hRecoJetCollectionSize->Fill( event->recoJetCollection()->size(), 1. );
