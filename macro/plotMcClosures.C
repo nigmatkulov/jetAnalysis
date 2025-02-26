@@ -549,6 +549,7 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
 
     // Retrieve histograms
     TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRecoInclusiveJetPtEtaPtHat"));
+    // TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRecoMatchedJetPtEtaPtHat"));
     TH3D *hGenPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hGenInclusiveJetPtEtaPtHat"));
     TH3D *hRefPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRefInclusiveJetPtEtaPtHat"));
 
@@ -585,13 +586,13 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
     int ptHatStart = 0;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins{7}; // 20
+    std::vector<int> ptHatBins{5}; // 20
 
     // Jet pT binning
     int jetPtStart = 5;
     int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins{6, 9, 12}; // 35, 55, 105
+    std::vector<int> jetPtBins{3, 4, 6, 9, 12}; // 35, 55, 105
 
     // Eta binning
     // 52 bins from (-5.2, 5.2)
@@ -743,6 +744,8 @@ void plotData2McComparison(TFile *fData, TFile *fMc, int collSystem = 1, double 
     hRecoDataPtEtaPtHat->SetName("hRecoDataPtEtaPtHat");
     TH3D *hRecoMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hRecoInclusiveJetPtEtaPtHat"));
     hRecoMcPtEtaPtHat->SetName("hRecoMcPtEtaPtHat");
+    // TH3D *hRecoMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hRecoMatchedJetPtEtaPtHat"));
+    // hRecoMcPtEtaPtHat->SetName("hRecoMcPtEtaPtHat");
     TH3D *hGenMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hGenInclusiveJetPtEtaPtHat"));
     hGenMcPtEtaPtHat->SetName("hGenMcPtEtaPtHat");
 
@@ -756,7 +759,7 @@ void plotData2McComparison(TFile *fData, TFile *fMc, int collSystem = 1, double 
     int jetPtStart = 5;
     int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins{4, 6, 9, 12}; // 35, 55, 85, 115
+    std::vector<int> jetPtBins{6, 9, 12}; // 55, 85, 115
 
     // Eta binning
     // 52 bins from (-5.2, 5.2)
@@ -854,7 +857,7 @@ void plotMcClosures() {
 
     collisionSystem = 1;
     collisionEnergy = 8.16;
-    int direction = 1; // 0-p-going, 1-Pb-going
+    int direction = 0; // 0-p-going, 1-Pb-going
     TString directionStr = (direction == 0) ? "pgoing" : "Pbgoing";
 
     // MC p-going direction new (coincides with the pPb5020)
