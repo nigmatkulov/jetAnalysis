@@ -383,9 +383,9 @@ void DiJetAnalysis::findLeadSubleadJets(const double &pt, const int &counter,
                                         double &ptLead, double &ptSublead,
                                         int &idLead, int &idSubLead) {
     // Find leading and subleading jets
-    if ( fVerbose ) {
-        std::cout << "DiJetAnalysis::findLeadSubleadJets -- begin" << std::endl;
-    }
+    // if ( fVerbose ) {
+    //     std::cout << "DiJetAnalysis::findLeadSubleadJets -- begin" << std::endl;
+    // }
 
     if ( pt > ptLead ) {
         ptSublead = ptLead;
@@ -398,11 +398,11 @@ void DiJetAnalysis::findLeadSubleadJets(const double &pt, const int &counter,
         idSubLead = counter;
     }
 
-    if ( fVerbose ) {
-        std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f Lead id: %d SubLead id: %d\n", 
-                          ptLead, ptSublead, idLead, idSubLead);
-        std::cout << "DiJetAnalysis::findLeadSubleadJets - end" << std::endl;
-    }
+    // if ( fVerbose ) {
+    //     std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f Lead id: %d SubLead id: %d\n", 
+    //                       ptLead, ptSublead, idLead, idSubLead);
+    //     std::cout << "DiJetAnalysis::findLeadSubleadJets - end" << std::endl;
+    // }
 }
 
 //________________
@@ -464,11 +464,11 @@ bool DiJetAnalysis::isGoodTrkMax(const RecoJet* jet) {
         goodTrackMax = {false};
     }
 
-    if ( fVerbose ) {
-        std::cout << "TrackMaxPt/rawPt: " << trackMaxPt/rawPt << ( (goodTrackMax) ? " [passed]" : " [failed]" ) 
-                  << ( (trackMaxPt/rawPt < 0.01) ? " too low value " : "" ) << ( (trackMaxPt/rawPt > 0.98) ? " too large value " : "" )
-                  << std::endl;
-    }
+    // if ( fVerbose ) {
+    //     std::cout << "TrackMaxPt/rawPt: " << trackMaxPt/rawPt << ( (goodTrackMax) ? " [passed]" : " [failed]" ) 
+    //               << ( (trackMaxPt/rawPt < 0.01) ? " too low value " : "" ) << ( (trackMaxPt/rawPt > 0.98) ? " too large value " : "" )
+    //               << std::endl;
+    // }
 
     return goodTrackMax;
 }
@@ -548,12 +548,12 @@ bool DiJetAnalysis::isGoodJetId(const RecoJet* jet) {
     passJetId = passNHF && passNEF && passNumOfConstituents && passMuonFrac && 
                 passChargedFrac && passChargedMult && passChargedEmFrac && passNeutralMult;
 
-    if ( fVerbose ) {
-        std::cout << "JetId selection results: " << ( (passJetId) ? "[passed]" : "[failed]" ) << " Reasons ";
-        std::cout << Form("passNHF: %d \tpassNEF: %d \tpassNumConst: %d \tpassMuonFrac: %d \tpassChFrac: %d \tpassChMult: %d \tpassChEmFrac: %d \tpassNeutMult: %d\n", 
-                          passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
-                          passChargedMult , passChargedEmFrac , passNeutralMult);
-    }
+    // if ( fVerbose ) {
+    //     std::cout << "JetId selection results: " << ( (passJetId) ? "[passed]" : "[failed]" ) << " Reasons ";
+    //     std::cout << Form("passNHF: %d \tpassNEF: %d \tpassNumConst: %d \tpassMuonFrac: %d \tpassChFrac: %d \tpassChMult: %d \tpassChEmFrac: %d \tpassNeutMult: %d\n", 
+    //                       passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
+    //                       passChargedMult , passChargedEmFrac , passNeutralMult);
+    // }
 		
 	return passJetId;
 }
@@ -1031,17 +1031,15 @@ bool DiJetAnalysis::isOverweightedEvent(const Event* event, const double& weight
             bool passJetId = isGoodJetId( (*recoJetIter) );
 
             if ( fUseJetIdSelection && !passJetId ) { 
-                // Do not forget to increment the counter
-                if ( fVerbose ) { 
-                    std::cout << "JetId selection failed. Skip jet" << std::endl; 
-                }
+                // if ( fVerbose ) { 
+                //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
+                // }
                 continue; 
             }
             if ( !fUseJetIdSelection && !passTrkMax ) {
-                // Do not forget to increment the counter
-                if ( fVerbose ) { 
-                    std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
-                }
+                // if ( fVerbose ) { 
+                //     // std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
+                // }
                 continue; 
             }
 
@@ -1082,13 +1080,11 @@ bool DiJetAnalysis::isOverweightedEvent(const Event* event, const double& weight
         for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ ) {
 
             double pt = (*genJetIter)->pt();
-            if ( fVerbose ) {
-                std::cout << "Gen jet #" << counter << " ";
-                (*genJetIter)->print();
-            }
+            // if ( fVerbose ) {
+            //     std::cout << "Gen jet #" << counter << " ";
+            //     (*genJetIter)->print();
+            // }
             counter++;
-            // Apply single-jet selection to gen jets
-            //if ( !isGoodGenJet( *genJetIter ) ) continue;
 
             // Find leading and subleading jets
             findLeadSubleadJets( pt, (counter-1), ptGenLead, ptGenSubLead, idGenLead, idGenSubLead );
@@ -1197,14 +1193,12 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         bool passJetId = isGoodJetId( (*recoJetIter) );
 
         if ( fUseJetIdSelection && !passJetId ) { 
-            // Do not forget to increment the counter
             if ( fVerbose ) { 
                 std::cout << "JetId selection failed. Skip jet" << std::endl; 
             }
             continue; 
         }
         if ( !fUseJetIdSelection && !passTrkMax ) {
-            // Do not forget to increment the counter
             if ( fVerbose ) { 
                 std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
             }
@@ -1304,6 +1298,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
             } // else
         } // if ( fIsMc )
 
+        //
+        // Find leading and subleading reco jets
+        //
+        findLeadSubleadJets( pt, (counter-1), ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
+
         if ( pt > 30. ) {
             fHM->hRecoGoodInclusiveJetEtaLabFrame->Fill( etaLab(eta), weight );
             fHM->hRecoGoodInclusiveJetEtaCMFrame->Fill( boostEta2CM(eta), weight );
@@ -1313,6 +1312,10 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
 
     // If leading and subleading jets are found
     if ( idRecoLead>=0 && idRecoSubLead>=0 ) {
+
+        if ( fVerbose ) {
+            std::cout << Form("Reco dijet: idRecoLead: %d idRecoSubLead: %d", idRecoLead, idRecoSubLead) << std::endl;
+        }
 
         RecoJet* recoLeadJet = event->recoJetCollection()->at( idRecoLead );
         RecoJet* recoSubLeadJet = event->recoJetCollection()->at( idRecoSubLead );

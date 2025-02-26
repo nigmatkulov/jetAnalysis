@@ -213,8 +213,8 @@ int main(int argc, char const *argv[]) {
     analysis->setEtaShift( etaShift );
     analysis->setLeadJetPtLow( 50. );
     analysis->setSubLeadJetPtLow( 40. );
-    analysis->setJetEtaLabRange( -3., 3. );
-    analysis->setJetEtaCMRange( -2.5, 2.5 );
+    analysis->setJetEtaLabRange( -2.5, 2.5 );
+    analysis->setJetEtaCMRange( -2.0, 2.0 );
     analysis->setDijetPhiCut( 2. * TMath::Pi() / 3 );
     if ( isMc ) {
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
