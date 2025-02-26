@@ -992,7 +992,144 @@ void DiJetAnalysis::findMcWeight(const double& ptLead, const double& ptSublead) 
 }
 
 //________________
-bool DiJetAnalysis::isOverweightedEvent(const double& ptLead, const double& dijetPtAve, const double& ptHat) {
+bool DiJetAnalysis::isOverweightedEvent(const Event* event, const double& weight) {
+
+    if ( fVerbose ) {
+        std::cout << "DiJetAnalysis::isOverweightedEvent -- begin" << std::endl;
+    }
+
+    // Clear the state
+    bool isRecoOverweightedEvent = {false};
+    bool isGenOverweightedEvent = {false};
+
+    // Event ptHat value
+    double ptHat = event->ptHat();
+
+    // Initial parameters for leading and subleading jets
+    double ptRecoLead{-1.}, ptRecoSubLead{-1.}, ptGenLead{-1.}, ptGenSubLead{-1.};
+    int idRecoLead{-1}, idRecoSubLead{-1}, idGenLead{-1}, idGenSubLead{-1};
+    // Jet iterators
+    RecoJetIterator recoJetIter;
+    GenJetIterator genJetIter;
+
+    // Jet counter
+    int counter{0};
+
+    //
+    // Process reco jets in order to remove x-jets
+    //
+
+    if ( event->recoJetCollection()->size() > 0 ) {
+        // Loop over reconstructed jets and search for leading and subleading jets
+        for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
+
+            double pt = (*recoJetIter)->ptJECCorr();
+            counter++;
+
+            // Check selection criteria
+            bool passTrkMax = isGoodTrkMax( (*recoJetIter) );
+            bool passJetId = isGoodJetId( (*recoJetIter) );
+
+            if ( fUseJetIdSelection && !passJetId ) { 
+                // Do not forget to increment the counter
+                if ( fVerbose ) { 
+                    std::cout << "JetId selection failed. Skip jet" << std::endl; 
+                }
+                continue; 
+            }
+            if ( !fUseJetIdSelection && !passTrkMax ) {
+                // Do not forget to increment the counter
+                if ( fVerbose ) { 
+                    std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
+                }
+                continue; 
+            }
+
+            // Find leading and subleading reco jets
+            findLeadSubleadJets( pt, (counter-1), ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
+        } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
+
+        if ( idRecoLead >= 0 && idRecoSubLead >= 0 ) {
+            fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Fill( ptRecoLead, ptRecoLead/ptHat, 1. );
+            fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Fill( ptRecoLead, ptRecoLead/ptHat, weight );
+
+            double dijetPt = ptRecoLead + ptRecoSubLead;
+            double dijetPtAve = 0.5 * dijetPt;
+            fHM->hRecoDijetPtOverPtHatVsDijetPt->Fill(dijetPt, dijetPt/ptHat, 1.);
+            fHM->hRecoDijetPtOverPtHatVsDijetPtWeighted->Fill(dijetPt, dijetPt/ptHat, weight);
+            fHM->hRecoDijetPtAveOverPtHatVsDijetPtAve->Fill(dijetPtAve, dijetPtAve/ptHat, 1.);
+            fHM->hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted->Fill(dijetPtAve, dijetPtAve/ptHat, weight);
+
+            if ( isOverweighted( ptRecoLead, dijetPtAve, ptHat ) ) {
+                if ( fVerbose ) {
+                    std::cout << Form("Overweighted event [reco]: ptLead/ptHat = %3.2f ptAve/ptHat = %3.2f", ptRecoLead/ptHat, dijetPtAve/ptHat) << std::endl;
+                }
+                isRecoOverweightedEvent = {true};
+            } // if ( isOverweightedEvent( ptRecoLead, ptHat ) )
+        } // if ( idRecoLead >= 0 && idRecoSubLead >= 0 )
+    } // if ( event->recoJetCollection()->size() > 0 )
+
+    //
+    // Process gen jets in order to remove overweighted gen events
+    //
+
+    // Reinitialize counter
+    counter = {0};
+    // Gen jet collection must not be empty
+    if ( event->genJetCollection()->size() > 0 ) {
+
+        // Loop over generated jets and search for leading and subleading jets
+        for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ ) {
+
+            double pt = (*genJetIter)->pt();
+            if ( fVerbose ) {
+                std::cout << "Gen jet #" << counter << " ";
+                (*genJetIter)->print();
+            }
+            counter++;
+            // Apply single-jet selection to gen jets
+            //if ( !isGoodGenJet( *genJetIter ) ) continue;
+
+            // Find leading and subleading jets
+            findLeadSubleadJets( pt, (counter-1), ptGenLead, ptGenSubLead, idGenLead, idGenSubLead );
+        } // for ( genJetIter = event->genJetCollection()->begin();
+
+        if ( idGenLead >= 0 && idGenSubLead >= 0 ) {
+
+            fHM->hGenLeadingJetPtOverPtHatVsLeadingJetPt->Fill( ptGenLead, ptGenLead/ptHat, 1. );
+            fHM->hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Fill( ptGenLead, ptGenLead/ptHat, weight );
+
+            double dijetPt = ptGenLead + ptGenSubLead;
+            double dijetPtAve = 0.5 * dijetPt;
+            fHM->hGenDijetPtOverPtHatVsDijetPt->Fill(dijetPt, dijetPt/ptHat, 1.);
+            fHM->hGenDijetPtOverPtHatVsDijetPtWeighted->Fill(dijetPt, dijetPt/ptHat, weight);
+            fHM->hGenDijetPtAveOverPtHatVsDijetPtAve->Fill(dijetPtAve, dijetPtAve/ptHat, 1.);
+            fHM->hGenDijetPtAveOverPtHatVsDijetPtAveWeighted->Fill(dijetPtAve, dijetPtAve/ptHat, weight);
+
+            if ( isOverweighted( ptGenLead, dijetPtAve, ptHat ) ) {
+                if ( fVerbose ) {
+                    std::cout << Form("Overweighted event [Gen]: ptLead/ptHat = %3.2f ptAve/ptHat = %3.2f", ptGenLead/ptHat, dijetPtAve/ptHat) << std::endl;
+                }
+                isGenOverweightedEvent = {true};
+            } // if ( isOverweightedEvent( ptGenLead, ptHat ) )
+        } // if ( idGenLead >= 0 && idGenSubLead >= 0 )
+
+    } // if ( event->genJetCollection()->size() > 0 )
+
+    bool overweightedEvent = isRecoOverweightedEvent || isGenOverweightedEvent;
+
+    if ( fVerbose ) {
+        std::cout << Form("Event overweighted: %s Reco overweighted: %s Gen overweighted: %s", 
+                          ((overweightedEvent) ? "[true]" : "[false]"),
+                          ((isRecoOverweightedEvent) ? "[true]" : "[false]"), 
+                          ((isGenOverweightedEvent) ? "[true]" : "[false]")) << std::endl;
+        std::cout << "DiJetAnalysis::isOverweightedEvent -- end" << std::endl;
+    }
+    return overweightedEvent;
+}
+
+//________________
+bool DiJetAnalysis::isOverweighted(const double& ptLead, const double& dijetPtAve, const double& ptHat) {
     return (  ( ( ptLead / ptHat ) > 2.5) || ( ( dijetPtAve / ptHat ) > 1.7) );
 }
 
@@ -1010,69 +1147,15 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
     // ptHat value
     double ptHat = event->ptHat();
 
+    //
+    // Inclusive jet analysis
+    //
+
     // Loop over reconstructed jets and search for leading and subleading jets
     double ptRecoLead{-1.}, ptRecoSubLead{-1.};
     int idRecoLead{-1}, idRecoSubLead{-1};
     RecoJetIterator recoJetIter;
     int counter{0};
-
-    //
-    // Loop over reco jets to search for the leading and subleading jets
-    //
-    for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
-
-        double pt = (*recoJetIter)->ptJECCorr();
-        counter++;
-
-        // Check selection criteria
-        bool passTrkMax = isGoodTrkMax( (*recoJetIter) );
-        bool passJetId = isGoodJetId( (*recoJetIter) );
-
-        if ( fUseJetIdSelection && !passJetId ) { 
-            // Do not forget to increment the counter
-            if ( fVerbose ) { 
-                std::cout << "JetId selection failed. Skip jet" << std::endl; 
-            }
-            continue; 
-        }
-        if ( !fUseJetIdSelection && !passTrkMax ) {
-            // Do not forget to increment the counter
-            if ( fVerbose ) { 
-                std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
-            }
-            continue; 
-        }
-
-        // Find leading and subleading reco jets
-        findLeadSubleadJets( pt, (counter-1), ptRecoLead, ptRecoSubLead, idRecoLead, idRecoSubLead );
-    } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
-
-    // Checking overweighting
-    if ( fIsMc ) {
-        // Leading jet pt over ptHat vs leading jet pt
-        fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPt->Fill( ptRecoLead, ptRecoLead/ptHat, 1. );
-        fHM->hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Fill( ptRecoLead, ptRecoLead/ptHat, weight );
-        double dijetPt = ptRecoLead + ptRecoSubLead;
-        double dijetPtAve = 0.5 * dijetPt;
-        fHM->hRecoDijetPtOverPtHatVsDijetPt->Fill(dijetPt, dijetPt/ptHat, 1.);
-        fHM->hRecoDijetPtOverPtHatVsDijetPtWeighted->Fill(dijetPt, dijetPt/ptHat, weight);
-        fHM->hRecoDijetPtAveOverPtHatVsDijetPtAve->Fill(dijetPtAve, dijetPtAve/ptHat, 1.);
-        fHM->hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted->Fill(dijetPtAve, dijetPtAve/ptHat, weight);
-
-        if ( isOverweightedEvent( ptRecoLead, dijetPtAve, ptHat ) ) {
-            if ( fVerbose ) {
-                std::cout << Form("Overweighted event. ptLead/ptHat = %3.2f ptAve/ptHat = %3.2f", ptRecoLead/ptHat, dijetPtAve/ptHat) << std::endl;
-            }
-            fIsOverweightedEvent = {true};
-            return;
-        } // if ( isOverweightedEvent( ptRecoLead, ptHat ) )
-    } // if ( fIsMc )
-
-
-    //
-    // Inclusive jet analysis
-    //
-    counter = 0;
     for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
         double pt = (*recoJetIter)->ptJECCorr();
@@ -2027,7 +2110,6 @@ void DiJetAnalysis::processEvent(const Event* event) {
     fIsRecoDijetCMFound = {false};
     fIsRefSelDijetLabFound = {false};
     fIsRefSelDijetCMFound = {false};
-    fIsOverweightedEvent = {false};
 
     //
     // Event quantities
@@ -2075,14 +2157,6 @@ void DiJetAnalysis::processEvent(const Event* event) {
     // Calculate event weight
     weight = eventWeight(ptHat, vz, centW, ptHatW);
 
-    // Process and analyze reco jets
-    fHM->hRecoJetCollectionSize->Fill( event->recoJetCollection()->size(), 1. );
-    processRecoJets(event, weight);
-
-    if (fIsOverweightedEvent) {
-        return;
-    }
-
     // Fill event histograms
     fHM->hVz->Fill( vz,  1. );
     fHM->hVzWeighted->Fill( vz, weight );
@@ -2093,6 +2167,18 @@ void DiJetAnalysis::processEvent(const Event* event) {
     fHM->hHiBin->Fill( event->hiBin(), 1. );
     fHM->hHiBinWeighted->Fill( event->hiBin(), weight );
 
+    // Check for event overweight in both reco and gen jets 
+    // (x-jets and purelly overweighted gen jets) in Monte Carlo
+    if ( fIsMc ) {
+        bool overweight = isOverweightedEvent( event, weight );
+        if ( overweight ) return;
+    }
+
+    // Process and analyze reco jets
+    fHM->hRecoJetCollectionSize->Fill( event->recoJetCollection()->size(), 1. );
+    processRecoJets(event, weight);
+
+    // Process and analyze MC jets
     if ( fIsMc ) {
         fHM->hGenJetCollectionSize->Fill( event->genJetCollection()->size(), 1. );
         fHM->hGenVsRecoJetCollectionSize->Fill( event->recoJetCollection()->size(), event->genJetCollection()->size(), 1. );

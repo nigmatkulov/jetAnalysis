@@ -113,6 +113,13 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hGenJetCollectionSize;
     TH2D *hGenVsRecoJetCollectionSize;
 
+    TH2D *hGenLeadingJetPtOverPtHatVsLeadingJetPt;
+    TH2D *hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted;
+    TH2D *hGenDijetPtOverPtHatVsDijetPt;
+    TH2D *hGenDijetPtOverPtHatVsDijetPtWeighted;
+    TH2D *hGenDijetPtAveOverPtHatVsDijetPtAve;
+    TH2D *hGenDijetPtAveOverPtHatVsDijetPtAveWeighted;
+
     // Dijet pt, dijet eta, dijet dphi, lead pt, lead eta, lead phi, 
     // sublead pt, sublead eta, sublead phi [9]
     THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;

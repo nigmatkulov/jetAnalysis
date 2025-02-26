@@ -77,6 +77,14 @@ HistoManagerDiJet::HistoManagerDiJet() :
 
     hGenJetCollectionSize{nullptr},
     hGenVsRecoJetCollectionSize{nullptr},
+
+    hGenLeadingJetPtOverPtHatVsLeadingJetPt{nullptr},
+    hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted{nullptr},
+    hGenDijetPtOverPtHatVsDijetPt{nullptr},
+    hGenDijetPtOverPtHatVsDijetPtWeighted{nullptr},
+    hGenDijetPtAveOverPtHatVsDijetPtAve{nullptr},
+    hGenDijetPtAveOverPtHatVsDijetPtAveWeighted{nullptr},
+
     hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi{nullptr},
     hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted{nullptr},
     hGenInclusiveJetPt{nullptr},
@@ -602,6 +610,12 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         // Gen histograms
         if (hGenJetCollectionSize) delete hGenJetCollectionSize;
         if (hGenVsRecoJetCollectionSize) delete hGenVsRecoJetCollectionSize;
+        if (hGenLeadingJetPtOverPtHatVsLeadingJetPt) delete hGenLeadingJetPtOverPtHatVsLeadingJetPt;
+        if (hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted) delete hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted;
+        if (hGenDijetPtOverPtHatVsDijetPt) delete hGenDijetPtOverPtHatVsDijetPt;
+        if (hGenDijetPtOverPtHatVsDijetPtWeighted) delete hGenDijetPtOverPtHatVsDijetPtWeighted;
+        if (hGenDijetPtAveOverPtHatVsDijetPtAve) delete hGenDijetPtAveOverPtHatVsDijetPtAve;
+        if (hGenDijetPtAveOverPtHatVsDijetPtAveWeighted) delete hGenDijetPtAveOverPtHatVsDijetPtAveWeighted;
         if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
         if (hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted) delete hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
         if (hGenInclusiveJetPt) delete hGenInclusiveJetPt;
@@ -1662,6 +1676,25 @@ void HistoManagerDiJet::init() {
 
         hGenVsRecoJetCollectionSize = new TH2D("hGenVsRecoJetCollectionSize","Reco vs Gen jet collection size;Reco jet collection size;Gen jet collection size", 100, -0.5, 99.5, 100, -0.5, 99.5);
         hGenVsRecoJetCollectionSize->Sumw2();
+
+        hGenLeadingJetPtOverPtHatVsLeadingJetPt = new TH2D("hGenLeadingJetPtOverPtHatVsLeadingJetPt", "Leading jet p_{T}^{Gen}/#hat{p}_{T} vs leading jet p_{T}^{Gen};p_{T}^{Gen} (GeV);p_{T}^{Gen}/#hat{p}_{T}",
+                                                            fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hGenLeadingJetPtOverPtHatVsLeadingJetPt->Sumw2();
+        hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted = new TH2D("hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted", "Leading jet p_{T}^{Gen}/#hat{p}_{T} vs leading jet p_{T}^{Gen} weighted;p_{T}^{Gen} (GeV);p_{T}^{Gen}/#hat{p}_{T}",
+                                                                    fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Sumw2();
+        hGenDijetPtOverPtHatVsDijetPt = new TH2D("hGenDijetPtOverPtHatVsDijetPt", "Dijet p_{T}^{Gen}/#hat{p}_{T} vs dijet p_{T}^{Gen};Dijet p_{T}^{Gen} (GeV);Dijet p_{T}^{Gen}/#hat{p}_{T}",
+                                                  fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hGenDijetPtOverPtHatVsDijetPt->Sumw2();
+        hGenDijetPtOverPtHatVsDijetPtWeighted = new TH2D("hGenDijetPtOverPtHatVsDijetPtWeighted", "Dijet p_{T}^{Gen}/#hat{p}_{T} vs dijet p_{T}^{Gen} weighted;Dijet p_{T}^{Gen} (GeV);Dijet p_{T}^{Gen}/#hat{p}_{T}",
+                                                          fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hGenDijetPtOverPtHatVsDijetPtWeighted->Sumw2();
+        hGenDijetPtAveOverPtHatVsDijetPtAve = new TH2D("hGenDijetPtAveOverPtHatVsDijetPtAve", "Dijet p_{T}^{ave}/#hat{p}_{T} vs dijet p_{T}^{ave};Dijet p_{T}^{ave} (GeV);Dijet p_{T}^{ave}/#hat{p}_{T}",
+                                                          fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hGenDijetPtAveOverPtHatVsDijetPtAve->Sumw2();
+        hGenDijetPtAveOverPtHatVsDijetPtAveWeighted = new TH2D("hGenDijetPtAveOverPtHatVsDijetPtAveWeighted", "Dijet p_{T}^{ave}/#hat{p}_{T} vs dijet p_{T}^{ave} weighted;Dijet p_{T}^{ave} (GeV);Dijet p_{T}^{ave}/#hat{p}_{T}",
+                                                                fPtBins, fPtRange[0], fPtRange[1], 350, 0., 3.5);
+        hGenDijetPtAveOverPtHatVsDijetPtAveWeighted->Sumw2();
 
         hGenInclusiveJetPt = new TH1D("hGenInclusiveJetPt","Inclusive gen jet;Gen p_{T}^{inclusive} (GeV)",
                                         fPtBins, fPtRange[0], fPtRange[1] );
@@ -3132,6 +3165,12 @@ void HistoManagerDiJet::writeOutput() {
 
         hGenJetCollectionSize->Write();
         hGenVsRecoJetCollectionSize->Write();
+        hGenLeadingJetPtOverPtHatVsLeadingJetPt->Write();
+        hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted->Write();
+        hGenDijetPtOverPtHatVsDijetPt->Write();
+        hGenDijetPtOverPtHatVsDijetPtWeighted->Write();
+        hGenDijetPtAveOverPtHatVsDijetPtAve->Write();
+        hGenDijetPtAveOverPtHatVsDijetPtAveWeighted->Write();
         hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Write();
         hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Write();
         hGenInclusiveJetPt->Write();
