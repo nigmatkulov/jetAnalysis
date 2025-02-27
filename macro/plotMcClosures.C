@@ -896,13 +896,13 @@ void plotMcClosures() {
     // }
 
     // Comparison of dijet reco and ref to gen distributions
-    // comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
     // Plot simple inclusicve jet JEC closure (inclusive jets within |eta|<1.4)
     // plotSimpleInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
     
     // Plot for inclusive jets JEC closures (scan in eta and pT)
-    plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+    // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
 
     // Plot comparison of inclusive jet eta distributions to check/validate the JEC
     // plotData2McComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
