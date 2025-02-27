@@ -1,0 +1,74 @@
+universe   = vanilla
+getenv     = True
+executable = run_dijetAna_pPb8160.sh
++JobFlavour  = "workday"
+requirements = ((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
+transfer_input_files  = voms_proxy.txt
+environment = "X509_USER_PROXY=voms_proxy.txt"
+RequestCpus = 2
+
+log        = condor/log/pthat15_pythia_Pbgoing.log
+output     = condor/log/pthat15_pythia_Pbgoing.out
+error      = condor/log/pthat15_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat15_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_15.root 1 1 15 8160 0 -99
+queue
+
+log        = condor/log/pthat30_pythia_Pbgoing.log
+output     = condor/log/pthat30_pythia_Pbgoing.out
+error      = condor/log/pthat30_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat30_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_30.root 1 1 30 8160 0 -99
+queue
+
+log        = condor/log/pthat50_pythia_Pbgoing.log
+output     = condor/log/pthat50_pythia_Pbgoing.out
+error      = condor/log/pthat50_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat50_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_50.root 1 1 50 8160 0 -99
+queue
+
+log        = condor/log/pthat80_pythia_Pbgoing.log
+output     = condor/log/pthat80_pythia_Pbgoing.out
+error      = condor/log/pthat80_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat80_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_80.root 1 1 80 8160 0 -99
+queue
+
+log        = condor/log/pthat120_pythia_Pbgoing.log
+output     = condor/log/pthat120_pythia_Pbgoing.out
+error      = condor/log/pthat120_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat120_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_120.root 1 1 120 8160 0 -99
+queue
+
+log        = condor/log/pthat170_pythia_Pbgoing.log
+output     = condor/log/pthat170_pythia_Pbgoing.out
+error      = condor/log/pthat170_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat170_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_170.root 1 1 170 8160 0 -99
+queue
+
+log        = condor/log/pthat220_pythia_Pbgoing.log
+output     = condor/log/pthat220_pythia_Pbgoing.out
+error      = condor/log/pthat220_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat220_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_220.root 1 1 220 8160 0 -99
+queue
+
+log        = condor/log/pthat280_pythia_Pbgoing.log
+output     = condor/log/pthat280_pythia_Pbgoing.out
+error      = condor/log/pthat280_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat280_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_280.root 1 1 280 8160 0 -99
+queue
+
+log        = condor/log/pthat370_pythia_Pbgoing.log
+output     = condor/log/pthat370_pythia_Pbgoing.out
+error      = condor/log/pthat370_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat370_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_370.root 1 1 370 8160 0 -99
+queue
+
+log        = condor/log/pthat460_pythia_Pbgoing.log
+output     = condor/log/pthat460_pythia_Pbgoing.out
+error      = condor/log/pthat460_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat460_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_460.root 1 1 460 8160 0 -99
+queue
+
+log        = condor/log/pthat540_pythia_Pbgoing.log
+output     = condor/log/pthat540_pythia_Pbgoing.out
+error      = condor/log/pthat540_pythia_Pbgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/unembedded/Pbgoing/HiForestSkim_pPb_MC_pthat540_Pbgoing_unembedded.root oPythia_pPb8160_Pbgoing_540.root 1 1 540 8160 0 -99
+queue

@@ -537,6 +537,9 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
 }
 
 //________________
+// Plot eta and pT distributions of reco and gen jets to look at the closures
+// after the JECs are applied. Corrections can be studies in the bins of ptHat.
+//
 void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8.16) {
     // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
@@ -547,12 +550,34 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
+    // Create vector of ptHat and jet pT bins for projections
+    int ptHatStart = 0;
+    int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
+    int ptHatBinsMax = 100;
+    std::vector<int> ptHatBins{5}; // 20
+
+    // Jet pT binning
+    int jetPtStart = 5;
+    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
+    int jetPtBinsMax = 150;
+    std::vector<int> jetPtBins{3, 4, 6, 9, 12}; // 35, 55, 105
+
+    // Eta binning
+    // 52 bins from (-5.2, 5.2)
+    int nEtaBins = 52;
+    double etaStep = 0.2;
+    std::vector<int> jetEtaBinsLow{19, 12, 38};
+    std::vector<int> jetEtaBinsHigh{35, 16, 42};
+
     // Retrieve histograms
     TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRecoInclusiveJetPtEtaPtHat"));
     // TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRecoMatchedJetPtEtaPtHat"));
     TH3D *hGenPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hGenInclusiveJetPtEtaPtHat"));
     TH3D *hRefPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRefInclusiveJetPtEtaPtHat"));
 
+    //
+    // 2D distributions
+    //
     TH2D *hRecoPtVsPtHat = dynamic_cast<TH2D *>(hRecoPtEtaPtHat->Project3D("yz"));
     hRecoPtVsPtHat->SetName("hRecoPtVsPtHat");
     set2DStyle(hRecoPtVsPtHat);
@@ -582,26 +607,9 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
     hGenPtVsPtHat->GetYaxis()->SetTitle("Gen p_{T}^{jet} (GeV)");
     plotCMSHeader(collSystem, energy);
 
-    // Create vector of ptHat and jet pT bins for projections
-    int ptHatStart = 0;
-    int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
-    int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins{5}; // 20
-
-    // Jet pT binning
-    int jetPtStart = 5;
-    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
-    int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins{3, 4, 6, 9, 12}; // 35, 55, 105
-
-    // Eta binning
-    // 52 bins from (-5.2, 5.2)
-    int nEtaBins = 52;
-    double etaStep = 0.2;
-    std::vector<int> jetEtaBinsLow{19, 12, 38};
-    std::vector<int> jetEtaBinsHigh{35, 16, 42};
-
+    //
     // Declare canvases and histograms
+    //
     TCanvas *cPtVsEta[ptHatBins.size()];
     TCanvas *cClosureEta[ptHatBins.size()][jetPtBins.size()];
     TCanvas *cClosurePt[ptHatBins.size()][jetEtaBinsLow.size()];
@@ -613,7 +621,12 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
     TH1D *hRecoPt[ptHatBins.size()][jetEtaBinsLow.size()];
     TH1D *hGenPt[ptHatBins.size()][jetEtaBinsLow.size()];
 
-    // Loop over ptHat and jet pT bins
+    //
+    // Perform analysis and build comparisons for different ptHat intervals.
+    // First part loops over jet pT, second part over jet eta.
+    //
+
+    // Loop over ptHat bins
     for (unsigned int i = 0; i < ptHatBins.size(); i++) {
 
         hRecoPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i], ptHatBinsMax);
@@ -651,8 +664,10 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
         gPad->SetLogz();
         t.DrawLatexNDC(xTextPosition, yTextPosition, Form("#hat{p}_{T} > %d GeV", ptHatStart + (ptHatBins[i] - 1) * ptHatStep));
 
-        for (unsigned int j = 0; j < jetPtBins.size(); j++)
-        {
+        //
+        // Loop over jet pT bins
+        //
+        for (unsigned int j = 0; j < jetPtBins.size(); j++) {
 
             // Create canvas
             cClosureEta[i][j] = new TCanvas(Form("cClosureEta_%d_%d", i, j), Form("cClosureEta_%d_%d", i, j), 700, 800);
@@ -674,8 +689,11 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
 
         } // for (unsigned int j = 0; j < jetPtBins.size(); j++)
 
-        for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++)
-        {
+
+        //
+        // Loop over jet eta bins
+        //
+        for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++) {
 
             // Create canvas
             cClosurePt[i][j] = new TCanvas(Form("cClosurePt_%d_%d", i, j), Form("cClosurePt_%d_%d", i, j), 700, 800);
@@ -863,19 +881,19 @@ void plotMcClosures() {
     // MC p-going direction new (coincides with the pPb5020)
     // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_80.root", uname.Data()) );
     // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
     if ( !pPb8160EmbedFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
         return;
     }
 
-    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/pgoing/PAEGJet60_pgoing_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    if ( !pPb8160DataFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
-        return;
-    }
+    // // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    // // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/pgoing/PAEGJet60_pgoing_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    // if ( !pPb8160DataFile ) {
+    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+    //     return;
+    // }
 
     // Comparison of dijet reco and ref to gen distributions
     // comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
