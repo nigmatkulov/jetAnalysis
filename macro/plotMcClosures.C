@@ -460,7 +460,7 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
         set1DStyle( hRefDijetEta1DCM[i], 1 );
         rescaleEta( hRefDijetEta1DCM[i] );
         hReco2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DCM[i]->Clone( Form("hReco2GenDijetEta1DCM_%d", i) ) );
-        hReco2GenDijetEta1DCM[i]->Divide( hReco2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
+        hReco2GenDijetEta1DCM[i]->Divide( hReco2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1. /* , "b" */ );
         hRef2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRefDijetEta1DCM[i]->Clone( Form("hRef2GenDijetEta1DCM_%d", i) ) );
         hRef2GenDijetEta1DCM[i]->Divide( hRef2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
 
@@ -875,7 +875,7 @@ void plotMcClosures() {
 
     collisionSystem = 1;
     collisionEnergy = 8.16;
-    int direction = 0; // 0-p-going, 1-Pb-going
+    int direction = 1; // 0-p-going, 1-Pb-going
     TString directionStr = (direction == 0) ? "pgoing" : "Pbgoing";
 
     // MC p-going direction new (coincides with the pPb5020)
@@ -887,16 +887,16 @@ void plotMcClosures() {
         return;
     }
 
-    // // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    // // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/pgoing/PAEGJet60_pgoing_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    // if ( !pPb8160DataFile ) {
-    //     std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
-    //     return;
-    // }
+    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/pgoing/PAEGJet60_pgoing_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    if ( !pPb8160DataFile ) {
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+        return;
+    }
 
     // Comparison of dijet reco and ref to gen distributions
-    comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    // comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
     // Plot simple inclusicve jet JEC closure (inclusive jets within |eta|<1.4)
     // plotSimpleInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
@@ -905,6 +905,6 @@ void plotMcClosures() {
     // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
 
     // Plot comparison of inclusive jet eta distributions to check/validate the JEC
-    // plotData2McComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+    plotData2McComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
 
 }
