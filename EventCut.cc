@@ -44,6 +44,8 @@ EventCut::EventCut() : fVx{-1e9, 1e9}, fVy{-1e9, 1e9}, fVz{-1e9, 1e9},
     fHLT_PAAK4PFJet120_Eta5p1_v2{false},
     fHLT_HIAK4PFJet60_v1{false},
     fHLT_HIAK4PFJet80_v1{false},
+    fRunIdsToSelect{},
+    fRunIdsToExclude{},
     fEventsPassed{0}, fEventsFailed{0} {
     fLumi[0] = 0;
     fLumi[1] = std::numeric_limits<unsigned int>::max();
@@ -287,8 +289,31 @@ bool EventCut::pass(const Event* ev) {
         std::cout << Form("Event triggers passed: %s\n", (goodTrigger) ? "true" : "false");
     }
 
+    bool isRunIdToSelect = ( fRunIdsToSelect.size() == 0 ) ? true : false;
+    for ( auto runId : fRunIdsToSelect ) {
+        if ( ev->runId() == runId ) {
+            isRunIdToSelect = true;
+            break;
+        }
+    }
+    if ( fVerbose ) {
+        std::cout << Form("RunId to select: %s\n", (isRunIdToSelect) ? "true" : "false");
+    }
+
+    bool isBadRunId = ( fRunIdsToExclude.size() == 0 ) ? false : true;
+    for ( auto runId : fRunIdsToExclude ) {
+        if ( ev->runId() == runId ) {
+            isBadRunId = true;
+            break;
+        }
+    }
+    if ( fVerbose ) {
+        std::cout << Form("RunId to exclude: %s\n", (isBadRunId) ? "true" : "false");
+    }
+
     bool passEvent = goodVx && goodVy && goodVz && goodHiBin && goodFilters &&
-                       goodCent && goodPtHat && goodPtHatWeight && goodTrigger;
+                     goodCent && goodPtHat && goodPtHatWeight && goodTrigger && 
+                     isRunIdToSelect && !isBadRunId;
     ( passEvent ) ? fEventsPassed++ : fEventsFailed++;
     
     return passEvent;
