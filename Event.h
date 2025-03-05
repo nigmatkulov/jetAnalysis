@@ -23,7 +23,7 @@ class Event : public TObject {
     /// @brief Default constructor
     Event();
     /// @brief Parametrized constructor
-    Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
+    Event(const Int_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
           const Float_t& vx, const Float_t& vy, const Float_t& vz, 
           const Int_t& hiBin, const Float_t& centW, const Float_t& ptHat, 
           const Float_t& w, const Int_t& nBadRecoJets, const Int_t& mult);
@@ -35,7 +35,7 @@ class Event : public TObject {
     //
 
     /// @brief Set run index
-    void setRunId(const UInt_t& id)      { fRunId = id; }
+    void setRunId(const Int_t& id)       { fRunId = id; }
     /// @brief Set event index
     void setEventId(const ULong64_t& id) { fEventId = id; }
     /// @brief Set luminosity
@@ -70,7 +70,7 @@ class Event : public TObject {
     //
 
     /// @brief Return run index 
-    UInt_t runId() const      { return fRunId; }
+    Int_t runId() const       { return fRunId; }
     /// @brief Return event index 
     ULong64_t eventId() const { return fEventId; }
     /// @brief Return luminosity 
@@ -111,7 +111,7 @@ class Event : public TObject {
 
   private:
     /// @brief Run index
-    UInt_t    fRunId;
+    Int_t    fRunId;
     /// @brief Event index
     ULong64_t fEventId;
     /// @brief Luminosity value

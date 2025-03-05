@@ -206,7 +206,7 @@ class ForestAODReader : public BaseReader {
     //
 
     /// @brief Run ID
-    unsigned int    fRunId;
+    int    fRunId;
     /// @brief Event ID
     ULong64_t fEventId;
     /// @brief Luminosity
