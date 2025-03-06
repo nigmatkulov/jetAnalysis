@@ -33,9 +33,10 @@ void cloneFile(const char* inputFileName, const char *outputDirectory = "./") {
         {"hiEvtAnalyzer", "HiTree"},
         {"hltanalysis", "HltTree"},
         {"skimanalysis", "HltTree"},
-        {"ak4PFJetAnalyzer", "t"},
+        {"ak4PFJetAnalyzer", "t"} /*,
         {"akCs4PFJetAnalyzer", "t"},
         {"ak3PFJetAnalyzer", "t"}
+        */
     };
 
     // Loop through selected directories
