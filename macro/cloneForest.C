@@ -10,7 +10,7 @@
 #include <string>
 
 // Function to clone a subset of trees from a ROOT file
-void cloneFile(const char* inputFileName, const char *outputDirectory = "./") {
+void cloneForest(const char* inputFileName, const char *outputDirectory = "./") {
     // Open the original ROOT file
     TFile* inputFile = TFile::Open(inputFileName, "READ");
     if (!inputFile || inputFile->IsZombie()) {

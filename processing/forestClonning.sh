@@ -28,7 +28,7 @@ fi
 
 # Call the cloneFile.C macro using ROOT
 if [ $? -eq 0 ]; then
-    root -l -b -q "~/soft/jetAnalysis/macro/cloneFile.C(\"$inputFileName\", \"$outputDirectory\")"
+    root -l -b -q "~/soft/jetAnalysis/macro/cloneForest.C(\"$inputFileName\", \"$outputDirectory\")"
 else
     echo "Error: Failed to execute macro"
     exit 1
