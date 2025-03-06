@@ -10,7 +10,7 @@
 #include <string>
 
 // Function to clone a subset of trees from a ROOT file
-void cloneFile(const char* inputFileName) {
+void cloneFile(const char* inputFileName, const char *outputDirectory = "./") {
     // Open the original ROOT file
     TFile* inputFile = TFile::Open(inputFileName, "READ");
     if (!inputFile || inputFile->IsZombie()) {
@@ -18,8 +18,8 @@ void cloneFile(const char* inputFileName) {
         return;
     }
 
-    TString outputFileName = TString(inputFileName);
-    outputFileName.ReplaceAll(".root", "_trunc.root");
+    TString outputFileName = TString(outputDirectory);
+    outputFileName.Append("/").Append(TString(inputFileName).ReplaceAll(".root", "_trunc.root"));
     // Create a new ROOT file
     TFile* outputFile = new TFile(outputFileName.Data(), "RECREATE");
     if (!outputFile || outputFile->IsZombie()) {
