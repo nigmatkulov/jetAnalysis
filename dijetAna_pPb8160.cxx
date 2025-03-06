@@ -130,6 +130,14 @@ int main(int argc, char const *argv[]) {
     // eventCut->usePVertexFilterCutGplus(); // Pile-up systematics
     // Pile-up systematics
     //eventCut->usePVertexFilterCutVtx1();
+
+    eventCut->addRunIdToSelect( 285480 ); // PU 0.04
+    // eventCut->addRunIdToSelect( 285505 ); // PU 0.25
+    // eventCut->addRunIdToSelect( 285517 ); // PU 0.1
+    // eventCut->addRunIdToSelect( 285832 ); // PU 0.004
+    // eventCut->addRunIdToSelect( 285993 ); // PU 0.2
+    
+    
     
     // Trigger
     if ( !isMc ) {
