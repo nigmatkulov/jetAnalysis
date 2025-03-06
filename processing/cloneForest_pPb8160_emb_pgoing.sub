@@ -1,6 +1,6 @@
 universe   = vanilla
 getenv     = True
-executable = run_dijetAna_pPb8160.sh
+executable = forestClonning.sh
 +JobFlavour  = "workday"
 requirements = ((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
 transfer_input_files  = voms_proxy.txt

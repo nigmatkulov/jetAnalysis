@@ -1,6 +1,6 @@
 universe   = vanilla
 getenv     = True
-executable = forestCloning.sh
+executable = forestClonning.sh
 +JobFlavour  = "workday"
 requirements = ((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
 transfer_input_files  = voms_proxy.txt
