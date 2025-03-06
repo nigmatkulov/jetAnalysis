@@ -1558,7 +1558,7 @@ void plotMcClosures() {
     //
     // Plot for inclusive jets JEC closures (scan in eta and pT)
     //
-    // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+    plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
 
     //
     // Plot comparison of inclusive jet eta distributions to check/validate the JEC
@@ -1573,5 +1573,5 @@ void plotMcClosures() {
     //
     // Plot comparison of inclusive jets and dijets for embedding and PYTHIA
     //
-    plotPythia2EmbeddingComparisons(pPb8160EmbedFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
+    // plotPythia2EmbeddingComparisons(pPb8160EmbedFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
 }

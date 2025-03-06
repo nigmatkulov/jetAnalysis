@@ -1447,7 +1447,7 @@ Event* ForestAODReader::returnEvent() {
                 std::cout << "GenJetCollection filled" << std::endl;
             }
 
-            // Projection from filling the collection several times
+            // Protection from filling the collection several times
             fEvent->setGenJetCollectionIsFilled();
         } // if ( fIsMc )
         
