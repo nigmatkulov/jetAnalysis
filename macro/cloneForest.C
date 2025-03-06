@@ -24,7 +24,7 @@ void cloneForest(const char* inputFileName, const char *outputDirectory = "./") 
     if (lastSlash != kNPOS) {
         inputFileNameStr.Remove(0, lastSlash + 1);
     }
-    outputFileName.Append("/").Append(TString(inputFileName).ReplaceAll(".root", ".root"));
+    outputFileName.Append("/").Append(TString(inputFileNameStr.Data()).ReplaceAll(".root", ".root"));
     // Create a new ROOT file
     TFile* outputFile = new TFile(outputFileName.Data(), "RECREATE");
     if (!outputFile || outputFile->IsZombie()) {
