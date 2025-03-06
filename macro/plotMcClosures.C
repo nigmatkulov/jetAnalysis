@@ -242,6 +242,121 @@ void drawJecComparison(TCanvas *c, TH1D* h1, TH1D* h2,
     leg->Draw();
 }
 
+//________________
+void drawEtaPtComparison(TCanvas *c, TH1D* h1, TH1D* h2, 
+    int ptLow=15, int ptHigh = 45,
+    double etaLow = -1.6, double etaHigh = 1.6,
+    int ptHatLow=15,
+    const char* h1Name="Reco (embed)", const char* h2Name="Reco (pythia)",
+    int collSystem = 1, double energy = 8.16,
+    bool isCM = false,
+    bool isJet = true,
+    bool isPt = false) {
+
+    // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
+    // Energy in TeV
+
+    // Text
+    TLatex t;
+    TString frameT = (isCM) ? "CM" : "Lab";
+    TString jetType = (isJet) ? "jet" : "dijet";
+    t.SetTextFont(42);
+    t.SetTextSize(0.04);
+
+    int maximumBin = h1->GetMaximumBin();
+    double maximumVal = h1->GetBinContent(maximumBin);
+
+    // Number for plotting position
+    double xRange[2] = {-3.2, 3.2};
+    if (isPt) {
+        xRange[0] = 0;
+        xRange[1] = 500;
+    }
+    double yRange[2] = {0.0000001, maximumVal * 1.25};
+    double legX[2] = {0.5, 0.7};
+    double legY[2] = {0.2, 0.35};
+    double ratioYRange[2] = {0.8, 1.2};
+    if (isPt) {
+        ratioYRange[0] = 0.9;
+        ratioYRange[1] = 1.3;
+    }
+
+    if (!isPt) {
+        h1->GetXaxis()->SetTitle(Form("#eta^{%s}", jetType.Data()));
+        h1->GetYaxis()->SetTitle(Form("1/N_{%s} dN/d#eta^{%s}", jetType.Data(), jetType.Data()));
+        h1->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    }
+    else {
+        h1->GetXaxis()->SetTitle(Form("p_{T}^{%s} (GeV)", jetType.Data()));
+        h1->GetYaxis()->SetTitle(Form("1/N_{%s} dN/dp_{T}^{%s}", jetType.Data(), jetType.Data()));
+    }
+
+    std::vector<double> gridLineValues{0.95, 1.0, 1.05};
+
+    // Create ratio plot
+    TRatioPlot *ratioPlot = new TRatioPlot(h1, h2);
+    ratioPlot->SetH1DrawOpt("E");
+    ratioPlot->SetH2DrawOpt("E");
+    ratioPlot->SetGridlines(gridLineValues);
+    ratioPlot->Draw();
+
+    // Set pad parameters
+    ratioPlot->GetUpperPad()->SetFrameLineWidth(2);
+    ratioPlot->GetLowerPad()->SetFrameLineWidth(2);
+    ratioPlot->SetLeftMargin(0.15);
+    ratioPlot->SetRightMargin(0.05);
+    ratioPlot->SetSeparationMargin(0.03);
+
+    // Lower plot style and titles
+    ratioPlot->GetLowerRefXaxis()->SetTitleSize(0.05);
+    ratioPlot->GetLowerRefXaxis()->SetTitleOffset(0.85);
+    ratioPlot->GetLowerRefYaxis()->SetTitle(Form("%s / %s", h1Name, h2Name));
+    ratioPlot->GetLowerRefYaxis()->SetTitleSize(0.05);
+    ratioPlot->GetLowerRefYaxis()->SetTitleOffset(1.2);
+
+    ratioPlot->GetLowerRefGraph()->SetMarkerStyle(20);
+    ratioPlot->GetLowerRefGraph()->SetMarkerSize(1.2);
+    ratioPlot->GetLowerRefGraph()->SetMarkerColor(kBlack);
+    ratioPlot->GetLowerRefGraph()->SetLineColor(kBlack);
+    ratioPlot->GetLowerRefGraph()->SetLineWidth(2);
+    ratioPlot->GetLowYaxis()->SetNdivisions(205);
+
+    ratioPlot->GetLowerRefGraph()->SetMinimum(ratioYRange[0]);
+    ratioPlot->GetLowerRefGraph()->SetMaximum(ratioYRange[1]);
+    ratioPlot->GetLowerRefXaxis()->SetRangeUser(xRange[0], xRange[1]);
+
+    ratioPlot->GetUpperPad()->cd();
+    if (!isPt) {
+        if (isJet) {
+            t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{%s} < %d GeV #hat{p}_{T} > %d GeV", ptLow, jetType.Data(), ptHigh, ptHatLow));
+        }
+        else {
+            t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHigh));
+        }
+    }
+    else {
+        if (isJet) {
+            t.DrawLatexNDC(0.35, 0.84, Form("%2.1f< #eta^{%s} < %2.1f #hat{p}_{T} > %d GeV", etaLow, etaHigh, jetType.Data(), ptHatLow));
+        }
+        else {
+            t.DrawLatexNDC(0.35, 0.84, Form("%2.1f< #eta^{dijet} < %2.1f", etaLow, etaHigh));
+        }
+    }
+    t.DrawLatexNDC(0.2, 0.84, Form("%s frame", frameT.Data()));
+    plotCMSHeader(collSystem, energy);
+    if (isPt){
+        ratioPlot->GetUpperPad()->SetLogy();
+    }
+
+    TLegend *leg = new TLegend(legX[0], legY[0], legX[1], legY[1]);
+    leg->SetTextSize(0.05);
+    leg->SetTextFont(42);
+    leg->SetFillStyle(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(h1, h1Name, "p");
+    leg->AddEntry(h2, h2Name, "p");
+    leg->Draw();
+}
 
 //________________
 void rescaleForwardBackward(TH1D *hForward, TH1D *hBackward) {
@@ -573,7 +688,7 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
     t.SetTextSize(0.05);
 
     // Create vector of ptHat and jet pT bins for projections
-    int ptHatStart = 0;
+    int ptHatStart = 15;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
     std::vector<int> ptHatBins{4}; // 30
@@ -741,33 +856,6 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
 }
 
 //________________
-void plotSimpleInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8.16) {
-
-    // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
-    // Energy in TeV
-
-    // Lab frame
-    TH1D *hGenEtaLab  = dynamic_cast<TH1D*>( f->Get("hGenGoodInclusiveJetEtaLabFrame") );
-    TH1D *hRecoEtaLab = dynamic_cast<TH1D*>( f->Get("hRecoGoodInclusiveJetEtaLabFrame") );
-
-    set1DStyle( hGenEtaLab, 1, kTRUE );
-    set1DStyle( hRecoEtaLab, 0, kTRUE );
-
-    TCanvas *cSimpleJESLab = new TCanvas( "cSimpleJESLab", "cSimpleJESLab", 700, 800 );
-    drawJecComparison(cSimpleJESLab, hRecoEtaLab, hGenEtaLab, 30, 15, "Reco", "Gen", collSystem, energy, false);
-
-    // CM frame
-    TH1D *hGenEtaCM  = dynamic_cast<TH1D*>( f->Get("hGenGoodInclusiveJetEtaCMFrame") );
-    TH1D *hRecoEtaCM = dynamic_cast<TH1D*>( f->Get("hRecoGoodInclusiveJetEtaCMFrame") );
-
-    set1DStyle( hGenEtaCM, 1, kTRUE );
-    set1DStyle( hRecoEtaCM, 0, kTRUE );
-
-    TCanvas *cSimpleJESCM = new TCanvas( "cSimpleJESCM", "cSimpleJESCM", 700, 800 );
-    drawJecComparison(cSimpleJESCM, hRecoEtaCM, hGenEtaCM, 30, 15, "Reco", "Gen", collSystem, energy, true);
-}
-
-//________________
 //
 // Plot comparison of inclusive jet distributions for different pT and eta bins
 // Compare both reco data to reco MC and reco data to gen MC
@@ -803,7 +891,7 @@ void plotData2McInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem 
     hGenMcPtEtaPtHat->SetName("hGenMcPtEtaPtHat");
 
     // Create vector of ptHat and jet pT bins for projections
-    int ptHatStart = 0;
+    int ptHatStart = 10;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
     std::vector<int> ptHatBins{4}; // 30
@@ -1262,6 +1350,151 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
 }
 
 //________________
+// Plot eta and pT distributions of inclusive jets from Pythia and embedding.
+// Compare dijet distributions.
+//
+void plotPythia2EmbeddingComparisons(TFile *fEmbedding, TFile *fPythia, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250305") {
+    // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
+    // energy in TeV
+
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", (int)(1000 * collisionEnergy));
+    collSystemStr += Form("_emb2pythia");
+
+    double xTextPosition = 0.6;
+    double yTextPosition = 0.8;
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    // Create vector of ptHat and jet pT bins for projections
+    int ptHatStart = 15;
+    int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
+    int ptHatBinsMax = 100;
+    std::vector<int> ptHatBins{1, 4, 6, 7, 8, 10, 30, 50};
+
+    // Jet pT binning
+    int jetPtStart = 5;
+    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
+    int jetPtBinsMax = 150;
+    std::vector<int> jetPtBinsLow {1, 5,  8, 13,  20}; // 
+    std::vector<int> jetPtBinsHigh{4, 7, 12, 19, 150}; // 
+
+
+    // Eta binning
+    // 52 bins from (-5.2, 5.2)
+    int nEtaBins = 52;
+    double etaStep = 0.2;
+    std::vector<int> jetEtaBinsLow{19, 12, 38};
+    std::vector<int> jetEtaBinsHigh{35, 16, 42};
+
+    const int dijetPtBins{16};
+    double dijetPtVals[dijetPtBins+1] {  50.,  60.,   70.,  80.,  90.,
+                                         100., 110.,  120., 130., 140.,
+                                         150., 160.,  180., 200., 250., 
+                                         300., 500.};
+
+    //
+    // Retrieve inclusive jet histograms
+    //
+
+    // Embedding
+    TH3D *hRecoPtEtaPtHatEmb = dynamic_cast<TH3D *>(fEmbedding->Get("hRecoInclusiveJetPtEtaPtHat"));
+    hRecoPtEtaPtHatEmb->SetName("hRecoPtEtaPtHatEmb");
+    TH3D *hGenPtEtaPtHatEmb = dynamic_cast<TH3D *>(fEmbedding->Get("hGenInclusiveJetPtEtaPtHat"));
+    hGenPtEtaPtHatEmb->SetName("hGenPtEtaPtHatEmb");
+    TH1D *hRecoEtaEmb[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hGenEtaEmb[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hRecoPtEmb[ptHatBins.size()][jetEtaBinsLow.size()];
+    TH1D *hGenPtEmb[ptHatBins.size()][jetEtaBinsLow.size()];
+
+    // Pythia
+    TH3D *hRecoPtEtaPtHatPythia = dynamic_cast<TH3D *>(fPythia->Get("hRecoInclusiveJetPtEtaPtHat"));
+    hRecoPtEtaPtHatPythia->SetName("hRecoPtEtaPtHatPythia");
+    TH3D *hGenPtEtaPtHatPythia = dynamic_cast<TH3D *>(fPythia->Get("hGenInclusiveJetPtEtaPtHat"));
+    hGenPtEtaPtHatPythia->SetName("hGenPtEtaPtHatPythia");
+    TH1D *hRecoEtaPythia[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hGenEtaPythia[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hRecoPtPythia[ptHatBins.size()][jetEtaBinsLow.size()];
+    TH1D *hGenPtPythia[ptHatBins.size()][jetEtaBinsLow.size()];
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+    setPadStyle();
+
+    // Loop over ptHat bins
+    for (size_t iPtHat = 0; iPtHat < ptHatBins.size(); ++iPtHat) {
+
+        int ptHatLow = (int)hRecoPtEtaPtHatEmb->GetZaxis()->GetBinLowEdge(ptHatBins[iPtHat]);
+
+        // Loop over ptHat bins and make projections of eta
+        for (size_t iJetPt = 0; iJetPt < jetPtBinsLow.size(); ++iJetPt) {
+
+            int ptLow = (int)hRecoPtEtaPtHatEmb->GetYaxis()->GetBinLowEdge(jetPtBinsLow[iJetPt]);
+            int ptHigh = (int)hRecoPtEtaPtHatEmb->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[iJetPt]);
+
+            // Embedding
+            hRecoEtaEmb[iPtHat][iJetPt] = dynamic_cast<TH1D *>(hRecoPtEtaPtHatEmb->ProjectionX(Form("hRecoEtaEmb_%zu_%zu", iPtHat, iJetPt), 
+                                                                                               jetPtBinsLow[iJetPt], jetPtBinsHigh[iJetPt], ptHatBins[iPtHat], ptHatBinsMax));
+            rescaleEta(hRecoEtaEmb[iPtHat][iJetPt]);
+            set1DStyle(hRecoEtaEmb[iPtHat][iJetPt], 0);
+            hGenEtaEmb[iPtHat][iJetPt] = dynamic_cast<TH1D *>(hGenPtEtaPtHatEmb->ProjectionX(Form("hGenEtaEmb_%zu_%zu", iPtHat, iJetPt), 
+                                                                                             jetPtBinsLow[iJetPt], jetPtBinsHigh[iJetPt], ptHatBins[iPtHat], ptHatBinsMax));
+            rescaleEta(hGenEtaEmb[iPtHat][iJetPt]);
+            set1DStyle(hGenEtaEmb[iPtHat][iJetPt], 0);
+
+            // Pythia
+            hRecoEtaPythia[iPtHat][iJetPt] = dynamic_cast<TH1D *>(hRecoPtEtaPtHatPythia->ProjectionX(Form("hRecoEtaPythia_%zu_%zu", iPtHat, iJetPt), 
+                                                                                                   jetPtBinsLow[iJetPt], jetPtBinsHigh[iJetPt], ptHatBins[iPtHat], ptHatBinsMax));
+            rescaleEta(hRecoEtaPythia[iPtHat][iJetPt]);
+            set1DStyle(hRecoEtaPythia[iPtHat][iJetPt], 1);
+            hGenEtaPythia[iPtHat][iJetPt] = dynamic_cast<TH1D *>(hGenPtEtaPtHatPythia->ProjectionX(Form("hGenEtaPythia_%zu_%zu", iPtHat, iJetPt), 
+                                                                                                 jetPtBinsLow[iJetPt], jetPtBinsHigh[iJetPt], ptHatBins[iPtHat], ptHatBinsMax));
+            rescaleEta(hGenEtaPythia[iPtHat][iJetPt]);
+            set1DStyle(hGenEtaPythia[iPtHat][iJetPt], 1);
+
+            // Plot comparisons
+            c->Clear();
+            setPadStyle();
+            drawEtaPtComparison(c, hRecoEtaEmb[iPtHat][iJetPt], hRecoEtaPythia[iPtHat][iJetPt], 
+                                ptLow, ptHigh, -5.2, 5.2, ptHatLow, 
+                                "Reco (embed)", "Reco (pythia)", 1, 8.16, 
+                                false, true, false);
+            c->SaveAs(Form("%s/%s_reco_eta_ptHat_ptHat%d_jetPt_%d_%d.pdf", date.Data(), collSystemStr.Data(), ptHatLow, ptLow, ptHigh));
+
+            c->Clear();
+            setPadStyle();
+            drawEtaPtComparison(c, hGenEtaEmb[iPtHat][iJetPt], hGenEtaPythia[iPtHat][iJetPt], 
+                                ptLow, ptHigh, -5.2, 5.2, ptHatLow, 
+                                "Gen (embed)", "Gen (pythia)", 1, 8.16, 
+                                false, true, false);
+                                c->SaveAs(Form("%s/%s_gen_eta_ptHat_ptHat%d_jetPt_%d_%d.pdf", date.Data(), collSystemStr.Data(), ptHatLow, ptLow, ptHigh));
+            
+        } // for (size_t iJetPt = 0; iJetPt < jetPtBinsLow.size(); ++iJetPt)
+
+    } // for (size_t iPtHat = 0; iPtHat < ptHatBins.size(); ++iPtHat)
+
+    //
+    // Retrieve dijet histograms
+    //
+
+    // Embedding
+    TH1D *hGenDijet1DCMEmb[dijetPtBins];
+    for (int i = 0; i < dijetPtBins; ++i) {
+        hGenDijet1DCMEmb[i] = dynamic_cast<TH1D *>(fEmbedding->Get(Form("hGenDijetEta1DWeighted_%d", i)));
+        hGenDijet1DCMEmb[i]->SetName(Form("hGenDijet1DCMEmb_%d", i));
+    }
+
+    // Pythia
+    TH1D *hGenDijet1DCMPythia[dijetPtBins];
+    for (int i = 0; i < dijetPtBins; ++i) {
+        hGenDijet1DCMPythia[i] = dynamic_cast<TH1D *>(fPythia->Get(Form("hGenDijetEta1DWeighted_%d", i)));
+        hGenDijet1DCMPythia[i]->SetName(Form("hGenDijet1DCMPythia_%d", i));
+    }
+
+
+}
+
+//________________
 void plotMcClosures() {
 
     // Base style
@@ -1295,10 +1528,17 @@ void plotMcClosures() {
 
 
     // MC p-going direction new (coincides with the pPb5020)
-    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
     if ( !pPb8160EmbedFile ) {
         std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+        return;
+    }
+
+    TFile *pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    // TFile *pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+    if ( !pPb8160PythiaFile ) {
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data()) << std::endl;
         return;
     }
 
@@ -1316,11 +1556,6 @@ void plotMcClosures() {
     // comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
     //
-    // Plot simple inclusive jet JEC closure (inclusive jets within |eta|<1.4)
-    //
-    // plotSimpleInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
-    
-    //
     // Plot for inclusive jets JEC closures (scan in eta and pT)
     //
     // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
@@ -1333,5 +1568,10 @@ void plotMcClosures() {
     //
     // Plot comparison of dijet reco and ref to gen distributions
     //
-    plotData2McDijetComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+    // plotData2McDijetComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+
+    //
+    // Plot comparison of inclusive jets and dijets for embedding and PYTHIA
+    //
+    plotPythia2EmbeddingComparisons(pPb8160EmbedFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
 }

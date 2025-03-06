@@ -350,9 +350,10 @@ void plotJES() {
 
     // pPb8160 embedding
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) );
-    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_def_ak4_eta25.root", username.Data()) );
+    // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_def_ak4_eta25.root", username.Data()) );
+    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oPythia_Pbgoing_def_ak4_eta20.root", username.Data()) );
     if ( !inputFile || inputFile->IsZombie() ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_def_ak4_eta25.root", username.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oPythia_Pbgoing_def_ak4_eta20.root", username.Data()) << std::endl;
         return;
     }
     collSystem = 1;

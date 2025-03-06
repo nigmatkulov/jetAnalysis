@@ -42,10 +42,10 @@ int main(int argc, char const *argv[]) {
     TString JECFileDataName;
     TString JEUFileName;
     TString path2JEC = "..";
-    double ptHatCut[2] {15., 30.};
+    float ptHatCut[2] {15., 30.};
     int   useJEUSyst{0};     // 0-default, 1-JEU+, -1-JEU-
     int   useJERSyst{-99};     // 0-default, 1-JER+, -1-JER-, other - only JEC is applied
-    double etaShift = 0.465;
+    float etaShift = 0.465;
 
     // Sequence of command line arguments:
     //
@@ -91,15 +91,15 @@ int main(int argc, char const *argv[]) {
     if (isMc) {
         if (isPbGoingDir) {
             // PYTHIA+EPOS
-            // JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
+            JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
             // PYTHIA
-            JECFileName = "Autumn16_HI_pPb_Pbgoing_Unembedded_MC_L2Relative_AK4PF.txt";
+            // JECFileName = "Autumn16_HI_pPb_Pbgoing_Unembedded_MC_L2Relative_AK4PF.txt";
         }
         else {
             // PYTHIA+EPOS
-            // JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
+            JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
             // PYTHIA
-            JECFileName = "Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF";
+            // JECFileName = "Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF";
         }
     }
     else {
@@ -217,11 +217,11 @@ int main(int argc, char const *argv[]) {
         analysis->setPbGoing();
     }
     analysis->setEtaShift( etaShift );
-    analysis->setLeadJetPtLow( 50. );
-    analysis->setSubLeadJetPtLow( 40. );
-    analysis->setJetEtaLabRange( -2.5, 2.5 );
-    analysis->setJetEtaCMRange( -2.0, 2.0 );
-    analysis->setDijetPhiCut( 2. * TMath::Pi() / 3 );
+    analysis->setLeadJetPtLow( float(50.) );
+    analysis->setSubLeadJetPtLow( float(40.) );
+    analysis->setJetEtaLabRange( (float)-2.5, (float)2.5 );
+    analysis->setJetEtaCMRange( (float)-2.0, (float)2.0 );
+    analysis->setDijetPhiCut( (float)(2. * TMath::Pi() / 3) );
     if ( isMc ) {
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
     }

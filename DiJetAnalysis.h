@@ -50,7 +50,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Add histogram manager to the analysis
     void addHistoManager(HistoManagerDiJet *hm) { fHM = hm; }
     /// @brief Add lorentz shift
-    void setEtaShift(const double& shift)  { fEtaShift = shift; }
+    void setEtaShift(const float& shift)  { fEtaShift = shift; }
     /// @brief Set dataset to be MC
     void setIsMc(const bool& isMc)         { fIsMc = isMc; }
     /// @brief Set collision system: 0 - pp, 1 - pPb, 2 - PbPb
@@ -58,13 +58,13 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Set collision energy in GeV (default: 8160 GeV)
     void setCollisionEnergyInGeV(const int& en)    { fCollisionEnergy = en; }
     /// @brief Set cut on the ptHat of the event (for MC in pPb only due to the xsection matching)
-    void setPtHatRange(const double& lo, const double& hi) { fPtHatRange[0] = lo; fPtHatRange[1] = hi; }
+    void setPtHatRange(const float& lo, const float& hi) { fPtHatRange[0] = lo; fPtHatRange[1] = hi; }
     /// @brief Cut on the lowest momentum of leading jet
-    void setLeadJetPtLow(const double& lo) { fLeadJetPtLow = lo; }
+    void setLeadJetPtLow(const float& lo) { fLeadJetPtLow = lo; }
     /// @brief Cut on the lowest momentum of subleading jet
-    void setSubLeadJetPtLow(const double& lo) { fSubleadJetPtLow = lo; }
+    void setSubLeadJetPtLow(const float& lo) { fSubleadJetPtLow = lo; }
     /// @brief Cut on angle between leading and subleading jet
-    void setDijetPhiCut(const double& cut) { fDijetPhiCut = cut; }
+    void setDijetPhiCut(const float& cut) { fDijetPhiCut = cut; }
     /// @brief Set the direction of Pb-going ion
     void setPbGoing()                        { fIsPbGoingDir = {true}; }
     /// @brief Set the direction of p-going ion
@@ -78,9 +78,9 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Select inclusive jets in the center-of-mass frame
     void selectJetsInCMFrame()               { fSelectJetsInCMFrame = {true}; }
     /// @brief Set eta range to select jets in the lab frame
-    void setJetEtaLabRange(const double& lo, const double& hi) { fJetEtaLab[0]=lo; fJetEtaLab[1]=hi; }
+    void setJetEtaLabRange(const float& lo, const float& hi) { fJetEtaLab[0]=lo; fJetEtaLab[1]=hi; }
     /// @brief Set eta range to select jets in the center-of-mass frame
-    void setJetEtaCMRange(const double& lo, const double& hi) { fJetEtaCM[0]=lo; fJetEtaCM[1]=hi; }
+    void setJetEtaCMRange(const float& lo, const float& hi) { fJetEtaCM[0]=lo; fJetEtaCM[1]=hi; }
 
     /// @brief Reweight MC to data (trigger-dependent): 
     /// 0 - do not reweight (default)
@@ -93,7 +93,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Set jetId selection of the jets (default: trkMax)
     void useJetIdSelection()                       { fUseJetIdSelection = {true}; }
 
-    void findMcWeight(const double& ptLead, const double& ptSublead);
+    void findMcWeight(const float& ptLead, const float& ptSublead);
     /// @brief Print DiJetAnalysis setup
     void print();
 
@@ -105,9 +105,9 @@ class DiJetAnalysis : public BaseAnalysis {
     /// Check if event is overweighted in MC
     bool isOverweightedEvent(const Event* event, const double& weight);
     /// @brief  Check if event is overweighted
-    bool isOverweighted(const double& ptLead, const double& dijetPtAve, const double& ptHat);
+    bool isOverweighted(const float& ptLead, const float& dijetPtAve, const float& ptHat);
     /// @brief Calculate event weight
-    double eventWeight(const double& ptHat, const double& vz, const double& centWeight, const double& ptHatW);
+    double eventWeight(const float& ptHat, const float& vz, const float& centWeight, const float& ptHatW);
     /// @brief Process gen jets
     void processGenJets(const Event* event, const double &weight);
     /// @brief Process reco jets
@@ -115,14 +115,14 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Process ref jets
     void processRefJets(const Event* event, const double &weight);
     /// @brief Dijet selection
-    bool isGoodDijet(const double& ptLead, const double& ptSublead, const double& dphi);
+    bool isGoodDijet(const float& ptLead, const float& ptSublead, const float& dphi);
 
     /// @brief Dijet selection
-    bool isGoodDijet(const double& ptLead, const double& etaLead, const double& ptSubLead, 
-                     const double& etaSubLead, const double& dphi, const bool& isCM = false);
+    bool isGoodDijet(const float& ptLead, const float& etaLead, const float& ptSubLead, 
+                     const float& etaSubLead, const float& dphi, const bool& isCM = false);
 
     /// @brief Calculate delta phi between two jets in the range [-pi, pi]
-    double deltaPhi(const double& phi1, const double &phi2);
+    float deltaPhi(const float& phi1, const float &phi2);
     /// @brief Single gen/ref jet selection criteria
     bool isGoodGenJet(const GenJet* jet);
     /// @brief Single reco jet selection criteria
@@ -132,19 +132,20 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Check if good track max cut
     bool isGoodTrkMax(const RecoJet* jet);
     /// @brief Boost eta to the center-of-mass frame
-    double boostEta2CM(const double &etaLab);
+    float boostEta2CM(const float &etaLab);
     /// @brief Get proper eta in the lab frame depending on beam direction 
-    double etaLab(const double &eta);
+    float etaLab(const float &eta);
     /// @brief Dijet eta calculation
-    double dijetEtaInFrame(const double& eta1, const double& eta2, bool isCM = false);
+    float dijetEtaInFrame(const float& eta1, const float& eta2, bool isCM = false);
 
     /// @brief Pass pt of the jet and check if it is leading or subleading jet
-    void findLeadSubleadJets(const double &pt, const int &counter, double &ptLead, double &ptSublead, 
+    void findLeadSubleadJets(const float &pt, const int &counter, float &ptLead, float &ptSublead, 
                              int &idLead, int &idSubLead);
+                             
     /// @brief Find dijet ptAve bin
-    int  findDijetPtAveBin(const double& pt);
+    int  findDijetPtAveBin(const float& pt);
     /// @brief Find dijet ptAve bin (old binning)
-    int  findDijetPtAveOldBin(const double& pt);
+    int  findDijetPtAveOldBin(const float& pt);
 
     /// @brief Initialize vz weight function
     void initVzWeightFunction();
@@ -158,7 +159,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Histogram manager
     HistoManagerDiJet *fHM;
     /// @brief  Pseudorapidity shift for asymmetric collisions (pPb)
-    double fEtaShift;
+    float fEtaShift;
     /// @brief Is MC sample (needed for event weight corrections)
     bool   fIsMc;
     /// @brief  Type of collision system: 0 - pp, 1 - pPb, 2 - PbPb. Default is PbPb
@@ -166,15 +167,15 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Collision energy in GeV
     int    fCollisionEnergy;
     /// @brief ptHat range for the generated events (must cut events on this one)
-    double fPtHatRange[2];
+    float fPtHatRange[2];
 
     /// @brief Momentum selection of the leading jet
-    double fLeadJetPtLow;
+    float fLeadJetPtLow;
     
     /// @brief Momentum selection of the subleading jet
-    double fSubleadJetPtLow;
+    float fSubleadJetPtLow;
     /// @brief Angular selection of dijet
-    double fDijetPhiCut;
+    float fDijetPhiCut;
     /// @brief Lead going direction for pPb collisions
     bool   fIsPbGoingDir;
     /// @brief Verbose mode
@@ -209,20 +210,20 @@ class DiJetAnalysis : public BaseAnalysis {
     /// 4 - Jet100
     short   fUseMcReweighting;
     int     fJetPtBins;
-    double  fJetPtLow;
-    double  fJetPtHi;
-    double  fJetPtStep;
-    double  fJetPtLeadPtSubleadReweightMatrix[75][75];
+    float  fJetPtLow;
+    float  fJetPtHi;
+    float  fJetPtStep;
+    float  fJetPtLeadPtSubleadReweightMatrix[75][75];
     double  fMcReweight;
     /// Range of eta selection in the lab frame
-    double  fJetEtaLab[2];
+    float  fJetEtaLab[2];
     /// Range of eta selection in the center-of-mass frame
-    double  fJetEtaCM[2];
+    float  fJetEtaCM[2];
 
     /// @brief Values for new dijet ptAve binning
-    std::vector<double> fPtAveBins;
+    std::vector<float> fPtAveBins;
     /// @brief Values for old dijet ptAve binning
-    std::vector<double> fPtAveOldBins;
+    std::vector<float> fPtAveOldBins;
 
   ClassDef(DiJetAnalysis, 0)
 };
