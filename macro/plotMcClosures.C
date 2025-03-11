@@ -1253,7 +1253,7 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
 
         hRecoMc2GenDijetEta[i] = dynamic_cast<TH1D*>( hRecoMcDijetEta[i]->Clone( Form("hRecoMc2GenDijetEta_%d", i) ) );
         hRecoMc2GenDijetEta[i]->SetName( Form("hRecoMc2GenDijetEta_%d", i) );
-        hRecoMc2GenDijetEta[i]->Divide( hRecoMc2GenDijetEta[i], hGenMcDijetEta[i], 1., 1. );
+        hRecoMc2GenDijetEta[i]->Divide( hRecoMc2GenDijetEta[i], hGenMcDijetEta[i], 1., 1., "b" );
 
         hRef2GenDijetEta[i] = dynamic_cast<TH1D*>( hRefMcDijetEta[i]->Clone( Form("hRef2GenDijetEta_%d", i) ) );
         hRef2GenDijetEta[i]->SetName( Form("hRef2GenDijetEta_%d", i) );
@@ -1265,7 +1265,7 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
 
         hRecoMc2GenDijetEtaCM[i] = dynamic_cast<TH1D*>( hRecoMcDijetEtaCM[i]->Clone( Form("hRecoMc2GenDijetEtaCM_%d", i) ) );
         hRecoMc2GenDijetEtaCM[i]->SetName( Form("hRecoMc2GenDijetEtaCM_%d", i) );
-        hRecoMc2GenDijetEtaCM[i]->Divide( hRecoMc2GenDijetEtaCM[i], hGenMcDijetEtaCM[i], 1., 1. );
+        hRecoMc2GenDijetEtaCM[i]->Divide( hRecoMc2GenDijetEtaCM[i], hGenMcDijetEtaCM[i], 1., 1., "b" );
 
         hRef2GenDijetEtaCM[i] = dynamic_cast<TH1D*>( hRefMcDijetEtaCM[i]->Clone( Form("hRef2GenDijetEtaCM_%d", i) ) );
         hRef2GenDijetEtaCM[i]->SetName( Form("hRef2GenDijetEtaCM_%d", i) );
@@ -1528,8 +1528,8 @@ void plotMcClosures() {
 
 
     // MC p-going direction new (coincides with the pPb5020)
-    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
     if ( !pPb8160EmbedFile ) {
         std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
         return;
@@ -1558,7 +1558,7 @@ void plotMcClosures() {
     //
     // Plot for inclusive jets JEC closures (scan in eta and pT)
     //
-    plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+    // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
 
     //
     // Plot comparison of inclusive jet eta distributions to check/validate the JEC
@@ -1568,7 +1568,7 @@ void plotMcClosures() {
     //
     // Plot comparison of dijet reco and ref to gen distributions
     //
-    // plotData2McDijetComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+    plotData2McDijetComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
 
     //
     // Plot comparison of inclusive jets and dijets for embedding and PYTHIA
