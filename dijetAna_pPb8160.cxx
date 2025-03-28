@@ -207,8 +207,7 @@ int main(int argc, char const *argv[]) {
     }
     // If want to use manual JEC
     // reader->setUseManualJEC();
-
-    //reader->setVerbose();
+    // reader->setVerbose();
 
     // Pass reader to the manager
     manager->setEventReader(reader);

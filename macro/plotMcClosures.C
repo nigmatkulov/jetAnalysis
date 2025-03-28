@@ -131,14 +131,14 @@ void rescaleEta(TH1* h) {
 
 //________________
 void drawJecComparison(TCanvas *c, TH1D* h1, TH1D* h2, 
-    int ptLow=20, int ptHatLow=15,
+    double ptLow = 20., double ptHigh = 1500.,
+    double ptHatLow=15.,
     const char* h1Name="Reco", const char* h2Name="Gen",
     int collSystem = 0, double energy = 5.02,
     bool isCM = false,
     bool isJet = true,
     bool isPt = false,
-    double etaLow = -1.6,
-    double etaHi = 1.6) {
+    double etaLow = -1.6, double etaHi = 1.6) {
 
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
     // Energy in TeV
@@ -148,7 +148,7 @@ void drawJecComparison(TCanvas *c, TH1D* h1, TH1D* h2,
     TString frameT = (isCM) ? "CM" : "Lab";
     TString jetType = (isJet) ? "jet" : "dijet";
     t.SetTextFont(42);
-    t.SetTextSize(0.05);
+    t.SetTextSize(0.04);
 
     int maximumBin = h1->GetMaximumBin();
     double maximumVal = h1->GetBinContent(maximumBin);
@@ -217,16 +217,16 @@ void drawJecComparison(TCanvas *c, TH1D* h1, TH1D* h2,
     ratioPlot->GetLowerRefXaxis()->SetRangeUser(xRange[0], xRange[1]);
 
     ratioPlot->GetUpperPad()->cd();
-    if (!isPt)
-    {
-        t.DrawLatexNDC(0.5, 0.84, Form("p_{T}^{%s} > %d GeV #hat{p}_{T} > %d GeV", jetType.Data(), ptLow, ptHatLow));
-    }
-    else
-    {
-        t.DrawLatexNDC(0.5, 0.84, Form("%2.1f< #eta^{jet} < %2.1f #hat{p}_{T} > %d GeV", etaLow, etaHi, ptHatLow));
-    }
-    t.DrawLatexNDC(0.2, 0.84, Form("%s frame", frameT.Data()));
+    t.DrawLatexNDC(0.17, 0.84, Form("%s frame", frameT.Data()));
     plotCMSHeader(collSystem, energy);
+    if (!isPt) {
+        t.DrawLatexNDC(0.4, 0.84, Form("%4.0f < p_{T}^{%s} < %4.0f GeV", ptLow, jetType.Data(), ptHigh));
+        t.DrawLatexNDC(0.75, 0.84, Form("#hat{p}_{T} > %3.0f GeV", ptHatLow));
+    }
+    else{
+        t.DrawLatexNDC(0.4, 0.84, Form("%2.1f< #eta^{jet} < %2.1f", etaLow, etaHi));
+        t.DrawLatexNDC(0.75, 0.84, Form("#hat{p}_{T} > %3.0f GeV", ptHatLow));
+    }
     if (isPt)
     {
         ratioPlot->GetUpperPad()->SetLogy();
@@ -326,24 +326,28 @@ void drawEtaPtComparison(TCanvas *c, TH1D* h1, TH1D* h2,
     ratioPlot->GetLowerRefXaxis()->SetRangeUser(xRange[0], xRange[1]);
 
     ratioPlot->GetUpperPad()->cd();
+
+    t.DrawLatexNDC(0.17, 0.84, Form("%s frame", frameT.Data()));
+    plotCMSHeader(collSystem, energy);
     if (!isPt) {
         if (isJet) {
-            t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{%s} < %d GeV #hat{p}_{T} > %d GeV", ptLow, jetType.Data(), ptHigh, ptHatLow));
+            t.DrawLatexNDC(0.4,  0.84, Form("%d < p_{T}^{%s} < %d GeV", ptLow, jetType.Data(), ptHigh));
+            t.DrawLatexNDC(0.75, 0.84, Form("#hat{p}_{T} > %d GeV", ptHatLow));
         }
         else {
-            t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHigh));
+            t.DrawLatexNDC(0.4, 0.84, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHigh));
         }
     }
     else {
         if (isJet) {
-            t.DrawLatexNDC(0.35, 0.84, Form("%2.1f< #eta^{%s} < %2.1f #hat{p}_{T} > %d GeV", etaLow, etaHigh, jetType.Data(), ptHatLow));
+            t.DrawLatexNDC(0.4,  0.84, Form("%2.1f< #eta^{%s} < %2.1f", etaLow, jetType.Data(), etaHigh));
+            t.DrawLatexNDC(0.75, 0.84, Form("#hat{p}_{T} > %d GeV", ptHatLow));
         }
         else {
-            t.DrawLatexNDC(0.35, 0.84, Form("%2.1f< #eta^{dijet} < %2.1f", etaLow, etaHigh));
+            t.DrawLatexNDC(0.4, 0.84, Form("%2.1f< #eta^{dijet} < %2.1f", etaLow, etaHigh));
         }
     }
-    t.DrawLatexNDC(0.2, 0.84, Form("%s frame", frameT.Data()));
-    plotCMSHeader(collSystem, energy);
+
     if (isPt){
         ratioPlot->GetUpperPad()->SetLogy();
     }
@@ -370,7 +374,155 @@ void rescaleForwardBackward(TH1D *hForward, TH1D *hBackward) {
 }
 
 //________________
-void drawToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr, TH1D *hGen = nullptr,
+// Compare reco, ref, refSel to gen inclusive jet eta distributions
+void drawSingleJetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr, 
+                                  TH1D *hGen = nullptr, TH1D *hRefSel = nullptr,
+                                  TH1D *hData = nullptr,
+                                  int ptLow = 50, int ptHi = 60,
+                                  int ptHatLow = 15,
+                                  bool isCM = false, bool isFB = false,
+                                  int collisionSystem = 1, double energy = 8.16) {
+    TLatex t;
+    t.SetTextFont( 42 );
+    t.SetTextSize( 0.04 );
+    TLegend *leg;
+
+    double xRange[2] = { -3.2, 3.2 };
+    double yRange[2] = {0.0000001, 0.08 };
+
+    if ( isCM ) {
+        if ( !isFB ) {
+            xRange[0] = -2.5; xRange[1] = 2.5;
+            yRange[0] = 0.0000001; yRange[1] = 0.08;
+        }
+        else {
+            xRange[0] = 0; xRange[1] = 2.5;
+            yRange[0] = 0.8; yRange[1] = 1.2;
+        }
+    }
+
+    c->cd();
+    setPadStyle();
+    hReco->Draw();
+    hGen->Draw("same");
+    if ( hRef ) {
+        hRef->Draw("same");
+    }
+    if ( hData ) {
+        hData->Draw("same");
+    }
+    if ( hRefSel ) {
+        hRefSel->Draw("same");
+    }
+    hReco->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    hReco->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    hReco->GetYaxis()->SetTitle("1/N_{jet} dN/d#eta_{jet}");
+    gPad->SetGrid();
+    plotCMSHeader(collisionSystem, energy);        
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T} (GeV) < %d", ptLow, ptHi) );
+    if ( isFB ) {
+        leg = new TLegend(0.2, 0.25, 0.4, 0.4);
+    }
+    else {
+        leg = new TLegend(0.2, 0.55, 0.4, 0.7);
+    }
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    leg->SetTextSize(0.04);
+    leg->SetTextFont(42);
+    if ( hData ) {
+        leg->AddEntry( hData, "Data", "p" );
+    }
+    leg->AddEntry( hReco, "Reco", "p" );
+    leg->AddEntry( hGen, "Gen", "p" );
+    if ( hRef ) {
+        leg->AddEntry( hRef, "Ref", "p" );        
+    }
+    if ( hRefSel ) {
+        leg->AddEntry( hRefSel, "RefSel", "p" );
+    }
+    leg->Draw();
+
+}
+
+//________________
+// Plot reco, ref, refSel to gen inclusive jet eta ratio distributions
+void drawSingleJetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr, TH1D *hRefSel2Gen = nullptr,
+                             TH1D *hData2Gen = nullptr,
+                             int ptLow = 50, int ptHi = 60,
+                             int ptHatLow = 15,
+                             bool isCM = false, bool isFB = false,
+                             int collisionSystem = 1, double energy = 8.16) {
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.04);
+    TLegend *leg;
+
+    double xRange[2] = {-3.2, 3.2};
+    double yRange[2] = {0.75, 1.25};
+
+    if (isCM) {
+        if (!isFB) {
+            xRange[0] = -3.2;
+            xRange[1] = 3.2;
+            yRange[0] = 0.75;
+            yRange[1] = 1.25;
+        }
+        else {
+            xRange[0] = 0;
+            xRange[1] = 2.5;
+            yRange[0] = 0.8;
+            yRange[1] = 1.2;
+        }
+    }
+
+    c->cd();
+    setPadStyle();
+    hReco2Gen->Draw();
+    if (hRef2Gen) {
+        hRef2Gen->Draw("same");
+    }
+    if (hData2Gen) {
+        hData2Gen->Draw("same");
+    }
+    if (hRefSel2Gen) {
+        hRefSel2Gen->Draw("same");
+    }
+    hReco2Gen->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
+    hReco2Gen->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    hReco2Gen->GetYaxis()->SetTitle("Ratio to gen");
+    gPad->SetGrid();
+    plotCMSHeader(collisionSystem, energy);
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T} (GeV) < %d", ptLow, ptHi));
+    if (isFB) {
+        leg = new TLegend(0.35, 0.25, 0.4, 0.4);
+    }
+    else {
+        leg = new TLegend(0.35, 0.25, 0.65, 0.4);
+    }
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    leg->SetTextSize(0.04);
+    leg->SetTextFont(42);
+    leg->AddEntry(hReco2Gen, "Reco / Gen", "p");
+    if (hData2Gen) {
+        leg->AddEntry(hData2Gen, "Data / Gen", "p");
+    }
+    if (hRef2Gen) {
+        leg->AddEntry(hRef2Gen, "Ref / Gen", "p");
+    }
+    if (hRefSel2Gen) {
+        leg->AddEntry(hRefSel2Gen, "RefSel / Gen", "p");
+    }
+    leg->Draw();
+}
+
+
+
+//________________
+// Draw comparison of reco, ref, gen and refSel dijet eta distributions
+void drawDijetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr, 
+                         TH1D *hGen = nullptr, TH1D *hRefSel = nullptr,
                          TH1D *hData = nullptr,
                          int ptLow = 50, int ptHi = 60, 
                          bool isCM = false, bool isFB = false,
@@ -405,6 +557,9 @@ void drawToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr, TH1D *hG
     if ( hData ) {
         hData->Draw("same");
     }
+    if ( hRefSel ) {
+        hRefSel->Draw("same");
+    }
     hReco->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
     hReco->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
     gPad->SetGrid();
@@ -428,15 +583,19 @@ void drawToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr, TH1D *hG
     if ( hRef ) {
         leg->AddEntry( hRef, "Ref", "p" );        
     }
+    if ( hRefSel ) {
+        leg->AddEntry( hRefSel, "RefSel", "p" );
+    }
     leg->Draw();
 }
 
 //________________
-void drawToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
-                    TH1D *hData = nullptr,
-                    int ptLow = 50, int ptHi = 60, 
-                    bool isCM = false, bool isFB = false,
-                    int collisionSystem = 1, double energy = 8.16) {
+// Draw reco/gen, ref/gen, refSel/gen and data/gen dijet eta ratios
+void drawDijetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
+                         TH1D *hRefSel2Gen = nullptr, TH1D *hData = nullptr,
+                         int ptLow = 50, int ptHi = 60, 
+                         bool isCM = false, bool isFB = false,
+                         int collisionSystem = 1, double energy = 8.16) {
 
     TLatex t;
     t.SetTextFont(42);
@@ -463,6 +622,9 @@ void drawToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
     if (hRef2Gen) {
         hRef2Gen->Draw("same");
     }
+    if (hRefSel2Gen) {
+        hRefSel2Gen->Draw("same");
+    }
     if (hData) {
         hData->Draw("same");
     }
@@ -477,17 +639,21 @@ void drawToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
     leg->SetTextSize(0.04);
     leg->SetTextFont(42);
     if (hData) {
-        leg->AddEntry(hData, "Data/Gen", "p");
+        leg->AddEntry(hData, "Data / Gen", "p");
     }
-    leg->AddEntry(hReco2Gen, "Reco/Gen", "p");
+    leg->AddEntry(hReco2Gen, "Reco / Gen", "p");
     if (hRef2Gen) {
-        leg->AddEntry(hRef2Gen, "Ref/Gen", "p");
+        leg->AddEntry(hRef2Gen, "Ref / Gen", "p");
+    }
+    if (hRefSel2Gen) {
+        leg->AddEntry(hRefSel2Gen, "RefSel / Gen", "p");
     }
     leg->Draw();
 }
 
 //________________
-void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
+// Plot dijet eta comparison of reco, ref and refSel to gen
+void plotDijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
     
     // collisionSystem: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
@@ -520,8 +686,10 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
     TH1D *hRecoDijetEta1DLab[ ptDijetBinLow.size() ];
     TH1D *hGenDijetEta1DLab[ ptDijetBinLow.size() ];
     TH1D *hRefDijetEta1DLab[ ptDijetBinLow.size() ];
+    TH1D *hRefSelDijetEta1DLab[ ptDijetBinLow.size() ];
     TH1D *hReco2GenDijetEta1DLab[ ptDijetBinLow.size() ];
     TH1D *hRef2GenDijetEta1DLab[ ptDijetBinLow.size() ];
+    TH1D *hRefSel2GenDijetEta1DLab[ ptDijetBinLow.size() ];
 
     //
     // CM frame
@@ -529,8 +697,10 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
     TH1D *hRecoDijetEta1DCM[ ptDijetBinLow.size() ];
     TH1D *hGenDijetEta1DCM[ ptDijetBinLow.size() ];
     TH1D *hRefDijetEta1DCM[ ptDijetBinLow.size() ];
+    TH1D *hRefSelDijetEta1DCM[ ptDijetBinLow.size() ];
     TH1D *hReco2GenDijetEta1DCM[ ptDijetBinLow.size() ];
     TH1D *hRef2GenDijetEta1DCM[ ptDijetBinLow.size() ];
+    TH1D *hRefSel2GenDijetEta1DCM[ ptDijetBinLow.size() ];
 
     //
     // Forward/backward ratios
@@ -569,17 +739,23 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
         rescaleEta( hRecoDijetEta1DLab[i] );
         hGenDijetEta1DLab[i] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEta1DWeighted_%d", i) ) );
         hGenDijetEta1DLab[i]->SetName( Form("hGenDijetEta1DLab_%d", i) );
-        set1DStyle( hGenDijetEta1DLab[i], 2 );
+        set1DStyle( hGenDijetEta1DLab[i], 4 );
         rescaleEta( hGenDijetEta1DLab[i] );
         hRefDijetEta1DLab[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEta1DWeighted_%d", i) ) );
         hRefDijetEta1DLab[i]->SetName( Form("hRefDijetEta1DLab_%d", i) );
         set1DStyle( hRefDijetEta1DLab[i], 1 );
         rescaleEta( hRefDijetEta1DLab[i] );
+        hRefSelDijetEta1DLab[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefSelDijetEta1DWeighted_%d", i) ) );
+        hRefSelDijetEta1DLab[i]->SetName( Form("hRefSelDijetEta1DLab_%d", i) );
+        set1DStyle( hRefSelDijetEta1DLab[i], 2 );
+        rescaleEta( hRefSelDijetEta1DLab[i] );
 
         hReco2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DLab[i]->Clone( Form("hReco2GenDijetEta1DLab_%d", i) ) );
         hReco2GenDijetEta1DLab[i]->Divide( hReco2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1. );
         hRef2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRefDijetEta1DLab[i]->Clone( Form("hRef2GenDijetEta1DLab_%d", i) ) );
         hRef2GenDijetEta1DLab[i]->Divide( hRef2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
+        hRefSel2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRefSelDijetEta1DLab[i]->Clone( Form("hRefSel2GenDijetEta1DLab_%d", i) ) );
+        hRefSel2GenDijetEta1DLab[i]->Divide( hRefSel2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
 
         //
         // CM frame
@@ -590,16 +766,23 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
         rescaleEta( hRecoDijetEta1DCM[i] );
         hGenDijetEta1DCM[i] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEta1DCMWeighted_%d", i) ) );
         hGenDijetEta1DCM[i]->SetName( Form("hGenDijetEta1DCM_%d", i) );
-        set1DStyle( hGenDijetEta1DCM[i], 2 );
+        set1DStyle( hGenDijetEta1DCM[i], 4 );
         rescaleEta( hGenDijetEta1DCM[i] );
         hRefDijetEta1DCM[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEta1DCMWeighted_%d", i) ) );
         hRefDijetEta1DCM[i]->SetName( Form("hRefDijetEta1DCM_%d", i) );
         set1DStyle( hRefDijetEta1DCM[i], 1 );
         rescaleEta( hRefDijetEta1DCM[i] );
+        hRefSelDijetEta1DCM[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefSelDijetEta1DCMWeighted_%d", i) ) );
+        hRefSelDijetEta1DCM[i]->SetName( Form("hRefSelDijetEta1DCM_%d", i) );
+        set1DStyle( hRefSelDijetEta1DCM[i], 2 );
+        rescaleEta( hRefSelDijetEta1DCM[i] );
+        
         hReco2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DCM[i]->Clone( Form("hReco2GenDijetEta1DCM_%d", i) ) );
         hReco2GenDijetEta1DCM[i]->Divide( hReco2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1. /* , "b" */ );
         hRef2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRefDijetEta1DCM[i]->Clone( Form("hRef2GenDijetEta1DCM_%d", i) ) );
         hRef2GenDijetEta1DCM[i]->Divide( hRef2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
+        hRefSel2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRefSelDijetEta1DCM[i]->Clone( Form("hRefSel2GenDijetEta1DCM_%d", i) ) );
+        hRefSel2GenDijetEta1DCM[i]->Divide( hRefSel2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
 
         //
         // Forward/backward ratios
@@ -637,14 +820,14 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
         //
         // Plot comparisons in the lab frame
         //
-        drawToGenComparison(c, hRecoDijetEta1DLab[i], hRefDijetEta1DLab[i], hGenDijetEta1DLab[i], nullptr,
+        drawDijetToGenComparison(c, hRecoDijetEta1DLab[i], hRefDijetEta1DLab[i], hGenDijetEta1DLab[i], hRefSelDijetEta1DLab[i], nullptr,
                             dijetPtVals[i], dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaLab_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );        
 
         //
         // Plot ratios in the lab frame
         //
-        drawToGenRatio(c, hReco2GenDijetEta1DLab[i], hRef2GenDijetEta1DLab[i], nullptr,
+        drawDijetToGenRatio(c, hReco2GenDijetEta1DLab[i], hRef2GenDijetEta1DLab[i], hRefSel2GenDijetEta1DLab[i], nullptr,
                        dijetPtVals[i], dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
 
@@ -652,21 +835,21 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
         // Plot comparisons in the CM frame
         //
 
-        drawToGenComparison(c, hRecoDijetEta1DCM[i], hRefDijetEta1DCM[i], hGenDijetEta1DCM[i], nullptr,
+        drawDijetToGenComparison(c, hRecoDijetEta1DCM[i], hRefDijetEta1DCM[i], hGenDijetEta1DCM[i], hRefSelDijetEta1DCM[i], nullptr,
                             dijetPtVals[i], dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaCM_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
 
         //
         // Plot ratios in the CM frame
         //
-        drawToGenRatio(c, hReco2GenDijetEta1DCM[i], hRef2GenDijetEta1DCM[i], nullptr,
+        drawDijetToGenRatio(c, hReco2GenDijetEta1DCM[i], hRef2GenDijetEta1DCM[i], hRefSel2GenDijetEta1DCM[i], nullptr,
                        dijetPtVals[i], dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaCM_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
 
         //
         // Forward/backward ratios
         //
-        drawToGenComparison(c, hRecoDijetFBEtaCM1D[i], hRefDijetFBEtaCM1D[i], hGenDijetFBEtaCM1D[i], nullptr,
+        drawDijetToGenComparison(c, hRecoDijetFBEtaCM1D[i], hRefDijetFBEtaCM1D[i], hGenDijetFBEtaCM1D[i], nullptr, nullptr,
                             dijetPtVals[i], dijetPtVals[i+1], true, true, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaFB_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
             
@@ -677,7 +860,7 @@ void comparisons2gen(TFile *f, int collisionSystem = 1, double collisionEnergy =
 // Plot eta and pT distributions of reco and gen jets to look at the closures
 // after the JECs are applied. Corrections can be studies in the bins of ptHat.
 //
-void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8.16) {
+void plotInclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
     // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
 
@@ -687,17 +870,21 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
     // Create vector of ptHat and jet pT bins for projections
     int ptHatStart = 15;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins{4}; // 30
+    std::vector<int> ptHatBins{1}; // 30
 
     // Jet pT binning
     int jetPtStart = 5;
-    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
+    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBinsLow(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins{3, 4, 5, 6, 7, 8, 9, 13}; // 25, 35, 45, 55, 65, 75, 85, 125
+    std::vector<int> jetPtBinsLow{3,  5,  7,   9,  12,   3,   5,   7}; // 45, 35, 45, 55, 65, 75, 85, 125
+    std::vector<int> jetPtBinsHigh {5,  7,  9,  12, 150, 150, 150, 150}; // 65, 35, 45, 55, 65, 75, 85, 125
 
     // Eta binning
     // 52 bins from (-5.2, 5.2)
@@ -711,52 +898,80 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
     // TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRecoMatchedJetPtEtaPtHat"));
     TH3D *hGenPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hGenInclusiveJetPtEtaPtHat"));
     TH3D *hRefPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRefInclusiveJetPtEtaPtHat"));
+    TH3D *hRefSelPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRefSelInclusiveJetPtEtaPtHat"));
 
-    //
-    // 2D distributions
-    //
-    TH2D *hRecoPtVsPtHat = dynamic_cast<TH2D *>(hRecoPtEtaPtHat->Project3D("yz"));
-    hRecoPtVsPtHat->SetName("hRecoPtVsPtHat");
-    set2DStyle(hRecoPtVsPtHat);
-    TH2D *hGenPtVsPtHat = dynamic_cast<TH2D *>(hGenPtEtaPtHat->Project3D("yz"));
-    hGenPtVsPtHat->SetName("hGenPtVsPtHat");
-    set2DStyle(hGenPtVsPtHat);
+    // Check that each histogram exist
+    if ( !hRecoPtEtaPtHat ) {
+        std::cerr << "Histogram hRecoPtEtaPtHat not found in file." << std::endl; return;
+    }
+    if ( !hGenPtEtaPtHat ) {
+        std::cerr << "Histogram hGenPtEtaPtHat not found in file." << std::endl; return;
+    }
+    if ( !hRefPtEtaPtHat ) {
+        std::cerr << "Histogram hRefPtEtaPtHat not found in file." << std::endl; return;
+    }
+    if ( !hRefSelPtEtaPtHat ) {
+        std::cerr << "Histogram hRefSelPtEtaPtHat not found in file." << std::endl; return;
+    }
 
-    double ptRange[2] = {0, 250};
-    TCanvas *cJetPtVsPtHat = new TCanvas("cJetPtVsPtHat", "cJetPtVsPtHat", 1000, 500);
-    cJetPtVsPtHat->Divide(2, 1);
-    cJetPtVsPtHat->cd(1);
-    setPadStyle();
-    hRecoPtVsPtHat->Draw("colz");
-    hRecoPtVsPtHat->GetXaxis()->SetRangeUser(ptRange[0], ptRange[1]);
-    hRecoPtVsPtHat->GetYaxis()->SetRangeUser(ptRange[0], ptRange[1]);
-    // gPad->SetLogz();
-    hRecoPtVsPtHat->GetXaxis()->SetTitle("#hat{p}_{T} (GeV)");
-    hRecoPtVsPtHat->GetYaxis()->SetTitle("Reco p_{T}^{jet} (GeV)");
-    plotCMSHeader(collSystem, energy);
-    cJetPtVsPtHat->cd(2);
-    setPadStyle();
-    hGenPtVsPtHat->Draw("colz");
-    hGenPtVsPtHat->GetXaxis()->SetRangeUser(ptRange[0], ptRange[1]);
-    hGenPtVsPtHat->GetYaxis()->SetRangeUser(ptRange[0], ptRange[1]);
-    // gPad->SetLogz();
-    hGenPtVsPtHat->GetXaxis()->SetTitle("#hat{p}_{T} (GeV)");
-    hGenPtVsPtHat->GetYaxis()->SetTitle("Gen p_{T}^{jet} (GeV)");
-    plotCMSHeader(collSystem, energy);
+
+    ptHatBinsMax = hRecoPtEtaPtHat->GetZaxis()->GetNbins();
+
+    // //
+    // // 2D distributions
+    // //
+    // TH2D *hRecoPtVsPtHat = dynamic_cast<TH2D *>(hRecoPtEtaPtHat->Project3D("yz"));
+    // hRecoPtVsPtHat->SetName("hRecoPtVsPtHat");
+    // set2DStyle(hRecoPtVsPtHat);
+    // TH2D *hGenPtVsPtHat = dynamic_cast<TH2D *>(hGenPtEtaPtHat->Project3D("yz"));
+    // hGenPtVsPtHat->SetName("hGenPtVsPtHat");
+    // set2DStyle(hGenPtVsPtHat);
+
+    // double ptRange[2] = {0, 250};
+    // TCanvas *cJetPtVsPtHat = new TCanvas("cJetPtVsPtHat", "cJetPtVsPtHat", 1000, 500);
+    // cJetPtVsPtHat->Divide(2, 1);
+    // cJetPtVsPtHat->cd(1);
+    // setPadStyle();
+    // hRecoPtVsPtHat->Draw("colz");
+    // hRecoPtVsPtHat->GetXaxis()->SetRangeUser(ptRange[0], ptRange[1]);
+    // hRecoPtVsPtHat->GetYaxis()->SetRangeUser(ptRange[0], ptRange[1]);
+    // // gPad->SetLogz();
+    // hRecoPtVsPtHat->GetXaxis()->SetTitle("#hat{p}_{T} (GeV)");
+    // hRecoPtVsPtHat->GetYaxis()->SetTitle("Reco p_{T}^{jet} (GeV)");
+    // plotCMSHeader(collSystem, energy);
+    // cJetPtVsPtHat->cd(2);
+    // setPadStyle();
+    // hGenPtVsPtHat->Draw("colz");
+    // hGenPtVsPtHat->GetXaxis()->SetRangeUser(ptRange[0], ptRange[1]);
+    // hGenPtVsPtHat->GetYaxis()->SetRangeUser(ptRange[0], ptRange[1]);
+    // // gPad->SetLogz();
+    // hGenPtVsPtHat->GetXaxis()->SetTitle("#hat{p}_{T} (GeV)");
+    // hGenPtVsPtHat->GetYaxis()->SetTitle("Gen p_{T}^{jet} (GeV)");
+    // plotCMSHeader(collSystem, energy);
 
     //
     // Declare canvases and histograms
     //
     TCanvas *cPtVsEta[ptHatBins.size()];
-    TCanvas *cClosureEta[ptHatBins.size()][jetPtBins.size()];
+    TCanvas *cClosureEta[ptHatBins.size()][jetPtBinsLow.size()];
     TCanvas *cClosurePt[ptHatBins.size()][jetEtaBinsLow.size()];
 
     TH2D *hRecoPtVsEta[ptHatBins.size()];
-    TH1D *hRecoEta[ptHatBins.size()][jetPtBins.size()];
     TH2D *hGenPtVsEta[ptHatBins.size()];
-    TH1D *hGenEta[ptHatBins.size()][jetPtBins.size()];
     TH1D *hRecoPt[ptHatBins.size()][jetEtaBinsLow.size()];
     TH1D *hGenPt[ptHatBins.size()][jetEtaBinsLow.size()];
+
+    TH1D *hRecoEta[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hGenEta[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hRefEta[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hRefSelEta[ptHatBins.size()][jetPtBinsLow.size()];
+
+    TH1D *hReco2GenEta[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hRef2GenEta[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hRefSel2GenEta[ptHatBins.size()][jetPtBinsLow.size()];
+
+    TCanvas *c = new TCanvas("c", "c", 1200, 1000);
+
 
     //
     // Perform analysis and build comparisons for different ptHat intervals.
@@ -766,92 +981,161 @@ void plotInclusiveJetJECClosures(TFile *f, int collSystem = 1, double energy = 8
     // Loop over ptHat bins
     for (unsigned int i = 0; i < ptHatBins.size(); i++) {
 
-        hRecoPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i], ptHatBinsMax);
-        hGenPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i], ptHatBinsMax);
+        double ptHatLow = hRecoPtEtaPtHat->GetZaxis()->GetBinLowEdge(ptHatBins[i]);
 
-        // Make 2D histograms
-        hRecoPtVsEta[i] = dynamic_cast<TH2D *>(hRecoPtEtaPtHat->Project3D("yx"));
-        hRecoPtVsEta[i]->SetName(Form("hRecoPtVsEta_%d", i));
-        set2DStyle(hRecoPtVsEta[i]);
+        //
+        // Set ptHat range
+        //
+        hRecoPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i],  ptHatBinsMax);
+        hGenPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i],  ptHatBinsMax);
+        hRefPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i],  ptHatBinsMax);
+        hRefSelPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i],  ptHatBinsMax);
+        
 
-        hGenPtVsEta[i] = dynamic_cast<TH2D *>(hGenPtEtaPtHat->Project3D("yx"));
-        hGenPtVsEta[i]->SetName(Form("hGenPtVsEta_%d", i));
-        set2DStyle(hGenPtVsEta[i]);
+        // // Make 2D histograms
+        // hRecoPtVsEta[i] = dynamic_cast<TH2D *>(hRecoPtEtaPtHat->Project3D("yx"));
+        // hRecoPtVsEta[i]->SetName(Form("hRecoPtVsEta_%d", i));
+        // set2DStyle(hRecoPtVsEta[i]);
 
-        cPtVsEta[i] = new TCanvas(Form("cPtVsEta_%d", i), Form("cPtVsEta_%d", i), 1000, 500);
-        cPtVsEta[i]->Divide(2, 1);
-        cPtVsEta[i]->cd(1);
-        setPadStyle();
-        hRecoPtVsEta[i]->Draw("colz");
-        hRecoPtVsEta[i]->GetXaxis()->SetRangeUser(-5.2, 5.2);
-        hRecoPtVsEta[i]->GetYaxis()->SetRangeUser(0, 120);
-        hRecoPtVsEta[i]->GetXaxis()->SetTitle("Reco #eta^{jet}");
-        hRecoPtVsEta[i]->GetYaxis()->SetTitle("Reco p_{T}^{jet} (GeV)");
-        plotCMSHeader(collSystem, energy);
-        gPad->SetLogz();
-        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("#hat{p}_{T} > %d GeV", ptHatStart + (ptHatBins[i] - 1) * ptHatStep));
-        cPtVsEta[i]->cd(2);
-        setPadStyle();
-        hGenPtVsEta[i]->Draw("colz");
-        hGenPtVsEta[i]->GetXaxis()->SetRangeUser(-5.2, 5.2);
-        hGenPtVsEta[i]->GetYaxis()->SetRangeUser(0, 120);
-        hGenPtVsEta[i]->GetXaxis()->SetTitle("Gen #eta^{jet}");
-        hGenPtVsEta[i]->GetYaxis()->SetTitle("Gen p_{T}^{jet} (GeV)");
-        plotCMSHeader(collSystem, energy);
-        gPad->SetLogz();
-        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("#hat{p}_{T} > %d GeV", ptHatStart + (ptHatBins[i] - 1) * ptHatStep));
+        // hGenPtVsEta[i] = dynamic_cast<TH2D *>(hGenPtEtaPtHat->Project3D("yx"));
+        // hGenPtVsEta[i]->SetName(Form("hGenPtVsEta_%d", i));
+        // set2DStyle(hGenPtVsEta[i]);
+
+        // cPtVsEta[i] = new TCanvas(Form("cPtVsEta_%d", i), Form("cPtVsEta_%d", i), 1000, 500);
+        // cPtVsEta[i]->Divide(2, 1);
+        // cPtVsEta[i]->cd(1);
+        // setPadStyle();
+        // hRecoPtVsEta[i]->Draw("colz");
+        // hRecoPtVsEta[i]->GetXaxis()->SetRangeUser(-5.2, 5.2);
+        // hRecoPtVsEta[i]->GetYaxis()->SetRangeUser(0, 120);
+        // hRecoPtVsEta[i]->GetXaxis()->SetTitle("Reco #eta^{jet}");
+        // hRecoPtVsEta[i]->GetYaxis()->SetTitle("Reco p_{T}^{jet} (GeV)");
+        // plotCMSHeader(collisionSystem, collisionEnergy);
+        // gPad->SetLogz();
+        // t.DrawLatexNDC(xTextPosition, yTextPosition, Form("#hat{p}_{T} > %4.0f GeV", ptHatLow));
+        // cPtVsEta[i]->cd(2);
+        // setPadStyle();
+        // hGenPtVsEta[i]->Draw("colz");
+        // hGenPtVsEta[i]->GetXaxis()->SetRangeUser(-5.2, 5.2);
+        // hGenPtVsEta[i]->GetYaxis()->SetRangeUser(0, 120);
+        // hGenPtVsEta[i]->GetXaxis()->SetTitle("Gen #eta^{jet}");
+        // hGenPtVsEta[i]->GetYaxis()->SetTitle("Gen p_{T}^{jet} (GeV)");
+        // plotCMSHeader(collisionSystem, collisionEnergy);
+        // gPad->SetLogz();
+        // t.DrawLatexNDC(xTextPosition, yTextPosition, Form("#hat{p}_{T} > %4.0f GeV", ptHatLow));
 
         //
         // Loop over jet pT bins
         //
-        for (unsigned int j = 0; j < jetPtBins.size(); j++) {
+        for (unsigned int j = 0; j < jetPtBinsLow.size(); j++) {
 
-            // Create canvas
-            cClosureEta[i][j] = new TCanvas(Form("cClosureEta_%d_%d", i, j), Form("cClosureEta_%d_%d", i, j), 700, 800);
-            // Make projection of the 3D histograms
+            //
+            // Make projections of the 3D histograms
+            //
+
+            double ptLow = hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]);
+            double ptHi = hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]);
+
+            // Reco jets
             hRecoEta[i][j] = dynamic_cast<TH1D *>(hRecoPtEtaPtHat->ProjectionX(Form("hRecoEta_%d_%d", i, j),
-                                                                               jetPtBins[j], jetPtBinsMax,
+                                                                               jetPtBinsLow[j], jetPtBinsHigh[j],
                                                                                ptHatBins[i], ptHatBinsMax));
             set1DStyle(hRecoEta[i][j], 0, kTRUE);
+
+            // Gen jets
             hGenEta[i][j] = dynamic_cast<TH1D *>(hGenPtEtaPtHat->ProjectionX(Form("hGenEta_%d_%d", i, j),
-                                                                             jetPtBins[j], jetPtBinsMax,
-                                                                             ptHatBins[i], ptHatBinsMax));
-            set1DStyle(hGenEta[i][j], 1, kTRUE);
+                                                 jetPtBinsLow[j], jetPtBinsHigh[j],
+                                                 ptHatBins[i], ptHatBinsMax));
+            set1DStyle(hGenEta[i][j], 5, kTRUE);
 
-            // Plot distributions
-            drawJecComparison(cClosureEta[i][j], hRecoEta[i][j], hGenEta[i][j],
-                           jetPtStart + (jetPtBins[j] - 1) * jetPtStep,
-                           ptHatStart + (ptHatBins[i] - 1) * ptHatStep,
-                           "Reco", "Gen", collSystem, energy, false, true);
+            // Ref jets
+            hRefEta[i][j] = dynamic_cast<TH1D *>(hRefPtEtaPtHat->ProjectionX(Form("hRefEta_%d_%d", i, j),
+                                                 jetPtBinsLow[j], jetPtBinsHigh[j],
+                                                 ptHatBins[i], ptHatBinsMax));
+            set1DStyle(hRefEta[i][j], 1, kTRUE);
+        
+            // RefSel jets
+            hRefSelEta[i][j] = dynamic_cast<TH1D *>(hRefSelPtEtaPtHat->ProjectionX(Form("hRefSelEta_%d_%d", i, j),
+                                                 jetPtBinsLow[j], jetPtBinsHigh[j],
+                                                 ptHatBins[i], ptHatBinsMax));
+            set1DStyle(hRefSelEta[i][j], 2, kTRUE);
 
-        } // for (unsigned int j = 0; j < jetPtBins.size(); j++)
+            //
+            // Ratios of reco, ref and refSel to gen
+            //
+            hReco2GenEta[i][j] = dynamic_cast<TH1D *>(hRecoEta[i][j]->Clone(Form("hReco2GenEta_%d_%d", i, j)));
+            hReco2GenEta[i][j]->Divide(hReco2GenEta[i][j], hGenEta[i][j], 1., 1., "b");
+            hRef2GenEta[i][j] = dynamic_cast<TH1D *>(hRefEta[i][j]->Clone(Form("hRef2GenEta_%d_%d", i, j)));
+            hRef2GenEta[i][j]->Divide(hRef2GenEta[i][j], hGenEta[i][j], 1., 1., "b");
+            hRefSel2GenEta[i][j] = dynamic_cast<TH1D *>(hRefSelEta[i][j]->Clone(Form("hRefSel2GenEta_%d_%d", i, j)));
+            hRefSel2GenEta[i][j]->Divide(hRefSel2GenEta[i][j], hGenEta[i][j], 1., 1., "b");
+
+            //
+            // Plot comparisons
+            //
+            drawSingleJetToGenComparison(c, hRecoEta[i][j], hRefEta[i][j], hGenEta[i][j], hRefSelEta[i][j], nullptr,
+                                         hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
+                                         hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]),
+                                         ptHatLow, false, false, collisionSystem, collisionEnergy);
+            c->SaveAs(Form("%s/%s_jetEta_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), 
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j])));
+
+            //
+            // Plot ratios
+            //
+            drawSingleJetToGenRatio(c, hReco2GenEta[i][j], hRef2GenEta[i][j], hRefSel2GenEta[i][j], nullptr,
+                                    hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
+                                    hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]),
+                                    ptHatLow, false, false, collisionSystem, collisionEnergy);
+            c->SaveAs(Form("%s/%s_jetEta_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), 
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j])));
 
 
-        //
-        // Loop over jet eta bins
-        //
-        for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++) {
+            // // Create canvas
+            // cClosureEta[i][j] = new TCanvas(Form("cClosureEta_%d_%d", i, j), Form("cClosureEta_%d_%d", i, j), 700, 800);
 
-            // Create canvas
-            cClosurePt[i][j] = new TCanvas(Form("cClosurePt_%d_%d", i, j), Form("cClosurePt_%d_%d", i, j), 700, 800);
-            // Make projection of the 3D histograms
-            hRecoPt[i][j] = dynamic_cast<TH1D *>(hRecoPtEtaPtHat->ProjectionY(Form("hRecoPt_%d_%d", i, j),
-                                                                              jetEtaBinsLow[j], jetEtaBinsHigh[j],
-                                                                              ptHatBins[i], ptHatBinsMax));
-            set1DStyle(hRecoPt[i][j], 0, kFALSE);
-            hGenPt[i][j] = dynamic_cast<TH1D *>(hGenPtEtaPtHat->ProjectionY(Form("hGenPt_%d_%d", i, j),
-                                                                            jetEtaBinsLow[j], jetEtaBinsHigh[j],
-                                                                            ptHatBins[i], ptHatBinsMax));
-            set1DStyle(hGenPt[i][j], 1, kFALSE);
+            // // Plot distributions
+            // drawJecComparison(cClosureEta[i][j], hRecoEta[i][j], hGenEta[i][j],
+            //                   hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge( jetPtBinsLow[j] ), 
+            //                   hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge( jetPtBinsHigh[j] ),
+            //                   ptHatLow,
+            //                   "Reco", "Gen", collisionSystem, collisionEnergy, false, true, false,
+            //                   hRecoPtEtaPtHat->GetXaxis()->GetBinLowEdge( 1 ),
+            //                   hRecoPtEtaPtHat->GetXaxis()->GetBinUpEdge( hRecoPtEtaPtHat->GetXaxis()->GetNbins() )
+            //                 );
 
-            // Plot distributions
-            drawJecComparison(cClosurePt[i][j], hRecoPt[i][j], hGenPt[i][j],
-                           jetPtStart + (jetPtBins[j] - 1) * jetPtStep,
-                           ptHatStart + (ptHatBins[i] - 1) * ptHatStep,
-                           "Reco", "Gen", collSystem, energy, false, true, true,
-                           -5.2 + (jetEtaBinsLow[j] - 1) * etaStep, -5.2 + (jetEtaBinsHigh[j] - 1) * etaStep);
+        } // for (unsigned int j = 0; j < jetPtBinsLow.size(); j++)
 
-        } // for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++)
+
+        // //
+        // // Loop over jet eta bins
+        // //
+        // for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++) {
+
+        //     // Create canvas
+        //     cClosurePt[i][j] = new TCanvas(Form("cClosurePt_%d_%d", i, j), Form("cClosurePt_%d_%d", i, j), 700, 800);
+        //     // Make projection of the 3D histograms
+        //     hRecoPt[i][j] = dynamic_cast<TH1D *>(hRecoPtEtaPtHat->ProjectionY(Form("hRecoPt_%d_%d", i, j),
+        //                                                                       jetEtaBinsLow[j], jetEtaBinsHigh[j],
+        //                                                                       ptHatBins[i], ptHatBinsMax));
+        //     set1DStyle(hRecoPt[i][j], 0, kFALSE);
+        //     hGenPt[i][j] = dynamic_cast<TH1D *>(hGenPtEtaPtHat->ProjectionY(Form("hGenPt_%d_%d", i, j),
+        //                                                                     jetEtaBinsLow[j], jetEtaBinsHigh[j],
+        //                                                                     ptHatBins[i], ptHatBinsMax));
+        //     set1DStyle(hGenPt[i][j], 1, kFALSE);
+
+        //     // Plot distributions
+        //     drawJecComparison(cClosurePt[i][j], hRecoPt[i][j], hGenPt[i][j],
+        //                       hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge( 1 ),
+        //                       hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge( hRecoPtEtaPtHat->GetYaxis()->GetNbins() ),
+        //                       ptHatLow,
+        //                       "Reco", "Gen", collisionSystem, collisionEnergy, false, true, true,
+        //                       hRecoPtEtaPtHat->GetXaxis()->GetBinLowEdge( jetEtaBinsLow[j] ), 
+        //                       hRecoPtEtaPtHat->GetXaxis()->GetBinUpEdge( jetEtaBinsHigh[j] ));
+
+        // } // for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++)
     } // for (unsigned int i = 0; i < ptHatBins.size(); i++)
 }
 
@@ -898,9 +1182,10 @@ void plotData2McInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem 
 
     // Jet pT binning
     int jetPtStart = 5;
-    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBins(i) - 1) * jetPtStep
+    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBinsLow(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBins{4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15}; // 35, 45, 55, 85
+    std::vector<int> jetPtBinsLow {4,  5,  6,  7,  8,  9,  12,   4,   5,   7,   9}; 
+    std::vector<int> jetPtBinsHigh{5,  6,  7,  8,  9, 12,  50, 150, 150, 150, 150};
 
     // Eta binning
     // 52 bins from (-5.2, 5.2)
@@ -909,15 +1194,15 @@ void plotData2McInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem 
     std::vector<int> jetEtaBinsLow{19, 12, 38};
     std::vector<int> jetEtaBinsHigh{35, 16, 42};
 
-    TH1D *hRecoDataEta[jetPtBins.size()];
-    TH1D *hRecoMcEta[jetPtBins.size()];
-    TH1D *hGenMcEta[jetPtBins.size()];
+    TH1D *hRecoDataEta[jetPtBinsLow.size()];
+    TH1D *hRecoMcEta[jetPtBinsLow.size()];
+    TH1D *hGenMcEta[jetPtBinsLow.size()];
 
-    TCanvas *cClosureEtaReco2Reco[jetPtBins.size()];
-    TCanvas *cClosureEtaReco2Gen[jetPtBins.size()];
+    TCanvas *cClosureEtaReco2Reco[jetPtBinsLow.size()];
+    TCanvas *cClosureEtaReco2Gen[jetPtBinsLow.size()];
 
     // Jet pT binning
-    for (unsigned int i = 0; i < jetPtBins.size(); i++) {
+    for (unsigned int i = 0; i < jetPtBinsLow.size(); i++) {
 
         //
         // Reco data 2 Reco MC comparison
@@ -928,21 +1213,27 @@ void plotData2McInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem 
 
         // Make projection of the 3D histograms
         hRecoDataEta[i] = dynamic_cast<TH1D *>(hRecoDataPtEtaPtHat->ProjectionX(Form("hRecoDataEta_%d", i),
-                                                                                 jetPtBins[i], jetPtBinsMax,
+                                                                                 jetPtBinsLow[i], jetPtBinsHigh[i],
                                                                                  1, -1));
         set1DStyle(hRecoDataEta[i], 0, kTRUE);
 
         hRecoMcEta[i] = dynamic_cast<TH1D *>(hRecoMcPtEtaPtHat->ProjectionX(Form("hRecoMcEta_%d", i),
-                                                                              jetPtBins[i], jetPtBinsMax,
+                                                                              jetPtBinsLow[i], jetPtBinsHigh[i],
                                                                               ptHatBins[0], hRecoMcPtEtaPtHat->GetNbinsZ()));
         set1DStyle(hRecoMcEta[i], 1, kTRUE);
 
         // Plot distributions
         drawJecComparison(cClosureEtaReco2Reco[i], hRecoDataEta[i], hRecoMcEta[i],
-                          jetPtStart + (jetPtBins[i] - 1) * jetPtStep,
-                          ptHatStart + (ptHatBins[0] - 1) * ptHatStep,
-                          "Data", "Reco MC", collSystem, energy, false, true);
-        cClosureEtaReco2Reco[i]->SaveAs( Form("%s/%s_closureEta_Reco2Reco_pt_%d.pdf", date.Data(), collSystemStr.Data(), int(jetPtStart + (jetPtBins[i] - 1) * jetPtStep) ) );
+            hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[i]),
+            hRecoDataPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[i]),
+            ptHatStart + (ptHatBins[0] - 1) * ptHatStep,
+            "Data", "Reco MC", collSystem, energy, false, true,
+            hRecoDataPtEtaPtHat->GetXaxis()->GetBinLowEdge(1),
+            hRecoDataPtEtaPtHat->GetXaxis()->GetBinUpEdge(hRecoDataPtEtaPtHat->GetXaxis()->GetNbins()));
+        cClosureEtaReco2Reco[i]->SaveAs( Form("%s/%s_closureEta_Reco2Reco_pt_%d__%d.pdf", 
+                                              date.Data(), collSystemStr.Data(), 
+                                              int(hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[i])),
+                                              int(hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsHigh[i])) ) );
 
 
         //
@@ -953,20 +1244,28 @@ void plotData2McInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem 
         cClosureEtaReco2Gen[i] = new TCanvas(Form("cClosureEtaReco2Gen_%d", i), Form("cClosureEtaReco2Gen_%d", i), 700, 800);
         // Make projection of the 3D histograms
         hGenMcEta[i] = dynamic_cast<TH1D *>(hGenMcPtEtaPtHat->ProjectionX(Form("hGenMcEta_%d", i),
-                                                                            jetPtBins[i], jetPtBinsMax,
+                                                                            jetPtBinsLow[i], jetPtBinsHigh[i],
                                                                             ptHatBins[0], hGenMcPtEtaPtHat->GetNbinsZ()));
         set1DStyle(hGenMcEta[i], 1, kTRUE);
 
         // Plot distributions
         drawJecComparison(cClosureEtaReco2Gen[i], hRecoDataEta[i], hGenMcEta[i],
-                          jetPtStart + (jetPtBins[i] - 1) * jetPtStep,
+                          hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[i]),
+                          hGenMcPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[i]),
                           ptHatStart + (ptHatBins[0] - 1) * ptHatStep,
-                          "Data", "Gen MC", collSystem, energy, false, true);
+                          "Data", "Gen MC", collSystem, energy, false, true,
+                          hGenMcPtEtaPtHat->GetXaxis()->GetBinLowEdge(1),
+                          hGenMcPtEtaPtHat->GetXaxis()->GetBinUpEdge(hGenMcPtEtaPtHat->GetXaxis()->GetNbins())
+                        );
 
         // Save canvas
-        cClosureEtaReco2Gen[i]->SaveAs( Form("%s/%s_closureEta_Reco2Gen_pt_%d.pdf", date.Data(), collSystemStr.Data(), int(jetPtStart + (jetPtBins[i] - 1) * jetPtStep) ) );
+        cClosureEtaReco2Gen[i]->SaveAs( Form("%s/%s_closureEta_Reco2Gen_pt_%d_%d.pdf", 
+                                             date.Data(), collSystemStr.Data(), 
+                                             int(hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[i])) ,
+                                             int(hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsHigh[i])) )
+                                            );
 
-    } // for (unsigned int i = 0; i < jetPtBins.size(); i++)
+    } // for (unsigned int i = 0; i < jetPtBinsLow.size(); i++)
 }
 
 //________________
@@ -1294,7 +1593,7 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         //
 
         // Lab frame
-        drawToGenComparison(c, hRecoMcDijetEta[i], hGenMcDijetEta[i], hRefMcDijetEta[i], hRecoDataDijetEta[i], 
+        drawDijetToGenComparison(c, hRecoMcDijetEta[i], hGenMcDijetEta[i], hRefMcDijetEta[i], nullptr, hRecoDataDijetEta[i], 
                             (int)dijetPtVals[i], (int)dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaLab_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
@@ -1307,7 +1606,7 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         c->SaveAs( Form("%s/%s_dijetEtaLab_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         // CM frame
-        drawToGenComparison(c, hRecoMcDijetEtaCM[i], hGenMcDijetEtaCM[i], hRefMcDijetEtaCM[i], hRecoDataDijetEtaCM[i], 
+        drawDijetToGenComparison(c, hRecoMcDijetEtaCM[i], hGenMcDijetEtaCM[i], hRefMcDijetEtaCM[i], nullptr, hRecoDataDijetEtaCM[i], 
                             (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaCM_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
         
@@ -1320,7 +1619,7 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         c->SaveAs( Form("%s/%s_dijetEtaCM_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         // Forward-backward ratio
-        drawToGenComparison(c, hRecoMcDijetFBRatio[i], hGenMcDijetFBRatio[i], hRefMcDijetFBRatio[i], hRecoDataDijetFBRatio[i], 
+        drawDijetToGenComparison(c, hRecoMcDijetFBRatio[i], hGenMcDijetFBRatio[i], hRefMcDijetFBRatio[i], nullptr, hRecoDataDijetFBRatio[i], 
                             (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, true, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaFBRatio_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
@@ -1338,12 +1637,12 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         //
 
         // Lab frame
-        drawToGenRatio(c, hRecoMc2GenDijetEta[i], hRef2GenDijetEta[i], hRecoData2GenDijetEta[i],
+        drawDijetToGenRatio(c, hRecoMc2GenDijetEta[i], hRef2GenDijetEta[i], nullptr, hRecoData2GenDijetEta[i],
                        (int)dijetPtVals[i], (int)dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaLab_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         // CM frame
-        drawToGenRatio(c, hRecoMc2GenDijetEtaCM[i], hRef2GenDijetEtaCM[i], hRecoData2GenDijetEtaCM[i],
+        drawDijetToGenRatio(c, hRecoMc2GenDijetEtaCM[i], hRef2GenDijetEtaCM[i], nullptr, hRecoData2GenDijetEtaCM[i],
                        (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
         c->SaveAs( Form("%s/%s_dijetEtaCM_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
     }
@@ -1529,9 +1828,11 @@ void plotMcClosures() {
 
     // MC p-going direction new (coincides with the pPb5020)
     // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/work/cms/soft/jetAnalysis/build/oTest_pPb8160_dijet_ptHat_50_80_noTrkMax.root", uname.Data()) );
+    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/work/cms/soft/jetAnalysis/macro/pPb8160_Pbgoing_noTrkMax/oEmbedding_pPb8160_Pbgoing_noTrkMax.root", uname.Data()) );
     if ( !pPb8160EmbedFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+        std::cerr << Form("File not found: /Users/%s/work/cms/soft/jetAnalysis/macro/pPb8160_Pbgoing_noTrkMax/oEmbedding_pPb8160_Pbgoing_noTrkMax.root", uname.Data()) << std::endl;
         return;
     }
 
@@ -1551,14 +1852,15 @@ void plotMcClosures() {
     }
 
     //
-    // Comparison of dijet reco and ref to gen distributions
-    //
-    // comparisons2gen( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
-
-    //
     // Plot for inclusive jets JEC closures (scan in eta and pT)
     //
-    // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy);
+    plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+
+    //
+    // Comparison of dijet reco and ref to gen distributions
+    //
+    plotDijetClosures( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+
 
     //
     // Plot comparison of inclusive jet eta distributions to check/validate the JEC
@@ -1568,7 +1870,7 @@ void plotMcClosures() {
     //
     // Plot comparison of dijet reco and ref to gen distributions
     //
-    plotData2McDijetComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+    // plotData2McDijetComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
 
     //
     // Plot comparison of inclusive jets and dijets for embedding and PYTHIA

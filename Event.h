@@ -35,7 +35,7 @@ class Event : public TObject {
     //
 
     /// @brief Set run index
-    void setRunId(const Int_t& id)       { fRunId = id; }
+    void setRunId(const UInt_t& id)      { fRunId = id; }
     /// @brief Set event index
     void setEventId(const ULong64_t& id) { fEventId = id; }
     /// @brief Set luminosity
@@ -70,7 +70,7 @@ class Event : public TObject {
     //
 
     /// @brief Return run index 
-    Int_t runId() const       { return fRunId; }
+    UInt_t runId() const      { return fRunId; }
     /// @brief Return event index 
     ULong64_t eventId() const { return fEventId; }
     /// @brief Return luminosity 
@@ -111,7 +111,7 @@ class Event : public TObject {
 
   private:
     /// @brief Run index
-    Int_t    fRunId;
+    UInt_t    fRunId;
     /// @brief Event index
     ULong64_t fEventId;
     /// @brief Luminosity value

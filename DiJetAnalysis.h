@@ -102,6 +102,10 @@ class DiJetAnalysis : public BaseAnalysis {
 
   private:
 
+    /// @brief Loop over reco, gen and ref-selected reco jets and save jet indices in pT-sorted vectors
+    void makePtSortedJetVectors(const Event* event);
+    /// Loop over reco, gen and ref jets and search for leading and subleading jets
+    void processInclusiveJets(const Event* event, const double& weight);
     /// Check if event is overweighted in MC
     bool isOverweightedEvent(const Event* event, const double& weight);
     /// @brief  Check if event is overweighted
@@ -114,6 +118,13 @@ class DiJetAnalysis : public BaseAnalysis {
     void processRecoJets(const Event* event, const double &weight);
     /// @brief Process ref jets
     void processRefJets(const Event* event, const double &weight);
+    /// @brief Process gen dijets
+    void processGenDijets(const Event* event, const double &weight);
+    /// @brief Process reco dijets
+    void processRecoDijets(const Event* event, const double &weight);
+    /// @brief Process ref dijets
+    void processRefDijets(const Event* event, const double &weight);
+
     /// @brief Dijet selection
     bool isGoodDijet(const float& ptLead, const float& ptSublead, const float& dphi);
 
@@ -219,6 +230,17 @@ class DiJetAnalysis : public BaseAnalysis {
     float  fJetEtaLab[2];
     /// Range of eta selection in the center-of-mass frame
     float  fJetEtaCM[2];
+
+    // Indices of the leading and subleading jets (at the beginning of the event processing must be set to -1)
+    int    fRecoIdLead;
+    int    fRecoIdSubLead;
+    int    fGenIdLead;
+    int    fGenIdSubLead;
+    int    fRefSelRecoIdLead;
+    int    fRefSelRecoIdSubLead;
+    std::vector<int> fRecoPtSortedJetIds;
+    std::vector<int> fGenPtSortedJetIds;
+    std::vector<int> fRefSelRecoPtSortedJetIds;
 
     /// @brief Values for new dijet ptAve binning
     std::vector<float> fPtAveBins;

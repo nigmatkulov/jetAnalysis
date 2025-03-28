@@ -3460,9 +3460,9 @@ void HistoManagerDiJet::writeOutput() {
         // Ref-seletected histograms
         //
 
-        hRefSelInclusiveJetPt->Sumw2();
-        hRefSelInclusiveJetPtEta->Sumw2();
-        hRefSelInclusiveJetPtEtaPtHat->Sumw2();
+        hRefSelInclusiveJetPt->Write();
+        hRefSelInclusiveJetPtEta->Write();
+        hRefSelInclusiveJetPtEtaPtHat->Write();
 
         hRefSelDijetEta->Write();
         hRefSelDijetPtEtaDphi->Write();

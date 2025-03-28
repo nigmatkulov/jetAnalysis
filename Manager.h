@@ -20,6 +20,7 @@
 // ROOT headers
 #include "TObject.h"
 #include "Rtypes.h"
+#include "TStopwatch.h"
 
 //________________
 class Manager {
@@ -49,6 +50,8 @@ class Manager {
     AnalysisCollection *fAnalysisCollection;
     /// @brief Poiter to event reader
     BaseReader *fEventReader;
+    /// @brief Stopwatch
+    TStopwatch *fTimer;
     /// Number of events in input
     Long64_t fEventsInChain;
 
