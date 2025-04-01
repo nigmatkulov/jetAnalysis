@@ -23,7 +23,7 @@ class Event : public TObject {
     /// @brief Default constructor
     Event();
     /// @brief Parametrized constructor
-    Event(const Int_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
+    Event(const UInt_t& runId, const ULong64_t& eventId, const UInt_t& lumi, 
           const Float_t& vx, const Float_t& vy, const Float_t& vz, 
           const Int_t& hiBin, const Float_t& centW, const Float_t& ptHat, 
           const Float_t& w, const Int_t& nBadRecoJets, const Int_t& mult);
