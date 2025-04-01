@@ -44,7 +44,7 @@ int main(int argc, char const *argv[]) {
     TString path2JEC = "..";
     double ptHatCut[2] {-100000000, 100000000};
     int   useJEUSyst{0};  // 0-default, 1-JEU+, -1-JEU-
-    int   useJERSyst{0};  // 0-default, 1-JER+, -1-JER-
+    int   useJERSyst{-99};  // 0-default, 1-JER+, -1-JER-, other - not use extra JER smearing
     double etaShift = 0.465;
 
     // Sequence of command line arguments:
@@ -89,11 +89,11 @@ int main(int argc, char const *argv[]) {
               << std::endl;
 
     if (isMc) {
-        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
+        JECFileName = "Spring18_ppRef5TeV_V6_MC_L2Relative_AK4PF.txt";
     }
     else {
-        JECFileName = "Spring18_ppRef5TeV_V6_DATA_L2Relative_AK4PF.txt";
-        JECFileDataName = "/Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
+        JECFileName = "Spring18_ppRef5TeV_V6_MC_L2Relative_AK4PF.txt";
+        JECFileDataName = "Spring18_ppRef5TeV_V6_DATA_L2L3Residual_AK4PF.txt";
         JEUFileName = "Spring18_ppRef5TeV_V6_DATA_Uncertainty_AK4PF.txt";
     } // else
 
@@ -156,7 +156,7 @@ int main(int argc, char const *argv[]) {
 
     if ( recoJetBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
         std::cout << "Extra correction will be used for JEC" << std::endl;
-        reader->useExtraJECCorr();
+        reader->useExtraJECCorrForConstSubtraction();
     }
 
     reader->setCollidingSystem( collisionSystemName.Data() );
@@ -167,16 +167,16 @@ int main(int argc, char const *argv[]) {
 
     // Set path to jet analysis (then will automatically add path to aux_files)
     reader->setPath2JetAnalysis( path2JEC.Data() );
-    reader->addJECFile( JECFileName.Data() );
+    reader->addJECFile( JECFileName.Data() ); // Default JEC file for both data and MC
     if ( !isMc ) {
-        reader->setUseJEU( useJEUSyst );
         reader->addJECFile( JECFileDataName.Data() );
+        reader->setUseJEU( useJEUSyst );
         reader->setJEUFileName( JEUFileName );
     }
     if ( isMc ) {
-        reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use
+        reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use (to check JES and JER)
         reader->setJERFitParams(0.0415552, 0.960013);
-        //reader->setJERSystParams();
+        reader->setJERSystParams();
     }
 
     //reader->setVerbose();

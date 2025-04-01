@@ -35,8 +35,8 @@ int main(int argc, char const *argv[]) {
     int  collisionSystem{1}; // 0 - pp, 1 -pPb, 2 - PbPb 
     TString collisionSystemName{"pPb"};
     double   collYear{2016};
-    TString recoJetBranchName{"akCs4PFJetAnalyzer"};
-    //TString recoJetBranchName{"ak4PFJetAnalyzer"};
+    // TString recoJetBranchName{"akCs4PFJetAnalyzer"};
+    TString recoJetBranchName{"ak4PFJetAnalyzer"};
     TString oFileName{};
     TString JECFileName;
     TString JECFileDataName;
@@ -44,7 +44,7 @@ int main(int argc, char const *argv[]) {
     TString path2JEC = "..";
     double ptHatCut[2] {-10000000, 10000000};
     int   useJEUSyst{0};     // 0-default, 1-JEU+, -1-JEU-
-    int   useJERSyst{0};     // 0-default, 1-JER+, -1-JER-
+    int   useJERSyst{-99};     // 0-default, 1-JER+, -1-JER-, other - only JEC is applied
     double etaShift = 0.465;
 
     // Sequence of command line arguments:
@@ -163,7 +163,7 @@ int main(int argc, char const *argv[]) {
 
     if ( recoJetBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
         std::cout << "Extra correction will be used for JEC" << std::endl;
-        reader->useExtraJECCorr();
+        reader->useExtraJECCorrForConstSubtraction();
     }
 
     //reader->useCaloJetBranch();

@@ -79,7 +79,7 @@ Event::~Event() {
 //________________
 void Event::print() {
     std::cout << Form("-------------------------------------\n")
-              << Form("runId: %d  eventId: %llu  lumi: %d  vx: %5.2f  vy: %5.2f  vz: %5.2f\n", fRunId, fEventId, fLumi, fVx, fVy, fVz)
+              << Form("runId: %u  eventId: %llu  lumi: %d  vx: %5.2f  vy: %5.2f  vz: %5.2f\n", fRunId, fEventId, fLumi, fVx, fVy, fVz)
               << Form("hiBin: %d  ptHat: %3.2f  ptHatWeight: %4.2f \n", hiBin(), fPtHat, fPtHatWeight)
               << Form("-------------------------------------\n");
 }

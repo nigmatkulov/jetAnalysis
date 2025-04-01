@@ -20,11 +20,11 @@
 #include <iostream>
 #include <vector>
                                // 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 180, 200, 250, 300, 500,  extra: 95 -- 115
-std::vector<Int_t> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
-std::vector<Int_t> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
+std::vector<int> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
+std::vector<int> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
 
-const Int_t dijetEtaBins{30};
-Double_t dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
+const int dijetEtaBins{30};
+double dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2, 
                                         -2.0, -1.8, -1.6, -1.4, -1.2, 
                                         -1.0, -0.8, -0.6, -0.4, -0.2,  
                                         0.0,  0.2,  0.4,  0.6,  0.8,  
@@ -32,30 +32,30 @@ Double_t dijetEtaVals[dijetEtaBins+1] { -5.0, -4.0, -3.0, -2.4, -2.2,
                                         2.0,  2.2,  2.4,  3.0,  4.0,  
                                         5.0 };
 
-const Int_t dijetEtaFBBins{15};
-Double_t dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
+const int dijetEtaFBBins{15};
+double dijetEtaFBVals[dijetEtaFBBins+1] { 0.0,  0.2,  0.4,  0.6,  0.8,  
                                             1.0,  1.2,  1.4,  1.6,  1.8,  
                                             2.0,  2.2,  2.4,  3.0,  4.0,  
                                             5.0 };
 
-Int_t nPads{4};
+int nPads{4};
 
-Double_t etaCMShift{0.465};
+double etaCMShift{0.465};
 
 // nPDF pT bins
-std::vector<Int_t> npdfPtLow = {60, 100, 140}; 
-std::vector<Int_t> npdfPtHi =  {70, 110, 150};
+std::vector<int> npdfPtLow = {60, 100, 140}; 
+std::vector<int> npdfPtHi =  {70, 110, 150};
 
 // Dijet opening angle text for labels
-const Char_t *dijet_dphi = "#frac{5#pi}{6}";
+const Char_t *dijet_dphi = "#frac{2#pi}{3}";
 
-Int_t fontFamily{42}; // Times New Roman
+int fontFamily{42}; // Times New Roman
 
 //________________
-void fillDijetPtBins(std::vector<Int_t> &ptDijetLow, std::vector<Int_t> &ptDijetHi) {
-    Int_t ptStep {5};
-    Int_t ptLow {30};
-    for (UInt_t i{0}; i<ptDijetBinLow.size(); i++) {
+void fillDijetPtBins(std::vector<int> &ptDijetLow, std::vector<int> &ptDijetHi) {
+    int ptStep {5};
+    int ptLow {30};
+    for (int i{0}; i<ptDijetBinLow.size(); i++) {
         ptDijetLow.push_back( ptLow + (ptDijetBinLow.at(i)-1) * ptStep );
         ptDijetHi.push_back( ptLow + ptDijetBinHi.at(i) * ptStep );
     }
@@ -195,28 +195,28 @@ void createDirectory(const char* directoryPath) {
 
 //________________
 void rescaleEta(TH1* h) {
-    for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++) {
-        Double_t val = h->GetBinContent( iBin );
-        Double_t valErr = h->GetBinError( iBin );
-        Double_t binWidth = h->GetBinWidth( iBin );
+    for (int iBin=1; iBin<=h->GetNbinsX(); iBin++) {
+        double val = h->GetBinContent( iBin );
+        double valErr = h->GetBinError( iBin );
+        double binWidth = h->GetBinWidth( iBin );
         h->SetBinContent( iBin, val / binWidth );
         h->SetBinError( iBin, valErr / binWidth );
-    } // for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++)
+    } // for (int iBin=1; iBin<=h->GetNbinsX(); iBin++)
     h->Scale( 1. / h->Integral() );
 }
 
 //________________
 void rescaleEta(TH2* h) {
-    for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++) {
-        for (Int_t jBin=1; jBin<=h->GetNbinsY(); jBin++) {
-            Double_t val = h->GetBinContent( iBin, jBin );
-            Double_t valErr = h->GetBinError( iBin, jBin );
-            Double_t binWidthX = h->GetXaxis()->GetBinWidth( iBin );
-            Double_t binWidthY = h->GetYaxis()->GetBinWidth( jBin );
+    for (int iBin=1; iBin<=h->GetNbinsX(); iBin++) {
+        for (int jBin=1; jBin<=h->GetNbinsY(); jBin++) {
+            double val = h->GetBinContent( iBin, jBin );
+            double valErr = h->GetBinError( iBin, jBin );
+            double binWidthX = h->GetXaxis()->GetBinWidth( iBin );
+            double binWidthY = h->GetYaxis()->GetBinWidth( jBin );
             h->SetBinContent( iBin, jBin, val / (binWidthX * binWidthY) );
             h->SetBinError( iBin, jBin, valErr / (binWidthX * binWidthY) );
-        } // for (Int_t jBin=1; jBin<=h->GetNbinsY(); jBin++)
-    } // for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++)
+        } // for (int jBin=1; jBin<=h->GetNbinsY(); jBin++)
+    } // for (int iBin=1; iBin<=h->GetNbinsX(); iBin++)
     h->Scale( 1. / h->Integral() );
 }
 
@@ -238,11 +238,11 @@ void setPadFBStyle() {
 }
 
 //________________
-void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
-    Int_t markerStyle = 20; // Full circle
-    Double_t markerSize = 1.5;
-    Int_t lineWidth = 2;
-    Int_t color = 2;
+void set1DStyle(TH1 *h, int type = 0, bool doRenorm = false) {
+    int markerStyle = 20; // Full circle
+    double markerSize = 1.5;
+    int lineWidth = 2;
+    int color = 2;
     if (type == 0) {
         color = 2;        // red
         markerStyle = 20; // filled circle
@@ -299,11 +299,11 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
 }
 
 //________________
-void setSystUncrtStyle(TH1* h, Int_t type = 0) {
-    Int_t color = 29;        // Green-like
-    Int_t markerColor = 1;
-    Int_t lineWidth = 0;
-    Int_t markerStyle = 20; // Full circle
+void setSystUncrtStyle(TH1* h, int type = 0) {
+    int color = 29;        // Green-like
+    int markerColor = 1;
+    int lineWidth = 0;
+    int markerStyle = 20; // Full circle
     if ( type == 0 ) {
         color = 29;          // Green-like
         lineWidth = 1;
@@ -347,7 +347,7 @@ void setSystUncrtStyle(TH1* h, Int_t type = 0) {
 }
 
 //________________
-void setGraphStyle(TGraph* gr, Bool_t isCM = "kFALSE") {
+void setGraphStyle(TGraph* gr, bool isCM = "false") {
     gr->GetYaxis()->SetTitleSize(0.06);
     gr->GetYaxis()->SetLabelSize(0.06);
     gr->GetXaxis()->SetTitleSize(0.06);
@@ -366,7 +366,7 @@ void setGraphStyle(TGraph* gr, Bool_t isCM = "kFALSE") {
 }
 
 //________________
-void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
+void set2DStyle(TH2* h, bool doRenorm = false) {
     h->GetYaxis()->SetTitleSize(0.06);
     h->GetYaxis()->SetLabelSize(0.06);
     h->GetXaxis()->SetTitleSize(0.06);
@@ -382,30 +382,30 @@ void set2DStyle(TH2* h, Bool_t doRenorm = kFALSE) {
 
 //________________
 void makeProjectionsFrom2D(TH2D *h2D, TH1D *hProjX[], TH1D *hProjY[], 
-                           Int_t nBinsX = 1, Int_t nBinsY = 1, 
+                           int nBinsX = 1, int nBinsY = 1, 
                            const Char_t *hNameX = "hProjX", const Char_t *hNameY = "hProjY",
-                           Int_t style = 1) {
+                           int style = 1) {
 
     // Make projections on X axis
-    for (Int_t i{0}; i<nBinsY; i++) {
+    for (int i{0}; i<nBinsY; i++) {
         hProjX[i] = dynamic_cast<TH1D*>( h2D->ProjectionX( Form("%s_%d", hNameX, i), i+1, i+1) );
         hProjX[i]->SetNameTitle( Form("%s_%d", hNameX, i), ";#eta");
         set1DStyle( hProjX[i], style );
         hProjX[i]->SetMarkerSize(0.7);
-    } // for (Int_t i{1}; i<=nBinsX; i++)
+    } // for (int i{1}; i<=nBinsX; i++)
 
     // Make projections on Y axis
-    for (Int_t i{0}; i<nBinsX; i++) {
+    for (int i{0}; i<nBinsX; i++) {
         hProjY[i] = dynamic_cast<TH1D*>( h2D->ProjectionY( Form("%s_%d", hNameY, i), i+1, i+1) );
         hProjY[i]->SetNameTitle( Form("%s_%d", hNameY, i), ";p_{T} (GeV)");
         set1DStyle( hProjY[i], style );
         hProjY[i]->SetMarkerSize(0.7);
-    } // for (Int_t i{1}; i<=nBinsY; i++)
+    } // for (int i{1}; i<=nBinsY; i++)
 }
 
 //________________
-void make1DRatio(TH1D *hRat, TH1D *hDen, const Char_t *ratioName = "Ratio to default", Int_t style = 0, 
-                 Bool_t isBinomial = kFALSE) {
+void make1DRatio(TH1D *hRat, TH1D *hDen, const Char_t *ratioName = "Ratio to default", int style = 0, 
+                 bool isBinomial = false) {
 
     if ( !hDen ) {
         std::cout << "Denominator does not exist" << std::endl;
@@ -425,7 +425,7 @@ void make1DRatio(TH1D *hRat, TH1D *hDen, const Char_t *ratioName = "Ratio to def
 
 //________________
 TH1D* projectEtaFrom3D(TH3D* h3D, const Char_t *name, 
-                       Int_t ptDijetBinLow, Int_t ptDijetBinHi) {
+                       int ptDijetBinLow, int ptDijetBinHi) {
 
     TH1D *tmp = dynamic_cast<TH1D*>( h3D->ProjectionY( name, ptDijetBinLow, ptDijetBinHi ) );
     
@@ -435,7 +435,7 @@ TH1D* projectEtaFrom3D(TH3D* h3D, const Char_t *name,
 
 //________________
 TH1D* projectEtaFrom2D(TH2D* h2D, const Char_t *name, 
-                       Int_t ptDijetBinLow, Int_t ptDijetBinHi) {
+                       int ptDijetBinLow, int ptDijetBinHi) {
 
     TH1D *tmp = dynamic_cast<TH1D*>( h2D->ProjectionY( name, ptDijetBinLow, ptDijetBinHi ) );
     tmp->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
@@ -447,10 +447,10 @@ void dirSystematics(TF1 *fitf, TH1D *h, TH1D* hSyst, TGraph* syst) {
 
     std::cout << Form("Def file name: %s\n", h->GetName());
     // Loop over the bins and estimate systematics for those that have entries
-    for (Int_t i{1}; i<=h->GetNbinsX(); i++ ) {
+    for (int i{1}; i<=h->GetNbinsX(); i++ ) {
         //if ( h->GetBinContent(i) == 0 ) continue;
-        Double_t xVal = h->GetXaxis()->GetBinCenter(i);
-        Double_t yVal = TMath::Abs( fitf->Eval( xVal ) - 1.);
+        double xVal = h->GetXaxis()->GetBinCenter(i);
+        double yVal = TMath::Abs( fitf->Eval( xVal ) - 1.);
         if ( TMath::Abs( h->GetBinContent(i) ) < 0.0001 ) {
             yVal = 0.;
         }
@@ -458,7 +458,7 @@ void dirSystematics(TF1 *fitf, TH1D *h, TH1D* hSyst, TGraph* syst) {
         syst->SetPoint(i-1, xVal, yVal );
 
         hSyst->SetBinContent(i, yVal);
-    } // for (Int_t i{1}; i<=h->GetNbinsX(); i++ )
+    } // for (int i{1}; i<=h->GetNbinsX(); i++ )
 }
 
 //________________
@@ -482,7 +482,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
     TString frame = "lab";
 
     // Do rebinning if needed
-    Int_t rebinX{1}, rebinY{2};
+    int rebinX{1}, rebinY{2};
     hExpPtEtaPbGoing->RebinX( rebinX );
     hExpPtEtaPbGoing->RebinY( rebinY );
     hExpPtEtaPGoing->RebinX( rebinX );
@@ -494,22 +494,22 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
     // hPtEtaDphiDef->RebinX( rebinX );
     // hPtEtaDphiDef->RebinY( rebinY );
 
-    // Double_t dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
+    // double dijetPtVals[dijetPtBins+1] {  40.,  50.,   60.,  70.,  80.,
     //                                        90., 100.,  110., 120., 130.,
     //                                       140., 150.,  160., 180., 200., 
     //                                       240., 300., 1000.};
     // fDijetPtBins{194}, fDijetPtRange{30., 1000.}
 
     // Dijet pT selection
-    Int_t ptStep {5};
-    Int_t ptLow {30};
+    int ptStep {5};
+    int ptLow {30};
 
     // Styles
-    Int_t expPbGoingType{0};
-    Int_t expPGoingType{3};
-    Int_t mcPbGoingType{4};
-    Int_t mcPGoingType{1};
-    Int_t expOverMcType{2};
+    int expPbGoingType{0};
+    int expPGoingType{3};
+    int mcPbGoingType{4};
+    int mcPGoingType{1};
+    int expOverMcType{2};
 
     TLatex t;
     t.SetTextFont( fontFamily );
@@ -535,10 +535,10 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
     TLine *line;
     TLegend *leg;
 
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
+    int sizeX{1200};
+    int sizeY{800};
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
-    Int_t ptBins = ptDijetBinLow.size();
+    int ptBins = ptDijetBinLow.size();
 
     TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
     cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
@@ -547,7 +547,7 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
     cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
 
     // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
+    for (int i{0}; i<ptBins; i++) {
 
         // Exp Pb-going projection
         hExpEtaPbGoing[i] = dynamic_cast<TH1D*>( hExpPtEtaPbGoing->ProjectionY( Form("hExpEtaPbGoing_%d", i), 
@@ -615,9 +615,9 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
                                     ptLow + (ptDijetBinLow.at(i)-1) * ptStep, 
                                     ptLow + ptDijetBinHi.at(i) * ptStep, frame.Data() ) );
         if ( outFile.is_open() ) {
-            for (Int_t iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
+            for (int iPoint = 0; iPoint < grSyst[i]->GetN(); iPoint++) {
                 std::cout << "i: " << iPoint;
-                Double_t x{0}, y{0};
+                double x{0}, y{0};
                 grSyst[i]->GetPoint(iPoint, x, y);
                 std::cout << " x: " << x << " y: " << y << std::endl;
                 outFile << x << " " << y << std::endl;
@@ -695,30 +695,30 @@ void compareData2McDifferentDirections(TFile *expPbGoing, TFile *expPGoing,
         line->SetLineStyle(3);
         line->Draw();
         fitRatio[i]->Draw("same");
-    } // for (Int_t i=0; i<ptDijetBinLow.size(); i++)
+    } // for (int i=0; i<ptDijetBinLow.size(); i++)
 
     cComp->SaveAs( Form("%s/pPb8160_etaDijet_exp2mc_dirComp_all_%s.pdf", date.Data(), frame.Data() ) );
     cRat->SaveAs( Form("%s/pPb8160_etaDijet_exp2mc_dirRat_all_%s.pdf", date.Data(), frame.Data() ) );
 
     TFile *oFile = new TFile( Form("%s/pPb8160_dirSyst_%s.root", date.Data(), frame.Data() ), "recreate" );
-    for (Int_t i{0}; i<ptBins; i++) {
+    for (int i{0}; i<ptBins; i++) {
         hDirSyst[i]->GetYaxis()->SetRangeUser(0., 0.3);
         hDirSyst[i]->GetXaxis()->SetRangeUser(-4.8, 4.8);
         hDirSyst[i]->Write();
-    } // for (Int_t i{0}; i<ptBins; i++)
+    } // for (int i{0}; i<ptBins; i++)
     oFile->Close();
 }
 
 //________________
 void makeDijetFB(TH1D* hOrig, TH1D* hBack, TH1D* hForw, TH1D* hBFRatio, TH1D* hFBRatio) {
-    Int_t nBins = hOrig->GetNbinsX();
-    Int_t middle = nBins / 2;
-    for (Int_t i{1}; i <= middle; i++) {
-        Double_t xBack = TMath::Abs( hOrig->GetBinCenter(middle-i+1) );
-        Int_t binBack = hBack->FindBin(xBack);
-        Double_t binBackVal = hBack->GetBinContent(binBack);
+    int nBins = hOrig->GetNbinsX();
+    int middle = nBins / 2;
+    for (int i{1}; i <= middle; i++) {
+        double xBack = TMath::Abs( hOrig->GetBinCenter(middle-i+1) );
+        int binBack = hBack->FindBin(xBack);
+        double binBackVal = hBack->GetBinContent(binBack);
         binBackVal += hOrig->GetBinContent(middle-i+1);
-        Double_t binBackErr = hBack->GetBinError(binBack);
+        double binBackErr = hBack->GetBinError(binBack);
         binBackErr = TMath::Sqrt( binBackErr * binBackErr + hOrig->GetBinError(middle-i+1) * hOrig->GetBinError(middle-i+1) );
         hBack->SetBinContent(binBack,  binBackVal );
         hBack->SetBinError(binBack, binBackErr );
@@ -726,11 +726,11 @@ void makeDijetFB(TH1D* hOrig, TH1D* hBack, TH1D* hForw, TH1D* hBFRatio, TH1D* hF
         hBFRatio->SetBinContent(binBack,  binBackVal );
         hBFRatio->SetBinError(binBack, binBackErr );
 
-        Double_t xForw = TMath::Abs( hOrig->GetBinCenter(middle+i) );
-        Int_t binForw = hForw->FindBin(xForw);
-        Double_t binForwVal = hForw->GetBinContent(binForw);
+        double xForw = TMath::Abs( hOrig->GetBinCenter(middle+i) );
+        int binForw = hForw->FindBin(xForw);
+        double binForwVal = hForw->GetBinContent(binForw);
         binForwVal += hOrig->GetBinContent(middle+i);
-        Double_t binForwErr = hForw->GetBinError(binForw);
+        double binForwErr = hForw->GetBinError(binForw);
         binForwErr = TMath::Sqrt( binForwErr * binForwErr + hOrig->GetBinError(middle+i) * hOrig->GetBinError(middle+i) );
         hForw->SetBinContent(binForw, binForwVal );
         hForw->SetBinError(binForw, binForwErr );
@@ -744,7 +744,7 @@ void makeDijetFB(TH1D* hOrig, TH1D* hBack, TH1D* hForw, TH1D* hBFRatio, TH1D* hF
         // std::cout << "i: " << i << " xForw: " << hForw->GetBinCenter(i) << " yForw: " << hForw->GetBinContent(i) << std::endl;
         // std::cout << "i: " << i << " x: " << hBack->GetBinCenter(i) << " B/F: " << hBack->GetBinContent(i) / hForw->GetBinContent(i) << " F/B: " << hForw->GetBinContent(i) / hBack->GetBinContent(i) << std::endl;
 
-    } // for (Int_t i{1}; i <= middle; i++)
+    } // for (int i{1}; i <= middle; i++)
 
     hBFRatio->Divide(hForw);
     hFBRatio->Divide(hBack);
@@ -752,7 +752,7 @@ void makeDijetFB(TH1D* hOrig, TH1D* hBack, TH1D* hForw, TH1D* hBFRatio, TH1D* hF
 
 //________________
 std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> hBack, const char* hName, 
-                                  Int_t type = 2, Bool_t isCM = kTRUE, Bool_t isForward = kTRUE) {
+                                  int type = 2, bool isCM = true, bool isForward = true) {
 
     TString name = hName;
     if ( isForward ) {
@@ -763,15 +763,15 @@ std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> h
     }
 
     // Create vectors with pT values
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // std::cout << Form("[Create FB] hName: %s", name.Data() ) << std::endl;
     
     std::vector<TH1D*> hFBRatio;
-    for (Int_t i{0}; i<hBack.size(); i++) {
+    for (int i{0}; i<hBack.size(); i++) {
         if ( isForward ) {
             hFBRatio.push_back( dynamic_cast<TH1D*>( hForw[i]->Clone( Form("%s_%d", name.Data(), i) ) ) );
             hFBRatio[i]->SetName( Form("%s_pt_%d_%d", name.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) );
@@ -799,7 +799,7 @@ std::vector<TH1D*> createFBRatios(std::vector<TH1D*> hForw, std::vector<TH1D*> h
                 hFBRatio[i]->GetYaxis()->SetTitle("#frac{ dN/d#eta^{dijet} (backward) }{ dN/d#eta^{dijet} (forward) }");
             }
         }
-    } // for (Int_t i{0}; i<hBack.size(); i++)
+    } // for (int i{0}; i<hBack.size(); i++)
     return hFBRatio;
 }
 
@@ -816,9 +816,9 @@ std::vector< std::vector<TH1D*> > createDijetDirectionEtaHistogramsFromLab(TFile
     hPtEtaDphi->SetName( hName );
 
     // Create vectors with pT values
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Create vector of histograms to return
@@ -827,11 +827,11 @@ std::vector< std::vector<TH1D*> > createDijetDirectionEtaHistogramsFromLab(TFile
     std::vector<TH1D*> hEtaForward;
     std::vector<TH1D*> hEtaBackward;
 
-    Int_t upType{0};
-    Int_t downType{1};
+    int upType{0};
+    int downType{1};
 
     // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
+    for (int i{0}; i<ptBins; i++) {
         
         // Make projection on pseudorapidity axis
         hEta.push_back( projectEtaFrom3D(hPtEtaDphi, Form("%s_%d", hName, i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
@@ -845,15 +845,15 @@ std::vector< std::vector<TH1D*> > createDijetDirectionEtaHistogramsFromLab(TFile
         hEtaForward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaForward[i]->Sumw2(); set1DStyle(hEtaForward[i], upType);
         hEtaBackward[i]->GetXaxis()->Set(dijetEtaFBBins, dijetEtaFBVals); hEtaBackward[i]->Sumw2(); set1DStyle(hEtaBackward[i], downType);
 
-        Int_t nBins = hEta[i]->GetNbinsX();
-        Int_t middle = nBins / 2;
-        for (Int_t j{1}; j <= middle; j++) {
+        int nBins = hEta[i]->GetNbinsX();
+        int middle = nBins / 2;
+        for (int j{1}; j <= middle; j++) {
             hEtaBackward[i]->SetBinContent(j,  hEta[i]->GetBinContent(middle-j+1) );
             hEtaBackward[i]->SetBinError(j, hEta[i]->GetBinError(middle-j+1) );
             hEtaForward[i]->SetBinContent(j, hEta[i]->GetBinContent(middle+j) );
             hEtaForward[i]->SetBinError(j, hEta[i]->GetBinError(middle+j) );
-        } // for (Int_t j{1}; j <= middle; j++)
-    } // for (Int_t i{0}; i<ptDijetBinLow.size(); i++)
+        } // for (int j{1}; j <= middle; j++)
+    } // for (int i{0}; i<ptDijetBinLow.size(); i++)
     hEtaDir.push_back( hEtaForward );
     hEtaDir.push_back( hEtaBackward );
     return hEtaDir;
@@ -862,7 +862,7 @@ std::vector< std::vector<TH1D*> > createDijetDirectionEtaHistogramsFromLab(TFile
 //________________
 std::vector<TH1D*> createDijetDirectionEtaHistograms(TFile *inFile, const char *inputHistoName,
                                                      const char* hName, int type = 2, 
-                                                     Bool_t isCM = kFALSE, Bool_t isForward = kTRUE) {
+                                                     bool isCM = false, bool isForward = true) {
 
     TString name = hName;
     if ( isForward ) {
@@ -879,20 +879,20 @@ std::vector<TH1D*> createDijetDirectionEtaHistograms(TFile *inFile, const char *
     // Reset histogram name
     hPtEta->SetName( hName );
 
-    Int_t upType{0};
-    Int_t downType{1};
+    int upType{0};
+    int downType{1};
 
     // Create vectors with pT values
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Create vector of histograms to return
     std::vector<TH1D*> hEtaDir;
 
     // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptDijetBinLow.size(); i++) {
+    for (int i{0}; i<ptDijetBinLow.size(); i++) {
             
         // Make projection on pseudorapidity axis
         hEtaDir.push_back( projectEtaFrom2D(hPtEta, Form("%s_%d", name.Data(), i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
@@ -921,7 +921,7 @@ std::vector<TH1D*> createDijetDirectionEtaHistograms(TFile *inFile, const char *
                 hEtaDir[i]->GetYaxis()->SetTitle("dN/d#eta^{dijet} (backward)");
             }
         }
-    } // for (Int_t i{0}; i<ptDijetBinLow.size(); i++)
+    } // for (int i{0}; i<ptDijetBinLow.size(); i++)
 
     return hEtaDir;
 }
@@ -929,7 +929,7 @@ std::vector<TH1D*> createDijetDirectionEtaHistograms(TFile *inFile, const char *
 //________________
 std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *inputHistoName,
                                                 const char* hName, int type = 2, 
-                                                Bool_t isCM = kFALSE) {
+                                                bool isCM = false) {
 
     // Retreive the histogram
     // std::cout << Form("[Full] Input histo name: %s", inputHistoName) << std::endl;
@@ -940,20 +940,20 @@ std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *input
 
     // std::cout << Form("\t[Full] hPtEtaDphi entries: %f", hPtEtaDphi->Integral() ) << std::endl;
 
-    Int_t upType{0};
-    Int_t downType{1};
+    int upType{0};
+    int downType{1};
 
     // Create vectors with pT values
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Create vector of histograms to return
     std::vector<TH1D*> hEta;
 
     // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptDijetBinLow.size(); i++) {
+    for (int i{0}; i<ptDijetBinLow.size(); i++) {
             
         // Make projection on pseudorapidity axis
         hEta.push_back( projectEtaFrom3D(hPtEtaDphi, Form("%s_%d", hName, i), ptDijetBinLow.at(i), ptDijetBinHi.at(i)) );
@@ -969,7 +969,7 @@ std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *input
         }
 
         //std::cout << Form("\t[Full] %s integral: %f entries: %f", hEta[i]->GetName(), hEta[i]->Integral(), hEta[i]->GetEntries() ) << std::endl;
-    } // for (Int_t i{0}; i<ptDijetBinLow.size(); i++)
+    } // for (int i{0}; i<ptDijetBinLow.size(); i++)
 
     return hEta;
 }
@@ -978,7 +978,7 @@ std::vector<TH1D*> createDijetEtaFullHistograms(TFile *inFile, const char *input
 std::vector< std::vector<TH1D*> > createRatios2MC(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vector<TH1D*> > hJet60EtaDist,
                                                   std::vector< std::vector<TH1D*> > hJet80EtaDist, std::vector< std::vector<TH1D*> > hJet100EtaDist,
                                                   std::vector< std::vector<TH1D*> > hEmbeddingEtaDist, std::vector< std::vector<TH1D*> > hGenEtaDist,
-                                                  Bool_t isCM = kFALSE) {
+                                                  bool isCM = false) {
 
     TString frame;
     if ( isCM ) {
@@ -1083,16 +1083,16 @@ std::vector< std::vector<TH1D*> > createRatios2MC(std::vector< std::vector<TH1D*
     std::vector<TH1D*> hJet100EtaBFRatio2EmbeddingEtaBFRatio;
 
     // Create vectors with pT values
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
-    Int_t dataStyle{2};
-    Int_t mcStyle{0};
+    int dataStyle{2};
+    int mcStyle{0};
 
     // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
+    for (int i{0}; i<ptBins; i++) {
 
         // Create histograms for ratios to gen
         hMBEta2GenEtaRatio.push_back( dynamic_cast<TH1D*>( hMBEta[i]->Clone( Form("%s_ratio2gen_%s", hMBEta[i]->GetName(), frame.Data()) ) ) );
@@ -1260,7 +1260,7 @@ std::vector< std::vector<TH1D*> > createRatios2MC(std::vector< std::vector<TH1D*
         set1DStyle(hJet100EtaBackward2EmbeddingEtaBackwardRatio[i], dataStyle);
         set1DStyle(hJet100EtaFBRatio2EmbeddingEtaFBRatio[i], dataStyle);
         set1DStyle(hJet100EtaBFRatio2EmbeddingEtaBFRatio[i], dataStyle);
-    } // for (Int_t i{0}; i<ptBins; i++)
+    } // for (int i{0}; i<ptBins; i++)
 
     hRatios.push_back( hMBEta2GenEtaRatio );
     hRatios.push_back( hMBEtaForward2GenEtaForwardRatio );
@@ -1321,24 +1321,24 @@ std::vector< std::vector<TH1D*> > createRatios2MC(std::vector< std::vector<TH1D*
 
 //________________
 void appendVectorOfVectors(std::vector< std::vector<TH1D*> > &orig, std::vector< std::vector<TH1D*> > append) {
-    for (Int_t i{0}; i<append.size(); i++) {
+    for (int i{0}; i<append.size(); i++) {
         orig.push_back( append.at(i) );
     }
 }
 
 //________________
-std::vector< TF1* > fitSystRatio(std::vector< TH1D* > hSyst, Bool_t isUp = kTRUE, 
-                                 Int_t fitType = 2, Int_t etaType = 0, Bool_t drawFits = kTRUE) {
+std::vector< TF1* > fitSystRatio(std::vector< TH1D* > hSyst, bool isUp = true, 
+                                 int fitType = 2, int etaType = 0, bool drawFits = true) {
 
     std::vector< TF1* > fitFunc( hSyst.size() );
-    Double_t xMin{-3.}, xMax{3.};
+    double xMin{-3.}, xMax{3.};
     if (etaType != 0) {
         xMin = 0.0001;
         xMax = 3.;
     }
 
     // For all histograms in the vector
-    for (Int_t i{0}; i<hSyst.size(); i++) {
+    for (int i{0}; i<hSyst.size(); i++) {
 
         // Choose fit function
         if ( fitType == 0 ) {
@@ -1390,8 +1390,8 @@ std::vector< TF1* > fitSystRatio(std::vector< TH1D* > hSyst, Bool_t isUp = kTRUE
 
 //________________
 std::vector< TH1D* > ratio2def(std::vector< TH1D* > hDef, std::vector< TH1D* > hSyst, 
-                               Int_t systType = 0, Int_t upType = 0, Int_t etaType = 0, 
-                               Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+                               int systType = 0, int upType = 0, int etaType = 0, 
+                               bool isCM = false, bool drawFits = false) {
 
     // systType: 0 - jeu, 1 - jer, 2 - pointingRes, 3 - pileup                                
     // upType: 0 = up, 1 = down
@@ -1399,14 +1399,14 @@ std::vector< TH1D* > ratio2def(std::vector< TH1D* > hDef, std::vector< TH1D* > h
 
     TString frame = (isCM) ? "cm" : "lab";
     std::vector< TH1D* > hRatio{};
-    for (Int_t i{0}; i<hDef.size(); i++) {
+    for (int i{0}; i<hDef.size(); i++) {
         TH1D *h = dynamic_cast<TH1D*>( hSyst.at(i)->Clone( Form("%s_ratio2def_%s", hSyst.at(i)->GetName(), frame.Data()) ) );
         make1DRatio(h, hDef.at(i), Form("%s_ratio2def_%s", hSyst.at(i)->GetName(), frame.Data()) );
         set1DStyle(h, upType);
         hRatio.push_back(h);
     }
 
-    Int_t fitType = 1;
+    int fitType = 1;
     if (systType == 0) {
         if ( etaType == 0) {
             fitType = 4;
@@ -1448,8 +1448,8 @@ std::vector< TH1D* > ratio2def(std::vector< TH1D* > hDef, std::vector< TH1D* > h
 //________________
 std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std::vector<TH1D*> > hDefDist, 
                                                                std::vector< std::vector<TH1D*> > hVarDist,
-                                                               Int_t systType = 0, Int_t upType = 0,
-                                                               Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+                                                               int systType = 0, int upType = 0,
+                                                               bool isCM = false, bool drawFits = false) {
 
     // systType: 0 - jeu, 1 - jer, 2 - pointingRes, 3 - pileup
     // upType: 0 = up, 1 = down
@@ -1472,11 +1472,11 @@ std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std:
     std::vector< TH1D* > hVarEtaBFRatio = hVarDist.at(4);
 
     // Create histograms for ratios
-    Int_t etaTypeDef = 0;
-    Int_t etaTypeForward = 1;
-    Int_t etaTypeBackward = 2;
-    Int_t etaTypeFBRatio = 3;
-    Int_t etaTypeBFRatio = 4;
+    int etaTypeDef = 0;
+    int etaTypeForward = 1;
+    int etaTypeBackward = 2;
+    int etaTypeFBRatio = 3;
+    int etaTypeBFRatio = 4;
     std::vector< TH1D* > hEtaVar2DefRatio = ratio2def(hDefEta, hVarEta, systType, upType, etaTypeDef, isCM, drawFits);
     std::vector< TH1D* > hEtaForwardVar2DefRatio = ratio2def(hDefEtaForward, hVarEtaForward, systType, upType, etaTypeForward, isCM, drawFits);
     std::vector< TH1D* > hEtaBackwardVar2DefRatio = ratio2def(hDefEtaBackward, hVarEtaBackward, systType, upType, etaTypeBackward, isCM, drawFits);
@@ -1496,16 +1496,16 @@ std::vector< std::vector<TH1D*> > createVectorOfVariationRatio(std::vector< std:
 std::vector< std::vector<TH1D*> > createVectorOfUpAndDownRatios(std::vector< std::vector<TH1D*> > hDefDist, 
                                                                 std::vector< std::vector<TH1D*> > hUpDist, 
                                                                 std::vector< std::vector<TH1D*> > hDownDist,
-                                                                Int_t systType = 0,
-                                                                Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+                                                                int systType = 0,
+                                                                bool isCM = false, bool drawFits = false) {
                                                                   
     // Create vector of histograms to return
     std::vector< std::vector< TH1D* > > hRatios;
 
     // systType: 0 - jeu, 1 - jer, 2 - pointingRes, 3 - pileup
     
-    Int_t upType = 0;
-    Int_t downType = 1;
+    int upType = 0;
+    int downType = 1;
 
     // Vectors of default
     std::vector< std::vector<TH1D* > > hUp2DefRatios = createVectorOfVariationRatio(hDefDist, hUpDist, systType, upType, isCM, drawFits);
@@ -1535,16 +1535,16 @@ std::vector< std::vector<TH1D*> > createUpAndDown2Def(std::vector< std::vector<T
                                                       std::vector< std::vector<TH1D*> > hJet60GplusEtaDist, std::vector< std::vector<TH1D*> > hJet60Vtx1EtaDist,
                                                       std::vector< std::vector<TH1D*> > hJet80GplusEtaDist, std::vector< std::vector<TH1D*> > hJet80Vtx1EtaDist,
                                                       std::vector< std::vector<TH1D*> > hJet100GplusEtaDist, std::vector< std::vector<TH1D*> > hJet100Vtx1EtaDist,
-                                                      Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+                                                      bool isCM = false, bool drawFits = false) {
 
     // Create vector of histograms to return
     std::vector< std::vector<TH1D*> > hRatios;
     std::vector< std::vector<TH1D*> > hEmpty = {};
 
-    Int_t jeuSystType = 0;
-    Int_t jerSystType = 1;
-    Int_t pointingResSystType = 2;
-    Int_t pileupSystType = 3;
+    int jeuSystType = 0;
+    int jerSystType = 1;
+    int pointingResSystType = 2;
+    int pileupSystType = 3;
 
     // Retrieve histograms to divide
     std::vector< std::vector<TH1D*> > hMBEtaJeuRatios = createVectorOfUpAndDownRatios(hMBEtaDist, hJeuMBUpEtaDist, hJeuMBDownEtaDist, jeuSystType, isCM, drawFits);
@@ -1605,8 +1605,8 @@ std::vector< std::vector<TH1D*> >createDijetEtaHistograms(TFile* inFile, const c
     // std::cout << "[Main creator] Output histo name: " << hName << std::endl;
     // std::cout << Form("\tFull: %s \n\tForward: %s \n\tBackward: %s", fullEtaHistName.Data(), forwardEtaHistName.Data(), backwardEtaHistName.Data() ) << std::endl;
 
-    Int_t upType{0};
-    Int_t downType{1};
+    int upType{0};
+    int downType{1};
 
     // Create vector of histograms to return
     std::vector< std::vector<TH1D*> > hDijetEtaHistos;
@@ -1614,8 +1614,8 @@ std::vector< std::vector<TH1D*> >createDijetEtaHistograms(TFile* inFile, const c
     std::vector<TH1D*> hEtaBackward;
     std::vector< std::vector<TH1D*> > hEtaDir;
     if ( isCM ) {
-        hEtaForward = createDijetDirectionEtaHistograms(inFile, forwardEtaHistName.Data(), hName, upType, isCM, kTRUE);
-        hEtaBackward = createDijetDirectionEtaHistograms(inFile, backwardEtaHistName.Data(), hName, downType, isCM, kFALSE);
+        hEtaForward = createDijetDirectionEtaHistograms(inFile, forwardEtaHistName.Data(), hName, upType, isCM, true);
+        hEtaBackward = createDijetDirectionEtaHistograms(inFile, backwardEtaHistName.Data(), hName, downType, isCM, false);
     }
     else {
         hEtaDir = createDijetDirectionEtaHistogramsFromLab(inFile, fullEtaHistName.Data(), hName, defType);
@@ -1623,8 +1623,8 @@ std::vector< std::vector<TH1D*> >createDijetEtaHistograms(TFile* inFile, const c
         hEtaBackward = hEtaDir[1];
     }
     std::vector<TH1D*> hEta = createDijetEtaFullHistograms(inFile, fullEtaHistName.Data(), hName, defType, isCM);
-    std::vector<TH1D*> hEtaFBRatio = createFBRatios(hEtaForward, hEtaBackward, hName, upType, isCM, kTRUE);
-    std::vector<TH1D*> hEtaBFRatio = createFBRatios(hEtaForward, hEtaBackward, hName, downType, isCM, kFALSE);
+    std::vector<TH1D*> hEtaFBRatio = createFBRatios(hEtaForward, hEtaBackward, hName, upType, isCM, true);
+    std::vector<TH1D*> hEtaBFRatio = createFBRatios(hEtaForward, hEtaBackward, hName, downType, isCM, false);
    
 
     hDijetEtaHistos.push_back(hEta);
@@ -1639,11 +1639,11 @@ std::vector< std::vector<TH1D*> >createDijetEtaHistograms(TFile* inFile, const c
 //________________
 std::vector< TH1D* > makeRelSystUncrtAtUnity(std::vector<TH1D*> hUncrt) {
     std::vector< TH1D* > hRelSystUncrt{};
-    for (Int_t i{0}; i<hUncrt.size(); i++) {
+    for (int i{0}; i<hUncrt.size(); i++) {
         hRelSystUncrt.push_back( dynamic_cast<TH1D*>( hUncrt.at(i)->Clone( Form("%s_rescaledAtUnity", hUncrt.at(i)->GetName()) ) ) );
         // hRelSystUncrt.at(i)->Scale(100.);
-        for (Int_t j{1}; j<=hRelSystUncrt.at(i)->GetNbinsX(); j++) {
-            Double_t val = hRelSystUncrt.at(i)->GetBinContent(j);
+        for (int j{1}; j<=hRelSystUncrt.at(i)->GetNbinsX(); j++) {
+            double val = hRelSystUncrt.at(i)->GetBinContent(j);
             hRelSystUncrt.at(i)->SetBinContent(j, 1.0);
             hRelSystUncrt.at(i)->SetBinError(j, val);
         }
@@ -1654,12 +1654,12 @@ std::vector< TH1D* > makeRelSystUncrtAtUnity(std::vector<TH1D*> hUncrt) {
 //________________
 std::vector< TH1D* > makeRelSystUncrtAtValue(std::vector<TH1D*> hUncrt, std::vector<TH1D*> hData) {
     std::vector< TH1D* > hRelSystUncrt{};
-    for (Int_t i{0}; i<hUncrt.size(); i++) {
+    for (int i{0}; i<hUncrt.size(); i++) {
         hRelSystUncrt.push_back( dynamic_cast<TH1D*>( hUncrt.at(i)->Clone( Form("%s_rescaledAtValue", hUncrt.at(i)->GetName()) ) ) );
         // hRelSystUncrt.at(i)->Scale(100.);
-        for (Int_t j{1}; j<=hRelSystUncrt.at(i)->GetNbinsX(); j++) {
-            Double_t uncrtVal = hRelSystUncrt.at(i)->GetBinContent(j);
-            Double_t dataVal = hData.at(i)->GetBinContent(j);
+        for (int j{1}; j<=hRelSystUncrt.at(i)->GetNbinsX(); j++) {
+            double uncrtVal = hRelSystUncrt.at(i)->GetBinContent(j);
+            double dataVal = hData.at(i)->GetBinContent(j);
             hRelSystUncrt.at(i)->SetBinContent(j, dataVal);
             if (dataVal == 0) {
                 hRelSystUncrt.at(i)->SetBinError(j, 0.0);
@@ -1704,12 +1704,12 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
     TString frame = "lab";
 
     // Dijet pT selection
-    Int_t ptStep {5};
-    Int_t ptLow {30};
+    int ptStep {5};
+    int ptLow {30};
 
     // Styles
-    Int_t ak4Type{0};
-    Int_t akCs4Type{1};
+    int ak4Type{0};
+    int akCs4Type{1};
 
     TLatex t;
     t.SetTextFont( fontFamily);
@@ -1723,11 +1723,11 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
     TLine *line;
     TLegend *leg;
 
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
+    int sizeX{1200};
+    int sizeY{800};
 
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 800);
-    Int_t ptBins = ptDijetBinLow.size();
+    int ptBins = ptDijetBinLow.size();
 
     TCanvas *cComp = new TCanvas("cComp", "cComp", sizeX, sizeY);
     cComp->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
@@ -1736,7 +1736,7 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
     cRat->Divide(5, ( (ptBins % 5) == 0 ) ? (ptBins / 5) : (ptBins / 5 + 1) );
 
     // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
+    for (int i{0}; i<ptBins; i++) {
 
         // std::cout << "pT bin: " << i << std::endl;
 
@@ -1822,7 +1822,7 @@ void compareJetCollections(TFile *ak4, TFile *akCs4, TString date) {
         line->SetLineWidth(3);
         line->SetLineStyle(3);
         line->Draw();
-    } // for (Int_t i{0}; i<ptBins; i++)
+    } // for (int i{0}; i<ptBins; i++)
 
     cComp->SaveAs( Form("%s/%s_pPb8160_etaDijet_jetCollComp_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
     cRat->SaveAs( Form("%s/%s_pPb8160_etaDijet_jetCollRat_all_%s.pdf", date.Data(), trigName.Data(), frame.Data() ) );
@@ -1885,12 +1885,12 @@ TString returnTrigName(const char *name) {
 }
 
 //________________
-TGraphErrors* retrieveTotalAbsSystUncrt(TH1D *hDef, TH1D *hRelSyst, const Char_t *setName = "MBEta", Int_t iPt = 0) {
+TGraphErrors* retrieveTotalAbsSystUncrt(TH1D *hDef, TH1D *hRelSyst, const Char_t *setName = "MBEta", int iPt = 0) {
     TGraphErrors *gr = new TGraphErrors();
     TString name = Form("gr%s_totalAbsUncrt_%d", setName, iPt);
     gr->SetName( name.Data() );
-    for (Int_t i{1}; i<=hDef->GetNbinsX(); i++) {
-        Double_t x{0}, y{0};
+    for (int i{1}; i<=hDef->GetNbinsX(); i++) {
+        double x{0}, y{0};
         x = hDef->GetBinCenter(i);
         y = hDef->GetBinContent(i);
         gr->SetPoint(i-1, x, y);
@@ -1906,15 +1906,15 @@ TGraphErrors* retrieveTotalAbsSystUncrt(TH1D *hDef, TH1D *hRelSyst, const Char_t
 //________________
 void plotDistributionWithUncrt(TCanvas *c, TH1D *h1, TH1D *h2, 
                               int ptLow = 50, int ptHi = 60,
-                              Bool_t isCM = kFALSE, Int_t fbType = 0) {
+                              bool isCM = false, int fbType = 0) {
 
     TLatex t;
     t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.001, 0.12};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.001, 0.12};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2006,15 +2006,15 @@ void plotDistributionWithUncrt(TCanvas *c, TH1D *h1, TH1D *h2,
 
 //________________
 void plotManyDistributionsOnCanvas(TCanvas *c, std::vector< TH1D* > hData, std::vector< TH1D* > hSyst, 
-                                   Bool_t isCM = kFALSE, Int_t fbType = 0) {
+                                   bool isCM = false, int fbType = 0) {
 
     TLatex t;
     t.SetTextFont(42);
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.001, 0.12};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.001, 0.12};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2036,13 +2036,13 @@ void plotManyDistributionsOnCanvas(TCanvas *c, std::vector< TH1D* > hData, std::
     }
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Set style for the data points
-    for (Int_t i{0}; i<hData.size(); i++) {
+    for (int i{0}; i<hData.size(); i++) {
         hData.at(i)->SetMarkerStyle(20);
         hData.at(i)->SetMarkerSize(1.3);
         hData.at(i)->SetMarkerColor(kBlack);
@@ -2056,7 +2056,7 @@ void plotManyDistributionsOnCanvas(TCanvas *c, std::vector< TH1D* > hData, std::
     TLegend *leg;
 
     // Loop over dijet pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
+    for (int i{0}; i<ptBins; i++) {
 
         c->cd(i+1);
         setPadStyle();
@@ -2122,12 +2122,12 @@ void plotManyDistributionsOnCanvas(TCanvas *c, std::vector< TH1D* > hData, std::
         }
 
         plotCMSHeader();
-    } // for (Int_t i{0}; i<ptBins; i++)
+    } // for (int i{0}; i<ptBins; i++)
 }
 
 //________________
 void plotManyDistributionsOnTwoCanvases(TCanvas *c, std::vector< TH1D* > hData, std::vector< TH1D* > hSyst, 
-                                        Bool_t isCM = kFALSE, Int_t fbType = 0, Int_t half = 1) {
+                                        bool isCM = false, int fbType = 0, int half = 1) {
 
     // Half: 1 - first half, 2 - second half
     if ( half != 1 && half != 2 ) {
@@ -2140,8 +2140,8 @@ void plotManyDistributionsOnTwoCanvases(TCanvas *c, std::vector< TH1D* > hData, 
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.001, 0.12};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.001, 0.12};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2163,13 +2163,13 @@ void plotManyDistributionsOnTwoCanvases(TCanvas *c, std::vector< TH1D* > hData, 
     }
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Set style for the data points
-    for (Int_t i{0}; i<hData.size(); i++) {
+    for (int i{0}; i<hData.size(); i++) {
         hData.at(i)->SetMarkerStyle(20);
         hData.at(i)->SetMarkerSize(1.3);
         hData.at(i)->SetMarkerColor(kBlack);
@@ -2183,7 +2183,7 @@ void plotManyDistributionsOnTwoCanvases(TCanvas *c, std::vector< TH1D* > hData, 
     TLegend *leg;
 
     // Loop over dijet pT bins
-    Int_t min{0}, max{ptBins};
+    int min{0}, max{ptBins};
     if ( half == 1 ) {
         min = 0;
         max = ptBins / 2;
@@ -2192,7 +2192,7 @@ void plotManyDistributionsOnTwoCanvases(TCanvas *c, std::vector< TH1D* > hData, 
         min = ptBins / 2;
         max = ptBins;
     }
-    for (Int_t i{min}; i<max; i++) {
+    for (int i{min}; i<max; i++) {
 
         c->cd(i+1-min);
         setPadStyle();
@@ -2258,21 +2258,21 @@ void plotManyDistributionsOnTwoCanvases(TCanvas *c, std::vector< TH1D* > hData, 
         }
 
         plotCMSHeader();
-    } // for (Int_t i{0}; i<ptBins; i++)
+    } // for (int i{0}; i<ptBins; i++)
 }
 
 //________________
 void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist, 
                                std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist,
-                               TString date, Bool_t isCM = kFALSE) {
+                               TString date, bool isCM = false) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Obtain vectors with distributions
@@ -2289,7 +2289,7 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
     std::vector< TH1D* > hEtaBFRatioAbsSystUncrtDist = hFinalAbsSystUncrtDist.at(4);
 
     // Create canvases
-    Int_t sizeX{1200}, sizeY{1200};
+    int sizeX{1200}, sizeY{1200};
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 1000);
 
     TCanvas *cEta = new TCanvas("cEta", "cEta", sizeX, sizeY);
@@ -2320,7 +2320,7 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
     cEtaBF->Divide(nPads, ( (ptBins % nPads) == 0 ) ? (ptBins / nPads) : (ptBins / nPads + 1), 0.001, 0.001);
 
     // Plot distributions on canvases
-    for (Int_t i=0; i<ptBins; i++) {
+    for (int i=0; i<ptBins; i++) {
 
         // Full eta
         canv->cd();
@@ -2350,7 +2350,7 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
         canv->cd();
         plotDistributionWithUncrt(canv, hEtaBFRatioDist.at(i), hEtaBFRatioAbsSystUncrtDist.at(i), ptDijetLow.at(i), ptDijetHi.at(i), isCM, 4);
         canv->SaveAs( Form("%s/data/pPb8160_etaDijet_bfRatio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ));
-    } // for (Int_t i=0; i<ptBins; i++)
+    } // for (int i=0; i<ptBins; i++)
 
     plotManyDistributionsOnCanvas(cEta, hEtaDist, hEtaAbsSystUncrtDist, isCM, 0);
     plotManyDistributionsOnTwoCanvases(cEtaH1, hEtaDist, hEtaAbsSystUncrtDist, isCM, 0, 1);
@@ -2379,18 +2379,18 @@ void plotFinalEtaDistributions(std::vector< std::vector<TH1D*> > hFinalDist,
 
 //________________
 void plotIndividualUpDownDefComparison(TCanvas *c, TH1D *hDef, TH1D *hUp, TH1D *hDown,
-                                       Int_t ptLow = 50, Int_t ptHi = 60, 
-                                       Bool_t isCM = kFALSE, Int_t fbType = 0) {
+                                       int ptLow = 50, int ptHi = 60, 
+                                       bool isCM = false, int fbType = 0) {
 
     TLatex t;
     t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.001, 0.12};
-    Double_t legX[2] = {0.27, 0.47};
-    Double_t legY[2] = {0.65, 0.85};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.001, 0.12};
+    double legX[2] = {0.27, 0.47};
+    double legY[2] = {0.65, 0.85};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2415,9 +2415,9 @@ void plotIndividualUpDownDefComparison(TCanvas *c, TH1D *hDef, TH1D *hUp, TH1D *
     }
 
     // Set style for the data points
-    Int_t defType{2};
-    Int_t upType{0};
-    Int_t downType{1};
+    int defType{2};
+    int upType{0};
+    int downType{1};
     set1DStyle( hDef, defType );
     set1DStyle( hUp, upType );
     if ( hDown ) {
@@ -2465,18 +2465,18 @@ void plotIndividualUpDownDefComparison(TCanvas *c, TH1D *hDef, TH1D *hUp, TH1D *
 
 //________________
 void plotIndividualUpDownDefRatio(TCanvas *c, TH1D *hRatioUp, TH1D *hRatioDown,
-                                  Int_t ptLow = 50, Int_t ptHi = 60, 
-                                  Bool_t isCM = kFALSE, Int_t fbType = 0) {
+                                  int ptLow = 50, int ptHi = 60, 
+                                  bool isCM = false, int fbType = 0) {
 
     TLatex t;
     t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.75, 1.25};
-    Double_t legX[2] = {0.27, 0.47};
-    Double_t legY[2] = {0.65, 0.85};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.75, 1.25};
+    double legX[2] = {0.27, 0.47};
+    double legY[2] = {0.65, 0.85};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2501,9 +2501,9 @@ void plotIndividualUpDownDefRatio(TCanvas *c, TH1D *hRatioUp, TH1D *hRatioDown,
     }
 
     // Set style for the data points
-    Int_t defType{2};
-    Int_t upType{0};
-    Int_t downType{1};
+    int defType{2};
+    int upType{0};
+    int downType{1};
     set1DStyle( hRatioUp, upType );
     if ( hRatioDown ) {
         set1DStyle( hRatioDown, downType );
@@ -2552,12 +2552,12 @@ void plotIndividualUpDownDefRatio(TCanvas *c, TH1D *hRatioUp, TH1D *hRatioDown,
 
 //________________
 void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, 
-                        std::vector<TH1D*> hDown, Int_t fbType = 0) {
+                        std::vector<TH1D*> hDown, int fbType = 0) {
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     TLatex t;
@@ -2565,10 +2565,10 @@ void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, std::vector<TH1D*> 
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.001, 0.12};
-    Double_t legX[2] = {0.27, 0.47};
-    Double_t legY[2] = {0.65, 0.85};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.001, 0.12};
+    double legX[2] = {0.27, 0.47};
+    double legY[2] = {0.65, 0.85};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2592,9 +2592,9 @@ void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, std::vector<TH1D*> 
         legY[1] = 0.47;
     }
 
-    Int_t defType{2};
-    Int_t upType{0};
-    Int_t downType{1};
+    int defType{2};
+    int upType{0};
+    int downType{1};
 
     TLegend *leg;
 
@@ -2605,7 +2605,7 @@ void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, std::vector<TH1D*> 
     // }
 
     // Plot comparison
-    for (Int_t i{0}; i<hDef.size(); i++) {
+    for (int i{0}; i<hDef.size(); i++) {
 
         // std::cout << "i = " << i << std::endl;
         // std::cout << "hDef.at(i) name = " << hDef.at(i)->GetName() << std::endl;
@@ -2650,25 +2650,25 @@ void plotSystComparison(TCanvas *c, std::vector<TH1D*> hDef, std::vector<TH1D*> 
             }
             leg->Draw();
         }
-    } // for (Int_t i{0}; i<hDef.size(); i++)
+    } // for (int i{0}; i<hDef.size(); i++)
 }
 
 //________________
-void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> hRatioDown, Int_t fbType = 0) {
+void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> hRatioDown, int fbType = 0) {
     
     TLatex t;
     t.SetTextFont( fontFamily );
     t.SetTextSize(0.06);
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.7, 1.3};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.7, 1.3};
 
     if ( fbType != 0 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2677,8 +2677,8 @@ void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> h
         yRange[1] = 1.25;
     }
 
-    Int_t upType{0};
-    Int_t downType{1};
+    int upType{0};
+    int downType{1};
 
     TLegend *leg;
     TLine *line;
@@ -2689,7 +2689,7 @@ void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> h
     // }
 
     // Plot comparison
-    for (Int_t i{0}; i<hRatioUp.size(); i++) {
+    for (int i{0}; i<hRatioUp.size(); i++) {
 
         // std::cout << "i = " << i << std::endl;
         // std::cout << "hRatioUp.at(i) name = " << hRatioUp.at(i)->GetName() << std::endl;
@@ -2751,22 +2751,22 @@ void plotSystRatio(TCanvas *c, std::vector<TH1D*> hRatioUp, std::vector<TH1D*> h
             }
             leg->Draw();
         }
-    } // for (Int_t i{0}; i<hRatioUp.size(); i++)
+    } // for (int i{0}; i<hRatioUp.size(); i++)
 }
 
 //________________
 void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std::vector<TH1D*> hDown,
                            std::vector<TH1D*> hRatioUp, std::vector<TH1D*> hRatioDown,
-                           Int_t systematics, Int_t etaType, Int_t fitType, TString date, 
-                           Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+                           int systematics, int etaType, int fitType, TString date, 
+                           bool isCM = false, bool drawFits = false) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Read systematics type
@@ -2784,7 +2784,7 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
         systType = "pointinResolution";
     }
     else {
-        drawFits = kFALSE;
+        drawFits = false;
         systType = "data2mc";
     }
 
@@ -2808,15 +2808,15 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
     }
 
     // Fits (Fit type: 0 -constant, 1 - linear, 2 - quadratic, 3 - cubic, 4 - quartic)
-    // std::vector<TF1*> fitUp = fitSystRatio(hRatioUp, kTRUE, fitType, etaType, drawFits);
+    // std::vector<TF1*> fitUp = fitSystRatio(hRatioUp, true, fitType, etaType, drawFits);
     // std::vector<TF1*> fitDown = {};
     // if ( !hRatioDown.empty() ) {
-    //     fitDown = fitSystRatio(hRatioDown, kFALSE, fitType, etaType, drawFits);
+    //     fitDown = fitSystRatio(hRatioDown, false, fitType, etaType, drawFits);
     // }
 
     // Create canvas
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
+    int sizeX{1200};
+    int sizeY{800};
     TCanvas *canv = new TCanvas("canv", "canv", sizeX, sizeY);
 
     TCanvas *cComp = new TCanvas(Form("%s_%sComp_%s", returnTrigName( hDef.at(0)->GetName() ).Data(), systType.Data(), dirName.Data() ), 
@@ -2844,7 +2844,7 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
                    returnTrigName( hDef.at(0)->GetName() ).Data(), systType.Data(), dirName.Data(), frame.Data() ) );
 
     // Loop over pT average bins
-    for (Int_t i{0}; i<ptDijetBinLow.size(); i++) {
+    for (int i{0}; i<ptDijetBinLow.size(); i++) {
 
         TH1D *hDownIndividual = nullptr;
         if ( !hDown.empty() ) {
@@ -2853,7 +2853,7 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
 
         // Plot and save individual comparisons
         plotIndividualUpDownDefComparison(canv, hDef.at(i), hUp.at(i), hDownIndividual, 
-                                          ptDijetLow.at(i), ptDijetHi.at(i), kFALSE, etaType);
+                                          ptDijetLow.at(i), ptDijetHi.at(i), false, etaType);
         canv->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sComp_%s_pt_%d_%d_%s.pdf", date.Data(), systType.Data(), 
                            returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
                            ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
@@ -2868,19 +2868,19 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
 
         // Plot and save individual ratios
         plotIndividualUpDownDefRatio(canv, hRatioUp.at(i), hDownIndividual, 
-                                     ptDijetLow.at(i), ptDijetHi.at(i), kFALSE, etaType);
+                                     ptDijetLow.at(i), ptDijetHi.at(i), false, etaType);
         canv->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sRat_%s_pt_%d_%d_%s.pdf", date.Data(), systType.Data(), 
                            returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
                            ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
         canv->SaveAs( Form("%s/%s/%s_pPb8160_etaDijet_%sRat_%s_pt_%d_%d_%s.png", date.Data(), systType.Data(), 
                            returnTrigName( hDef.at(i)->GetName() ).Data(), systType.Data(), dirName.Data(),
                            ptDijetLow.at(i), ptDijetHi.at(i), frame.Data() ) );
-    } // for (Int_t i{0}; i<ptDijetBinLow.size(); i++)
+    } // for (int i{0}; i<ptDijetBinLow.size(); i++)
 }
 
 //________________
 void plotIndividualData2McComparison(TCanvas *c, TH1D *hData, TH1D *hSystUncrt, TH1D *hEmb, TH1D *hGen,
-                                     int ptLow = 50, int ptHi = 60, Bool_t isCM = kFALSE, int fbType = 0) {
+                                     int ptLow = 50, int ptHi = 60, bool isCM = false, int fbType = 0) {
 
     // Latex
     TLatex t;
@@ -2888,13 +2888,13 @@ void plotIndividualData2McComparison(TCanvas *c, TH1D *hData, TH1D *hSystUncrt, 
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.0001, 0.12};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.0001, 0.12};
 
-    Double_t xLegend[2] = {0.27, 0.47};
-    Double_t yLegend[2] = {0.65, 0.85};
+    double xLegend[2] = {0.27, 0.47};
+    double yLegend[2] = {0.65, 0.85};
 
-    Double_t drawPt[2] = {0.35, 0.83};
+    double drawPt[2] = {0.35, 0.83};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -2922,9 +2922,9 @@ void plotIndividualData2McComparison(TCanvas *c, TH1D *hData, TH1D *hSystUncrt, 
     }
 
     // Set style for the data points
-    Int_t dataType{2};
-    Int_t embType{0};
-    Int_t genType{1};
+    int dataType{2};
+    int embType{0};
+    int genType{1};
     set1DStyle( hData, dataType );
     if ( hEmb ) {
         set1DStyle( hEmb, embType );
@@ -2973,7 +2973,7 @@ void plotIndividualData2McComparison(TCanvas *c, TH1D *hData, TH1D *hSystUncrt, 
 
 //________________
 void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUncrt, TH1D *hEmb2GenRatio, TH1D *hData2EmbRatio = nullptr,
-                                 int ptLow = 50, int ptHi = 60, Bool_t isCM = kFALSE, int fbType = 0) {
+                                 int ptLow = 50, int ptHi = 60, bool isCM = false, int fbType = 0) {
     // Latex
     TLatex t;
     t.SetTextFont( fontFamily );
@@ -2984,13 +2984,13 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
     //           << " hEmb2GenRatio: " << hEmb2GenRatio->GetName() << " hData2EmbRatio: " << ( ( hData2EmbRatio ) ? hData2EmbRatio->GetName() : "empty" ) << std::endl;
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.75, 1.25};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.75, 1.25};
 
-    Double_t xLegend[2] = {0.27, 0.47};
-    Double_t yLegend[2] = {0.65, 0.85};
+    double xLegend[2] = {0.27, 0.47};
+    double yLegend[2] = {0.65, 0.85};
 
-    Double_t drawPt[2] = {0.32, 0.83};
+    double drawPt[2] = {0.32, 0.83};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -3012,9 +3012,9 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
     }
 
     // Set style for the data points
-    Int_t dataType{2};
-    Int_t embType{1};
-    Int_t genType{0};
+    int dataType{2};
+    int embType{1};
+    int genType{0};
     set1DStyle( hData2GenRatio, dataType );
     if ( hEmb2GenRatio ) {
         set1DStyle( hEmb2GenRatio, embType );
@@ -3066,7 +3066,7 @@ void plotIndividualData2GenRatio(TCanvas *c, TH1D *hData2GenRatio, TH1D *hSystUn
 
 //________________
 void plotManyData2McComparison(TCanvas *c, std::vector<TH1D*> hData, std::vector<TH1D*> hSystUncrt, 
-                               std::vector<TH1D*> hEmb, std::vector<TH1D*> hGen, Bool_t isCM = kFALSE, int fbType = 0) {
+                               std::vector<TH1D*> hEmb, std::vector<TH1D*> hGen, bool isCM = false, int fbType = 0) {
 
     // Latex
     TLatex t;
@@ -3074,19 +3074,19 @@ void plotManyData2McComparison(TCanvas *c, std::vector<TH1D*> hData, std::vector
     t.SetTextSize(0.06);
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.0001, 0.12};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.0001, 0.12};
 
-    Double_t xLegend[2] = {0.27, 0.47};
-    Double_t yLegend[2] = {0.65, 0.85};
+    double xLegend[2] = {0.27, 0.47};
+    double yLegend[2] = {0.65, 0.85};
 
-    Double_t drawPt[2] = {0.35, 0.83};
+    double drawPt[2] = {0.35, 0.83};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -3108,10 +3108,10 @@ void plotManyData2McComparison(TCanvas *c, std::vector<TH1D*> hData, std::vector
     }
 
     // Set style for the data points
-    Int_t dataType{2};
-    Int_t embType{1};
-    Int_t genType{0};
-    for (Int_t i{0}; i<hData.size(); i++) {
+    int dataType{2};
+    int embType{1};
+    int genType{0};
+    for (int i{0}; i<hData.size(); i++) {
         set1DStyle( hData.at(i), dataType );
         if ( hEmb.at(i) ) {
             set1DStyle( hEmb.at(i), embType );
@@ -3125,7 +3125,7 @@ void plotManyData2McComparison(TCanvas *c, std::vector<TH1D*> hData, std::vector
     }
 
     // Loop over pT average bins
-    for (Int_t i{0}; i<hData.size(); i++) {
+    for (int i{0}; i<hData.size(); i++) {
         // Switch to the pad
         c->cd(i+1);
         setPadStyle();
@@ -3213,13 +3213,13 @@ void plotManyData2McComparison(TCanvas *c, std::vector<TH1D*> hData, std::vector
         // Plot CMS header
         plotCMSHeader();
 
-    } // for (Int_t i{0}; i<hData.size(); i++)
+    } // for (int i{0}; i<hData.size(); i++)
 }
 
 //________________
 void plotManyData2McRatio(TCanvas *c, std::vector<TH1D*> hData2GenRatio, std::vector<TH1D*> hSystUncrt, 
                           std::vector<TH1D*> hEmb2GenRatio, std::vector<TH1D*> hData2EmbRatio, 
-                          Bool_t isCM = kFALSE, int fbType = 0) {
+                          bool isCM = false, int fbType = 0) {
 
     // Latex
     TLatex t;
@@ -3227,19 +3227,19 @@ void plotManyData2McRatio(TCanvas *c, std::vector<TH1D*> hData2GenRatio, std::ve
     t.SetTextSize(0.06);
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.75, 1.25};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.75, 1.25};
 
-    Double_t xLegend[2] = {0.4, 0.75};
-    Double_t yLegend[2] = {0.17, 0.37};
+    double xLegend[2] = {0.4, 0.75};
+    double yLegend[2] = {0.17, 0.37};
 
-    Double_t drawPt[2] = {0.35, 0.83};
+    double drawPt[2] = {0.35, 0.83};
 
     if ( fbType == 1 || fbType == 2 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -3261,10 +3261,10 @@ void plotManyData2McRatio(TCanvas *c, std::vector<TH1D*> hData2GenRatio, std::ve
     }
 
     // Set style for the data points
-    Int_t dataType{2};
-    Int_t embType{1};
-    Int_t genType{0};
-    for (Int_t i{0}; i<hData2GenRatio.size(); i++) {
+    int dataType{2};
+    int embType{1};
+    int genType{0};
+    for (int i{0}; i<hData2GenRatio.size(); i++) {
         set1DStyle( hData2GenRatio.at(i), dataType );
         if ( hEmb2GenRatio.at(i) ) {
             set1DStyle( hEmb2GenRatio.at(i), embType );
@@ -3276,7 +3276,7 @@ void plotManyData2McRatio(TCanvas *c, std::vector<TH1D*> hData2GenRatio, std::ve
     }
 
     // Loop over pT average bins
-    for (Int_t i{0}; i<hData2GenRatio.size(); i++) {
+    for (int i{0}; i<hData2GenRatio.size(); i++) {
 
         // Switch to the pad
         c->cd(i+1);
@@ -3336,24 +3336,24 @@ void plotManyData2McRatio(TCanvas *c, std::vector<TH1D*> hData2GenRatio, std::ve
 
         // Plot CMS header
         plotCMSHeader();
-    } // for (Int_t i{0}; i<hData2GenRatio.size(); i++)
+    } // for (int i{0}; i<hData2GenRatio.size(); i++)
 }
 
 //________________
 void plotData2McComparison(std::vector< std::vector<TH1D*> > hFinalDist, 
                            std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist,
                            std::vector< std::vector<TH1D*> > hFinalRelSystUncrtDist,
-                           TString date, Bool_t isCM = kFALSE) {
+                           TString date, bool isCM = false) {
 
-    Bool_t plotData2Embedding = {kFALSE};
+    bool plotData2Embedding = {false};
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     //
@@ -3439,7 +3439,7 @@ void plotData2McComparison(std::vector< std::vector<TH1D*> > hFinalDist,
     // Create canvases
     //
 
-    Int_t sizeX{1200}, sizeY{1200};
+    int sizeX{1200}, sizeY{1200};
     // Individual distributions
     TCanvas *canv = new TCanvas("canv", "canv", 1200, 1000);
 
@@ -3482,7 +3482,7 @@ void plotData2McComparison(std::vector< std::vector<TH1D*> > hFinalDist,
               << std::endl;
 
     // Plot individual distributions
-    for (Int_t i{0}; i<hEtaDist.size(); i++) {
+    for (int i{0}; i<hEtaDist.size(); i++) {
 
         // Individual comparisons
         canv->cd();
@@ -3550,7 +3550,7 @@ void plotData2McComparison(std::vector< std::vector<TH1D*> > hFinalDist,
             plotIndividualData2GenRatio(canv, hEtaBFRatioData2GenRatioDist.at(i), hEtaBFRatioData2GenRelSystUncrtAtValueDist.at(i), hEtaBFRatioEmbedding2GenRatioDist.at(i), nullptr, ptDijetLow.at(i), ptDijetHi.at(i), isCM, 4);
         }
         canv->SaveAs( Form("%s/data2mc/pPb8160_etaDijet_bf_ratio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(i), ptDijetHi.at(i), frame.Data()) );
-    } // for (Int_t i{0}; i<hEtaDist.size(); i++)
+    } // for (int i{0}; i<hEtaDist.size(); i++)
 
     // Plot comparisons on single canvas
     plotManyData2McComparison(cEtaComp, hEtaDist, hEtaAbsSystUncrtDist, hEtaEmbeddingDist, hEtaGenDist, isCM, 0);
@@ -3597,12 +3597,12 @@ void plotJES(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vec
              std::vector< std::vector<TH1D*> > hJet60EtaJeuUp2DefDist, std::vector< std::vector<TH1D*> > hJet60EtaJeuDown2DefDist,
              std::vector< std::vector<TH1D*> > hJet80EtaJeuUp2DefDist, std::vector< std::vector<TH1D*> > hJet80EtaJeuDown2DefDist, 
              std::vector< std::vector<TH1D*> > hJet100EtaJeuUp2DefDist, std::vector< std::vector<TH1D*> > hJet100EtaJeuDown2DefDist,
-             TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+             TString date, bool isCM = false, bool drawFits = false) {
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Data
@@ -3688,11 +3688,11 @@ void plotJES(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vec
     std::vector< TH1D* > hJet100JeuDownToDefEtaBackward = hJet100EtaJeuDown2DefDist.at(2); std::vector< TH1D* > hJet100JeuDownToDefEtaFBRatio = hJet100EtaJeuDown2DefDist.at(3);
     std::vector< TH1D* > hJet100JeuDownToDefEtaBFRatio = hJet100EtaJeuDown2DefDist.at(4);
 
-    Int_t etaTypeDef = 0;
-    Int_t etaTypeForward = 1;
-    Int_t etaTypeBackward = 2;
-    Int_t etaTypeFB = 3;
-    Int_t etaTypeBF = 4;
+    int etaTypeDef = 0;
+    int etaTypeForward = 1;
+    int etaTypeBackward = 2;
+    int etaTypeFB = 3;
+    int etaTypeBF = 4;
 
     plotUp2DownComparison(hMBEta, hJeuMBUpEta, hJeuMBDownEta, hMBJeuUpToDefEta, hMBJeuDownToDefEta, 0, etaTypeDef, 4, date, isCM, drawFits);
     plotUp2DownComparison(hJet60Eta, hJeuJet60UpEta, hJeuJet60DownEta, hJet60JeuUpToDefEta, hJet60JeuDownToDefEta, 0, etaTypeDef, 4, date, isCM, drawFits);
@@ -3723,16 +3723,16 @@ void plotJES(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::vec
 //________________
 void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vector<TH1D*> hPileup, 
                       std::vector<TH1D*> hPointingRes, std::vector<TH1D*> hTotal, 
-                      Int_t etaType, TString date, Bool_t isCM) {
+                      int etaType, TString date, bool isCM) {
 
     // Frame name
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Direction name
@@ -3759,10 +3759,10 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
     t.SetTextSize(0.06);
 
     // fbType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0., 30.};
-    Double_t legX[2] = {0.35, 0.75};
-    Double_t legY[2] = {0.65, 0.85};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0., 30.};
+    double legX[2] = {0.35, 0.75};
+    double legY[2] = {0.65, 0.85};
 
     if ( etaType != 0 ) {     // Forward or backward
         xRange[0] = 0.;
@@ -3772,8 +3772,8 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
     }
 
     // Create canvas
-    Int_t sizeX{1200};
-    Int_t sizeY{800};
+    int sizeX{1200};
+    int sizeY{800};
     TCanvas *cSyst = new TCanvas(Form("%s_%s_relSystUncrt", returnTrigName( hTotal.at(0)->GetName() ).Data(), dirName.Data() ), 
                                  Form("%s_%s_relSystUncrt", returnTrigName( hTotal.at(0)->GetName() ).Data(), dirName.Data() ), 
                                  sizeX, sizeY);
@@ -3786,7 +3786,7 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
     std::vector< TH1D* > hPointingResInPercent{};
 
     // Loop over pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
+    for (int i{0}; i<ptBins; i++) {
 
         // Switch to pad
         cSyst->cd(i+1);
@@ -3849,7 +3849,7 @@ void plotRelSystUncrt(std::vector<TH1D*> hJeu, std::vector<TH1D*> hJer, std::vec
             leg->AddEntry(hPointingResInPercent.at(i), "Pointing res.", "l");
         }
         leg->Draw();
-    } // for (Int_t i{0}; i<ptBins; i++)
+    } // for (int i{0}; i<ptBins; i++)
 
     cSyst->SaveAs( Form("%s/systematics/%s_%s_relSystUncrt_%s.pdf", date.Data(), returnTrigName( hTotal.at(0)->GetName() ).Data(), dirName.Data(), frame.Data() ) );
 }
@@ -3862,7 +3862,7 @@ void plotRelativeSystematicUncertainties(std::vector< std::vector<TH1D*> > hMBJe
                                          std::vector< std::vector<TH1D*> > hJet80PileupRelSystDist, std::vector< std::vector<TH1D*> > hJet100PileupRelSystDist,
                                          std::vector< std::vector<TH1D*> > hMBTotalRelSystDist, std::vector< std::vector<TH1D*> > hJet60TotalRelSystDist, 
                                          std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist, std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist, 
-                                         TString date, Bool_t isCM) {
+                                         TString date, bool isCM) {
     
     // Retrieve individual systematic uncertainties
 
@@ -3928,11 +3928,11 @@ void plotRelativeSystematicUncertainties(std::vector< std::vector<TH1D*> > hMBJe
     std::vector< TH1D* > hJet100TotalEtaBFRelSyst = hJet100TotalRelSystDist.at(4);
 
 
-    Int_t etaTypeDef = 0;
-    Int_t etaTypeForward = 1;
-    Int_t etaTypeBackward = 2;
-    Int_t etaTypeFB = 3;
-    Int_t etaTypeBF = 4;
+    int etaTypeDef = 0;
+    int etaTypeForward = 1;
+    int etaTypeBackward = 2;
+    int etaTypeFB = 3;
+    int etaTypeBF = 4;
 
     // Plot relative systematic uncertainties
     plotRelSystUncrt(hMBEtaJeuRelSyst, hEmbeddingEtaJerRelSyst, hMBEtaPileupRelSyst, hEmbeddingEtaPointingResRelSyst, hMBTotalEtaRelSyst, etaTypeDef, date, isCM);
@@ -3946,15 +3946,15 @@ void plotRelativeSystematicUncertainties(std::vector< std::vector<TH1D*> > hMBJe
 void plotJER(std::vector< std::vector<TH1D*> > hEmbeddingEtaDist, std::vector< std::vector<TH1D*> > hJerUpEtaDist, 
              std::vector< std::vector<TH1D*> > hJerDownEtaDist, 
              std::vector< std::vector<TH1D*> > hEmbeddingEtaJerUpToDefDist, std::vector< std::vector<TH1D*> > hEmbeddingEtaJerDownToDefDist,
-             TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+             TString date, bool isCM = false, bool drawFits = false) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Data
@@ -3979,11 +3979,11 @@ void plotJER(std::vector< std::vector<TH1D*> > hEmbeddingEtaDist, std::vector< s
     std::vector< TH1D* > hEmbeddingJerDownToDefEtaBackward = hEmbeddingEtaJerDownToDefDist.at(2); std::vector< TH1D* > hEmbeddingJerDownToDefEtaFBRatio = hEmbeddingEtaJerDownToDefDist.at(3);
     std::vector< TH1D* > hEmbeddingJerDownToDefEtaBFRatio = hEmbeddingEtaJerDownToDefDist.at(4);
 
-    Int_t etaTypeDef = 0;
-    Int_t etaTypeForward = 1;
-    Int_t etaTypeBackward = 2;
-    Int_t etaTypeFB = 3;
-    Int_t etaTypeBF = 4;
+    int etaTypeDef = 0;
+    int etaTypeForward = 1;
+    int etaTypeBackward = 2;
+    int etaTypeFB = 3;
+    int etaTypeBF = 4;
 
     plotUp2DownComparison(hEmbeddingEta, hJerUpEta, hJerDownEta, hEmbeddingJerUpToDefEta, hEmbeddingJerDownToDefEta, 1, etaTypeDef, 2, date, frame, drawFits);
     plotUp2DownComparison(hEmbeddingEtaForward, hJerUpEtaForward, hJerDownEtaForward, hEmbeddingJerUpToDefEtaForward, hEmbeddingJerDownToDefEtaForward, 1, etaTypeForward, 2, date, frame, drawFits);
@@ -4003,15 +4003,15 @@ void plotPileup(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::
                 std::vector< std::vector<TH1D*> > hJet60EtaGplus2DefDist, std::vector< std::vector<TH1D*> > hJet60EtaVtxOne2DefDist,
                 std::vector< std::vector<TH1D*> > hJet80EtaGplus2DefDist, std::vector< std::vector<TH1D*> > hJet80EtaVtxOne2DefDist,
                 std::vector< std::vector<TH1D*> > hJet100EtaGplus2DefDist, std::vector< std::vector<TH1D*> > hJet100EtaVtxOne2DefDist,
-                TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+                TString date, bool isCM = false, bool drawFits = false) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Data
@@ -4137,11 +4137,11 @@ void plotPileup(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::
     // std::vector< TH1D* > hJet100Vtx1ToDefEtaBackward = hJet100EtaVtxOne2DefDist.at(2); std::vector< TH1D* > hJet100Vtx1ToDefEtaFBRatio = hJet100EtaVtxOne2DefDist.at(3);
     // std::vector< TH1D* > hJet100Vtx1ToDefEtaBFRatio = hJet100EtaVtxOne2DefDist.at(4);
 
-    Int_t etaTypeDef = 0;
-    Int_t etaTypeForward = 1;
-    Int_t etaTypeBackward = 2;
-    Int_t etaTypeFB = 3;
-    Int_t etaTypeBF = 4;
+    int etaTypeDef = 0;
+    int etaTypeForward = 1;
+    int etaTypeBackward = 2;
+    int etaTypeFB = 3;
+    int etaTypeBF = 4;
 
     // Plotting
     plotUp2DownComparison(hMBEta, hMBGplusEta, hMBVtx1Eta, hMBGplusToDefEta, hMBVtx1ToDefEta, 2, etaTypeDef, 1, date, frame, drawFits);
@@ -4172,8 +4172,8 @@ void plotPileup(std::vector< std::vector<TH1D*> > hMBEtaDist, std::vector< std::
 
 //________________
 void writeVectors2RootFile(std::vector< std::vector<TH1D*> > vectorOfVectors) {
-    for (Int_t i = 0; i < vectorOfVectors.size(); i++) {
-        for (Int_t j = 0; j < vectorOfVectors.at(i).size(); j++) {
+    for (int i = 0; i < vectorOfVectors.size(); i++) {
+        for (int j = 0; j < vectorOfVectors.at(i).size(); j++) {
             vectorOfVectors.at(i).at(j)->Write();
         }
     }
@@ -4211,7 +4211,7 @@ void writeDistributions2RootFile(std::vector< std::vector<TH1D*> > hMBEtaDist, s
                                  std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist,
                                  std::vector< std::vector<TH1D*> > hEpps21FinalDist, std::vector< std::vector<TH1D*> > hNcteq15hqFinalDist,
                                  std::vector< std::vector<TH1D*> > hEpps21SystUncrtDist, std::vector< std::vector<TH1D*> > hNcteq15hqSystUncrtDist,
-                                 TString date, Bool_t isCM = kFALSE) {
+                                 TString date, bool isCM = false) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
@@ -4292,7 +4292,7 @@ void writeDistributions2RootFile(std::vector< std::vector<TH1D*> > hMBEtaDist, s
 }
 
 //________________
-void applySmoothing(TH1D* h, Int_t systType = 0, Bool_t isCM = kFALSE) {
+void applySmoothing(TH1D* h, int systType = 0, bool isCM = false) {
     // Syst type: 0 - JEU, 1 - JER, 2 - Pointing, 3 - Pileup
     TString name = h->GetName();
     name.ToLower();
@@ -4301,29 +4301,29 @@ void applySmoothing(TH1D* h, Int_t systType = 0, Bool_t isCM = kFALSE) {
              !name.Contains("backward") && !name.Contains("bf") ) ) ||
           ( ( systType == 0 || systType == 1 ) && name.Contains("fb") ) ) {
 
-        // Int_t binLow = ( h->GetXaxis()->GetBinCenter(1) < 0 ) ? h->FindBin(-1.2) : 1;
-        // Int_t binHi = h->FindBin(1.2);
-        // Double_t maxVal{-1};
-        // for (Int_t i = binLow; i<=binHi; i++) {
+        // int binLow = ( h->GetXaxis()->GetBinCenter(1) < 0 ) ? h->FindBin(-1.2) : 1;
+        // int binHi = h->FindBin(1.2);
+        // double maxVal{-1};
+        // for (int i = binLow; i<=binHi; i++) {
         //     if (maxVal < h->GetBinContent(i) ) {
         //         maxVal = h->GetBinContent(i);
         //     }
-        // } // for (Int_t i = binLow; i<=binHi; i++)
+        // } // for (int i = binLow; i<=binHi; i++)
 
-        // for (Int_t i = 1; i<=h->GetNbinsX(); i++) {
+        // for (int i = 1; i<=h->GetNbinsX(); i++) {
         //     if ( h->GetBinContent(i) < maxVal) {
         //         h->SetBinContent( i, maxVal );
         //     }
-        // } // for (Int_t i = binLow; i<=binHi; i++)
+        // } // for (int i = binLow; i<=binHi; i++)
 
 
         // Search for the bin where the symmetric distributions
-        Int_t binStart = 1;
+        int binStart = 1;
         if ( h->GetXaxis()->GetBinCenter(1) < 0 ) { // For full eta range
             binStart = ( isCM ) ?  h->FindBin(0.00001) : h->FindBin(0.00001 + etaCMShift);
-            Double_t binValPrevios = h->GetBinContent(binStart);
-            for (Int_t i = binStart; i<=h->GetNbinsX(); i++) {
-                Double_t binVal = h->GetBinContent(i);
+            double binValPrevios = h->GetBinContent(binStart);
+            for (int i = binStart; i<=h->GetNbinsX(); i++) {
+                double binVal = h->GetBinContent(i);
                 if ( binValPrevios > binVal ) {
                     h->SetBinContent(i, binValPrevios);
                 } 
@@ -4332,8 +4332,8 @@ void applySmoothing(TH1D* h, Int_t systType = 0, Bool_t isCM = kFALSE) {
                 }
             }
             binValPrevios = h->GetBinContent(binStart-1);
-            for (Int_t i = (binStart-2); i>=1; i--) {
-                Double_t binVal = h->GetBinContent(i);
+            for (int i = (binStart-2); i>=1; i--) {
+                double binVal = h->GetBinContent(i);
                 if ( binValPrevios > binVal ) {
                     h->SetBinContent(i, binValPrevios);
                 } 
@@ -4343,16 +4343,16 @@ void applySmoothing(TH1D* h, Int_t systType = 0, Bool_t isCM = kFALSE) {
             }
         }
         else { // For forward and backward distributions
-            Double_t binValPrevios = h->GetBinContent(binStart);
-            for (Int_t i = (binStart+1); i<=h->GetNbinsX(); i++) {
-                Double_t binVal = h->GetBinContent(i);
+            double binValPrevios = h->GetBinContent(binStart);
+            for (int i = (binStart+1); i<=h->GetNbinsX(); i++) {
+                double binVal = h->GetBinContent(i);
                 if ( binValPrevios > binVal ) {
                     h->SetBinContent(i, binValPrevios);
                 } 
                 else {
                     binValPrevios = binVal;
                 } 
-            } // for (Int_t i = binStart; i<=h->GetNbinsX(); i++)
+            } // for (int i = binStart; i<=h->GetNbinsX(); i++)
         }
         
     } // if ( name.Contains("jeuSyst") || name.Contains("pointingSyst") )
@@ -4360,12 +4360,12 @@ void applySmoothing(TH1D* h, Int_t systType = 0, Bool_t isCM = kFALSE) {
 
 //________________
 TH1D* calculateSystUncrtBinByBin(TH1D *hUp, TH1D *hDown = nullptr, const Char_t *setName = "hMB", 
-                                 Int_t systType = 0, Int_t bin = 0, Bool_t useFit = kFALSE,
-                                 Bool_t isCM = kFALSE) {
+                                 int systType = 0, int bin = 0, bool useFit = false,
+                                 bool isCM = false) {
 
     TString hName = setName;
     TString systSuffix;
-    Int_t color;
+    int color;
     if (systType == 0) {
         systSuffix = "jeu";
         color = 4; // blue
@@ -4403,19 +4403,19 @@ TH1D* calculateSystUncrtBinByBin(TH1D *hUp, TH1D *hDown = nullptr, const Char_t 
     }
 
     // Calculate systematic uncertainties
-    for (Int_t i = 1; i <= hUp->GetNbinsX(); i++) {
-        Double_t up = hUp->GetBinContent(i);
+    for (int i = 1; i <= hUp->GetNbinsX(); i++) {
+        double up = hUp->GetBinContent(i);
         if ( useFit ) {
             up = fitUp->Eval( hUp->GetBinCenter(i) );
         }
-        Double_t down = up; 
+        double down = up; 
         if ( hDown ) {
             down = hDown->GetBinContent(i);
             if ( useFit ) {
                 down = fitDown->Eval( hDown->GetBinCenter(i) );
             }
         }
-        Double_t systUncrt = ( TMath::Abs(up - 1) + TMath::Abs(down - 1) ) / 2.0;
+        double systUncrt = ( TMath::Abs(up - 1) + TMath::Abs(down - 1) ) / 2.0;
         if ( up < 0.000001 && down < 0.000001 ) {
             systUncrt = 0;
         }
@@ -4430,8 +4430,8 @@ TH1D* calculateSystUncrtBinByBin(TH1D *hUp, TH1D *hDown = nullptr, const Char_t 
 
 //________________
 std::vector<TH1D*> calculateSystUncrt(std::vector<TH1D*> hUp, std::vector<TH1D*> hDown = {}, std::vector<TH1D*> hDef = {},
-                                      const Char_t *setName = "hMB", Int_t systType = 0, Bool_t useFit = kFALSE,
-                                      Bool_t isCM = kFALSE) {
+                                      const Char_t *setName = "hMB", int systType = 0, bool useFit = false,
+                                      bool isCM = false) {
  
     // systType: 0 - JEU, 1 - JER, 2 - Pointing, 3 - Pileup
 
@@ -4439,13 +4439,13 @@ std::vector<TH1D*> calculateSystUncrt(std::vector<TH1D*> hUp, std::vector<TH1D*>
     std::vector<TH1D*> hSystUncrt{};
 
     // Create vectors with pT values
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Calculate systematic uncertainties
-    for (Int_t i = 0; i < hUp.size(); i++) {
+    for (int i = 0; i < hUp.size(); i++) {
         TH1D *hDefHisto = hDef.at(i);
         TH1D *hSystHisto = nullptr;
         if ( systType != 3 ) {
@@ -4462,7 +4462,7 @@ std::vector<TH1D*> calculateSystUncrt(std::vector<TH1D*> hUp, std::vector<TH1D*>
 
         // std::cout << "Histo name: " << hSystHisto->GetName() << std::endl;
         // Account for bins with 0 entries in rel. syst. undertainty histograms
-        // for (Int_t j=1; j<=hDefHisto->GetNbinsX(); j++) {
+        // for (int j=1; j<=hDefHisto->GetNbinsX(); j++) {
         //     // std::cout << "bin: " << j << " content: " << hDefHisto->GetBinContent(j) << std::endl;
         //     if ( hDefHisto->GetBinContent(j) < 0.000001 ) {
         //         hSystHisto->SetBinContent(j, 0);
@@ -4470,7 +4470,7 @@ std::vector<TH1D*> calculateSystUncrt(std::vector<TH1D*> hUp, std::vector<TH1D*>
         // }
 
         hSystUncrt.push_back( hSystHisto );
-    } // for (Int_t i = 0; i < hUp.size(); i++)
+    } // for (int i = 0; i < hUp.size(); i++)
 
     return hSystUncrt;
 }
@@ -4479,9 +4479,9 @@ std::vector<TH1D*> calculateSystUncrt(std::vector<TH1D*> hUp, std::vector<TH1D*>
 std::vector< std::vector<TH1D*> > createRelSystUncrt(std::vector< std::vector<TH1D*> > hUp, 
                                                      std::vector< std::vector<TH1D*> > hDown,
                                                      std::vector< std::vector<TH1D*> > hDef,
-                                                     const Char_t* setName = "hMB", Int_t systType = 0,
-                                                     Bool_t useFit = kFALSE,
-                                                     Bool_t isCM = kFALSE) {
+                                                     const Char_t* setName = "hMB", int systType = 0,
+                                                     bool useFit = false,
+                                                     bool isCM = false) {
 
     // systType: 0 - JEU, 1 - JER, 2 - Pointing, 3 - Pileup
 
@@ -4527,12 +4527,12 @@ std::vector<TH1D*> combineRelSystUncrt(std::vector<TH1D*> hJeuRelSystUncrt, std:
     TString hName = setName;
 
     // pT bins
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
-    for (Int_t i = 0; i < ptBins; i++) {
+    for (int i = 0; i < ptBins; i++) {
         hName = setName;
         hName += "_";
         hName += "totalSystUncrt";
@@ -4541,12 +4541,12 @@ std::vector<TH1D*> combineRelSystUncrt(std::vector<TH1D*> hJeuRelSystUncrt, std:
         TH1D *hTotal = (TH1D*)hJeuRelSystUncrt.at(i)->Clone( hName.Data() );
         hTotal->Reset();
         // std::cout << "pT bin: " << i << std::endl;
-        for (Int_t j = 1; j <= hJeuRelSystUncrt.at(i)->GetNbinsX(); j++) {
-            Double_t jeu = hJeuRelSystUncrt.at(i)->GetBinContent(j);
-            Double_t jer = hJerRelSystUncrt.at(i)->GetBinContent(j);
-            Double_t pointingRes = hPointingResRelSystUncert.at(i)->GetBinContent(j);
-            Double_t pileup = hPileupRelSystUncrt.at(i)->GetBinContent(j);
-            Double_t total = TMath::Sqrt( jeu * jeu + jer * jer + pointingRes * pointingRes + pileup * pileup );
+        for (int j = 1; j <= hJeuRelSystUncrt.at(i)->GetNbinsX(); j++) {
+            double jeu = hJeuRelSystUncrt.at(i)->GetBinContent(j);
+            double jer = hJerRelSystUncrt.at(i)->GetBinContent(j);
+            double pointingRes = hPointingResRelSystUncert.at(i)->GetBinContent(j);
+            double pileup = hPileupRelSystUncrt.at(i)->GetBinContent(j);
+            double total = TMath::Sqrt( jeu * jeu + jer * jer + pointingRes * pointingRes + pileup * pileup );
             hTotal->SetBinContent(j, total);
             // std::cout << "eta bin: " << j << " jeu: " << jeu << " jer: " << jer << " pointingRes: " << pointingRes << " pileup: " << pileup << " total: " << total << std::endl;
             if ( total < jeu ) std::cout << "total < jeu" << std::endl;
@@ -4616,9 +4616,9 @@ std::vector< std::vector<TH1D*> > makeFinalDistributions(std::vector< std::vecto
                                                          std::vector< std::vector<TH1D*> > hRatios2McDist) {
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     //
@@ -4750,7 +4750,7 @@ std::vector< std::vector<TH1D*> > makeFinalDistributions(std::vector< std::vecto
 
 
     // Create final distributions
-    for (Int_t i = 0; i < ptBins; i++) {
+    for (int i = 0; i < ptBins; i++) {
         if ( ptDijetLow.at(i) < 80 ) {
             hEtaFinal.push_back( dynamic_cast<TH1D*>( hMBEta.at(i)->Clone( Form("hData_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
             hEtaForwardFinal.push_back( dynamic_cast<TH1D*>( hMBEtaForward.at(i)->Clone( Form("hData_etaForward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
@@ -4865,7 +4865,7 @@ std::vector< std::vector<TH1D*> > makeFinalDistributions(std::vector< std::vecto
         hEtaBackwardFinalEmbedding.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaBackward.at(i)->Clone( Form("hEmbedding_etaBackward_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
         hEtaFBRatioFinalEmbedding.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaFBRatio.at(i)->Clone( Form("hEmbedding_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
         hEtaBFRatioFinalEmbedding.push_back( dynamic_cast<TH1D*>( hEmbeddingEtaBFRatio.at(i)->Clone( Form("hEmbedding_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) )  ) );
-    } // for (Int_t i = 0; i < ptBins; i++)
+    } // for (int i = 0; i < ptBins; i++)
 
     hFinalDistributions.push_back(hEtaFinal);                       // 0
     hFinalDistributions.push_back(hEtaForwardFinal);                // 1
@@ -4914,9 +4914,9 @@ std::vector< std::vector<TH1D*> > makeFinalRelSystUncrt(std::vector< std::vector
                                                         std::vector< std::vector<TH1D*> > hJet80TotalRelSystDist, 
                                                         std::vector< std::vector<TH1D*> > hJet100TotalRelSystDist) {
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     //
@@ -4957,7 +4957,7 @@ std::vector< std::vector<TH1D*> > makeFinalRelSystUncrt(std::vector< std::vector
     std::vector< TH1D* > hJet100EtaBFRatioRelSystUncrt = hJet100TotalRelSystDist.at(4);
 
     // Loop over pT bins
-    for (Int_t i{0}; i<ptBins; i++) {
+    for (int i{0}; i<ptBins; i++) {
 
         if ( ptDijetLow.at(i) < 80 ) {
             hEtaFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hMBEtaRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_eta_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
@@ -4987,7 +4987,7 @@ std::vector< std::vector<TH1D*> > makeFinalRelSystUncrt(std::vector< std::vector
             hEtaFBRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet100EtaFBRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaFB_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
             hEtaBFRatioFinalRelSystUncrt.push_back( dynamic_cast<TH1D*>( hJet100EtaBFRatioRelSystUncrt.at(i)->Clone( Form("hDataRelSystUncrt_etaBF_pt_%d_%d", ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
         }
-    } // for (Int_t i{0}; i<ptBins; i++)
+    } // for (int i{0}; i<ptBins; i++)
 
     hFinalDistributions.push_back(hEtaFinalRelSystUncrt);                       // 0
     hFinalDistributions.push_back(hEtaForwardFinalRelSystUncrt);                // 1
@@ -5012,8 +5012,8 @@ std::vector< std::vector<TH1D*> > makeFinalRelSystUncrt(std::vector< std::vector
 
 //________________
 void makeFBRatios(std::vector<TH1D*> &hRat, std::vector<TH1D*> &hNum, std::vector<TH1D*> &hDen,
-                  const Char_t *name, Int_t ptLow, Int_t ptHi) {
-    for (Int_t i{0}; i<hNum.size(); i++) {
+                  const Char_t *name, int ptLow, int ptHi) {
+    for (int i{0}; i<hNum.size(); i++) {
         hRat.push_back( dynamic_cast<TH1D*>( hNum.at(i)->Clone( Form("%s_pt_%d_%d_%d", name, ptLow, ptHi, i) ) ) );
         hRat.back()->Divide( hDen.at(i) );
         set1DStyle( hRat.back(), 2 );
@@ -5021,7 +5021,7 @@ void makeFBRatios(std::vector<TH1D*> &hRat, std::vector<TH1D*> &hNum, std::vecto
 }
 
 //________________
-TH1D* calculateSystUncrtForNPDF(std::vector<TH1D*> hRatios, const Char_t *npdfName, Int_t ptLow = 50, Int_t ptHi = 60) {
+TH1D* calculateSystUncrtForNPDF(std::vector<TH1D*> hRatios, const Char_t *npdfName, int ptLow = 50, int ptHi = 60) {
 
     // const char* npdfName = "data2epps21";
     // if ( npdfSet == 1 ) npdfName = "data2ncteq15hq";
@@ -5035,30 +5035,30 @@ TH1D* calculateSystUncrtForNPDF(std::vector<TH1D*> hRatios, const Char_t *npdfNa
 
     // Try to estimate simmetric uncertainties accroding
     // the Eq. 10 from https://arxiv.org/pdf/1903.09832
-    Int_t iter = 0;
-    for (Int_t i{1}; i<hRatios.size(); ) {
+    int iter = 0;
+    for (int i{1}; i<hRatios.size(); ) {
         // Negative side
         hSystSideNegative.push_back( dynamic_cast<TH1D*>( hRatios.at(i)->Clone( Form("%s_systNegative_%d", hRatios.at(i)->GetName(), iter) ) ) );
         // Positive side
         hSystSidePositive.push_back( dynamic_cast<TH1D*>( hRatios.at(i+1)->Clone( Form("%s_systPositive_%d", hRatios.at(i+1)->GetName(), iter) ) ) );
 
         // Square the numbers and sum with the previous set
-        for (Int_t j{1}; j<=hErrors->GetNbinsX(); j++) {
-            Double_t oldVal = hErrors->GetBinContent(j);
-            Double_t newVal = hSystSidePositive.at(iter)->GetBinContent(j) - hSystSideNegative.at(iter)->GetBinContent(j);
+        for (int j{1}; j<=hErrors->GetNbinsX(); j++) {
+            double oldVal = hErrors->GetBinContent(j);
+            double newVal = hSystSidePositive.at(iter)->GetBinContent(j) - hSystSideNegative.at(iter)->GetBinContent(j);
             newVal *= newVal;
             newVal += oldVal;
             hErrors->SetBinContent(j, newVal);
         }
         i+=2;
         iter++;
-    } // for (Int_t i{1}; i<hRatios.size(); )
+    } // for (int i{1}; i<hRatios.size(); )
 
     // Take a half of the root of each bin and assign it as a final uncertainty
     // to the main nPDF set
-    for (Int_t i{1}; i<=hSystUncrt->GetNbinsX(); i++) {
-        Double_t val = hSystUncrt->GetBinContent(i);
-        Double_t valErr = hErrors->GetBinContent(i);
+    for (int i{1}; i<=hSystUncrt->GetNbinsX(); i++) {
+        double val = hSystUncrt->GetBinContent(i);
+        double valErr = hErrors->GetBinContent(i);
         valErr = 0.5 * TMath::Sqrt(valErr);
         hSystUncrt->SetBinContent(i, val);
         hSystUncrt->SetBinError(i, valErr);
@@ -5070,12 +5070,12 @@ TH1D* calculateSystUncrtForNPDF(std::vector<TH1D*> hRatios, const Char_t *npdfNa
 }
 
 //________________
-std::vector< std::vector< std::vector< TH1D* > > > retrieveNLOJetDistributions(TFile *inFile, Int_t npdfSet = 0) {
+std::vector< std::vector< std::vector< TH1D* > > > retrieveNLOJetDistributions(TFile *inFile, int npdfSet = 0) {
 
     // npdfSet: 0 - epps21; 1 - nCTEQ15HQ
 
     const char* npdfName = "epps21";
-    Int_t nPDFSets = 107;
+    int nPDFSets = 107;
     if ( npdfSet == 0 ) {
         npdfName = "epps21";
         nPDFSets = 107;
@@ -5094,7 +5094,7 @@ std::vector< std::vector< std::vector< TH1D* > > > retrieveNLOJetDistributions(T
     std::vector< std::vector< TH1D* > > hNpdfEtaCMBFRatioPt{};
 
     // Loop over pT bins
-    for (Int_t i{0}; i<npdfPtLow.size(); i++) {
+    for (int i{0}; i<npdfPtLow.size(); i++) {
 
         // hNpdfEtaLabPt.clear();
         std::vector<TH1D*> hNpdfEtaLab{};
@@ -5103,7 +5103,7 @@ std::vector< std::vector< std::vector< TH1D* > > > retrieveNLOJetDistributions(T
         std::vector<TH1D*> hNpdfEtaCMFBRatio{};
         std::vector<TH1D*> hNpdfEtaCMBFRatio{};
 
-        for (Int_t j{0}; j<nPDFSets; j++ ) {
+        for (int j{0}; j<nPDFSets; j++ ) {
 
             // Full eta in lab frame
             hNpdfEtaLab.push_back( dynamic_cast<TH1D*>( inFile->Get( Form("pPbLab_pt_%d_%d_%d", npdfPtLow.at(i), npdfPtHi.at(i), j) ) ) );
@@ -5119,7 +5119,7 @@ std::vector< std::vector< std::vector< TH1D* > > > retrieveNLOJetDistributions(T
             hNpdfEtaCMBackward.push_back( dynamic_cast<TH1D*>( inFile->Get( Form("pPbCMBackward_pt_%d_%d_%d", npdfPtLow.at(i), npdfPtHi.at(i), j) ) ) );
             hNpdfEtaCMBackward.at(j)->SetName( Form("%s_pPb8160_etaCM_backward_pt_%d_%d_%d", npdfName, npdfPtLow.at(i), npdfPtHi.at(i), j)  );
             hNpdfEtaCMBackward.at(j)->Scale( 1./hNpdfEtaCMBackward.at(j)->Integral() );
-        } // for (Int_t j{0}; j<nPDFSets; j++ )
+        } // for (int j{0}; j<nPDFSets; j++ )
 
         // Make ratios
         makeFBRatios(hNpdfEtaCMFBRatio, hNpdfEtaCMForward, hNpdfEtaCMBackward, Form( "%s_pPb8160_etaCM_fb", npdfName), npdfPtLow.at(i), npdfPtHi.at(i) );
@@ -5130,7 +5130,7 @@ std::vector< std::vector< std::vector< TH1D* > > > retrieveNLOJetDistributions(T
         hNpdfEtaCMBackwardPt.push_back(hNpdfEtaCMBackward);
         hNpdfEtaCMFBRatioPt.push_back(hNpdfEtaCMFBRatio);
         hNpdfEtaCMBFRatioPt.push_back(hNpdfEtaCMBFRatio);
-    } // for (Int_t i{0}; i<ptLow.size(); i++)
+    } // for (int i{0}; i<ptLow.size(); i++)
 
     hNpdfDistirbutions.push_back(hNpdfEtaLabPt);
     hNpdfDistirbutions.push_back(hNpdfEtaCMForwardPt);
@@ -5153,7 +5153,7 @@ std::vector< std::vector< TH1D* > > makeFinalNpdfDistributions(std::vector< std:
     std::vector< TH1D* > hNpdfEtaCMBFRatio{};
 
     // Loop over pT bins and get the first nPDF set for the given pT bin
-    for (Int_t i{0}; i<npdfPtLow.size(); i++) {
+    for (int i{0}; i<npdfPtLow.size(); i++) {
         hNpdfEtaLab.push_back( dynamic_cast<TH1D*>( npdfDistr.at(0).at(i).at(0)->Clone( Form("%s_pPb8160_eta_pt_%d_%d", npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) ) ) );
         hNpdfEtaCMForward.push_back( dynamic_cast<TH1D*>( npdfDistr.at(1).at(i).at(0)->Clone( Form("%s_pPb8160_eta_forward_pt_%d_%d", npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) ) ) );
         hNpdfEtaCMBackward.push_back( dynamic_cast<TH1D*>( npdfDistr.at(2).at(i).at(0)->Clone( Form("%s_pPb8160_eta_backward_pt_%d_%d", npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) ) ) );
@@ -5182,7 +5182,7 @@ std::vector< std::vector< TH1D* > > makeFinalNpdfSystUncrt(std::vector< std::vec
     std::vector< TH1D* > hNpdfEtaCMBFRatio{};
 
     // Loop over pT bins and get the first nPDF set for the given pT bin
-    for (Int_t i{0}; i<npdfPtLow.size(); i++) {
+    for (int i{0}; i<npdfPtLow.size(); i++) {
         hNpdfEtaLab.push_back( calculateSystUncrtForNPDF(npdfDistr.at(0).at(i), npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) );
         hNpdfEtaCMForward.push_back( calculateSystUncrtForNPDF(npdfDistr.at(1).at(i), npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) );
         hNpdfEtaCMBackward.push_back( calculateSystUncrtForNPDF(npdfDistr.at(2).at(i), npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) );
@@ -5202,16 +5202,16 @@ std::vector< std::vector< TH1D* > > makeFinalNpdfSystUncrt(std::vector< std::vec
 //________________
 std::vector< std::vector< TH1D* > > makeRatiosOfData2nPDF(std::vector< std::vector< TH1D* > > hDataDist, 
                                                           std::vector< std::vector< TH1D* > > hNpdfDist,
-                                                          Int_t npdfSet = 0) {
+                                                          int npdfSet = 0) {
 
     // npdfSet: 0 - epps21; 1 - ncteq15hq
     const char* npdfName = "data2epps21";
     if ( npdfSet == 1 ) npdfName = "data2ncteq15hq";
 
     // Dijet pT standard binning
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Vector that corresponds to all pT bins
@@ -5221,11 +5221,11 @@ std::vector< std::vector< TH1D* > > makeRatiosOfData2nPDF(std::vector< std::vect
     std::vector< TH1D* > hData2NpdfSyst{};
 
     // For all existing nPDF calculated pT bins
-    for (Int_t i{0}; i<npdfPtLow.size(); i++) {
+    for (int i{0}; i<npdfPtLow.size(); i++) {
 
         // Skip bins that are not matching pT binning
-        Int_t ptBin = -1;
-        for (Int_t j{0}; j<ptDijetLow.size(); j++) {
+        int ptBin = -1;
+        for (int j{0}; j<ptDijetLow.size(); j++) {
             if ( npdfPtLow.at(i) == ptDijetLow.at(j) && npdfPtHi.at(i) == ptDijetHi.at(j) ) {
                 ptBin = j;
                 //std::cout << "Found matching pT bin: " << ptBin << " ptLow: " << npdfPtLow.at(i) << " ptHi: " << npdfPtHi.at(i) << std::endl;
@@ -5240,7 +5240,7 @@ std::vector< std::vector< TH1D* > > makeRatiosOfData2nPDF(std::vector< std::vect
         std::vector<TH1D*> hData2NpdfRatio{};
 
         // Loop over nPDF sets
-        for (Int_t j{0}; j<nloSets.size(); j++) {
+        for (int j{0}; j<nloSets.size(); j++) {
             if ( j == 0 ) {
                 hData2NpdfRatio.push_back( dynamic_cast<TH1D*>( hData->Clone( Form("%s_statUcrt_eta_pt_%d_%d", npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) ) ) );
             }
@@ -5248,12 +5248,12 @@ std::vector< std::vector< TH1D* > > makeRatiosOfData2nPDF(std::vector< std::vect
                 hData2NpdfRatio.push_back( dynamic_cast<TH1D*>( hData->Clone( Form("%s_statUcrt_eta_pt_%d_%d_%d", npdfName, npdfPtLow.at(i), npdfPtHi.at(i), j) ) ) );
             }
             hData2NpdfRatio.at(j)->Divide( nloSets.at(j) );
-        } // for (Int_t j{0}; j<nloSets.size(); j++)
+        } // for (int j{0}; j<nloSets.size(); j++)
 
         // Calculate systematic uncertainties for the given nPDF set
         hData2NpdfStat.push_back( hData2NpdfRatio.at(0) );
         hData2NpdfSyst.push_back( calculateSystUncrtForNPDF(hData2NpdfRatio, npdfName, npdfPtLow.at(i), npdfPtHi.at(i)) );
-    } // for (Int_t i{0}; i<ptLow.size(); i++)
+    } // for (int i{0}; i<ptLow.size(); i++)
 
     // Ratio with statistical uncertainties
     hReturnVector.push_back(hData2NpdfStat);
@@ -5264,7 +5264,7 @@ std::vector< std::vector< TH1D* > > makeRatiosOfData2nPDF(std::vector< std::vect
 }
 
 //________________
-std::vector<TH1D*> makeAbsSystUncert(std::vector<TH1D*> hRelSystUncrt, std::vector<TH1D*> hData, Int_t fbType = 0) {
+std::vector<TH1D*> makeAbsSystUncert(std::vector<TH1D*> hRelSystUncrt, std::vector<TH1D*> hData, int fbType = 0) {
 
     // fbType: 0 - full eta; 1 - forward eta; 2 - backward eta; 3 - FB ratio; 4 - BF ratio
     TString etaType = "";
@@ -5285,26 +5285,26 @@ std::vector<TH1D*> makeAbsSystUncert(std::vector<TH1D*> hRelSystUncrt, std::vect
     }
 
     // Dijet pT selection
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     std::vector<TH1D*> hAbsSystUncrt{};
 
-    for (Int_t i{0}; i<hRelSystUncrt.size(); i++) {
+    for (int i{0}; i<hRelSystUncrt.size(); i++) {
         hAbsSystUncrt.push_back( dynamic_cast<TH1D*>( hData.at(i)->Clone( Form("hDataAbsSystUncrt_eta%s_pt_%d_%d", etaType.Data(), ptDijetLow.at(i), ptDijetHi.at(i)) ) ) );
-        for (Int_t j{1}; j<=hAbsSystUncrt.at(i)->GetNbinsX(); j++) {
-            Double_t yVal{-999.};
-            Double_t relUncrt{0.};
-            Double_t absUncrt{0.};
+        for (int j{1}; j<=hAbsSystUncrt.at(i)->GetNbinsX(); j++) {
+            double yVal{-999.};
+            double relUncrt{0.};
+            double absUncrt{0.};
 
             yVal = hAbsSystUncrt.at(i)->GetBinContent(j);
             relUncrt = hRelSystUncrt.at(i)->GetBinContent(j); // Check if it is in percent or absolute value
             absUncrt = yVal * relUncrt;
             hAbsSystUncrt.at(i)->SetBinError(j, absUncrt);
-        } //  for (Int_t j{1}; j<=hAbsSystUncrt.at(i)->GetNbinsX(); j++)
-    } // for (Int_t i{0}; i<hRelSystUncrt.size(); i++)
+        } //  for (int j{1}; j<=hAbsSystUncrt.at(i)->GetNbinsX(); j++)
+    } // for (int i{0}; i<hRelSystUncrt.size(); i++)
 
     return hAbsSystUncrt;
 }
@@ -5352,7 +5352,7 @@ std::vector< std::vector<TH1D*> > makeFinalAbsSystUncrt(std::vector< std::vector
 //________________
 void plotIndividualDataOverNpdf(TCanvas *c, TH1D* data, TH1D* epps21Stat, TH1D* epps21Syst, 
                                 TH1D* ncteq15hqStat, TH1D* ncteq15hqSyst,
-                                Int_t etaType=0, Int_t ptLow=50, Int_t ptHi=60) {
+                                int etaType=0, int ptLow=50, int ptHi=60) {
 
     // Text 
     TLatex t;
@@ -5360,10 +5360,10 @@ void plotIndividualDataOverNpdf(TCanvas *c, TH1D* data, TH1D* epps21Stat, TH1D* 
     t.SetTextSize(0.06);
 
     // Number for plotting position
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.7, 1.3};
-    Double_t legX[2] = {0.4, 0.65};
-    Double_t legY[2] = {0.2, 0.35};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.7, 1.3};
+    double legX[2] = {0.4, 0.65};
+    double legY[2] = {0.2, 0.35};
 
     // etaType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
     if ( etaType > 0 ) {     // Forward or backward
@@ -5372,9 +5372,9 @@ void plotIndividualDataOverNpdf(TCanvas *c, TH1D* data, TH1D* epps21Stat, TH1D* 
     }
 
     // Set style for the data points
-    Int_t dataStyle{0};
-    Int_t epps21Style{1};
-    Int_t ncteq15hqStyle{2};
+    int dataStyle{0};
+    int epps21Style{1};
+    int ncteq15hqStyle{2};
     setSystUncrtStyle(data, dataStyle);
     setSystUncrtStyle(epps21Syst, epps21Style);
     setSystUncrtStyle(ncteq15hqSyst, ncteq15hqStyle);
@@ -5434,7 +5434,7 @@ void plotIndividualDataOverNpdf(TCanvas *c, TH1D* data, TH1D* epps21Stat, TH1D* 
 void plotIndividualDataToNpdfComparison(TCanvas *c, TH1D *hData, TH1D *hDataUncrt,
                                         TH1D *hEpps21, TH1D *hEpps21Uncrt,
                                         TH1D *hNcteq15hq = nullptr, TH1D *hNcteq15hqUncrt = nullptr,
-                                        Int_t etaType=0, Int_t ptLow=50, Int_t ptHi=60) {
+                                        int etaType=0, int ptLow=50, int ptHi=60) {
 
     // Text 
     TLatex t;
@@ -5442,10 +5442,10 @@ void plotIndividualDataToNpdfComparison(TCanvas *c, TH1D *hData, TH1D *hDataUncr
     t.SetTextSize(0.06);
 
     // Number for plotting position
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.8, 1.35};
-    Double_t legX[2] = {0.2, 0.4};
-    Double_t legY[2] = {0.6, 0.75};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.8, 1.35};
+    double legX[2] = {0.2, 0.4};
+    double legY[2] = {0.6, 0.75};
 
     // etaType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
     if ( etaType > 0 ) {     // Forward or backward
@@ -5458,9 +5458,9 @@ void plotIndividualDataToNpdfComparison(TCanvas *c, TH1D *hData, TH1D *hDataUncr
     TLine *line;
 
     // Set style for the data points
-    Int_t dataStyle{0};
-    Int_t epps21Style{1};
-    Int_t ncteq15hqStyle{2};
+    int dataStyle{0};
+    int epps21Style{1};
+    int ncteq15hqStyle{2};
 
     setSystUncrtStyle(hDataUncrt, dataStyle);
     setSystUncrtStyle(hEpps21Uncrt, epps21Style);
@@ -5537,15 +5537,15 @@ void plotDataToNpdfComparison(std::vector< std::vector<TH1D*> > hFinalDist,
                               std::vector< std::vector<TH1D*> > hNcteq15hqSystUncrtDist, 
                               std::vector< std::vector<TH1D*> > hFinalOverEpps21Dist, 
                               std::vector< std::vector<TH1D*> > hFinalOverNcteq15hqDist,
-                              TString date, Bool_t isCM) {
+                              TString date, bool isCM) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
     
     // Dijet pT standard binning
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     //
@@ -5606,14 +5606,14 @@ void plotDataToNpdfComparison(std::vector< std::vector<TH1D*> > hFinalDist,
     std::vector< TH1D* > hNcteq15hqEtaBFRatioSyst = hNcteq15hqSystUncrtDist.at(4);
 
     // Canvases
-    Int_t sizeX{1200}, sizeY{1000};
+    int sizeX{1200}, sizeY{1000};
     TCanvas *c = new TCanvas("c", "c", sizeX, sizeY);
 
     //
     // Compare data to nPDF for the given pT bins
     //
-    Int_t j{0};
-    for (Int_t i{0}; i<npdfPtLow.size(); i++) {
+    int j{0};
+    for (int i{0}; i<npdfPtLow.size(); i++) {
 
         // Find corresponding pT bin
         for (j = {0}; j<ptDijetLow.size(); j++) {
@@ -5666,7 +5666,7 @@ void plotDataToNpdfComparison(std::vector< std::vector<TH1D*> > hFinalDist,
         //                                    4, ptDijetLow.at(j), ptDijetHi.at(j));
         // c->SaveAs( Form("%s/data2mc/comp2npdf_etaBFRatio_pt_%d_%d_%s.pdf", date.Data(), ptDijetLow.at(j), ptDijetHi.at(j), frame.Data()) );
         // c->SaveAs( Form("%s/data2mc/comp2npdf_etaBFRatio_pt_%d_%d_%s.C", date.Data(), ptDijetLow.at(j), ptDijetHi.at(j), frame.Data()) );
-    } // for (Int_t i{0}; i<npdfPtHi.size(); i++)
+    } // for (int i{0}; i<npdfPtHi.size(); i++)
     
 }
 
@@ -5675,12 +5675,12 @@ void plotDataToNpdfComparison(std::vector< std::vector<TH1D*> > hFinalDist,
 void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist, 
                       std::vector< std::vector<TH1D*> > ncteq15hqDist, 
                       std::vector< std::vector<TH1D*> > dataRelSystUncrt,
-                      Int_t etaType, TString date, Bool_t isCM) {
+                      int etaType, TString date, bool isCM) {
 
     // Dijet pT standard binning
-    std::vector<Int_t> ptDijetLow{};
-    std::vector<Int_t> ptDijetHi{};
-    Int_t ptBins = ptDijetBinLow.size();
+    std::vector<int> ptDijetLow{};
+    std::vector<int> ptDijetHi{};
+    int ptBins = ptDijetBinLow.size();
     fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     std::vector< TH1D* > dataUncrtAtUnity = dataRelSystUncrt.at(5);
@@ -5689,7 +5689,7 @@ void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist,
     std::vector< TH1D* > ncteq15hqStatUncrt = ncteq15hqDist.at(0);
     std::vector< TH1D* > ncteq15hqSystUncrt = ncteq15hqDist.at(1);
 
-    Int_t ptBin = -1;
+    int ptBin = -1;
 
     // Text 
     TLatex t;
@@ -5697,10 +5697,10 @@ void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist,
     t.SetTextSize(0.06);
 
     // Number for plotting position
-    Double_t xRange[2] = {-3., 3.};
-    Double_t yRange[2] = {0.7, 1.3};
-    Double_t legX[2] = {0.4, 0.65};
-    Double_t legY[2] = {0.2, 0.35};
+    double xRange[2] = {-3., 3.};
+    double yRange[2] = {0.7, 1.3};
+    double legX[2] = {0.4, 0.65};
+    double legY[2] = {0.2, 0.35};
 
     // etaType: 0 - all, 1 - forward, 2 - backward, 3 - forward/backward, 4 - backward/forward
     if ( etaType > 0 ) {     // Forward or backward
@@ -5709,12 +5709,12 @@ void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist,
     }
 
     // Set style for the data points
-    Int_t dataStyle{0};
-    Int_t epps21Style{1};
-    Int_t ncteq15hqStyle{2};
+    int dataStyle{0};
+    int epps21Style{1};
+    int ncteq15hqStyle{2};
 
     // Canvases
-    Int_t sizeX{1200}, sizeY{800};
+    int sizeX{1200}, sizeY{800};
     TCanvas *c = new TCanvas("c", "c", sizeX, sizeY);
 
     TCanvas *comp = new TCanvas("comp", "comp", 1800, 300 );
@@ -5722,10 +5722,10 @@ void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist,
 
     TLegend *leg; 
 
-    for (Int_t i{0}; i<epps21StatUncrt.size(); i++) {
+    for (int i{0}; i<epps21StatUncrt.size(); i++) {
 
         // Find the proper pT bin
-        for (Int_t j{0}; j<ptDijetLow.size(); j++) {
+        for (int j{0}; j<ptDijetLow.size(); j++) {
             if ( npdfPtLow.at(i) == ptDijetLow.at(j) && npdfPtHi.at(i) == ptDijetHi.at(j) ) {
                 ptBin = j;
                 break;
@@ -5786,7 +5786,7 @@ void plotDataOverNpdf(std::vector< std::vector<TH1D*> > epps21Dist,
         line->SetLineStyle(2);
         line->SetLineColor(kMagenta);
         line->Draw();
-    } // for (Int_t i{0}; i<epps21Dist.size(); i++)
+    } // for (int i{0}; i<epps21Dist.size(); i++)
     comp->SaveAs( Form("%s/data2mc/comp2npdf_eta_%s.png", date.Data(), date.Data()) );
     comp->SaveAs( Form("%s/data2mc/comp2npdf_eta_%s.pdf", date.Data(), date.Data()) );
     comp->SaveAs( Form("%s/data2mc/comp2npdf_eta_%s.eps", date.Data(), date.Data()) );
@@ -5808,7 +5808,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
                            TFile *jet80GplusFile, TFile *jet80Vtx1File,
                            TFile *jet100GplusFile, TFile *jet100Vtx1File,
                            TFile *epps21File, TFile *ncteq15hqFile,
-                           TString date, Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+                           TString date, bool isCM = false, bool drawFits = false) {
 
     TString frame;
     frame = ( isCM ) ? "cms" : "lab";
@@ -5831,16 +5831,16 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     TString oHistoName;
 
     // Dijet pT selection
-    // Int_t ptBins = ptDijetBinLow.size();
-    // std::vector<Int_t> ptDijetLow{};
-    // std::vector<Int_t> ptDijetHi{};
+    // int ptBins = ptDijetBinLow.size();
+    // std::vector<int> ptDijetLow{};
+    // std::vector<int> ptDijetHi{};
     // fillDijetPtBins(ptDijetLow, ptDijetHi);
 
     // Styles
-    Int_t defType{2};
-    Int_t upType{0};
-    Int_t downType{1};
-    Int_t genType{4};
+    int defType{2};
+    int upType{0};
+    int downType{1};
+    int genType{4};
 
     // TLatex t;
     // t.SetTextFont(fontFamily);
@@ -6016,15 +6016,15 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     std::vector< std::vector<TH1D*> > hPointingRes2DefDist; hPointingRes2DefDist.push_back( hUpAndDown2DefDist.at(90) ); hPointingRes2DefDist.push_back( hUpAndDown2DefDist.at(91) ); hPointingRes2DefDist.push_back( hUpAndDown2DefDist.at(92) ); hPointingRes2DefDist.push_back( hUpAndDown2DefDist.at(93) ); hPointingRes2DefDist.push_back( hUpAndDown2DefDist.at(94) );
 
     // Systematics type
-    Int_t jeuType{0};
-    Int_t jerType{1};
-    Int_t pointingType{2};
-    Int_t pileupType{3};
+    int jeuType{0};
+    int jerType{1};
+    int pointingType{2};
+    int pileupType{3};
 
-    Bool_t useFitJeu = kTRUE;
-    Bool_t useFitJer = kFALSE;
-    Bool_t useFitPointing = kTRUE;
-    Bool_t useFitPileup = kTRUE;
+    bool useFitJeu = true;
+    bool useFitJer = false;
+    bool useFitPointing = true;
+    bool useFitPileup = true;
 
     // Create JEU systematic tables
     std::vector< std::vector<TH1D*> > hMBJeuRelSystDist = createRelSystUncrt(hMBEtaJeuUp2DefDist, hMBEtaJeuDown2DefDist, hMBEtaDist, "hMB", jeuType, useFitJeu, isCM);
@@ -6060,8 +6060,8 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
                                                                           hEmbeddingGenEtaDist, hEmbeddingEtaDist, hRatios2McDist);
 
     // nPDF
-    Int_t epps21type{0};
-    Int_t ncteq15hqtype{1};
+    int epps21type{0};
+    int ncteq15hqtype{1};
     std::vector< std::vector< std::vector<TH1D*> > > hEpps21Dist = retrieveNLOJetDistributions(epps21File, 0);
     std::vector< std::vector< std::vector<TH1D*> > > hNcteq15hqDist = retrieveNLOJetDistributions(ncteq15hqFile, 1);
     std::vector< std::vector<TH1D*> > hEpps21FinalDist = makeFinalNpdfDistributions(hEpps21Dist, "epps21");
@@ -6078,11 +6078,11 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     std::vector< std::vector<TH1D*> > hFinalAbsSystUncrtDist = makeFinalAbsSystUncrt(hFinalDist, hFinalRelSystUncrtDist);
 
     // Plot final distributions
-    plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
+    // plotFinalEtaDistributions(hFinalDist, hFinalAbsSystUncrtDist, date, isCM);
 
     // Plot comparison of data and nPDF
-    Int_t etaType{0};
-    // Int_t etaForwardType{1};
+    int etaType{0};
+    // int etaForwardType{1};
     // plotDataOverNpdf(hFinalOverEpps21Dist, hFinalOverNcteq15hqDist, hFinalRelSystUncrtDist, etaType, date, isCM);
 
     // plotDataToNpdfComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, 
@@ -6092,7 +6092,7 @@ void retrieveDistributions(TFile *mbFile, TFile *mbPbGoingFile, TFile *mbPGoingF
     //                          date, isCM);
 
     // Plot comparison of data and Monte Carlo
-    // plotData2McComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, date, isCM);
+    plotData2McComparison(hFinalDist, hFinalAbsSystUncrtDist, hFinalRelSystUncrtDist, date, isCM);
 
     // plotRelativeSystematicUncertainties(hMBJeuRelSystDist, hJet60JeuRelSystDist, hJet80JeuRelSystDist, hJet100JeuRelSystDist,
     //                                     hEmbeddingJerRelSystDist, hPointingResRelSystDist,
@@ -6165,13 +6165,13 @@ void compareJER(TFile *embFile, TFile *jerDefFile, TFile *jerUpFile, TFile *jerD
     THnSparseD *hJESPtEtaPhiJerDown = (THnSparseD*)jerDownFile->Get("hJESInclusiveJetPtEtaPhiWeighted");
     hJESPtEtaPhiJerDown->SetName("hJESPtEtaPhiJerDown");
 
-    Int_t rebinX{1}, rebinY{1};
+    int rebinX{1}, rebinY{1};
 
     // Styles
-    Int_t pureType{2};
-    Int_t upType{0};
-    Int_t downType{1};
-    Int_t defType{5};
+    int pureType{2};
+    int upType{0};
+    int downType{1};
+    int defType{5};
 
     TLatex t;
     t.SetTextFont( fontFamily );
@@ -6348,7 +6348,7 @@ void compareJER(TFile *embFile, TFile *jerDefFile, TFile *jerUpFile, TFile *jerD
 }
 
 //________________
-void runNewCalculations(Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
+void runCalculations(bool isCM = false, bool drawFits = false) {
 
     TString cmStr;
     if ( isCM ) {
@@ -6372,7 +6372,7 @@ void runNewCalculations(Bool_t isCM = kFALSE, Bool_t drawFits = kFALSE) {
     // File names
     //
 
-    TString pathPrefix = "/Users/gnigmat/cernbox";
+    TString pathPrefix = "/Users/nigmatkulov/cernbox";
 
     // Data file names
     TString mbFileName( Form("%s/ana/pPb8160/exp/MB_pPb8160_ak4%s.root", pathPrefix.Data(), cmStr.Data()) );
@@ -6545,15 +6545,12 @@ void systematics() {
     gStyle->SetPalette(kBird);
 
     // CMS or Lab frame
-    Bool_t isCM{kTRUE};
-    isCM = {kFALSE};
+    bool isCM{true};
+    // isCM = {false};
 
-    // Bool_t drawFits{kTRUE};
-    Bool_t drawFits{kFALSE};
-
-    // Run old calculations
-    // runOldCalculations(isCM);
+    // bool drawFits{true};
+    bool drawFits{false};
 
     // Run new calculations
-    runNewCalculations(isCM, drawFits);
-}I 
+    runCalculations(isCM, drawFits);
+} 

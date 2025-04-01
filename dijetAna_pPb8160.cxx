@@ -42,10 +42,10 @@ int main(int argc, char const *argv[]) {
     TString JECFileDataName;
     TString JEUFileName;
     TString path2JEC = "..";
-    double ptHatCut[2] {15., 30.};
+    float ptHatCut[2] {15., 30.};
     int   useJEUSyst{0};     // 0-default, 1-JEU+, -1-JEU-
-    int   useJERSyst{0};     // 0-default, 1-JER+, -1-JER-
-    double etaShift = 0.465;
+    int   useJERSyst{-99};     // 0-default, 1-JER+, -1-JER-, other - only JEC is applied
+    float etaShift = 0.465;
 
     // Sequence of command line arguments:
     //
@@ -90,10 +90,16 @@ int main(int argc, char const *argv[]) {
 
     if (isMc) {
         if (isPbGoingDir) {
+            // PYTHIA+EPOS
             JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
+            // PYTHIA
+            // JECFileName = "Autumn16_HI_pPb_Pbgoing_Unembedded_MC_L2Relative_AK4PF.txt";
         }
         else {
+            // PYTHIA+EPOS
             JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
+            // PYTHIA
+            // JECFileName = "Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF";
         }
     }
     else {
@@ -124,11 +130,21 @@ int main(int argc, char const *argv[]) {
     // eventCut->usePVertexFilterCutGplus(); // Pile-up systematics
     // Pile-up systematics
     //eventCut->usePVertexFilterCutVtx1();
+
+    // eventCut->addRunIdToSelect( 285480 ); // PU 0.04
+    // eventCut->addRunIdToSelect( 285505 ); // PU 0.25
+    // eventCut->addRunIdToSelect( 285517 ); // PU 0.1
+    // eventCut->addRunIdToSelect( 285832 ); // PU 0.004
+    // eventCut->addRunIdToSelect( 285993 ); // PU 0.2
+    
+    
     
     // Trigger
-    // eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
-    // eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
-    // eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
+    if ( !isMc ) {
+        // eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
+        // eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
+        // eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
+    }
 
     // Set ptHat cut for embedding
     if ( isMc ) {
@@ -153,6 +169,7 @@ int main(int argc, char const *argv[]) {
             reader->setCorrectCentMC();
         }
     }
+    reader->setPbGoingDir( isPbGoingDir );
     reader->useHltBranch();
     reader->useSkimmingBranch();
     reader->useRecoJetBranch();
@@ -160,7 +177,7 @@ int main(int argc, char const *argv[]) {
 
     if ( recoJetBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
         std::cout << "Extra correction will be used for JEC" << std::endl;
-        reader->useExtraJECCorr();
+        reader->useExtraJECCorrForConstSubtraction();
     }
 
     //reader->useCaloJetBranch();
@@ -180,11 +197,17 @@ int main(int argc, char const *argv[]) {
     }
     if ( isMc ) {
         reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use
-        reader->setJERFitParams(0.0415552, 0.960013);
+        if ( isPbGoingDir ) {
+            reader->setJERFitParams(0.0018, 0.9352); // in |eta|<1.6
+        }
+        else {
+            reader->setJERFitParams(0.0018, 0.9352); // in |eta|<1.6
+        }
         reader->setJERSystParams();
     }
-
-    //reader->setVerbose();
+    // If want to use manual JEC
+    // reader->setUseManualJEC();
+    // reader->setVerbose();
 
     // Pass reader to the manager
     manager->setEventReader(reader);
@@ -201,11 +224,11 @@ int main(int argc, char const *argv[]) {
         analysis->setPbGoing();
     }
     analysis->setEtaShift( etaShift );
-    analysis->setLeadJetPtLow( 50. );
-    analysis->setSubLeadJetPtLow( 40. );
-    analysis->setJetEtaLabRange( -3., 3. );
-    analysis->setJetEtaCMRange( -2.5, 2.5 );
-    analysis->setDijetPhiCut( 2. * TMath::Pi() / 3 );
+    analysis->setLeadJetPtLow( float(50.) );
+    analysis->setSubLeadJetPtLow( float(40.) );
+    analysis->setJetEtaLabRange( (float)-2.5, (float)2.5 );
+    analysis->setJetEtaCMRange( (float)-2.0, (float)2.0 );
+    analysis->setDijetPhiCut( (float)(2. * TMath::Pi() / 3) );
     if ( isMc ) {
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
     }

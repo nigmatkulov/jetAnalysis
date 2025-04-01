@@ -18,8 +18,6 @@
 // C++ headers
 #include <iostream>
 
-ClassImp(RecoJet)
-
 //________________
 RecoJet::RecoJet() : BaseJet{}, fPtJECCorr{0}, fGenJetId{-99}, 
     fJtPfNHF{0}, fJtPfNEF{0}, fJtPfCHF{0}, fJtPfMUF{0}, fJtPfCEF{0}, 

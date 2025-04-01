@@ -21,8 +21,6 @@
 #include "TROOT.h"
 #include "TSystem.h"
 
-ClassImp(HistoManagerJetESR)
-
 //________________
 HistoManagerJetESR::HistoManagerJetESR() :
     fVerbose{false},

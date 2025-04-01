@@ -17,8 +17,8 @@ sample_name=1
 
 # JEU systematics: 0 - default, -1 - JEU-, 1 - JEU+
 jeuSyst=0 
-# JER systematics: 0 - default, -1 - JER-, 1 - JER+
-jerSyst=0
+# JER systematics: 0 - default, -1 - JER-, 1 - JER+, other - no extra smearing is applied (pure JEC)
+jerSyst=-99
 
 # Beam direction: 0 - RunB, 1 - RunD
 is_Pbgoing=1

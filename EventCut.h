@@ -20,6 +20,7 @@
 
 // C++ headers
 #include <limits>
+#include <vector>
 
 //________________
 class EventCut {
@@ -79,6 +80,10 @@ class EventCut {
     void usePVertexFilterCutdz1p0()         { fPVertexFilterCutdz1p0 = {true}; }
     void usePVertexFilterCutGplus()         { fPVertexFilterCutGplus = {true}; }
     void usePVertexFilterCutVtx1()          { fPVertexFilterCutVtx1 = {true}; }
+
+    void addRunIdToSelect(const int& runId) { fRunIdsToSelect.push_back(runId); }
+    void addRunIdToExclude(const int& runId) { fRunIdsToExclude.push_back(runId); }
+
     /// @brief Report information about
     void report();
     /// @brief Check if evn 
@@ -137,6 +142,11 @@ class EventCut {
 
     bool fHLT_HIAK4PFJet60_v1;         // pp 5020
     bool fHLT_HIAK4PFJet80_v1;         // pp 5020
+
+    // Include next runIds
+    std::vector<int> fRunIdsToSelect;
+    // Exclude next runIds
+    std::vector<int> fRunIdsToExclude;
 
     /// @brief Number of events passed cut
     Long64_t fEventsPassed;

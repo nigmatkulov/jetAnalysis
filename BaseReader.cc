@@ -15,8 +15,6 @@
 // ROOT headers
 #include "TString.h"
 
-ClassImp(BaseReader)
-
 //_________________
 BaseReader::BaseReader() : fReaderStatus{0} {
     /* empty */

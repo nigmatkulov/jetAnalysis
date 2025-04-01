@@ -70,7 +70,7 @@ class BaseJet : public TObject {
     /// @brief Azimuthal angle of the WTA axis
     Float_t fWTAPhi;
 
-  ClassDef(BaseJet, 1)
+    ClassDef(BaseJet, 1)
 };
 
 #endif

@@ -110,6 +110,16 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Gen jet histograms
     //
 
+    TH1D *hGenJetCollectionSize;
+    TH2D *hGenVsRecoJetCollectionSize;
+
+    TH2D *hGenLeadingJetPtOverPtHatVsLeadingJetPt;
+    TH2D *hGenLeadingJetPtOverPtHatVsLeadingJetPtWeighted;
+    TH2D *hGenDijetPtOverPtHatVsDijetPt;
+    TH2D *hGenDijetPtOverPtHatVsDijetPtWeighted;
+    TH2D *hGenDijetPtAveOverPtHatVsDijetPtAve;
+    TH2D *hGenDijetPtAveOverPtHatVsDijetPtAveWeighted;
+
     // Dijet pt, dijet eta, dijet dphi, lead pt, lead eta, lead phi, 
     // sublead pt, sublead eta, sublead phi [9]
     THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
@@ -118,6 +128,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
     TH1D *hGenInclusiveJetPt;
     TH2D *hGenInclusiveJetPtEta;
+    TH3D *hGenInclusiveJetPtEtaPtHat;
     TH2D *hGenPtLeadPtSublead;
     TH2D *hGenEtaLeadEtaSublead;
     TH2D *hGenEtaCMLeadEtaCMSublead;
@@ -232,6 +243,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Reco jet histograms
     //
 
+    TH1D *hRecoJetCollectionSize;
+
     // Inclusive jets
     TH1D *hRecoInclusiveJetNHF[4];
     TH1D *hRecoInclusiveJetNEmF[4];
@@ -244,6 +257,7 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     // Reconstructed jet acceptance
     TH2D *hRecoInclusiveAllJetPtVsEta;
+    TH2D *hRecoInclusiveJetPtRawVsEta;
 
     // Reco dijet pt, reco dijet eta, reco dijet dphi,
     // Reco lead pt, reco lead eta, reco lead phi,
@@ -254,6 +268,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Reco sublead pt, reco sublead eta, reco sublead phi weighted [9]
     THnSparseD *hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
     TH1D *hRecoInclusiveJetPt;
+    TH2D *hRecoInclusiveJetPtEta;
+    TH3D *hRecoInclusiveJetPtEtaPtHat;
+    TH3D *hRecoMatchedJetPtEtaPtHat;
     TH2D *hRecoPtLeadPtSublead;
     TH2D *hRecoEtaLeadEtaSublead;
     TH2D *hRecoEtaCMLeadEtaCMSublead;
@@ -364,10 +381,40 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Subleading jet pt corr, pt raw, 
     // pt ref, eta corr, eta gen, weighted [6]
     THnSparseD *hRecoSubleadingJetPtCorrPtRawPtRefEtaCorrEtaGenWeighted;
-    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
+    // pt corr / pt gen, gen pt, gen eta, reco phi [4]
     THnSparseD *hJESInclusiveJetPtEtaPhi;
-    // pt corr / pt gen, gen pt, reco eta, reco phi [4]
+    // pt corr / pt gen, gen pt, gen eta, reco phi [4]
     THnSparseD *hJESInclusiveJetPtEtaPhiWeighted;
+
+    TH2D *hRecoLeadingJetPtOverPtHatVsLeadingJetPt;
+    TH2D *hRecoLeadingJetPtOverPtHatVsLeadingJetPtWeighted;
+    TH2D *hRecoDijetPtOverPtHatVsDijetPt;
+    TH2D *hRecoDijetPtOverPtHatVsDijetPtWeighted;
+    TH2D *hRecoDijetPtAveOverPtHatVsDijetPtAve;
+    TH2D *hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted;
+
+    // pt corr / pt raw, gen pt, gen eta
+    TH3D *hRecoInclusiveJetJECFactorVsPtEta;
+    // pt corr (my) / pt raw, gen pt, gen eta
+    TH3D *hRecoInclusiveJetJEC2FactorVsPtEta;
+    // pt raw / ref pt, gen pt, gen eta
+    TH3D *hRecoInclusiveJetPtRawOverPtRefVsPtEta;
+    // pt raw / ref pt, gen pt, gen eta
+    TH3D *hRecoInclusiveJetPtRawOverPtRefVsPtEtaStdBinning;
+    // pt raw / ref pt, raw pt, reco eta
+    TH3D *hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning;
+
+    // pt corr/pt gen vs pt gen at midrapidity -1.4 < eta < 1.4 
+    TH2D *hInclusiveJetJESVsPtGen;
+    // pt corr/pt, gen pt, gen eta, ptHat
+    THnSparseD *hInclusiveJetJESGenPtGenEtaPtHatWeighted;
+    // pt corr/pt, reco pt, reco eta, ptHat
+    THnSparseD *hInclusiveJetJESRecoPtRecoEtaPtHatWeighted;
+
+    // pt corr/pt gen vs pt gen, gen eta, ptHat
+    THnSparseD *hLeadingJetJESGenPtEtaPtHatWeighted;
+    // pt corr/pt gen vs pt gen, gen eta, ptHat
+    THnSparseD *hSubleadingJetJESGenPtEtaPtHatWeighted;
 
     // Matched and unmatched jet acceptance
     TH1D *hRecoInclusiveMatchedJetPt;
@@ -380,6 +427,7 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     TH1D *hRefInclusiveJetPt;
     TH2D *hRefInclusiveJetPtEta;
+    TH3D *hRefInclusiveJetPtEtaPtHat;
 
     // Reco dijet pt, dijet eta, 
     // Reco lead pt, lead eta,
@@ -534,6 +582,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     //
     // Ref-selected jet histograms
     //
+
+    TH1D *hRefSelInclusiveJetPt;
+    TH2D *hRefSelInclusiveJetPtEta;
+    TH3D *hRefSelInclusiveJetPtEtaPtHat;
 
     TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaDphi;

@@ -13,11 +13,9 @@
 #include "Manager.h"
 #include "Event.h"
 
-ClassImp(Manager)
-
 //________________
 Manager::Manager() : 
-    fAnalysisCollection{nullptr}, fEventReader{nullptr},
+    fAnalysisCollection{nullptr}, fEventReader{nullptr}, fTimer{nullptr},
     fEventsInChain{0} {
     fAnalysisCollection = new AnalysisCollection;
 }
@@ -31,6 +29,7 @@ Manager::~Manager() {
         delete *iter;
         *iter = nullptr;
     }
+    if (fTimer) delete fTimer;
     if (fEventReader) delete fEventReader;
 }
 
@@ -41,6 +40,7 @@ void Manager::init() {
         fEventReader->report();
     }
     
+    fTimer = new TStopwatch();
     fEventsInChain = fEventReader->nEventsTotal();
 
     AnalysisIterator anaIter;
@@ -63,6 +63,7 @@ void Manager::finish() {
           anaIter++ ) {
         (*anaIter)->finish();
     }
+    fTimer->Stop();
 }
 
 //________________
@@ -79,7 +80,7 @@ void Manager::performAnalysis() {
         // Print progress
         if ( iEvent % nEventsPerCycle == 0 ) {
             progress = 100.0 * iEvent / fEventsInChain;
-            std::cout << "Processed " << iEvent << " events. Progress: " << progress << "%" << std::endl;
+            std::cout << Form("Processed %lld events. Progress: %.2f%% time: %.2f seconds", iEvent, progress, fTimer->RealTime()) << std::endl;
         }
 
         //std::cout << "=================================" << std::endl;
