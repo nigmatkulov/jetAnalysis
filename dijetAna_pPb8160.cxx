@@ -16,7 +16,14 @@
 
 //________________
 void usage() {
-    std::cout << "./programName inputFileList oFileName isMc isPbGoingDir ptHatLow ptHatHi jeuSyst jerSyst" << std::endl;
+    std::cout << "./programName inputFileList oFileName isMc isPbGoingDir ptHatLow ptHatHi jeuSyst jerSyst triggerId" << std::endl;
+    std::cout << "isMc: 1 (embedding), 0 (data)" << std::endl;
+    std::cout << "isPbGoingDir: 1 (Pb-going), 0 (p-going)" << std::endl;
+    std::cout << "ptHatLow: Low ptHat cut (for embedding)" << std::endl;
+    std::cout << "ptHatHi: High ptHat cut (for embedding)" << std::endl;
+    std::cout << "jeuSyst: 0 (default), 1 (JEU+), -1 (JEU-)" << std::endl;
+    std::cout << "jerSyst: 0 (default), 1 (JER+), -1 (JER-), other - only JEC is applied" << std::endl;
+    std::cout << "triggerId: 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100" << std::endl;
 }
 
 //________________
