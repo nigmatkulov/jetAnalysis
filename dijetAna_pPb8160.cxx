@@ -44,8 +44,9 @@ int main(int argc, char const *argv[]) {
     TString path2JEC = "..";
     float ptHatCut[2] {15., 30.};
     int   useJEUSyst{0};     // 0-default, 1-JEU+, -1-JEU-
-    int   useJERSyst{-99};     // 0-default, 1-JER+, -1-JER-, other - only JEC is applied
+    int   useJERSyst{-99};   // 0-default, 1-JER+, -1-JER-, other - only JEC is applied
     float etaShift = 0.465;
+    int   triggerId{0};     // 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100
 
     // Sequence of command line arguments:
     //
@@ -73,6 +74,7 @@ int main(int argc, char const *argv[]) {
         ptHatCut[1]  = atoi( argv[6] );
         useJEUSyst   = atoi( argv[7] );
         useJERSyst   = atoi( argv[8] );
+        triggerId    = atoi( argv[9] );
     }
 
     std::cout << "Arguments passed:\n"
@@ -86,6 +88,7 @@ int main(int argc, char const *argv[]) {
               << "Use centrality weight                  : " << isCentWeightCalc << std::endl
               << "Use JEU systematics                    : " << useJEUSyst << std::endl
               << "Use JER systematics                    : " << useJERSyst << std::endl
+              << "Trigger ID                             : " << triggerId << std::endl
               << std::endl;
 
     if (isMc) {
@@ -141,9 +144,18 @@ int main(int argc, char const *argv[]) {
     
     // Trigger
     if ( !isMc ) {
-        // eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
-        // eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
-        // eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
+        if ( triggerId == 1 ) {            
+            eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
+        }
+        else if ( triggerId == 2 ) {
+            eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
+        }
+        else if ( triggerId == 3 ) {
+            eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
+        }
+        else {
+            // No trigger = MB trigger
+        }
     }
 
     // Set ptHat cut for embedding
