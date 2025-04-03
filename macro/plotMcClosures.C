@@ -1822,8 +1822,8 @@ void plotMcClosures() {
 
     collisionSystem = 1;
     collisionEnergy = 8.16;
-    int direction = 1; // 0-p-going, 1-Pb-going, 2 - combined // TODO: implement combined
-    TString directionStr = (direction == 0) ? "pgoing" : "Pbgoing";
+    int direction = 1; // 0-p-going, 1-Pb-going, 2 - combined 
+    TString directionStr = (direction == 0) ? "pgoing" : ((direction == 1) ? "Pbgoing" : "");
 
 
     // MC p-going direction new (coincides with the pPb5020)
@@ -1856,12 +1856,12 @@ void plotMcClosures() {
     //
     // Plot for inclusive jets JEC closures (scan in eta and pT)
     //
-    plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+    // plotInclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
 
     //
     // Comparison of dijet reco and ref to gen distributions
     //
-    plotDijetClosures( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    // plotDijetClosures( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
 
     //
