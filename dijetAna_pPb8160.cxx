@@ -73,6 +73,7 @@ int main(int argc, char const *argv[]) {
 		return -1;
     }
     else {
+        std::cout << "Number of arguments passed: " << argc << std::endl;
         inFileName   = argv[1];
         oFileName    = argv[2];
         isMc         = atoi( argv[3] );
@@ -81,7 +82,12 @@ int main(int argc, char const *argv[]) {
         ptHatCut[1]  = atoi( argv[6] );
         useJEUSyst   = atoi( argv[7] );
         useJERSyst   = atoi( argv[8] );
-        triggerId    = atoi( argv[9] );
+        if (argc <= 9 ) {
+            triggerId = 0;
+        }
+        else {
+            triggerId = atoi( argv[9] );
+        }
     }
 
     std::cout << "Arguments passed:\n"
