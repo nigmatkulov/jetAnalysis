@@ -661,6 +661,17 @@ void plotDijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
+    // Determine the direction based on the filename
+    TString directionStr;
+    TString filename = f->GetName();
+    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } else {
+        directionStr = "combined";
+    }
+
     // Dijet ptAve binning
     int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
                              100, 110,  120, 130, 140,
@@ -822,14 +833,14 @@ void plotDijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy
         //
         drawDijetToGenComparison(c, hRecoDijetEta1DLab[i], hRefDijetEta1DLab[i], hGenDijetEta1DLab[i], hRefSelDijetEta1DLab[i], nullptr,
                             dijetPtVals[i], dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaLab_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );        
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );        
 
         //
         // Plot ratios in the lab frame
         //
         drawDijetToGenRatio(c, hReco2GenDijetEta1DLab[i], hRef2GenDijetEta1DLab[i], hRefSel2GenDijetEta1DLab[i], nullptr,
                        dijetPtVals[i], dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
 
         //
         // Plot comparisons in the CM frame
@@ -837,21 +848,21 @@ void plotDijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy
 
         drawDijetToGenComparison(c, hRecoDijetEta1DCM[i], hRefDijetEta1DCM[i], hGenDijetEta1DCM[i], hRefSelDijetEta1DCM[i], nullptr,
                             dijetPtVals[i], dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaCM_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
 
         //
         // Plot ratios in the CM frame
         //
         drawDijetToGenRatio(c, hReco2GenDijetEta1DCM[i], hRef2GenDijetEta1DCM[i], hRefSel2GenDijetEta1DCM[i], nullptr,
                        dijetPtVals[i], dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaCM_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
 
         //
         // Forward/backward ratios
         //
         drawDijetToGenComparison(c, hRecoDijetFBEtaCM1D[i], hRefDijetFBEtaCM1D[i], hGenDijetFBEtaCM1D[i], nullptr, nullptr,
                             dijetPtVals[i], dijetPtVals[i+1], true, true, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaFB_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaFB_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
             
     } // end loop over dijet pt bins
 }
@@ -870,6 +881,20 @@ void plotInclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double colli
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
+    // Determine the direction based on the filename
+    TString directionStr;
+    TString filename = f->GetName();
+    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } 
+    else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } 
+    else {
+        directionStr = "comb";
+    }
+    
+
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
@@ -877,7 +902,7 @@ void plotInclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double colli
     int ptHatStart = 15;
     int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
     int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins{1}; // 30
+    std::vector<int> ptHatBins{1, 4, 7}; 
 
     // Jet pT binning
     int jetPtStart = 5;
@@ -970,7 +995,7 @@ void plotInclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double colli
     TH1D *hRef2GenEta[ptHatBins.size()][jetPtBinsLow.size()];
     TH1D *hRefSel2GenEta[ptHatBins.size()][jetPtBinsLow.size()];
 
-    TCanvas *c = new TCanvas("c", "c", 1200, 1000);
+    TCanvas *c = new TCanvas("c", "c", 900, 900);
 
 
     //
@@ -1077,9 +1102,10 @@ void plotInclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double colli
                                          hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
                                          hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]),
                                          ptHatLow, false, false, collisionSystem, collisionEnergy);
-            c->SaveAs(Form("%s/%s_jetEta_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), 
+            c->SaveAs(Form("%s/%s_%s_jetEta_RecoRefGenComp_ptAve_%d_%d_ptHatLow_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(),
                            (int)hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
-                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j])));
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]), 
+                           (int)ptHatLow));
 
             //
             // Plot ratios
@@ -1088,9 +1114,10 @@ void plotInclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double colli
                                     hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
                                     hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]),
                                     ptHatLow, false, false, collisionSystem, collisionEnergy);
-            c->SaveAs(Form("%s/%s_jetEta_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), 
+            c->SaveAs(Form("%s/%s_%s_jetEta_RecoRef2GenRatio_ptAve_%d_%d_ptHatLow_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), 
                            (int)hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
-                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j])));
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]), 
+                           (int)ptHatLow));
 
 
             // // Create canvas
@@ -1159,6 +1186,17 @@ void plotData2McInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem 
     }
     else if ( dataFName.Contains("jet100", TString::kIgnoreCase) ) {
         prefix = "jet100";
+    }
+
+    // Direction 
+    TString directionStr;
+    TString filename = fMc->GetName();
+    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } else {
+        directionStr = "combined";
     }
 
     TString collSystemStr = (collSystem == 0) ? "pp" : (collSystem == 1) ? "pPb" : "PbPb";
@@ -1289,6 +1327,18 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         prefix = "jet100";
     }
 
+    // Direction
+    TString directionStr;
+    TString filename = fMc->GetName();
+    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } else {
+        directionStr = "combined";
+    }
+
+    // Collision system string
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", (int)(1000 * collisionEnergy));
     collSystemStr += Form("_%s", prefix.Data());
@@ -1595,7 +1645,7 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         // Lab frame
         drawDijetToGenComparison(c, hRecoMcDijetEta[i], hGenMcDijetEta[i], hRefMcDijetEta[i], nullptr, hRecoDataDijetEta[i], 
                             (int)dijetPtVals[i], (int)dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaLab_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         c->cd();
         setPadStyle();
@@ -1603,12 +1653,12 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         hRecoDataDijetEta[i]->GetXaxis()->SetRangeUser(-2.5, 2.5);
         hRecoDataDijetEta[i]->GetYaxis()->SetRangeUser(0.0, 0.12);
         t.DrawLatexNDC( 0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
-        c->SaveAs( Form("%s/%s_dijetEtaLab_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         // CM frame
         drawDijetToGenComparison(c, hRecoMcDijetEtaCM[i], hGenMcDijetEtaCM[i], hRefMcDijetEtaCM[i], nullptr, hRecoDataDijetEtaCM[i], 
                             (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaCM_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
         
         c->cd();
         setPadStyle();
@@ -1616,12 +1666,12 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         hRecoDataDijetEtaCM[i]->GetXaxis()->SetRangeUser(-2., 2.);
         hRecoDataDijetEtaCM[i]->GetYaxis()->SetRangeUser(0., 0.12);
         t.DrawLatexNDC( 0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
-        c->SaveAs( Form("%s/%s_dijetEtaCM_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         // Forward-backward ratio
         drawDijetToGenComparison(c, hRecoMcDijetFBRatio[i], hGenMcDijetFBRatio[i], hRefMcDijetFBRatio[i], nullptr, hRecoDataDijetFBRatio[i], 
                             (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, true, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaFBRatio_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaFBRatio_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         c->cd();
         setPadStyle();
@@ -1630,7 +1680,7 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         hRecoDataDijetFBRatio[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
 
         t.DrawLatexNDC( 0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
-        c->SaveAs( Form("%s/%s_dijetEtaFBRatio_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaFBRatio_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         //
         // Full eta distribution ratios
@@ -1639,12 +1689,12 @@ void plotData2McDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 
         // Lab frame
         drawDijetToGenRatio(c, hRecoMc2GenDijetEta[i], hRef2GenDijetEta[i], nullptr, hRecoData2GenDijetEta[i],
                        (int)dijetPtVals[i], (int)dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaLab_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         // CM frame
         drawDijetToGenRatio(c, hRecoMc2GenDijetEtaCM[i], hRef2GenDijetEtaCM[i], nullptr, hRecoData2GenDijetEtaCM[i],
                        (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_dijetEtaCM_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
     }
 }
 
@@ -1809,49 +1859,80 @@ void plotMcClosures() {
         createDirectory( date.Data() );
     } 
 
-
     // Username of the machine
     TString uname = gSystem->GetFromPipe("whoami");
-
-    int collisionSystem = 0;  // 0 - pp, 1 - pPb, 2 - pPb5020, 3 - pPb8160
-    double collisionEnergy = 5.02;  // 5.02 TeV
 
     //
     // pPb8160
     //
 
-    collisionSystem = 1;
-    collisionEnergy = 8.16;
-    int direction = 1; // 0-p-going, 1-Pb-going, 2 - combined 
+    int collisionSystem = 1;         // 0 - pp, 1 - pPb, 2 - pPb5020, 3 - pPb8160
+    double collisionEnergy = 8.16;   // 8.16 TeV
+    int direction = 0;               // 0-p-going, 1-Pb-going, 2 - combined
     TString directionStr = (direction == 0) ? "pgoing" : ((direction == 1) ? "Pbgoing" : "");
+    int dataTrigger = 3;             // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
+    TString dataStr = (dataTrigger == 0) ? "MB" : ((dataTrigger == 1) ? "Jet60" : ((dataTrigger == 2) ? "Jet80" : ((dataTrigger == 3) ? "Jet100" : "unknownData")));
+    TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
 
-
-    // MC p-going direction new (coincides with the pPb5020)
-    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
-    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/work/cms/soft/jetAnalysis/build/oTest_pPb8160_dijet_ptHat_50_80_noTrkMax.root", uname.Data()) );
-
+    //
+    // Embedding
+    //
+    TFile *pPb8160EmbedFile = nullptr;
+    if ( direction < 2 ) {
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+        if ( !pPb8160EmbedFile ) {
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+            return;
+        }
+    }
+    else {
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        if ( !pPb8160EmbedFile ) {
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            return;
+        }
+    }
     // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/work/cms/soft/jetAnalysis/macro/pPb8160_Pbgoing_noTrkMax/oEmbedding_pPb8160_Pbgoing_noTrkMax.root", uname.Data()) );
-    TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/work/cms/soft/jetAnalysis/macro/pPb8160_Pbgoing_noTrkMax/oEmbedding_pPb8160_Pbgoing_80.root", uname.Data()) );
-    if ( !pPb8160EmbedFile ) {
-        std::cerr << Form("File not found: /Users/%s/work/cms/soft/jetAnalysis/macro/pPb8160_Pbgoing_noTrkMax/oEmbedding_pPb8160_Pbgoing_80.root", uname.Data()) << std::endl;
-        return;
+    // TFile *pPb8160EmbedFile = TFile::Open( Form("/Users/%s/work/cms/soft/jetAnalysis/macro/pPb8160_Pbgoing_noTrkMax/oEmbedding_pPb8160_Pbgoing_80.root", uname.Data()) );
+
+    //
+    // Pythia
+    //
+    TFile *pPb8160PythiaFile = nullptr;
+    if ( direction < 2 ) {
+        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+        if ( !pPb8160PythiaFile ) {
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+            return;
+        }
+    }
+    else {
+        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        if ( !pPb8160PythiaFile ) {
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            return;
+        }
     }
 
-    TFile *pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    // TFile *pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
-    if ( !pPb8160PythiaFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data()) << std::endl;
-        return;
+    //
+    // Data
+    //
+    TFile *pPb8160DataFile = nullptr;
+    if ( direction < 2 ) {
+        pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_eta20.root", uname.Data(), dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data()) );
+        if ( !pPb8160DataFile ) {
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_eta20.root", uname.Data(), dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data()) << std::endl;
+            return;
+        }
+    }
+    else {
+        pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_eta20.root", uname.Data(), dataStr.Data()) );
+        if ( !pPb8160DataFile ) {
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_eta20.root", uname.Data(), dataStr.Data()) << std::endl;
+            return;
+        }
     }
 
-    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_eta25.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    // TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
-    TFile *pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/MB_pPb8160_ak4_eta20.root", uname.Data()) );
-    if ( !pPb8160DataFile ) {
-        std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/PAEGJet60_%s_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
-        return;
-    }
 
     //
     // Plot for inclusive jets JEC closures (scan in eta and pT)
@@ -1878,4 +1959,5 @@ void plotMcClosures() {
     // Plot comparison of inclusive jets and dijets for embedding and PYTHIA
     //
     // plotPythia2EmbeddingComparisons(pPb8160EmbedFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
+
 }
