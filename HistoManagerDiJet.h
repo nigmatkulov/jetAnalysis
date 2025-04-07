@@ -129,6 +129,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hGenInclusiveJetPt;
     TH2D *hGenInclusiveJetPtEta;
     TH3D *hGenInclusiveJetPtEtaPtHat;
+    TH3D *hGenLeadJetPtEtaPtHat;
+    TH3D *hGenSubLeadJetPtEtaPtHat;
     TH2D *hGenPtLeadPtSublead;
     TH2D *hGenEtaLeadEtaSublead;
     TH2D *hGenEtaCMLeadEtaCMSublead;
@@ -271,6 +273,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoInclusiveJetPtEta;
     TH3D *hRecoInclusiveJetPtEtaPtHat;
     TH3D *hRecoMatchedJetPtEtaPtHat;
+    TH3D *hRecoUnmatchedJetPtEtaPtHat;
     TH2D *hRecoPtLeadPtSublead;
     TH2D *hRecoEtaLeadEtaSublead;
     TH2D *hRecoEtaCMLeadEtaCMSublead;
@@ -292,8 +295,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoDijetPtEtaDphiCMWeighted;
 
     // Leading and subleading jet acceptance
-    TH2D *hRecoLeadJetAllPtVsEta;
-    TH2D *hRecoSubLeadJetAllPtVsEta;
+    TH2D *hRecoLeadJetInclusivePtVsEta;
+    TH3D *hRecoLeadJetInclusivePtEtaPtHat; 
+    TH2D *hRecoSubLeadJetInclusivePtVsEta;
+    TH3D *hRecoSubLeadJetInclusivePtEtaPtHat;
 
     TH1D *hRecoGoodInclusiveJetEtaLabFrame;
     TH1D *hRecoGoodInclusiveJetEtaCMFrame;
@@ -419,15 +424,25 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Matched and unmatched jet acceptance
     TH1D *hRecoInclusiveMatchedJetPt;
     TH2D *hRecoInclusiveMatchedJetPtVsEta;
+    TH3D *hRecoInclusiveMatchedJetPtVsEtaPtHat;
     TH2D *hRecoInclusiveUnmatchedJetPtVsEta;
+    TH3D *hRecoInclusiveUnmatchedJetPtVsEtaPtHat;
+
     TH2D *hRecoLeadJetMatchedPtVsEta;
+    TH3D *hRecoLeadJetMatchedPtVsEtaPtHat;
     TH2D *hRecoLeadJetUnmatchedPtVsEta;
+    TH3D *hRecoLeadJetUnmatchedPtVsEtaPtHat;
+
     TH2D *hRecoSubLeadJetMatchedPtVsEta;
+    TH3D *hRecoSubLeadJetMatchedPtVsEtaPtHat;
     TH2D *hRecoSubLeadJetUnmatchedPtVsEta;
+    TH3D *hRecoSubLeadJetUnmatchedPtVsEtaPtHat;
 
     TH1D *hRefInclusiveJetPt;
     TH2D *hRefInclusiveJetPtEta;
     TH3D *hRefInclusiveJetPtEtaPtHat;
+    TH3D *hRefLeadJetPtEtaPtHat;
+    TH3D *hRefSubLeadJetPtEtaPtHat;
 
     // Reco dijet pt, dijet eta, 
     // Reco lead pt, lead eta,
