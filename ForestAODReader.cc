@@ -661,7 +661,7 @@ void ForestAODReader::setupJEC() {
 
     std::cout << "JEC files added: " << std::endl;
     for (unsigned int i{0}; i<fJECFiles.size(); i++) {
-        std::cout << i << fJECFiles.at(i) << std::endl;
+        std::cout << i << " " << fJECFiles.at(i) << std::endl;
     }
 	
 	fJEC = new JetCorrector( fJECFiles );

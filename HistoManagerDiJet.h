@@ -424,19 +424,19 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Matched and unmatched jet acceptance
     TH1D *hRecoInclusiveMatchedJetPt;
     TH2D *hRecoInclusiveMatchedJetPtVsEta;
-    TH3D *hRecoInclusiveMatchedJetPtVsEtaPtHat;
+    TH3D *hRecoInclusiveMatchedJetPtEtaPtHat;
     TH2D *hRecoInclusiveUnmatchedJetPtVsEta;
-    TH3D *hRecoInclusiveUnmatchedJetPtVsEtaPtHat;
+    TH3D *hRecoInclusiveUnmatchedJetPtEtaPtHat;
 
     TH2D *hRecoLeadJetMatchedPtVsEta;
-    TH3D *hRecoLeadJetMatchedPtVsEtaPtHat;
+    TH3D *hRecoLeadJetMatchedPtEtaPtHat;
     TH2D *hRecoLeadJetUnmatchedPtVsEta;
-    TH3D *hRecoLeadJetUnmatchedPtVsEtaPtHat;
+    TH3D *hRecoLeadJetUnmatchedPtEtaPtHat;
 
     TH2D *hRecoSubLeadJetMatchedPtVsEta;
-    TH3D *hRecoSubLeadJetMatchedPtVsEtaPtHat;
+    TH3D *hRecoSubLeadJetMatchedPtEtaPtHat;
     TH2D *hRecoSubLeadJetUnmatchedPtVsEta;
-    TH3D *hRecoSubLeadJetUnmatchedPtVsEtaPtHat;
+    TH3D *hRecoSubLeadJetUnmatchedPtEtaPtHat;
 
     TH1D *hRefInclusiveJetPt;
     TH2D *hRefInclusiveJetPtEta;
@@ -601,6 +601,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRefSelInclusiveJetPt;
     TH2D *hRefSelInclusiveJetPtEta;
     TH3D *hRefSelInclusiveJetPtEtaPtHat;
+    TH3D *hRefSelLeadJetPtEtaPtHat;
+    TH3D *hRefSelSubLeadJetPtEtaPtHat;
 
     TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaDphi;
