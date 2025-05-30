@@ -1819,11 +1819,11 @@ void HistoManagerDiJet::init() {
             double ptAveLow = fPtAveBins.at(i);
             double ptAveHi = fPtAveBins.at(i+1);
             hGenDijetEta1D[i] = new TH1D(Form("hGenDijetEta1D_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
-                                         2 * fEtaBins, fEtaRange[0], fEtaRange[1]);
+                                         prescale * fEtaBins, fEtaRange[0], fEtaRange[1]);
             hGenDijetEta1D[i]->Sumw2();
             //hGenDijetEta1D[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hGenDijetEta1DWeighted[i] = new TH1D(Form("hGenDijetEta1DWeighted_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
-                                                 2 * fEtaBins, fEtaRange[0], fEtaRange[1]);
+                                                 prescale * fEtaBins, fEtaRange[0], fEtaRange[1]);
             hGenDijetEta1DWeighted[i]->Sumw2();
             //hGenDijetEta1DWeighted[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hGenDijetEtaLeadVsEtaSubLead2D[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2D_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{Lead};#eta^{SubLead}",i, ptAveLow, ptAveHi),
@@ -1850,11 +1850,11 @@ void HistoManagerDiJet::init() {
             //hGenDijetEtaBackward1DWeighted[i]->GetXaxis()->Set(dijetEtaFBins, dijetEtaFBVals);
 
             hGenDijetEta1DCM[i] = new TH1D(Form("hGenDijetEta1DCM_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
-                                           2 * fEtaBins, fEtaRange[0], fEtaRange[1]);
+                                           prescale * fEtaBins, fEtaRange[0], fEtaRange[1]);
             hGenDijetEta1DCM[i]->Sumw2();
             //hGenDijetEta1DCM[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hGenDijetEta1DCMWeighted[i] = new TH1D(Form("hGenDijetEta1DCMWeighted_%d",i), Form("Gen #eta^{dijet} in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
-                                                   2 * fEtaBins, fEtaRange[0], fEtaRange[1]);
+                                                   prescale * fEtaBins, fEtaRange[0], fEtaRange[1]);
             hGenDijetEta1DCMWeighted[i]->Sumw2();
             //hGenDijetEta1DCMWeighted[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hGenDijetEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hGenDijetEtaLeadVsEtaSubLead2DCM_%d",i), Form("Gen #eta^{dijet} leading vs subleading #eta in the CM frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{Lead}_{CM};#eta^{SubLead}_{CM}",i, ptAveLow, ptAveHi),
@@ -2618,19 +2618,19 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1]);
         hRefInclusiveJetPtEta->Sumw2();
         hRefInclusiveJetPtEtaPtHat = new TH3D("hRefInclusiveJetPtEtaPtHat","Ref jet p_{T} vs #eta vs #hat{p}_{T};Ref #eta;Ref p_{T} (GeV);#hat{p}_{T} (GeV)",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        prescale * fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1],
                                         fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
         hRefInclusiveJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);        
         hRefInclusiveJetPtEtaPtHat->Sumw2();
         hRefLeadJetPtEtaPtHat = new TH3D("hRefLeadJetPtEtaPtHat","Ref leading jet p_{T} vs #eta vs #hat{p}_{T};Ref #eta;Ref p_{T} (GeV);#hat{p}_{T} (GeV)",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        prescale * fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1],
                                         fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
         hRefLeadJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
         hRefLeadJetPtEtaPtHat->Sumw2();
         hRefSubLeadJetPtEtaPtHat = new TH3D("hRefSubLeadJetPtEtaPtHat","Ref subleading jet p_{T} vs #eta vs #hat{p}_{T};Ref #eta;Ref p_{T} (GeV);#hat{p}_{T} (GeV)",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        prescale * fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1],
                                         fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
         hRefSubLeadJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
@@ -2666,11 +2666,11 @@ void HistoManagerDiJet::init() {
             double ptAveLow = fPtAveBins.at(i);
             double ptAveHi = fPtAveBins.at(i+1);
             hRefDijetEta1D[i] = new TH1D(Form("hRefDijetEta1D_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
-                                         2 * fEtaBins, fEtaRange[0], fEtaRange[1]);
+                                         prescale * fEtaBins, fEtaRange[0], fEtaRange[1]);
             hRefDijetEta1D[i]->Sumw2();
             //hRefDijetEta1D[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hRefDijetEta1DWeighted[i] = new TH1D(Form("hRefDijetEta1DWeighted_%d",i),Form("Ref #eta^{dijet} in the lab frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
-                                                 2 * fEtaBins, fEtaRange[0], fEtaRange[1]);
+                                                 prescale * fEtaBins, fEtaRange[0], fEtaRange[1]);
             hRefDijetEta1DWeighted[i]->Sumw2();
             //hRefDijetEta1DWeighted[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hRefEtaLeadVsEtaSubLead2D[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2D_%d",i),Form("Ref #eta^{Leading} vs #eta^{Subleading} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading};#eta^{Subleading}",i, ptAveLow, ptAveHi),
@@ -2716,11 +2716,11 @@ void HistoManagerDiJet::init() {
 
             // Ref dijets in CM frame
             hRefDijetEta1DCM[i] = new TH1D(Form("hRefDijetEta1DCM_%d",i),Form("Ref #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
-                                           2 * fEtaBins, fEtaRange[0], fEtaRange[1]);
+                                           prescale * fEtaBins, fEtaRange[0], fEtaRange[1]);
             hRefDijetEta1DCM[i]->Sumw2();
             //hRefDijetEta1DCM[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hRefDijetEta1DCMWeighted[i] = new TH1D(Form("hRefDijetEta1DCMWeighted_%d",i),Form("Ref #eta^{dijet} in the CM frame for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f weighted;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}",i, ptAveLow, ptAveHi),
-                                                   2 * fEtaBins, fEtaRange[0], fEtaRange[1]);
+                                                   prescale * fEtaBins, fEtaRange[0], fEtaRange[1]);
             hRefDijetEta1DCMWeighted[i]->Sumw2();
             //hRefDijetEta1DCMWeighted[i]->GetXaxis()->Set(dijetEtaBins, dijetEtaVals);
             hRefEtaLeadVsEtaSubLead2DCM[i] = new TH2D(Form("hRefEtaLeadVsEtaSubLead2DCM_%d",i),Form("Ref #eta^{Leading}_{CM} vs #eta^{Subleading}_{CM} for %d in range %3.f<p_{T}^{ave} (GeV)<%3.f;#eta^{Leading}_{CM};#eta^{Subleading}_{CM}",i, ptAveLow, ptAveHi),
