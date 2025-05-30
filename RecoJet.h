@@ -34,7 +34,7 @@ class RecoJet : public BaseJet {
     /// @brief Set reconstructed jet JEC-corrected pt
     void setPtJECCorr(const Float_t& pt) { fPtJECCorr = {pt}; }
     /// @brief Set index of the matched GenJet
-    void setGenJetId(const Int_t& id)    { fGenJetId = (Char_t)id; }
+    void setGenJetId(const Int_t& id)    { fGenJetId = (Short_t)id; }
     /// @brief Set transverse momentum of tracks in jet
     void setRawPt(const Float_t& pt)     { fRawPt = pt; }
     /// @brief Set momentum of the track with the highest pt in the jet
@@ -109,7 +109,7 @@ class RecoJet : public BaseJet {
     /// @brief Transverse momentum after JEC
     Float_t fPtJECCorr;
     /// @brief Index of the matched Monte Carlo jet (-99 if not matched)
-    Char_t   fGenJetId;
+    Short_t   fGenJetId;
     /// @brief Raw pT of tracks in the jet
     Float_t fRawPt;
     /// @brief Track in the jet with the highest pT
@@ -135,7 +135,7 @@ class RecoJet : public BaseJet {
     /// @brief Muon multiplicity
     UChar_t fJtPfMUM;
     
-    ClassDef(RecoJet, 3)
+    ClassDef(RecoJet, 4)
 };
 
 #endif // #define RecoJet_h
