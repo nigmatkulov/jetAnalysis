@@ -5,7 +5,7 @@ project(JetAnalysis
 
 set(libname JetAnalysis)
 
-#set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 #set(CMAKE_CXX_STANDARD 17)

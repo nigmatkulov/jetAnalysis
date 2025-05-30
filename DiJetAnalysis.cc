@@ -925,6 +925,12 @@ void DiJetAnalysis::processInclusiveJets(const Event* event, const double& weigh
 
 //________________
 void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
+
+    if ( weight <= 0. ) {
+        std::cout << "DiJetAnalysis::processRecoJets -- weight is zero or negative. Skip processing." << std::endl;
+        return;
+    }
+
     // ptHat value
     float ptHat = event->ptHat();
 
@@ -1115,6 +1121,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
 
 //________________
 void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
+
+    if ( weight <= 0. ) {
+        std::cout << "DiJetAnalysis::processGenJets -- weight is zero or negative. Skip processing." << std::endl;
+        return;
+    }
     // ptHat value
     float ptHat = event->ptHat();
 
@@ -1170,6 +1181,12 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
 
 //________________
 void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
+
+    if ( weight <= 0. ) {
+        std::cout << "DiJetAnalysis::processRefJets -- weight is zero or negative. Skip processing." << std::endl;
+        return;
+    }
+
     // ptHat value
     float ptHat = event->ptHat();
 
@@ -1343,6 +1360,11 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
 
     if ( fVerbose ) {
         std::cout << "\nDiJetAnalysis::processGenDijets -- begin" << std::endl;
+    }
+
+    if ( weight <= 0. ) {
+        std::cerr << "Error: weight is not positive: " << weight << std::endl;
+        return;
     }
 
     fMcReweight = {1.};
@@ -1585,6 +1607,11 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
 
     if ( fVerbose ) {
         std::cout << "\nDiJetAnalysis::processRecoDijets -- begin" << std::endl;
+    }
+
+    if ( weight <= 0. ) {
+        std::cerr << "Error: weight is not positive: " << weight << std::endl;
+        return;
     }
 
     fMcReweight = {1.};
@@ -2044,6 +2071,11 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
 void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
     if ( fVerbose ) {
         std::cout << "\nDiJetAnalysis::processRefDijets -- begin" << std::endl;
+    }
+
+    if ( weight <= 0. ) {
+        std::cerr << "Error: weight is not positive: " << weight << std::endl;
+        return;
     }
 
     fMcReweight = {1.};
