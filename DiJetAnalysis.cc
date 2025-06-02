@@ -998,20 +998,20 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 continue; 
             }
 
-            fHM->hRecoInclusiveJetPt->Fill(pt, weight);
-            fHM->hRecoInclusiveAllJetPtVsEta->Fill(eta, pt, weight);
-            fHM->hRecoInclusiveJetPtRawVsEta->Fill(eta, ptRaw, weight);
-            fHM->hRecoInclusiveJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
+            fHM->hRecoInclusiveAllJetPt->Fill(pt, weight);
+            fHM->hRecoInclusiveAllJetPtEta->Fill(eta, pt, weight);
+            fHM->hRecoInclusiveAllJetPtRawEta->Fill(eta, ptRaw, weight);
+            fHM->hRecoInclusiveAllJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
 
             // Inclusive leading jet
             if ( (recoJetCounter - 1) == fRecoIdLead && (fRecoIdLead >= 0) ) {
-                fHM->hRecoLeadJetInclusivePtVsEta->Fill( eta, pt, weight );
-                fHM->hRecoLeadJetInclusivePtEtaPtHat->Fill( eta, pt, ptHat, weight );
+                fHM->hRecoLeadAllJetPtEta->Fill( eta, pt, weight );
+                fHM->hRecoLeadAllJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
             }
             // Inclusive subleading jet
             if ( (recoJetCounter - 1) == fRecoIdSubLead && (fRecoIdSubLead >= 0) ) {
-                fHM->hRecoSubLeadJetInclusivePtVsEta->Fill( eta, pt, weight );
-                fHM->hRecoSubLeadJetInclusivePtEtaPtHat->Fill( eta, pt, ptHat, weight );
+                fHM->hRecoSubLeadAllJetPtEta->Fill( eta, pt, weight );
+                fHM->hRecoSubLeadAllJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
             }
 
             if ( pt > 30. ) {
@@ -1030,7 +1030,6 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                         std::cout << Form("Cannot retrieve gen jet with id: %d", (*recoJetIter)->genJetId() ) << std::endl;
                         continue;
                     }
-                    fHM->hRecoMatchedJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
                     
                     float genPt = matchedJet->pt();
                     float genEta = etaLab( matchedJet->eta() );
@@ -1050,7 +1049,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     fHM->hRefInclusiveJetPtEta->Fill( genEta, genPt, weight );
                     fHM->hRefInclusiveJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
                     fHM->hRecoInclusiveMatchedJetPt->Fill( pt, weight );
-                    fHM->hRecoInclusiveMatchedJetPtVsEta->Fill( eta, pt, weight );
+                    fHM->hRecoInclusiveMatchedJetPtEta->Fill( eta, pt, weight );
                     fHM->hRecoInclusiveMatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
 
                     // Jet energy scale
@@ -1076,38 +1075,37 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
 
                     // Leading jet
                     if ( (recoJetCounter-1) == fRecoIdLead && (fRecoIdLead >= 0) ) {
-                        fHM->hRecoLeadJetMatchedPtVsEta->Fill( eta, pt, weight);
+                        fHM->hRecoLeadMatchedJetPtEta->Fill( eta, pt, weight);
                         fHM->hLeadingJetJESGenPtEtaPtHatWeighted->Fill( res1, weight );
-                        fHM->hRecoLeadJetMatchedPtEtaPtHat->Fill( eta, pt, ptHat, weight );
+                        fHM->hRecoLeadMatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
                         fHM->hRefLeadJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
                     }
 
                     // Subleading jet
                     if ( (recoJetCounter-1) == fRecoIdSubLead && (fRecoIdSubLead >= 0) ) {
-                        fHM->hRecoSubLeadJetMatchedPtVsEta->Fill( eta, pt, weight);
+                        fHM->hRecoSubLeadMatchedJetPtEta->Fill( eta, pt, weight);
                         fHM->hSubleadingJetJESGenPtEtaPtHatWeighted->Fill( res1, weight );
-                        fHM->hRecoSubLeadJetUnmatchedPtEtaPtHat->Fill( eta, pt, ptHat, weight );
+                        fHM->hRecoSubLeadMatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
                         fHM->hRefSubLeadJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
                     }
 
                 } // if ( (*recoJetIter)->hasMatching() )
                 else {
                     // Fill unmatched jets
-                    fHM->hRecoInclusiveUnmatchedJetPtVsEta->Fill(eta, pt, weight);
-                    fHM->hRecoUnmatchedJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
+                    fHM->hRecoInclusiveUnmatchedJetPtEta->Fill(eta, pt, weight);
                     fHM->hRecoInclusiveUnmatchedJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
 
                     // Leading jet
                     if ( (recoJetCounter-1) == fRecoIdLead && (fRecoIdLead >= 0) ) {
-                        fHM->hRecoLeadJetUnmatchedPtVsEta->Fill( eta, pt, weight);
-                        fHM->hRecoLeadJetUnmatchedPtEtaPtHat->Fill( eta, pt, ptHat, weight );
+                        fHM->hRecoLeadUnmatchedJetPtEta->Fill( eta, pt, weight);
+                        fHM->hRecoLeadUnmatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
                     }
 
                     // Subleading jet
                     if ( (recoJetCounter-1) == fRecoIdSubLead && (fRecoIdSubLead >= 0) ) {
-                        fHM->hRecoSubLeadJetUnmatchedPtVsEta->Fill( eta, pt, weight);
-                        fHM->hRecoSubLeadJetUnmatchedPtEtaPtHat->Fill( eta, pt, ptHat, weight );
-                        
+                        fHM->hRecoSubLeadUnmatchedJetPtEta->Fill( eta, pt, weight);
+                        fHM->hRecoSubLeadUnmatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
+
                     }
                 } // else
             } // if ( fIsMc )
@@ -1157,7 +1155,7 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
             // Fill inclusive jet pt
             fHM->hGenInclusiveJetPt->Fill(pt, weight);
             fHM->hGenInclusiveJetPtEta->Fill(eta, pt, weight);
-            fHM->hGenInclusiveJetPtEtaPtHat->Fill(eta, pt, event->ptHat(), weight);
+            fHM->hGenInclusiveJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
 
             if ( (genJetCounter - 1) ==  fGenIdLead && (fGenIdLead >= 0) ) {
                 fHM->hGenLeadJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);

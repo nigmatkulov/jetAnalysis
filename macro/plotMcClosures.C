@@ -419,7 +419,8 @@ void drawSingleJetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr,
     hReco->GetYaxis()->SetTitle("1/N_{jet} dN/d#eta_{jet}");
     gPad->SetGrid();
     plotCMSHeader(collisionSystem, energy);        
-    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T} (GeV) < %d", ptLow, ptHi) );
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T} < %d GeV", ptLow, ptHi) );
+    t.DrawLatexNDC(0.35, 0.78, Form("#hat{p}_{T} > %d GeV", ptHatLow));
     if ( isFB ) {
         leg = new TLegend(0.2, 0.25, 0.4, 0.4);
     }
@@ -493,7 +494,8 @@ void drawSingleJetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullp
     hReco2Gen->GetYaxis()->SetTitle("Ratio to gen");
     gPad->SetGrid();
     plotCMSHeader(collisionSystem, energy);
-    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T} (GeV) < %d", ptLow, ptHi));
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T} < %d GeV", ptLow, ptHi));
+    t.DrawLatexNDC(0.35, 0.78, Form("#hat{p}_{T} > %d GeV", ptHatLow));
     if (isFB) {
         leg = new TLegend(0.35, 0.25, 0.4, 0.4);
     }
@@ -516,8 +518,6 @@ void drawSingleJetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullp
     }
     leg->Draw();
 }
-
-
 
 //________________
 // Draw comparison of reco, ref, gen and refSel dijet eta distributions
@@ -983,7 +983,7 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
-    TString tMatched = "";
+    TString tMatched = "Matched";
 
     TString tJetType = "Inclusive"; 
     if (jetType == 1) {
@@ -1021,8 +1021,8 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     int jetPtStart = 5;
     int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBinsLow(i) - 1) * jetPtStep
     int jetPtBinsMax = 150;
-    std::vector<int> jetPtBinsLow{3,  5,  7,   9,  12,   3,   5, 7,   12}; // 45, 35, 45, 55, 65, 75, 85, 125
-    std::vector<int> jetPtBinsHigh {5,  7,  9,  12, 150, 150, 150, 150, 150}; // 65, 35, 45, 55, 65, 75, 85, 125
+    std::vector<int> jetPtBinsLow  {3,   7,  13,  19,  24,   3,   7,  13,  19}; // 25,  65, 125, 185,  235,   25,   65,  125,  185
+    std::vector<int> jetPtBinsHigh {6,  12,  18,  23, 150, 150, 150, 150, 150}; // 65, 125, 185, 235, 1505, 1505, 1505, 1505, 1505
 
     // Eta binning
     // 52 bins from (-5.2, 5.2)
@@ -1030,6 +1030,11 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     double etaStep = 0.2;
     std::vector<int> jetEtaBinsLow{19, 12, 38};
     std::vector<int> jetEtaBinsHigh{35, 16, 42};
+
+    std::cout << Form("Reco histogram to read: ") << Form("hReco%sJet%sPtEtaPtHat", tJetType.Data(), tMatched.Data() ) << std::endl;
+    std::cout << Form("Gen histogram to read: ") << Form("hGen%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
+    std::cout << Form("Ref histogram to read: ") << Form("hRef%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
+    std::cout << Form("RefSel histogram to read: ") << Form("hRefSel%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
 
     // Retrieve histograms
     TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hReco%sJet%sPtEtaPtHat", tJetType.Data(), tMatched.Data() ) ) );
@@ -1204,7 +1209,7 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
             hReco2GenEta[i][j] = dynamic_cast<TH1D *>(hRecoEta[i][j]->Clone(Form("hReco2GenEta_%d_%d", i, j)));
             // hReco2GenEta[i][j]->Reset();
             // computeNonBinomialRatio(hRecoEta[i][j], hGenEta[i][j], hReco2GenEta[i][j]);
-            hReco2GenEta[i][j]->Divide(hReco2GenEta[i][j], hGenEta[i][j], 1., 1.);
+            hReco2GenEta[i][j]->Divide(hReco2GenEta[i][j], hGenEta[i][j], 1., 1./*, "b" */);
             hRef2GenEta[i][j] = dynamic_cast<TH1D *>(hRefEta[i][j]->Clone(Form("hRef2GenEta_%d_%d", i, j)));
             // hRef2GenEta[i][j]->Reset();
             // computeBinomialRatio(hRefEta[i][j], hGenEta[i][j], hRef2GenEta[i][j]);
@@ -1992,7 +1997,7 @@ void plotMcClosures() {
     int dataTrigger = 0;             // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
     TString dataStr = (dataTrigger == 0) ? "MB" : ((dataTrigger == 1) ? "Jet60" : ((dataTrigger == 2) ? "Jet80" : ((dataTrigger == 3) ? "Jet100" : "unknownData")));
     TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
-    int jetType = 0; // 0 - inclusive, 1 - lead, 2 - sublead
+    int jetType = 2; // 0 - inclusive, 1 - lead, 2 - sublead
 
     //
     // Embedding

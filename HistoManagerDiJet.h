@@ -258,8 +258,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRecoInclusiveJetNumOfNeutPart[4];
 
     // Reconstructed jet acceptance
-    TH2D *hRecoInclusiveAllJetPtVsEta;
-    TH2D *hRecoInclusiveJetPtRawVsEta;
+    TH2D *hRecoInclusiveAllJetPtRawEta;
 
     // Reco dijet pt, reco dijet eta, reco dijet dphi,
     // Reco lead pt, reco lead eta, reco lead phi,
@@ -269,11 +268,14 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Reco lead pt, reco lead eta, reco lead phi,
     // Reco sublead pt, reco sublead eta, reco sublead phi weighted [9]
     THnSparseD *hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
-    TH1D *hRecoInclusiveJetPt;
-    TH2D *hRecoInclusiveJetPtEta;
-    TH3D *hRecoInclusiveJetPtEtaPtHat;
-    TH3D *hRecoMatchedJetPtEtaPtHat;
-    TH3D *hRecoUnmatchedJetPtEtaPtHat;
+
+
+    TH1D *hRecoInclusiveAllJetPt;
+    TH2D *hRecoInclusiveAllJetPtEta;
+    TH3D *hRecoInclusiveAllJetPtEtaPtHat;
+    TH3D *hRecoInclusiveMatchedJetPtEtaPtHat;
+    TH3D *hRecoInclusiveUnmatchedJetPtEtaPtHat;
+
     TH2D *hRecoPtLeadPtSublead;
     TH2D *hRecoEtaLeadEtaSublead;
     TH2D *hRecoEtaCMLeadEtaCMSublead;
@@ -295,10 +297,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoDijetPtEtaDphiCMWeighted;
 
     // Leading and subleading jet acceptance
-    TH2D *hRecoLeadJetInclusivePtVsEta;
-    TH3D *hRecoLeadJetInclusivePtEtaPtHat; 
-    TH2D *hRecoSubLeadJetInclusivePtVsEta;
-    TH3D *hRecoSubLeadJetInclusivePtEtaPtHat;
+    TH2D *hRecoLeadAllJetPtEta;
+    TH3D *hRecoLeadAllJetPtEtaPtHat; 
+    TH2D *hRecoSubLeadAllJetPtEta;
+    TH3D *hRecoSubLeadAllJetPtEtaPtHat;
 
     TH1D *hRecoGoodInclusiveJetEtaLabFrame;
     TH1D *hRecoGoodInclusiveJetEtaCMFrame;
@@ -423,20 +425,18 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     // Matched and unmatched jet acceptance
     TH1D *hRecoInclusiveMatchedJetPt;
-    TH2D *hRecoInclusiveMatchedJetPtVsEta;
-    TH3D *hRecoInclusiveMatchedJetPtEtaPtHat;
-    TH2D *hRecoInclusiveUnmatchedJetPtVsEta;
-    TH3D *hRecoInclusiveUnmatchedJetPtEtaPtHat;
+    TH2D *hRecoInclusiveMatchedJetPtEta;
+    TH2D *hRecoInclusiveUnmatchedJetPtEta;
 
-    TH2D *hRecoLeadJetMatchedPtVsEta;
-    TH3D *hRecoLeadJetMatchedPtEtaPtHat;
-    TH2D *hRecoLeadJetUnmatchedPtVsEta;
-    TH3D *hRecoLeadJetUnmatchedPtEtaPtHat;
+    TH2D *hRecoLeadMatchedJetPtEta;
+    TH3D *hRecoLeadMatchedJetPtEtaPtHat;
+    TH2D *hRecoLeadUnmatchedJetPtEta;
+    TH3D *hRecoLeadUnmatchedJetPtEtaPtHat;
 
-    TH2D *hRecoSubLeadJetMatchedPtVsEta;
-    TH3D *hRecoSubLeadJetMatchedPtEtaPtHat;
-    TH2D *hRecoSubLeadJetUnmatchedPtVsEta;
-    TH3D *hRecoSubLeadJetUnmatchedPtEtaPtHat;
+    TH2D *hRecoSubLeadMatchedJetPtEta;
+    TH3D *hRecoSubLeadMatchedJetPtEtaPtHat;
+    TH2D *hRecoSubLeadUnmatchedJetPtEta;
+    TH3D *hRecoSubLeadUnmatchedJetPtEtaPtHat;
 
     TH1D *hRefInclusiveJetPt;
     TH2D *hRefInclusiveJetPtEta;
