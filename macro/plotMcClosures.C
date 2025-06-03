@@ -1226,7 +1226,7 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
             hReco2GenEta[i][j] = dynamic_cast<TH1D *>(hRecoEta[i][j]->Clone(Form("hReco2GenEta_%d_%d", i, j)));
             // hReco2GenEta[i][j]->Reset();
             // computeNonBinomialRatio(hRecoEta[i][j], hGenEta[i][j], hReco2GenEta[i][j]);
-            hReco2GenEta[i][j]->Divide(hReco2GenEta[i][j], hGenEta[i][j], 1., 1./*, "b" */);
+            hReco2GenEta[i][j]->Divide(hReco2GenEta[i][j], hGenEta[i][j], 1., 1. /*, "b" */);
             hRef2GenEta[i][j] = dynamic_cast<TH1D *>(hRefEta[i][j]->Clone(Form("hRef2GenEta_%d_%d", i, j)));
             // hRef2GenEta[i][j]->Reset();
             // computeBinomialRatio(hRefEta[i][j], hGenEta[i][j], hRef2GenEta[i][j]);
@@ -2011,7 +2011,7 @@ void plotMcClosures() {
     double collisionEnergy = 8.16;   // 8.16 TeV
     int direction = 1;               // 0-p-going, 1-Pb-going, 2 - combined
     TString directionStr = (direction == 0) ? "pgoing" : ((direction == 1) ? "Pbgoing" : "");
-    int dataTrigger = 0;             // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
+    int dataTrigger = 0;               // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
     TString dataStr = (dataTrigger == 0) ? "MB" : ((dataTrigger == 1) ? "Jet60" : ((dataTrigger == 2) ? "Jet80" : ((dataTrigger == 3) ? "Jet100" : "unknownData")));
     TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
     int jetType = 0; // 0 - inclusive, 1 - lead, 2 - sublead
