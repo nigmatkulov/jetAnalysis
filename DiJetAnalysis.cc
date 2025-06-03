@@ -999,6 +999,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
             }
 
             fHM->hRecoInclusiveAllJetPt->Fill(pt, weight);
+            fHM->hRecoInclusiveAllJetEta->Fill(eta, weight);
+            fHM->hRecoInclusiveAllJetEtaUnweighted->Fill(eta, 1.);
             fHM->hRecoInclusiveAllJetPtEta->Fill(eta, pt, weight);
             fHM->hRecoInclusiveAllJetPtRawEta->Fill(eta, ptRaw, weight);
             fHM->hRecoInclusiveAllJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
@@ -1046,6 +1048,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     double res2[4] = { JES, pt, eta, ptHat };
 
                     fHM->hRefInclusiveJetPt->Fill( genPt, weight );
+                    fHM->hRefInclusiveJetEta->Fill( genEta, weight );
+                    fHM->hRefInclusiveJetEtaUnweighted->Fill( genEta, 1. );
                     fHM->hRefInclusiveJetPtEta->Fill( genEta, genPt, weight );
                     fHM->hRefInclusiveJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
                     fHM->hRecoInclusiveMatchedJetPt->Fill( pt, weight );
@@ -1154,6 +1158,8 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
 
             // Fill inclusive jet pt
             fHM->hGenInclusiveJetPt->Fill(pt, weight);
+            fHM->hGenInclusiveJetEta->Fill(eta, weight);
+            fHM->hGenInclusiveJetEtaUnweighted->Fill(eta, 1.);
             fHM->hGenInclusiveJetPtEta->Fill(eta, pt, weight);
             fHM->hGenInclusiveJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
 
@@ -1238,6 +1244,8 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
             }
 
             fHM->hRefSelInclusiveJetPt->Fill( genPt, weight * fMcReweight );
+            fHM->hRefSelInclusiveJetEta->Fill( genEta, weight * fMcReweight );
+            fHM->hRefSelInclusiveJetEtaUnweighted->Fill( genEta, 1. );
             fHM->hRefSelInclusiveJetPtEta->Fill(genEta, genPt, weight * fMcReweight);
             fHM->hRefSelInclusiveJetPtEtaPtHat->Fill(genEta, genPt, ptHat, weight * fMcReweight);
 
@@ -1352,6 +1360,18 @@ bool DiJetAnalysis::isOverweighted(const float& ptLead, const float& dijetPtAve,
     return (  ( ( ptLead / ptHat ) > 2.5) || ( ( dijetPtAve / ptHat ) > 1.7) );
 }
 
+//________________
+void DiJetAnalysis::processDijets(const Event* event, const double &weight) {
+    // Process and analyze MC dijets
+    if ( fIsMc ) {
+        // Process and analyze gen dijets
+        processGenDijets(event, weight);
+        processRefDijets(event, weight);
+    }
+
+    // Process and analyze reco dijets  
+    processRecoDijets(event, weight);
+}
 
 //________________
 void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
@@ -1598,7 +1618,6 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         std::cout << "DiJetAnalysis::processGenDijets -- end" << std::endl;
     }
 }
-
 
 //________________
 void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) {
@@ -2464,16 +2483,9 @@ void DiJetAnalysis::processEvent(const Event* event) {
     //
     processInclusiveJets(event, weight);
 
-    // Process and analyze reco dijets
-    processRecoDijets(event, weight);
+    // Process and analyze dijets
+    processDijets(event, weight);
 
-    // Process and analyze MC jets
-    if ( fIsMc ) {
-        
-        // Process and analyze gen dijets
-        processGenDijets(event, weight);
-        processRefDijets(event, weight);
-    }
 
     if ( fIsGenDijetLabFound ) {
         fHM->hVzGenDijetLab->Fill( vz, 1. );

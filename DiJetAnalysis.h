@@ -118,6 +118,8 @@ class DiJetAnalysis : public BaseAnalysis {
     void processRecoJets(const Event* event, const double &weight);
     /// @brief Process ref jets
     void processRefJets(const Event* event, const double &weight);
+    /// @brief Process dijets
+    void processDijets(const Event* event, const double &weight);
     /// @brief Process gen dijets
     void processGenDijets(const Event* event, const double &weight);
     /// @brief Process reco dijets

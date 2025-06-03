@@ -130,6 +130,16 @@ void rescaleEta(TH1* h) {
 }
 
 //________________
+void checkIntegral(TH1* h) {
+    if (h->Integral() <= 0) {
+        std::cout << "Warning: " << h->GetName() << " has zero or negative integral." << std::endl;
+    }
+    if (h->GetEntries() <= 0) {
+        std::cout << "Warning: " << h->GetName() << " has zero entries." << std::endl;
+    }
+}
+
+//________________
 void drawJecComparison(TCanvas *c, TH1D* h1, TH1D* h2, 
     double ptLow = 20., double ptHigh = 1500.,
     double ptHatLow=15.,
@@ -973,7 +983,7 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
 // collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
 // jetType: 0 = Inclusive, 1 = Lead, 2 = SubLead
 // date: date string for saving the plots (default is "20250129")
-void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, int jetType = 0, TString date = "20250129") {
+void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, int jetType = 0, int matchType = 0, TString date = "20250129") {
     // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
 
@@ -983,16 +993,14 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     t.SetTextFont(42);
     t.SetTextSize(0.05);
 
-    TString tMatched = "Matched";
+    TString tMatched = "All";
+    tMatched = (matchType == 0) ? "All" : ((matchType == 1) ? "Matched" : "Unmatched");
 
     TString tJetType = "Inclusive"; 
-    if (jetType == 1) {
-        tJetType = "Lead";
-    } else if (jetType == 2) {
-        tJetType = "SubLead";
-    }
+    tJetType = (jetType == 0) ? "Inclusive" : ((jetType == 1) ? "Lead" : "SubLead");
 
     std::cout << "Jet type: " << tJetType.Data() << std::endl;
+    std::cout << "Match type: " << tMatched.Data() << std::endl;
 
     // Determine the direction based on the filename
     TString directionStr;
@@ -1031,13 +1039,13 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     std::vector<int> jetEtaBinsLow{19, 12, 38};
     std::vector<int> jetEtaBinsHigh{35, 16, 42};
 
-    std::cout << Form("Reco histogram to read: ") << Form("hReco%sJet%sPtEtaPtHat", tJetType.Data(), tMatched.Data() ) << std::endl;
+    std::cout << Form("Reco histogram to read: ") << Form("hReco%s%sJetPtEtaPtHat", tJetType.Data(), tMatched.Data() ) << std::endl;
     std::cout << Form("Gen histogram to read: ") << Form("hGen%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
     std::cout << Form("Ref histogram to read: ") << Form("hRef%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
     std::cout << Form("RefSel histogram to read: ") << Form("hRefSel%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
 
     // Retrieve histograms
-    TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hReco%sJet%sPtEtaPtHat", tJetType.Data(), tMatched.Data() ) ) );
+    TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hReco%s%sJetPtEtaPtHat", tJetType.Data(), tMatched.Data() ) ) );
     // TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRecoMatchedJetPtEtaPtHat"));
     TH3D *hGenPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hGen%sJetPtEtaPtHat", tJetType.Data() ) ) );
     TH3D *hRefPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hRef%sJetPtEtaPtHat", tJetType.Data() ) ) );
@@ -1184,24 +1192,33 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
                                                                                jetPtBinsLow[j], jetPtBinsHigh[j],
                                                                                ptHatBins[i], ptHatBinsMax));
             set1DStyle(hRecoEta[i][j], 0, kTRUE);
+            checkIntegral(hRecoEta[i][j]);
+            rescaleEta(hRecoEta[i][j]);
 
             // Gen jets
             hGenEta[i][j] = dynamic_cast<TH1D *>(hGenPtEtaPtHat->ProjectionX(Form("hGenEta_%d_%d", i, j),
                                                  jetPtBinsLow[j], jetPtBinsHigh[j],
                                                  ptHatBins[i], ptHatBinsMax));
             set1DStyle(hGenEta[i][j], 5, kTRUE);
+            checkIntegral(hGenEta[i][j]);
+            rescaleEta(hGenEta[i][j]);
+
 
             // Ref jets
             hRefEta[i][j] = dynamic_cast<TH1D *>(hRefPtEtaPtHat->ProjectionX(Form("hRefEta_%d_%d", i, j),
                                                  jetPtBinsLow[j], jetPtBinsHigh[j],
                                                  ptHatBins[i], ptHatBinsMax));
             set1DStyle(hRefEta[i][j], 1, kTRUE);
+            checkIntegral(hRefEta[i][j]);
+            rescaleEta(hRefEta[i][j]);
         
             // RefSel jets
             hRefSelEta[i][j] = dynamic_cast<TH1D *>(hRefSelPtEtaPtHat->ProjectionX(Form("hRefSelEta_%d_%d", i, j),
                                                  jetPtBinsLow[j], jetPtBinsHigh[j],
                                                  ptHatBins[i], ptHatBinsMax));
             set1DStyle(hRefSelEta[i][j], 2, kTRUE);
+            checkIntegral(hRefSelEta[i][j]);
+            rescaleEta(hRefSelEta[i][j]);
 
             //
             // Ratios of reco, ref and refSel to gen
@@ -1997,7 +2014,8 @@ void plotMcClosures() {
     int dataTrigger = 0;             // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
     TString dataStr = (dataTrigger == 0) ? "MB" : ((dataTrigger == 1) ? "Jet60" : ((dataTrigger == 2) ? "Jet80" : ((dataTrigger == 3) ? "Jet100" : "unknownData")));
     TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
-    int jetType = 2; // 0 - inclusive, 1 - lead, 2 - sublead
+    int jetType = 0; // 0 - inclusive, 1 - lead, 2 - sublead
+    int matchType = 0; // 0 - inclusive, 1 - matched, 2 - unmatched
 
     //
     // Embedding
@@ -2067,7 +2085,7 @@ void plotMcClosures() {
     // collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
     // jetType: 0 = Inclusive, 1 = Lead, 2 = SubLead
     // date: date string for saving the plots (default is "20250129")
-    inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, date);
+    inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
 
     //
     // Comparison of dijet reco and ref to gen distributions

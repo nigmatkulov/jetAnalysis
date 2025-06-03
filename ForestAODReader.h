@@ -294,59 +294,62 @@ class ForestAODReader : public BaseReader {
     // Jet information
     //
 
+    static constexpr size_t JET_ARRAY_SIZE = 1000;
+    static constexpr size_t TRACK_ARRAY_SIZE = 20000;
+
     /// @brief Number of reconstructed jets
     int   fNRecoJets;
     /// @brief Reconstructed jet transverse momentum (without JEC)
-    float fRecoJetPt[10000];
+    float fRecoJetPt[JET_ARRAY_SIZE];
     /// @brief Pseudorapidity of reconstructed jet
-    float fRecoJetEta[10000];
+    float fRecoJetEta[JET_ARRAY_SIZE];
     /// @brief Azimuthal angle of reconstructed jet
-    float fRecoJetPhi[10000];
+    float fRecoJetPhi[JET_ARRAY_SIZE];
     /// @brief WTA eta of reconstructed jet
-    float fRecoJetWTAEta[10000];
+    float fRecoJetWTAEta[JET_ARRAY_SIZE];
     /// @brief WTA phi of reconstructed jet
-    float fRecoJetWTAPhi[10000];
+    float fRecoJetWTAPhi[JET_ARRAY_SIZE];
     /// @brief Track with maximum pT in reconstructed jet
-    float fRecoJetTrackMax[10000];
+    float fRecoJetTrackMax[JET_ARRAY_SIZE];
 
-    float fRecoJtPfNHF[10000];
-    float fRecoJtPfNEF[10000];
-    float fRecoJtPfCHF[10000];
-    float fRecoJtPfMUF[10000];
-    float fRecoJtPfCEF[10000];
-    int fRecoJtPfCHM[10000];
-    int fRecoJtPfCEM[10000];
-    int fRecoJtPfNHM[10000];
-    int fRecoJtPfNEM[10000];
-    int fRecoJtPfMUM[10000];
+    float fRecoJtPfNHF[JET_ARRAY_SIZE];
+    float fRecoJtPfNEF[JET_ARRAY_SIZE];
+    float fRecoJtPfCHF[JET_ARRAY_SIZE];
+    float fRecoJtPfMUF[JET_ARRAY_SIZE];
+    float fRecoJtPfCEF[JET_ARRAY_SIZE];
+    int fRecoJtPfCHM[JET_ARRAY_SIZE];
+    int fRecoJtPfCEM[JET_ARRAY_SIZE];
+    int fRecoJtPfNHM[JET_ARRAY_SIZE];
+    int fRecoJtPfNEM[JET_ARRAY_SIZE];
+    int fRecoJtPfMUM[JET_ARRAY_SIZE];
 
     /// @brief Transverse momentum of generated jet that was matched with reconstructed jet
-    float fRefJetPt[10000];
+    float fRefJetPt[JET_ARRAY_SIZE];
     /// @brief /// @brief Pseudorapidity of generated jet that was matched with reconstructed jet
-    float fRefJetEta[10000];
+    float fRefJetEta[JET_ARRAY_SIZE];
     /// @brief Azimuthal angle of generated jet that was matched with reconstructed jet
-    float fRefJetPhi[10000];
+    float fRefJetPhi[JET_ARRAY_SIZE];
     /// @brief WTA eta of generated jet that was matched with reconstructed jet
-    float fRefJetWTAEta[10000];
+    float fRefJetWTAEta[JET_ARRAY_SIZE];
     /// @brief WTA phi of generated jet that was matched with reconstructed jet
-    float fRefJetWTAPhi[10000];
+    float fRefJetWTAPhi[JET_ARRAY_SIZE];
     /// @brief Parton flavor of generated jet that was matched with reconstructed jet
-    int   fRefJetPartonFlavor[10000];
+    int   fRefJetPartonFlavor[JET_ARRAY_SIZE];
     /// @brief Parton flavor for B of generated jet that was matched with reconstructed jet
-    int   fRefJetPartonFlavorForB[10000];
+    int   fRefJetPartonFlavorForB[JET_ARRAY_SIZE];
 
     /// @brief Number of generated jets
     int   fNGenJets;
     /// @brief Generated jet transverse momentum
-    float fGenJetPt[10000];
+    float fGenJetPt[JET_ARRAY_SIZE];
     /// @brief Pseudorapidity of generated jet
-    float fGenJetEta[10000];
+    float fGenJetEta[JET_ARRAY_SIZE];
     /// @brief Azimuthal angle of generated jet
-    float fGenJetPhi[10000];
+    float fGenJetPhi[JET_ARRAY_SIZE];
     /// @brief WTA eta of generated jet
-    float fGenJetWTAEta[10000];
+    float fGenJetWTAEta[JET_ARRAY_SIZE];
     /// @brief WTA phi of generated jet
-    float fGenJetWTAPhi[10000];
+    float fGenJetWTAPhi[JET_ARRAY_SIZE];
 
     //
     // Reconstructed tracks
@@ -355,41 +358,41 @@ class ForestAODReader : public BaseReader {
     /// @brief Number of tracks
     int   fNTracks;
     /// @brief Track transverse momentum
-    float fTrackPt[20000];
+    float fTrackPt[TRACK_ARRAY_SIZE];
     /// @brief Track pseudorapidity
-    float fTrackEta[20000];
+    float fTrackEta[TRACK_ARRAY_SIZE];
     /// @brief Track azimuthal angle
-    float fTrackPhi[20000];
+    float fTrackPhi[TRACK_ARRAY_SIZE];
     /// @brief Track pT error (uncertainty)
-    float fTrackPtErr[20000];
+    float fTrackPtErr[TRACK_ARRAY_SIZE];
     /// @brief Track distance of closest approach in transverse plane (XY)
-    float fTrackDcaXY[20000];
+    float fTrackDcaXY[TRACK_ARRAY_SIZE];
     /// @brief Track distance of closest approach in beam direction (z)
-    float fTrackDcaZ[20000];
+    float fTrackDcaZ[TRACK_ARRAY_SIZE];
     /// @brief Track distance of closest approach error in transverse plane (XY)
-    float fTrackDcaXYErr[20000];
+    float fTrackDcaXYErr[TRACK_ARRAY_SIZE];
     /// @brief Track distance of closest approach error in beam direction (z)
-    float fTrackDcaZErr[20000];
+    float fTrackDcaZErr[TRACK_ARRAY_SIZE];
     /// @brief Track fitting (reconstruction) chi2
-    float fTrackChi2[20000];
-    /// @brief Track number of degrees of freedom in the fitting 
-    unsigned char fTrackNDOF[20000];    
+    float fTrackChi2[TRACK_ARRAY_SIZE];
+    /// @brief Track number of degrees of freedom in the fitting
+    unsigned char fTrackNDOF[TRACK_ARRAY_SIZE];
     /// @brief Particle flow energy deposited in ECAL from the given track
-    float fTrackPartFlowEcal[20000];
+    float fTrackPartFlowEcal[TRACK_ARRAY_SIZE];
     /// @brief Particle flow energy deposited in HCAL from the given track
-    float fTrackPartFlowHcal[20000];
+    float fTrackPartFlowHcal[TRACK_ARRAY_SIZE];
     /// @brief Track MVA for each step
-    float fTrackMVA[20000];
+    float fTrackMVA[TRACK_ARRAY_SIZE];
     /// @brief Track algorithm/step
-    unsigned char fTrackAlgo[20000];
+    unsigned char fTrackAlgo[TRACK_ARRAY_SIZE];
     /// @brief Track charge
-    int   fTrackCharge[20000];
+    int   fTrackCharge[TRACK_ARRAY_SIZE];
     /// @brief Number of hits in the tracker
-    unsigned char fTrackNHits[20000];
+    unsigned char fTrackNHits[TRACK_ARRAY_SIZE];
     /// @brief Number of layers with measurement in the tracker
-    unsigned char fTrackNLayers[20000];
+    unsigned char fTrackNLayers[TRACK_ARRAY_SIZE];
     /// @brief Tracker steps MVA selection
-    bool  fTrackHighPurity[20000];
+    bool  fTrackHighPurity[TRACK_ARRAY_SIZE];
 
     //
     // Monte Carlo tracks

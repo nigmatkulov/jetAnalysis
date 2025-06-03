@@ -542,16 +542,19 @@ void ForestAODReader::clearVariables() {
     fPVertexFilterCutVtx1 = {0};
 
     // Loop over jets and tracks
-    for (short i{0}; i<20000; i++) {
+    for (short i{0}; i<TRACK_ARRAY_SIZE; i++) {
 
         // Jet variables
-        if (i<10000) {
+        if (i<JET_ARRAY_SIZE) {
+            // Reco jet variables
             fRecoJetPt[i] = {0.f};
             fRecoJetEta[i] = {0.f};
             fRecoJetPhi[i] = {0.f};
             fRecoJetWTAEta[i] = {0.f};
             fRecoJetWTAPhi[i] = {0.f};
             fRecoJetTrackMax[i] = {0.f};
+
+            // Ref jet variables
             fRefJetPt[i] = {0.f};
             fRefJetEta[i] = {0.f};
             fRefJetPhi[i] = {0.f};
@@ -559,13 +562,15 @@ void ForestAODReader::clearVariables() {
             fRefJetWTAPhi[i] = {0.f};
             fRefJetPartonFlavor[i] = {-999};
             fRefJetPartonFlavorForB[i] = {-99};
+
+            // Gen jet variables
             fGenJetPt[i] = {0.f};
             fGenJetEta[i] = {0.f};
             fGenJetPhi[i] = {0.f};
             fGenJetWTAEta[i] = {0.f};
             fGenJetWTAPhi[i] = {0.f};
         } // if (i<100)
-
+        
         // Track variables
         fTrackPt[i] = {0.f};
         fTrackEta[i] = {0.f};
@@ -587,12 +592,14 @@ void ForestAODReader::clearVariables() {
         fTrackHighPurity[i] = {false};
     } // for (short i{0}; i<9999; i++)
 
-    fGenTrackPt.clear();
-    fGenTrackEta.clear();
-    fGenTrackPhi.clear();
-    fGenTrackCharge.clear();
-    fGenTrackPid.clear();
-    fGenTrackSube.clear();
+    if ( fIsMc && fUseGenTrackBranch ) {
+        fGenTrackPt.clear();
+        fGenTrackEta.clear();
+        fGenTrackPhi.clear();
+        fGenTrackCharge.clear();
+        fGenTrackPid.clear();
+        fGenTrackSube.clear();
+    }
 
     if (fIsMc) {
         fRecoJet2GenJetId.clear();
@@ -1190,21 +1197,6 @@ void ForestAODReader::readEvent() {
         std::cout << "ForestAODReader::readEvent()\n";
     }
 
-    if (fIsMc) {
-        fRecoJet2GenJetId.clear();
-        fGenJet2RecoJet.clear();
-    }
-
-    // Or one can call the clearVariables() function (will take more time)
-    if (fUseGenTrackBranch && fIsMc) {
-        fGenTrackPt.clear();
-        fGenTrackEta.clear();
-        fGenTrackPhi.clear();
-        fGenTrackCharge.clear();
-        fGenTrackPid.clear();
-        fGenTrackSube.clear();
-    }
-
     if ( fEventsProcessed >= fEvents2Read ) { 
         std::cerr << "ForestAODReader::readEvent() out of entry numbers\n"; 
         fReaderStatus = 2; // End of input stream
@@ -1327,6 +1319,9 @@ Event* ForestAODReader::returnEvent() {
     if ( fVerbose ) {
         std::cout << "ForestAODReader::returnEvent() - begin\n";
     }
+
+    // Clear all event, jet and track variables
+    clearVariables();
 
     //std::cout << "ForestAODReader::returnEvent" << std::endl;
     readEvent();
