@@ -250,6 +250,7 @@ int main(int argc, char const *argv[]) {
     if ( isPbGoingDir ) {
         analysis->setPbGoing();
     }
+    //analysis->useJetIdSelection();
     analysis->setEtaShift( etaShift );
     analysis->setLeadJetPtLow( float(50.) );
     analysis->setSubLeadJetPtLow( float(40.) );
