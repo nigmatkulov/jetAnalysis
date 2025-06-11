@@ -1503,12 +1503,11 @@ Event* ForestAODReader::returnEvent() {
             } // if ( fIsMc )
 
             // Reco
-            jet->setPt( fRecoJetPt[iJet] );
+            jet->setRawPt( fRecoJetPt[iJet] );
             jet->setEta( fRecoJetEta[iJet] );
             jet->setPhi( fRecoJetPhi[iJet] );
             jet->setWTAEta( fRecoJetWTAEta[iJet] );
             jet->setWTAPhi( fRecoJetWTAPhi[iJet] );
-            jet->setRawPt( fRecoJetPt[iJet] );
             jet->setTrackMaxPt( fRecoJetTrackMax[iJet] );
             if ( fJEC ) {
                 fJEC->SetJetPT( fRecoJetPt[iJet] );

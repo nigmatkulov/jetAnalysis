@@ -104,20 +104,23 @@ class DiJetAnalysis : public BaseAnalysis {
 
     /// @brief Loop over reco, gen and ref-selected reco jets and save jet indices in pT-sorted vectors
     void makePtSortedJetVectors(const Event* event);
-    /// Loop over reco, gen and ref jets and search for leading and subleading jets
-    void processInclusiveJets(const Event* event, const double& weight);
+    
     /// Check if event is overweighted in MC
     bool isOverweightedEvent(const Event* event, const double& weight);
     /// @brief  Check if event is overweighted
     bool isOverweighted(const float& ptLead, const float& dijetPtAve, const float& ptHat);
     /// @brief Calculate event weight
     double eventWeight(const float& ptHat, const float& vz, const float& centWeight, const float& ptHatW);
+
+    /// Loop over reco, gen and ref jets and search for leading and subleading jets
+    void processInclusiveJets(const Event* event, const double& weight);
     /// @brief Process gen jets
     void processGenJets(const Event* event, const double &weight);
     /// @brief Process reco jets
     void processRecoJets(const Event* event, const double &weight);
     /// @brief Process ref jets
     void processRefJets(const Event* event, const double &weight);
+
     /// @brief Process dijets
     void processDijets(const Event* event, const double &weight);
     /// @brief Process gen dijets
@@ -140,10 +143,6 @@ class DiJetAnalysis : public BaseAnalysis {
     bool isGoodGenJet(const GenJet* jet);
     /// @brief Single reco jet selection criteria
     bool isGoodRecoJet(const RecoJet* jet);
-    /// @brief Check if jet passes jetId requirements
-    bool isGoodJetId(const RecoJet* jet);
-    /// @brief Check if good track max cut
-    bool isGoodTrkMax(const RecoJet* jet);
     /// @brief Boost eta to the center-of-mass frame
     float boostEta2CM(const float &etaLab);
     /// @brief Get proper eta in the lab frame depending on beam direction 

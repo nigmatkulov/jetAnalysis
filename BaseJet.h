@@ -29,33 +29,33 @@ class BaseJet : public TObject {
     //
 
     /// @brief Set jet-matched generated jet transverse momentum
-    void setPt(const Float_t& pt)      { fPt = {pt}; }
+    void setPt(const float& pt)      { fPt = {pt}; }
     /// @brief Set jet-matched generated jet eta
-    void setEta(const Float_t& eta)    { fEta = {eta}; }
+    void setEta(const float& eta)    { fEta = {eta}; }
     /// @brief Set jet-matched generated jet phi
-    void setPhi(const Float_t& phi)    { fPhi = {phi}; }
+    void setPhi(const float& phi)    { fPhi = {phi}; }
     /// @brief Set jet-matched generated jet WTA eta
-    void setWTAEta(const Float_t& eta) { fWTAEta = {eta}; }
+    void setWTAEta(const float& eta) { fWTAEta = {eta}; }
     /// @brief Set jet-matched generated jet WTA phi
-    void setWTAPhi(const Float_t& phi) { fWTAPhi = {phi}; }
+    void setWTAPhi(const float& phi) { fWTAPhi = {phi}; }
 
     //
     // Getters
     //
 
     /// @brief Transverse momentum 
-    Float_t pt() const         { return fPt; }
+    float pt() const         { return fPt; }
     /// @brief Pseudorapidity 
-    Float_t eta() const        { return fEta; }
+    float eta() const        { return fEta; }
     /// @brief Azimuthal angle 
-    Float_t phi() const        { return fPhi; }
+    float phi() const        { return fPhi; }
     /// @brief Return reconstructed jet parameters
     TVector3 vec() const 
     { TVector3 v; v.SetPtEtaPhi(fPt, fEta, fPhi); return v; }
     /// @brief Pseudorapidity of the WTA axis 
-    Float_t WTAEta() const     { return fWTAEta; }
+    float WTAEta() const     { return fWTAEta; }
     /// @brief Azimuthal angle of the WTA axis
-    Float_t WTAPhi() const     { return fWTAPhi; }
+    float WTAPhi() const     { return fWTAPhi; }
 
   private:
 
