@@ -23,6 +23,7 @@
 #include "BaseAnalysis.h"
 #include "HistoManagerDiJet.h"
 #include "Event.h"
+#include "DiJet.h"
 
 // C++ headers
 #include <vector>
@@ -104,7 +105,7 @@ class DiJetAnalysis : public BaseAnalysis {
 
     /// @brief Loop over reco, gen and ref-selected reco jets and save jet indices in pT-sorted vectors
     void makePtSortedJetVectors(const Event* event);
-    
+
     /// Check if event is overweighted in MC
     bool isOverweightedEvent(const Event* event, const double& weight);
     /// @brief  Check if event is overweighted
@@ -131,14 +132,8 @@ class DiJetAnalysis : public BaseAnalysis {
     void processRefDijets(const Event* event, const double &weight);
 
     /// @brief Dijet selection
-    bool isGoodDijet(const float& ptLead, const float& ptSublead, const float& dphi);
+    bool isGoodDijet(const DiJet& dijet, const bool& isCM = false);
 
-    /// @brief Dijet selection
-    bool isGoodDijet(const float& ptLead, const float& etaLead, const float& ptSubLead, 
-                     const float& etaSubLead, const float& dphi, const bool& isCM = false);
-
-    /// @brief Calculate delta phi between two jets in the range [-pi, pi]
-    float deltaPhi(const float& phi1, const float &phi2);
     /// @brief Single gen/ref jet selection criteria
     bool isGoodGenJet(const GenJet* jet);
     /// @brief Single reco jet selection criteria

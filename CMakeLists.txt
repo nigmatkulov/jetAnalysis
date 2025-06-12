@@ -59,6 +59,7 @@ set(HEADERS
         BaseReader.h
         BaseHistoManager.h
         BaseJet.h
+        DiJet.h
         HistoManagerJetESR.h
         HistoManagerDiJet.h
         Collections.h
@@ -82,6 +83,7 @@ set(SRC
         GenJet.cc
         BaseReader.cc
         BaseJet.cc
+        DiJet.cc
         HistoManagerJetESR.cc
         HistoManagerDiJet.cc
         ForestAODReader.cc

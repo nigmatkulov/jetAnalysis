@@ -14,6 +14,7 @@
 #pragma link C++ class GenJet+;
 #pragma link C++ class Track+;
 #pragma link C++ class GenTrack+;
+#pragma link C++ class DiJet+;
 
 #pragma link C++ class SingleJetCorrector+;
 #pragma link C++ class JetCorrector+;
