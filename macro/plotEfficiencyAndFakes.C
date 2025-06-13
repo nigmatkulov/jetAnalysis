@@ -212,8 +212,8 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
 
     const int nJetTypes = 3; // Inclusive, Lead, SubLead
     const char* jetTypes[3] = {"Inclusive", "Lead", "SubLead"};
-    TH3D *hRefPtEtaPtHat[nJetTypes] = {nullptr};
-    TH3D *hGenPtEtaPtHat[nJetTypes] = {nullptr};
+    TH2D *hRefPtEta[nJetTypes] = {nullptr};
+    TH2D *hGenPtEta[nJetTypes] = {nullptr};
     TH2D *hEfficiency2D[nJetTypes] = {nullptr};
     TH2D *hRef2D[nJetTypes] = {nullptr};
     TH2D *hGen2D[nJetTypes] = {nullptr};
@@ -225,43 +225,40 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
     for (size_t i = 0; i < nJetTypes; ++i) {
         TString tJetType = jetTypes[i];
 
-        hRefPtEtaPtHat[i] = dynamic_cast<TH3D*>( f->Get( Form("hRef%sJetPtEtaPtHat", tJetType.Data()) ) );
-        if ( !hRefPtEtaPtHat[i] ) {
-            std::cerr << "Histogram hRef" << tJetType.Data() << "JetPtEtaPtHat not found in file." << std::endl;
+        hRefPtEta[i] = dynamic_cast<TH2D*>( f->Get( Form("hRef%sJetPtEta", tJetType.Data()) ) );
+        if ( !hRefPtEta[i] ) {
+            std::cerr << "Histogram hRef" << tJetType.Data() << "JetPtEta not found in file." << std::endl;
             return;
         }
-        hGenPtEtaPtHat[i] = dynamic_cast<TH3D*>( f->Get( Form("hGen%sJetPtEtaPtHat", tJetType.Data()) ) );
-        if ( !hGenPtEtaPtHat[i] ) {
-            std::cerr << "Histogram hGen" << tJetType.Data() << "JetPtEtaPtHat not found in file." << std::endl;
+        hGenPtEta[i] = dynamic_cast<TH2D*>( f->Get( Form("hGen%sJetPtEta", tJetType.Data()) ) );
+        if ( !hGenPtEta[i] ) {
+            std::cerr << "Histogram hGen" << tJetType.Data() << "JetPtEta not found in file." << std::endl;
             return;
         }
 
         //
         // Create 2D efficiency histogram
         //
-        hEfficiency2D[i] = dynamic_cast<TH2D*>( hRefPtEtaPtHat[i]->Project3D("yx") );
+        hEfficiency2D[i] = dynamic_cast<TH2D*>( hRefPtEta[i]->Clone( Form("hEfficiency2D_%s", tJetType.Data()) ) );
         if ( !hEfficiency2D[i] ) {
-            std::cerr << "Failed to project hRef" << tJetType.Data() << "JetPtEtaPtHat to 2D." << std::endl;
+            std::cerr << "Failed to project hRef" << tJetType.Data() << "JetPtEta to 2D." << std::endl;
             return;
         }
-        hEfficiency2D[i]->SetName( Form("hEfficiency2D_%s", tJetType.Data()) );
 
-        hRef2D[i] = dynamic_cast<TH2D*>( hRefPtEtaPtHat[i]->Project3D("yx") );
+        hRef2D[i] = dynamic_cast<TH2D*>( hRefPtEta[i]->Clone( Form("hRef2D_%s", tJetType.Data()) ) );
         if ( !hRef2D[i] ) {
-            std::cerr << "Failed to project hRef" << tJetType.Data() << "JetPtEtaPtHat to 2D." << std::endl;
+            std::cerr << "Failed to project hRef" << tJetType.Data() << "JetPtEta to 2D." << std::endl;
             return;
         }
-        hRef2D[i]->SetName( Form("hRef2D_%s", tJetType.Data()) );
 
-        hGen2D[i] = dynamic_cast<TH2D*>( hGenPtEtaPtHat[i]->Project3D("yx") );
+        hGen2D[i] = dynamic_cast<TH2D*>( hGenPtEta[i]->Clone( Form("hGen2D_%s", tJetType.Data()) ) );
         if ( !hGen2D[i] ) {
-            std::cerr << "Failed to project hGen" << tJetType.Data() << "JetPtEtaPtHat to 2D." << std::endl;
+            std::cerr << "Failed to project hGen" << tJetType.Data() << "JetPtEta to 2D." << std::endl;
             return;
         }
-        hGen2D[i]->SetName( Form("hGen2D_%s", tJetType.Data()) );
 
-        // std::cout << Form("%s refJet integral: %f, genJet integral: %f", 
-        //                   tJetType.Data(), hRef2D[i]->Integral(), hGen2D[i]->Integral() ) << std::endl;
+        std::cout << Form("%s refJet integral: %f, genJet integral: %f", 
+                          tJetType.Data(), hRef2D[i]->Integral(), hGen2D[i]->Integral() ) << std::endl;
 
         // Create 2D efficiency histogram
         hEfficiency2D[i]->Divide( hGen2D[i] );
@@ -387,17 +384,6 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
 
 
     // Clean up
-    for (size_t i = 0; i < nJetTypes; ++i) {
-        if (hRefPtEtaPtHat[i]) delete hRefPtEtaPtHat[i];
-        if (hGenPtEtaPtHat[i]) delete hGenPtEtaPtHat[i];
-        if (hEfficiency2D[i]) delete hEfficiency2D[i];
-        if (hRef2D[i]) delete hRef2D[i];
-        if (hGen2D[i]) delete hGen2D[i];
-        for (size_t j = 0; j < nEtaRanges - 1; ++j) {
-            if (hEfficiencyPt[i][j]) delete hEfficiencyPt[i][j];
-            if (hGenPt[i][j]) delete hGenPt[i][j];
-        }
-    }
     if (cEfficiencyIndividual) delete cEfficiencyIndividual;
     if (cEfficiencyCombined) delete cEfficiencyCombined;
     if (cEfficiency2D) delete cEfficiency2D;
@@ -772,24 +758,8 @@ void plotFakes(TFile *f, int collSystem = 0, double energy = 5.02, int jetType =
                                   ((ptMax<0) ? Form("m%.1f", -ptMax) : Form("%.1f", ptMax)) ) );
         cUnmatched->Clear();
     } // for (size_t i = 0; i < nPtRanges - 1; ++i)
+    
     // Clean up
-    for (int i = 0; i < nJetTypes; ++i) {
-        for (int j = 0; j < nEtaRanges - 1; ++j) {
-            if (hRecoAllEta[i][j]) delete hRecoAllEta[i][j];
-            if (hRecoMatchedEta[i][j]) delete hRecoMatchedEta[i][j];
-            if (hRecoUnmatchedEta[i][j]) delete hRecoUnmatchedEta[i][j];
-        }
-        for (int j = 0; j < nPtRanges - 1; ++j) {
-            if (hRecoAllPt[i][j]) delete hRecoAllPt[i][j];
-            if (hRecoMatchedPt[i][j]) delete hRecoMatchedPt[i][j];
-            if (hRecoUnmatchedPt[i][j]) delete hRecoUnmatchedPt[i][j];
-        }
-    }
-    for (int i = 0; i < nJetTypes; ++i) {
-        if (hRecoAllJetPtEta[i]) delete hRecoAllJetPtEta[i];
-        if (hRecoMatchedJetPtEta[i]) delete hRecoMatchedJetPtEta[i];
-        if (hRecoUnmatchedJetPtEta[i]) delete hRecoUnmatchedJetPtEta[i];
-    }
     if (cCombined) delete cCombined;
     if (cMatched) delete cMatched;
     if (cUnmatched) delete cUnmatched;
