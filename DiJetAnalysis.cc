@@ -19,6 +19,7 @@
 // C++ headers
 #include <iostream>
 #include <algorithm>
+#include <unordered_map>
 
 // Jet analysis headers
 #include "DiJetAnalysis.h"
@@ -642,6 +643,8 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
     // Reco jets
     //
 
+    std::vector<int> fRefIndices; // Indices of matched gen jets that reco jets are matched to
+
     // Jet counter
     int recoJetCounter{0};
     // Loop over reconstructed jets and store indices of good jets
@@ -664,6 +667,11 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
         }
 
         fRecoPtSortedJetIds.push_back( recoJetCounter-1 );
+
+        if ( fIsMc ) {
+            fRefIndices.push_back( (*recoJetIter)->genJetId() );
+        }
+
     } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
 
     // Sort indices based on the jet corrected pT (from high to low)

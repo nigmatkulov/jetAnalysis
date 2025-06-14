@@ -125,3 +125,11 @@ bool RecoJet::isGoodJetId(const bool& useLooseJetIdCut) const {
 		
 	return passJetId;
 }
+
+//________________
+bool RecoJet::operator==(const RecoJet& other) const {
+    return ( BaseJet::operator==(other) &&
+             fabs(fPtJECCorr - other.fPtJECCorr) < 1e-6 &&
+             fGenJetId == other.fGenJetId &&
+             fabs(fTrackPtMax - other.fTrackPtMax) < 1e-6 );
+}

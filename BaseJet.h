@@ -24,6 +24,9 @@ class BaseJet : public TObject {
     /// @brief Destructor
     virtual ~BaseJet() { /* Empty */ }
 
+    /// @brief Equality operator to compare two jets
+    bool operator==(const BaseJet& other) const;
+
     //
     // Setters
     //

@@ -55,15 +55,14 @@ bool JetCut::pass(const RecoJet* jet) {
                      jet->ptJECCorr() <= fPt[1]);
     if (fVerbose) {
         std::cout << Form("pT : %5.2f <= %5.2f <= %5.2f \t %s \n",
-                          fPt[0], jet->ptJECCorr(), fPt[1], ( goodPt ) ? "true" : "false" );
+                          fPt[0], jet->ptJECCorr(), fPt[1], ( goodPt ) ? "[true]" : "[false]" );
     }
 
-    Float_t recoR = TMath::Sqrt( jet->phi() * jet->phi() + 
-                                 jet->eta() * jet->eta() );
+    float recoR = TMath::Sqrt( jet->phi() * jet->phi() + jet->eta() * jet->eta() );
     bool goodConeR = (recoR <= fConeR);
     if (fVerbose) {
         std::cout << Form("cone R: %5.2f <= %5.2f \t %s \n",
-                          recoR, fConeR, ( goodConeR ) ? "true" : "false" );
+                          recoR, fConeR, ( goodConeR ) ? "[true]" : "[false]" );
     }
 
     bool goodMatching {true};
@@ -73,14 +72,13 @@ bool JetCut::pass(const RecoJet* jet) {
 
     if (fVerbose) {
         std::cout << Form("has matching: \t %s \n",
-                          ( goodMatching ) ? "true" : "false" );        
+                          ( goodMatching ) ? "[true]" : "[false]" );
     }
 
-    bool goodEta = ( fEta[0] <= jet->eta() &&
-                       jet->eta() <= fEta[1] );
+    bool goodEta = ( fEta[0] <= jet->eta() && jet->eta() <= fEta[1] );
     if (fVerbose) {
         std::cout << Form("eta : %5.2f <= %5.2f <= %5.2f \t %s \n",
-                          fEta[0], jet->eta(), fEta[1], ( goodEta ) ? "true" : "false" );
+                          fEta[0], jet->eta(), fEta[1], ( goodEta ) ? "[true]" : "[false]" );
     }
 
     bool goodChargeComponent{true};
@@ -127,7 +125,7 @@ bool JetCut::pass(const RecoJet* jet) {
     //                       goodRefPt && goodRefConeR && goodFlavorForB;
 
     if (fVerbose) {
-        std::cout << Form("good jet     : \t %s \n", (isGood) ? "true" : "false");
+        std::cout << Form("good jet     : \t %s \n", (isGood) ? "[true]" : "[false]");
     }
 
     return isGood;
@@ -138,6 +136,23 @@ bool JetCut::pass(const GenJet* jet) {
     if (fVerbose) {
         std::cout << "\n----- Gen jet cut -----\n";
     }
-    // TODO: replace with real cut info
-    return true;
+
+    bool goodPt = (fPt[0] <= jet->pt() && jet->pt() <= fPt[1]);
+    if (fVerbose) {
+        std::cout << Form("pT : %5.2f <= %5.2f <= %5.2f \t %s \n",
+                          fPt[0], jet->pt(), fPt[1], ( goodPt ) ? "[true]" : "[false]" );
+    }
+    Float_t genR = TMath::Sqrt( jet->phi() * jet->phi() + jet->eta() * jet->eta() );
+    bool goodConeR = (genR <= fConeR);
+    if (fVerbose) {
+        std::cout << Form("cone R: %5.2f <= %5.2f \t %s \n",
+                          genR, fConeR, ( goodConeR ) ? "[true]" : "[false]" );
+    }
+    bool goodEta = ( fEta[0] <= jet->eta() && jet->eta() <= fEta[1] );
+    if (fVerbose) {
+        std::cout << Form("eta : %5.2f <= %5.2f <= %5.2f \t %s \n",
+                          fEta[0], jet->eta(), fEta[1], ( goodEta ) ? "[true]" : "[false]" );
+    }
+
+    return goodPt;
 }

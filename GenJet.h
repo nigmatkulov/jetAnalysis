@@ -27,6 +27,9 @@ class GenJet : public BaseJet {
     /// @brief Destructor
     virtual ~GenJet() { /* Empty*/ }
 
+    /// @brief Equality operator to compare two GenJet objects
+    bool operator==(const GenJet& other) const;
+
     //
     // Setters
     //

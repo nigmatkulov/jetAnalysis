@@ -27,6 +27,9 @@ class RecoJet : public BaseJet {
     /// @brief Destructor
     virtual ~RecoJet() { /* empty */ }
 
+    /// @brief Equality operator to compare two RecoJet objects
+    bool operator==(const RecoJet& other) const;
+
     //
     // Setters
     //

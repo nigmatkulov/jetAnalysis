@@ -1240,58 +1240,57 @@ void ForestAODReader::fixIndices() {
             fGenJet2RecoJet.push_back(-1);
         }
 
+        // Nothing to do if no gen jets
+        if ( fNGenJets <= 0 ) {
+            if ( fVerbose ) {
+                std::cout << "No gen jets found, skipping index fixing\n";
+            }
+            return;
+        }
+
         // Loop over reconstructed jets
         for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
+            // Skip if no matched gen jet in ref info
+            if (fRefJetPt[iRecoJet] < 0) continue;
 
-            // Event must have gen jets
-            if ( fNGenJets <= 0 )  break;
-
-            // Must have a matched gen jet
-            if ( fRefJetPt[iRecoJet] < 0) continue;
-
-            // Matched gen jet cone radius
             float refEta = fRefJetEta[iRecoJet];
             float refPhi = fRefJetPhi[iRecoJet];
             float refPt = fRefJetPt[iRecoJet];
 
-            // Loop over gen jets
+            // Loop over gen jets to find a match
             for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
-
-                //std::cout << "iGen: " << iGenJet << " genPt: " << fGenJetPt[iGenJet] << std::endl;
-                float genEta = fGenJetEta[iGenJet];
-                float genPhi = fGenJetPhi[iGenJet];
-                float genPt = fGenJetPt[iGenJet];
-
-                float dR = TMath::Sqrt(TMath::Power(genEta - refEta, 2) + TMath::Power(genPhi - refPhi, 2));
-                float dPt = TMath::Abs(genPt - refPt);
-
-                if ( fVerbose ) {
-                    std::cout << Form("Reco/RefJet # %d GenJet # %d dR: %f dPt: %f dEta: %f matched: %s", iRecoJet, iGenJet, dR, dPt, genEta-refEta, (((dR < 0.1) && (TMath::Abs(genPt - refPt) < 0.1 )) ? "true" : "false" )) << std::endl;
+                bool matched = (fabs(refPt - fGenJetPt[iGenJet]) < std::numeric_limits<float>::epsilon() &&
+                                fabs(refEta - fGenJetEta[iGenJet]) < std::numeric_limits<float>::epsilon() &&
+                                fabs(refPhi - fGenJetPhi[iGenJet]) < std::numeric_limits<float>::epsilon());
+                if (fVerbose) {
+                    std::cout << Form("Comparing RecoJet #%d to GenJet #%d (refPt - genPt): %f (refEta - genEta): %f (refPhi - genPhi): %f [%s]\n",
+                                      iRecoJet, iGenJet,
+                                      refPt - fGenJetPt[iGenJet],
+                                      refEta - fGenJetEta[iGenJet],
+                                      refPhi - fGenJetPhi[iGenJet],
+                                      (matched ? "true" : "false"));
                 }
-                
-                if ( (dR < 0.1) && TMath::Abs(genPt - refPt) < 0.1 ) {
-                    fRefJetEta[iRecoJet] = fGenJetEta[iGenJet];
-                    fRefJetPhi[iRecoJet] = fGenJetPhi[iGenJet];
-                    fRefJetWTAEta[iRecoJet] = fGenJetWTAEta[iGenJet];
-                    fRefJetWTAPhi[iRecoJet] = fGenJetWTAPhi[iGenJet];
-                    fRecoJet2GenJetId[iRecoJet] = iGenJet;  
+                // Use floating point epsilons to compare the values
+                if (matched) {
+                    fRecoJet2GenJetId[iRecoJet] = iGenJet;
                     fGenJet2RecoJet[iGenJet] = iRecoJet;
                     break;
                 }
             } // for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++)
+        } // for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++)
 
-        } //for (int iRecoJet=0; iRecoJet<fNRecoJets; iRecoJet++)
-
-        // // Fill the corresponding index in the reco vector and fill the gen
-        // for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
-        //     std::vector<int>::iterator it=std::find(fRecoJet2GenJetId.begin(), fRecoJet2GenJetId.end(), iGenJet);
-        //     if (it != fRecoJet2GenJetId.end()) {
-        //         fGenJet2RecoJet.push_back( std::distance(fRecoJet2GenJetId.begin(), it) );
-        //     }
-        //     else {
-        //         fGenJet2RecoJet.push_back(-1);
-        //     }
-        // }
+        // Check for duplicates (i.e. multiple reco jets matched to the same gen jet)
+        for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
+            int count{0};
+            for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
+                if (fRecoJet2GenJetId[iRecoJet] == iGenJet) {
+                    count++;
+                }
+            }
+            if (count > 1) {
+                std::cout << "Warning: Gen jet #" << iGenJet << " matched to multiple reco jets: " << count << std::endl;
+            }
+        }
 
         if ( fVerbose ) {
             std::cout << "Reco 2 Gen Jet Ids: ";
@@ -1469,9 +1468,11 @@ Event* ForestAODReader::returnEvent() {
                 jet->setFlavorForB( fRefJetPartonFlavorForB[fGenJet2RecoJet.at(iGenJet)] );
                 jet->setPtWeight( 1. );
                 if ( fVerbose ) {
-                    std::cout << Form("GenJet #%d pT: %.2f, eta: %.2f", iGenJet, fGenJetPt[iGenJet], fGenJetEta[iGenJet]) << std::endl;
-                    // jet->print();
+                    std::cout << Form("GenJet #%d pT: %.2f, eta: %.2f", iGenJet, jet->pt(), jet->eta()) << std::endl;
+                    jet->print();
                 }
+
+                // Gen jets are not allowed to be thrown away by any cuts
                 
                 fEvent->genJetCollection()->push_back( jet );
             } // for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++)
@@ -1581,14 +1582,14 @@ Event* ForestAODReader::returnEvent() {
             jet->setJtPfMUM( fRecoJtPfMUM[iJet] );
 
             if ( fVerbose ) {
-                std::cout << Form("RecoJet # %d Raw pT: %.2f Corr pT: %.2f eta: %.2f", iJet, jet->rawPt(), jet->ptJECCorr(), jet->eta()) << std::endl;
+                std::cout << Form("RecoJet # %d Raw pT: %.2f Corr pT: %.2f eta: %.2f genId: %d", iJet, jet->rawPt(), jet->ptJECCorr(), jet->eta(), jet->genJetId()) << std::endl;
                 // jet->print();
             }
 
-            // Check fronе-loaded cut
+            // Check front-loaded cut
             if ( fJetCut && !fJetCut->pass(jet) ) {
                 if ( fVerbose ) {
-                    std::cout << "Jet did not pass the cut" << std::endl;
+                    std::cout << "Reco jet # " << iJet << " failed cut" << std::endl;
                 }
                 delete jet;
                 continue;
