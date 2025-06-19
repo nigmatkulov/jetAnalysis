@@ -643,8 +643,6 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
     // Reco jets
     //
 
-    std::vector<int> fRefIndices; // Indices of matched gen jets that reco jets are matched to
-
     // Jet counter
     int recoJetCounter{0};
     // Loop over reconstructed jets and store indices of good jets
@@ -652,26 +650,22 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
 
         recoJetCounter++;
 
-        // Check jet selection criteria
-        if ( fUseJetIdSelection && !(*recoJetIter)->isGoodJetId( fIsLooseJetIdCut ) ) { 
-            // if ( fVerbose ) { 
-            //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
-            // }
-            continue; 
-        }
-        if ( !fUseJetIdSelection && !(*recoJetIter)->isGoodTrkMax() ) {
-            // if ( fVerbose ) { 
-            //     // std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
-            // }
-            continue; 
-        }
+        // For the test purpose
+        // // Check jet selection criteria
+        // if ( fUseJetIdSelection && !(*recoJetIter)->isGoodJetId( fIsLooseJetIdCut ) ) { 
+        //     // if ( fVerbose ) { 
+        //     //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
+        //     // }
+        //     continue; 
+        // }
+        // if ( !fUseJetIdSelection && !(*recoJetIter)->isGoodTrkMax() ) {
+        //     // if ( fVerbose ) { 
+        //     //     // std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
+        //     // }
+        //     continue; 
+        // }
 
         fRecoPtSortedJetIds.push_back( recoJetCounter-1 );
-
-        if ( fIsMc ) {
-            fRefIndices.push_back( (*recoJetIter)->genJetId() );
-        }
-
     } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
 
     // Sort indices based on the jet corrected pT (from high to low)
@@ -745,21 +739,23 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
             refSelRecoJetCounter++;
             if ( !(*recoJetIter)->hasMatching() ) continue;
 
-            // Check selection criteria
-            if ( fUseJetIdSelection && !(*recoJetIter)->isGoodJetId( fIsLooseJetIdCut ) ) { 
-                // Do not forget to increment the counter
-                // if ( fVerbose ) { 
-                //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
-                // }
-                continue; 
-            }
-            if ( !fUseJetIdSelection && !(*recoJetIter)->isGoodTrkMax() ) {
-                // Do not forget to increment the counter
-                // if ( fVerbose ) { 
-                //     std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
-                // }
-                continue; 
-            }
+            // For the test purpose
+            // // Check selection criteria
+            // if ( fUseJetIdSelection && !(*recoJetIter)->isGoodJetId( fIsLooseJetIdCut ) ) { 
+            //     // Do not forget to increment the counter
+            //     // if ( fVerbose ) { 
+            //     //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
+            //     // }
+            //     continue; 
+            // }
+            // if ( !fUseJetIdSelection && !(*recoJetIter)->isGoodTrkMax() ) {
+            //     // Do not forget to increment the counter
+            //     // if ( fVerbose ) { 
+            //     //     std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
+            //     // }
+            //     continue; 
+            // }
+
             fRefSelRecoPtSortedJetIds.push_back( refSelRecoJetCounter-1 );
         } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
 
@@ -873,19 +869,20 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         fHM->hRecoInclusiveJetCEmF[dummyIter]->Fill( (*recoJetIter)->jtPfCEF(), weight );
         fHM->hRecoInclusiveJetNumOfNeutPart[dummyIter]->Fill( neutralMult, weight );
 
-        // Check selection criteria
-        if ( fUseJetIdSelection && !(*recoJetIter)->isGoodJetId( fIsLooseJetIdCut ) ) { 
-            // if ( fVerbose ) { 
-            //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
-            // }
-            continue; 
-        }
-        if ( !fUseJetIdSelection && !(*recoJetIter)->isGoodTrkMax() ) {
-            // if ( fVerbose ) { 
-            //     // std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
-            // }
-            continue; 
-        }
+        // For the test purpose
+        // // Check selection criteria
+        // if ( fUseJetIdSelection && !(*recoJetIter)->isGoodJetId( fIsLooseJetIdCut ) ) { 
+        //     // if ( fVerbose ) { 
+        //     //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
+        //     // }
+        //     continue; 
+        // }
+        // if ( !fUseJetIdSelection && !(*recoJetIter)->isGoodTrkMax() ) {
+        //     // if ( fVerbose ) { 
+        //     //     // std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
+        //     // }
+        //     continue; 
+        // }
 
         //Inclusive (matched+unmatched) jets
         fHM->hRecoInclusiveAllJetPt->Fill(pt, weight);
@@ -1114,22 +1111,23 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
                 // Do not forget to increment the counter
                 continue; 
             }
-    
-            // Check selection criteria    
-            if ( fUseJetIdSelection && !(*recoJetIter)->isGoodJetId( fIsLooseJetIdCut ) ) { 
-                // Do not forget to increment the counter
-                // if ( fVerbose ) { 
-                //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
-                // }
-                continue; 
-            }
-            if ( !fUseJetIdSelection && !(*recoJetIter)->isGoodTrkMax() ) {
-                // Do not forget to increment the counter
-                // if ( fVerbose ) { 
-                //     std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
-                // }
-                continue; 
-            }
+
+            // For the test purpose
+            // // Check selection criteria    
+            // if ( fUseJetIdSelection && !(*recoJetIter)->isGoodJetId( fIsLooseJetIdCut ) ) { 
+            //     // Do not forget to increment the counter
+            //     // if ( fVerbose ) { 
+            //     //     std::cout << "JetId selection failed. Skip jet" << std::endl; 
+            //     // }
+            //     continue; 
+            // }
+            // if ( !fUseJetIdSelection && !(*recoJetIter)->isGoodTrkMax() ) {
+            //     // Do not forget to increment the counter
+            //     // if ( fVerbose ) { 
+            //     //     std::cout << "TrackMaxPt/rawPt selection failed. Skip jet" << std::endl; 
+            //     // }
+            //     continue; 
+            // }
 
             // Retrieve matched gen jet
             GenJet *matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
