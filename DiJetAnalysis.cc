@@ -977,6 +977,12 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     // Leading ref jet
                     fHM->hRefLeadJetPtEta->Fill( genEta, genPt, weight );
                     fHM->hRefLeadJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+
+                    if ( (*recoJetIter)->genJetId() == fGenIdLead ) {
+                        fHM->hRefLeadUnswappedJetPtEta->Fill( genEta, genPt, weight );
+                        fHM->hRefLeadUnswappedJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+                    }
+
                 }
 
                 // Subleading jet
@@ -988,6 +994,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     // Subleading ref jet
                     fHM->hRefSubLeadJetPtEta->Fill( genEta, genPt, weight );
                     fHM->hRefSubLeadJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+
+                    if ( (*recoJetIter)->genJetId() == fGenIdSubLead ) {
+                        fHM->hRefSubLeadUnswappedJetPtEta->Fill( genEta, genPt, weight );
+                        fHM->hRefSubLeadUnswappedJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+                    }
                 }
 
             } // if ( (*recoJetIter)->hasMatching() )

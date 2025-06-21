@@ -453,8 +453,12 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRefInclusiveJetPtEtaPtHat;
     TH2D *hRefLeadJetPtEta;
     TH3D *hRefLeadJetPtEtaPtHat;
+    TH2D *hRefLeadUnswappedJetPtEta;
+    TH3D *hRefLeadUnswappedJetPtEtaPtHat;
     TH2D *hRefSubLeadJetPtEta;
     TH3D *hRefSubLeadJetPtEtaPtHat;
+    TH2D *hRefSubLeadUnswappedJetPtEta;
+    TH3D *hRefSubLeadUnswappedJetPtEtaPtHat;
 
     // Reco dijet pt, dijet eta, 
     // Reco lead pt, lead eta,

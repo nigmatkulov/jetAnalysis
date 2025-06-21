@@ -255,8 +255,12 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRefInclusiveJetPtEtaPtHat{nullptr},
     hRefLeadJetPtEta{nullptr},
     hRefLeadJetPtEtaPtHat{nullptr},
+    hRefLeadUnswappedJetPtEta{nullptr},
+    hRefLeadUnswappedJetPtEtaPtHat{nullptr},
     hRefSubLeadJetPtEta{nullptr},
     hRefSubLeadJetPtEtaPtHat{nullptr},
+    hRefSubLeadUnswappedJetPtEta{nullptr},
+    hRefSubLeadUnswappedJetPtEtaPtHat{nullptr},
 
     hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta{nullptr},
     hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted{nullptr},
@@ -913,8 +917,12 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hRefInclusiveJetPtEtaPtHat) delete hRefInclusiveJetPtEtaPtHat;
         if (hRefLeadJetPtEta) delete hRefLeadJetPtEta;
         if (hRefLeadJetPtEtaPtHat) delete hRefLeadJetPtEtaPtHat;
+        if (hRefLeadUnswappedJetPtEta) delete hRefLeadUnswappedJetPtEta;
+        if (hRefLeadUnswappedJetPtEtaPtHat) delete hRefLeadUnswappedJetPtEtaPtHat;
         if (hRefSubLeadJetPtEta) delete hRefSubLeadJetPtEta;
         if (hRefSubLeadJetPtEtaPtHat) delete hRefSubLeadJetPtEtaPtHat;
+        if (hRefSubLeadUnswappedJetPtEta) delete hRefSubLeadUnswappedJetPtEta;
+        if (hRefSubLeadUnswappedJetPtEtaPtHat) delete hRefSubLeadUnswappedJetPtEtaPtHat;
 
         if (hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta) delete hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta;
         if (hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted) delete hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
@@ -2676,6 +2684,16 @@ void HistoManagerDiJet::init() {
                                         fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
         hRefLeadJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
         hRefLeadJetPtEtaPtHat->Sumw2();
+        hRefLeadUnswappedJetPtEta = new TH2D("hRefLeadUnswappedJetPtEta","Ref leading unswapped jet p_{T} vs #eta;Ref #eta;Ref p_{T} (GeV)",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1]);
+        hRefLeadUnswappedJetPtEta->Sumw2();
+        hRefLeadUnswappedJetPtEtaPtHat = new TH3D("hRefLeadUnswappedJetPtEtaPtHat","Ref leading unswapped jet p_{T} vs #eta vs #hat{p}_{T};Ref #eta;Ref p_{T} (GeV);#hat{p}_{T} (GeV)",
+                                        prescale * fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1],
+                                        fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
+        hRefLeadUnswappedJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+        hRefLeadUnswappedJetPtEtaPtHat->Sumw2();
         hRefSubLeadJetPtEta = new TH2D("hRefSubLeadJetPtEta","Ref subleading jet p_{T} vs #eta;Ref #eta;Ref p_{T} (GeV)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1]);
@@ -2686,6 +2704,16 @@ void HistoManagerDiJet::init() {
                                         fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
         hRefSubLeadJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
         hRefSubLeadJetPtEtaPtHat->Sumw2();
+        hRefSubLeadJetUnswappedPtEta = new TH2D("hRefSubLeadJetUnswappedPtEta","Ref subleading unswapped jet p_{T} vs #eta;Ref #eta;Ref p_{T} (GeV)",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1]);
+        hRefSubLeadJetUnswappedPtEta->Sumw2();
+        hRefSubLeadJetUnswappedPtEtaPtHat = new TH3D("hRefSubLeadJetUnswappedPtEtaPtHat","Ref subleading unswapped jet p_{T} vs #eta vs #hat{p}_{T};Ref #eta;Ref p_{T} (GeV);#hat{p}_{T} (GeV)",
+                                        prescale * fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1],
+                                        fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
+        hRefSubLeadJetUnswappedPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+        hRefSubLeadJetUnswappedPtEtaPtHat->Sumw2();
 
         // Ref dijets
         hRefPtLeadPtSublead = new TH2D("hRefPtLeadPtSublead","Ref leading vs subleading p_{T};Ref p_{T}^{Leading} (GeV);Ref p_{T}^{Subleading} (GeV)",
@@ -3518,8 +3546,12 @@ void HistoManagerDiJet::writeOutput() {
         hRefInclusiveJetPtEtaPtHat->Write();
         hRefLeadJetPtEta->Write();
         hRefLeadJetPtEtaPtHat->Write();
+        hRefLeadUnswappedJetPtEta->Write();
+        hRefLeadUnswappedJetPtEtaPtHat->Write();
         hRefSubLeadJetPtEta->Write();
         hRefSubLeadJetPtEtaPtHat->Write();
+        hRefSubLeadUnswappedJetPtEta->Write();
+        hRefSubLeadUnswappedJetPtEtaPtHat->Write();
 
         hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta->Write();
         hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted->Write();
