@@ -2704,16 +2704,16 @@ void HistoManagerDiJet::init() {
                                         fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
         hRefSubLeadJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
         hRefSubLeadJetPtEtaPtHat->Sumw2();
-        hRefSubLeadJetUnswappedPtEta = new TH2D("hRefSubLeadJetUnswappedPtEta","Ref subleading unswapped jet p_{T} vs #eta;Ref #eta;Ref p_{T} (GeV)",
+        hRefSubLeadUnswappedJetPtEta = new TH2D("hRefSubLeadJetUnswappedPtEta","Ref subleading unswapped jet p_{T} vs #eta;Ref #eta;Ref p_{T} (GeV)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1]);
-        hRefSubLeadJetUnswappedPtEta->Sumw2();
-        hRefSubLeadJetUnswappedPtEtaPtHat = new TH3D("hRefSubLeadJetUnswappedPtEtaPtHat","Ref subleading unswapped jet p_{T} vs #eta vs #hat{p}_{T};Ref #eta;Ref p_{T} (GeV);#hat{p}_{T} (GeV)",
+        hRefSubLeadUnswappedJetPtEta->Sumw2();
+        hRefSubLeadUnswappedJetPtEtaPtHat = new TH3D("hRefSubLeadJetUnswappedPtEtaPtHat","Ref subleading unswapped jet p_{T} vs #eta vs #hat{p}_{T};Ref #eta;Ref p_{T} (GeV);#hat{p}_{T} (GeV)",
                                         prescale * fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1],
                                         fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
-        hRefSubLeadJetUnswappedPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-        hRefSubLeadJetUnswappedPtEtaPtHat->Sumw2();
+        hRefSubLeadUnswappedJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+        hRefSubLeadUnswappedJetPtEtaPtHat->Sumw2();
 
         // Ref dijets
         hRefPtLeadPtSublead = new TH2D("hRefPtLeadPtSublead","Ref leading vs subleading p_{T};Ref p_{T}^{Leading} (GeV);Ref p_{T}^{Subleading} (GeV)",
