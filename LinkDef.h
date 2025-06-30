@@ -23,6 +23,7 @@
 #pragma link C++ class EventCut+;
 #pragma link C++ class JetCut+;
 #pragma link C++ class JetESRAnalysis+;
+#pragma link C++ class DiJetCut+;
 #pragma link C++ class DiJetAnalysis+;
 #pragma link C++ class Manager+;
 #pragma link C++ class HistoManagerJetESR+;

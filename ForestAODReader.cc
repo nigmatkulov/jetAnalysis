@@ -1587,7 +1587,7 @@ Event* ForestAODReader::returnEvent() {
             }
 
             // Check front-loaded cut
-            if ( fJetCut && !fJetCut->pass(jet) ) {
+            if ( fJetCut && !fJetCut->pass(jet, false, false, false) ) {
                 if ( fVerbose ) {
                     std::cout << "Reco jet # " << iJet << " failed cut" << std::endl;
                 }

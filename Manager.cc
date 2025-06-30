@@ -41,6 +41,7 @@ void Manager::init() {
     }
     
     fTimer = new TStopwatch();
+    fTimer->Start();
     fEventsInChain = fEventReader->nEventsTotal();
 
     AnalysisIterator anaIter;
@@ -80,7 +81,10 @@ void Manager::performAnalysis() {
         // Print progress
         if ( iEvent % nEventsPerCycle == 0 ) {
             progress = 100.0 * iEvent / fEventsInChain;
-            std::cout << Form("Processed %lld events. Progress: %.2f%% time: %.2f seconds", iEvent, progress, fTimer->RealTime()) << std::endl;
+
+            fTimer->Stop();
+            std::cout << Form("Processed %lld events. Progress : %.2f%% Real time (sec): %.2f CPU time (sec): %.2f", iEvent, progress, fTimer->RealTime(), fTimer->CpuTime()) << std::endl;
+            fTimer->Continue();
         }
 
         //std::cout << "=================================" << std::endl;

@@ -2,7 +2,7 @@
  * @file BaseJet.h
  * @author Grigory Nigmatkulov (gnigmat@uic.edu)
  * @brief Base class for jet description
- * @version 0.1
+ * @version 1.0
  * @date 2023-10-23
  * 
  * @copyright Copyright (c) 2023
@@ -23,9 +23,17 @@ class BaseJet : public TObject {
     BaseJet();
     /// @brief Destructor
     virtual ~BaseJet() { /* Empty */ }
+    /// @brief Copy constructor
+    BaseJet(const BaseJet& other) : TObject(other),
+        fPt(other.fPt), fEta(other.fEta), fPhi(other.fPhi),
+        fWTAEta(other.fWTAEta), fWTAPhi(other.fWTAPhi) {}
 
+    /// @brief Assignment operator
+    BaseJet& operator=(const BaseJet& other);
     /// @brief Equality operator to compare two jets
     bool operator==(const BaseJet& other) const;
+    /// @brief Inequality operator to compare two jets
+    bool operator!=(const BaseJet& other) const { return !(*this == other); }
 
     //
     // Setters
@@ -33,14 +41,24 @@ class BaseJet : public TObject {
 
     /// @brief Set jet-matched generated jet transverse momentum
     void setPt(const float& pt)      { fPt = {pt}; }
+    /// @brief Set jet-matched generated jet transverse momentum
+    void setPt(const double& pt)     { fPt = static_cast<float>(pt); }
     /// @brief Set jet-matched generated jet eta
     void setEta(const float& eta)    { fEta = {eta}; }
+    /// @brief Set jet-matched generated jet eta
+    void setEta(const double& eta)   { fEta = static_cast<float>(eta); }
     /// @brief Set jet-matched generated jet phi
     void setPhi(const float& phi)    { fPhi = {phi}; }
+    /// @brief Set jet-matched generated jet phi
+    void setPhi(const double& phi)   { fPhi = static_cast<float>(phi); }
     /// @brief Set jet-matched generated jet WTA eta
     void setWTAEta(const float& eta) { fWTAEta = {eta}; }
+    /// @brief Set jet-matched generated jet WTA eta
+    void setWTAEta(const double& eta) { fWTAEta = static_cast<float>(eta); }
     /// @brief Set jet-matched generated jet WTA phi
     void setWTAPhi(const float& phi) { fWTAPhi = {phi}; }
+    /// @brief Set jet-matched generated jet WTA phi
+    void setWTAPhi(const double& phi) { fWTAPhi = static_cast<float>(phi); }
 
     //
     // Getters

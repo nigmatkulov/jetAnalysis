@@ -183,6 +183,33 @@ void set2DStyle(TH2* h) {
 }
 
 //________________
+void fillHistogramWithVariableBinning(TH2D* hVarBinning = nullptr, TH2D *hStdBinning = nullptr) {
+    // Fill histogram with variable binning using standard binning histogram
+    if (!hVarBinning || !hStdBinning) {
+        std::cerr << "Error: One of the histograms is null." << std::endl;
+        return;
+    }
+
+    int nBinsX = hStdBinning->GetNbinsX();
+    int nBinsY = hStdBinning->GetNbinsY();
+
+    for (int i = 1; i <= nBinsX; ++i) {
+        for (int j = 1; j <= nBinsY; ++j) {
+            int binX = hVarBinning->GetXaxis()->FindBin(hStdBinning->GetXaxis()->GetBinCenter(i));
+            int binY = hVarBinning->GetYaxis()->FindBin(hStdBinning->GetYaxis()->GetBinCenter(j));
+            // Accumulate content and error for bins mapping to the same variable bin
+            double prevContent = hVarBinning->GetBinContent(binX, binY);
+            double prevError = hVarBinning->GetBinError(binX, binY);
+            double addContent = hStdBinning->GetBinContent(i, j);
+            double addError = hStdBinning->GetBinError(i, j);
+
+            hVarBinning->SetBinContent(binX, binY, prevContent + addContent);
+            hVarBinning->SetBinError(binX, binY, std::sqrt(prevError * prevError + addError * addError));
+        }
+    }
+}
+
+//________________
 void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetType = 0, TString date = "20250606") {
 
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
@@ -210,13 +237,22 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
     int canvXSize = 800;
     int canvYSize = 800;
 
+    int rebinAxisX = 2;
+    int rebinAxisY = 5;
+
+    const int nPtBins = 15; // Number of bins in pT axis
+    double ptBins[nPtBins] = {   5.,  25.,  45.,  65.,  95.,  120., 
+                                 150., 200., 250., 350., 450., 600., 
+                                 800., 1000., 1505.};
+
+
     const int nJetTypes = 3; // Inclusive, Lead, SubLead
     const char* jetTypes[3] = {"Inclusive", "Lead", "SubLead"};
-    TH2D *hRefPtEta[nJetTypes] = {nullptr};
-    TH2D *hGenPtEta[nJetTypes] = {nullptr};
-    TH2D *hEfficiency2D[nJetTypes] = {nullptr};
-    TH2D *hRef2D[nJetTypes] = {nullptr};
-    TH2D *hGen2D[nJetTypes] = {nullptr};
+    TH2D *hRefPtEta[nJetTypes];
+    TH2D *hGenPtEta[nJetTypes];
+    TH2D *hEfficiency2D[nJetTypes];
+    TH2D *hRef2D[nJetTypes];
+    TH2D *hGen2D[nJetTypes];
 
     TCanvas *cEfficiency2D = new TCanvas( "cEfficiency2D", "cEfficiency2D", canvXSize, canvYSize );
     setPadStyle();
@@ -225,14 +261,35 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
     for (size_t i = 0; i < nJetTypes; ++i) {
         TString tJetType = jetTypes[i];
 
-        hRefPtEta[i] = dynamic_cast<TH2D*>( f->Get( Form("hRef%sJetPtEta", tJetType.Data()) ) );
-        if ( !hRefPtEta[i] ) {
+        TH2D *hTmp = dynamic_cast<TH2D*>( f->Get( Form("hRef%sJetPtEta", tJetType.Data()) ) );
+        if ( !hTmp ) {
             std::cerr << "Histogram hRef" << tJetType.Data() << "JetPtEta not found in file." << std::endl;
             return;
         }
-        hGenPtEta[i] = dynamic_cast<TH2D*>( f->Get( Form("hGen%sJetPtEta", tJetType.Data()) ) );
-        if ( !hGenPtEta[i] ) {
+        hRefPtEta[i] = dynamic_cast<TH2D*>( hTmp->Clone(Form("hRef%sJetPtEta", tJetType.Data()) ) );
+        // hRefPtEta[i]->Clear(); // Clear the histogram to avoid double counting
+        // std::cout << Form("nEtaBins: %d, nPtBins: %d", hRefPtEta[i]->GetNbinsY(), hRefPtEta[i]->GetNbinsX() ) << std::endl;
+        hRefPtEta[i]->RebinX(rebinAxisX); // Rebin pT axis
+        hRefPtEta[i]->GetYaxis()->Set(sizeof(ptBins)/sizeof(double)-1, ptBins); // Set the pT axis with variable binning
+        // fillHistogramWithVariableBinning(hRefPtEta[i], hTmp);
+
+        hTmp->Clear(); // Clear the temporary histogram to avoid double counting
+        hTmp = dynamic_cast<TH2D*>( f->Get( Form("hGen%sJetPtEta", tJetType.Data()) ) );
+        if ( !hTmp ) {
             std::cerr << "Histogram hGen" << tJetType.Data() << "JetPtEta not found in file." << std::endl;
+            return;
+        }
+        hGenPtEta[i] = dynamic_cast<TH2D*>( hTmp->Clone(Form("hGen%sJetPtEta", tJetType.Data()) ) );
+        // hGenPtEta[i]->Clear(); // Clear the histogram to avoid double counting
+        hGenPtEta[i]->RebinX(rebinAxisX); // Rebin pT axis
+        hGenPtEta[i]->GetYaxis()->Set(sizeof(ptBins)/sizeof(double)-1, ptBins); // Set the pT axis with variable binning
+        // fillHistogramWithVariableBinning(hGenPtEta[i], hTmp);
+
+        std::cout << Form("%s histogram integral: %f, %s histogram integral: %f", 
+                          hRefPtEta[i]->GetName(), hRefPtEta[i]->Integral(), 
+                          hGenPtEta[i]->GetName(), hGenPtEta[i]->Integral() ) << std::endl;
+        if ( hRefPtEta[i]->Integral() <= 0 || hGenPtEta[i]->Integral() <= 0 ) {
+            std::cerr << "Integral of " << tJetType.Data() << " histograms is zero or negative." << std::endl;
             return;
         }
 
@@ -257,18 +314,15 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
             return;
         }
 
-        std::cout << Form("%s refJet integral: %f, genJet integral: %f", 
-                          tJetType.Data(), hRef2D[i]->Integral(), hGen2D[i]->Integral() ) << std::endl;
-
         // Create 2D efficiency histogram
         hEfficiency2D[i]->Divide( hGen2D[i] );
 
         cEfficiency2D->Clear();
         hEfficiency2D[i]->Draw("colz");
-        hEfficiency2D[i]->GetXaxis()->SetRangeUser(-3.6, 3.6);
-        hEfficiency2D[i]->GetYaxis()->SetRangeUser(20., 400.);
-        hEfficiency2D[i]->SetMaximum(1.0);
-        hEfficiency2D[i]->SetMinimum(0.85);
+        // hEfficiency2D[i]->GetXaxis()->SetRangeUser(-3.6, 3.6);
+        //hEfficiency2D[i]->GetYaxis()->SetRangeUser(20., 400.);
+        hEfficiency2D[i]->SetMaximum(5.0);
+        hEfficiency2D[i]->SetMinimum(1.01);
         hEfficiency2D[i]->GetXaxis()->SetTitle("#eta");
         hEfficiency2D[i]->GetYaxis()->SetTitle("p_{T} (GeV)");
         plotCMSHeader(collSystem, energy);

@@ -8,11 +8,13 @@
 #include "HistoManagerDiJet.h"
 #include "EventCut.h"
 #include "JetCut.h"
+#include "DiJetCut.h"
 
 // ROOT headers
 #include "TFile.h"
 #include "TMath.h"
 #include "TString.h"
+#include "dijetAna_pPb8160.h"
 
 //________________
 void usage() {
@@ -24,6 +26,214 @@ void usage() {
     std::cout << "jeuSyst: 0 (default), 1 (JEU+), -1 (JEU-)" << std::endl;
     std::cout << "jerSyst: 0 (default), 1 (JER+), -1 (JER-), other - only JEC is applied" << std::endl;
     std::cout << "triggerId: 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100" << std::endl;
+}
+
+//________________
+EventCut *createEventCut(const bool &isMc, const int &triggerId, const float *ptHatCut) {
+    //
+    // Create event cut object
+    //
+    EventCut *eventCut = new EventCut{};
+
+    //
+    // Set vertex position limits
+    //
+    eventCut->setVz(-15.0f, 15.0f);
+
+    //
+    // Skim
+    //
+    eventCut->usePBeamScrapingFilter();
+    eventCut->usePPAprimaryVertexFilter();
+    eventCut->useHBHENoiseFilterResultRun2Loose();
+    eventCut->usePhfCoincFilter();
+
+    eventCut->usePVertexFilterCutdz1p0();    // Default cut
+    // eventCut->usePVertexFilterCutGplus(); // Pile-up systematics
+    // Pile-up systematics
+    //eventCut->usePVertexFilterCutVtx1();
+
+    //
+    // Trigger
+    //
+    if ( !isMc ) {
+        if ( triggerId == 1 ) {            
+            eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
+        }
+        else if ( triggerId == 2 ) {
+            eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
+        }
+        else if ( triggerId == 3 ) {
+            eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
+        }
+        else {
+            // No trigger = MB trigger
+        }
+    }
+
+    // Set ptHat cut for embedding
+    if ( isMc ) {
+        eventCut->setPtHat(ptHatCut[0], ptHatCut[1]);
+    }
+
+    //
+    // Select specific run IDs
+    //
+    // eventCut->addRunIdToSelect( 285480 ); // PU 0.04
+    // eventCut->addRunIdToSelect( 285505 ); // PU 0.25
+    // eventCut->addRunIdToSelect( 285517 ); // PU 0.1
+    // eventCut->addRunIdToSelect( 285832 ); // PU 0.004
+    // eventCut->addRunIdToSelect( 285993 ); // PU 0.2
+    
+    //
+    // Set verbose mode
+    //
+    //eventCut->setVerbose();
+
+    return eventCut;
+}
+
+//________________
+JetCut *createRecoJetCut(int collEnergyGeV) {
+    JetCut *jetCut = new JetCut{};
+    jetCut->setPt(1.0f, static_cast<float>(collEnergyGeV));
+    jetCut->setEtaLab(-5.2f, 5.2f);
+    jetCut->setEtaCM(-5.2f, 5.2f);
+    jetCut->setSelectionMethod(1); // 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
+    // jetCut->setVerbose();
+    return jetCut;
+}
+
+//________________
+JetCut *createGenJetCut(int collEnergyGeV) {
+    JetCut *jetCut = new JetCut{};
+    jetCut->setPt(1.0f, static_cast<float>(collEnergyGeV));
+    jetCut->setEtaLab(-5.2f, 5.2f);
+    jetCut->setEtaCM(-5.2f, 5.2f);
+    // jetCut->setVerbose();
+    return jetCut;
+}
+
+//________________
+DiJetCut *createDiJetCut() {
+    DiJetCut *dijetCut = new DiJetCut{};
+    
+    dijetCut->setLeadJetPtMinimum(50.0f);
+    dijetCut->setLeadJetEtaLab(-2.5f, 2.5f);
+    dijetCut->setLeadJetEtaCM(-2.0f, 2.0f);
+
+    dijetCut->setSubLeadJetPtMinimum(40.0f);
+    dijetCut->setSubLeadJetEtaLab(-2.5f, 2.5f);
+    dijetCut->setSubLeadJetEtaCM(-2.0f, 2.0f);
+
+    dijetCut->setDijetDPhi(TMath::TwoPi() / 3); // 120 degrees
+
+    // dijetCut->setVerbose();
+
+    return dijetCut;
+}
+
+//________________
+ForestAODReader *createForestAODReader(const TString &inFileName, const bool &isMc, const bool &isCentWeightCalc, const bool &isPbGoingDir, 
+                                       const TString &recoJetBranchName, const TString &collisionSystemName, const int &collEnergyGeV, 
+                                       const int &collYear, const TString &path2JEC, const TString &JECFileName, const TString &JECFileDataName, 
+                                       const TString &JEUFileName, const int &useJEUSyst, const int &useJERSyst, 
+                                       EventCut *eventCut = nullptr, JetCut *jetCut = nullptr) {
+
+    // Create ForestAODReader object
+    ForestAODReader *forestReader = new ForestAODReader{inFileName};
+
+    // Define collision system parameters
+    forestReader->setCollidingSystem( collisionSystemName.Data() );
+    forestReader->setCollidingEnergy( collEnergyGeV ) ;
+    forestReader->setYearOfDataTaking( collYear );
+    forestReader->setPbGoingDir( isPbGoingDir );
+
+    // Set isMc flag anc centrality correction flag
+    if (isMc) {
+        // If is MC
+        forestReader->setIsMc();
+        if ( isCentWeightCalc ) {
+            // Apply hiBin shift and centrality weight calculation
+            forestReader->setCorrectCentMC();
+        }
+    }
+
+    // Set branches to read
+    forestReader->useHltBranch();
+    forestReader->useSkimmingBranch();
+    forestReader->useRecoJetBranch();
+    forestReader->setRecoJetBranchName( recoJetBranchName.Data() );
+    if ( recoJetBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
+        std::cout << "Extra correction will be used for JEC" << std::endl;
+        forestReader->useExtraJECCorrForConstSubtraction();
+    }
+
+    // Perform jet manual jet matching
+    forestReader->fixJetArrays();
+
+    // Set path to jet analysis directory (then will automatically add path to aux_files)
+    forestReader->setPath2JetAnalysis( path2JEC.Data() );
+    forestReader->addJECFile( JECFileName.Data() );
+    if ( !isMc ) {
+        forestReader->setUseJEU( useJEUSyst );
+        forestReader->addJECFile( JECFileDataName.Data() );
+        forestReader->setJEUFileName( JEUFileName );
+    }
+    if ( isMc ) {
+        forestReader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use
+        if ( isPbGoingDir ) {
+            forestReader->setJERFitParams(0.0018, 0.9352); // in |eta|<1.6
+        }
+        else {
+            forestReader->setJERFitParams(0.0018, 0.9352); // in |eta|<1.6
+        }
+        forestReader->setJERSystParams();
+    }
+    // If want to use manual JEC
+    // forestReader->setUseManualJEC();
+
+
+    // Set event cut
+    if ( eventCut ) forestReader->setEventCut(eventCut);
+    if ( jetCut ) forestReader->setJetCut(jetCut);
+
+    // Set verbose mode
+    // forestReader->setVerbose();
+
+    return forestReader;
+}
+
+//________________
+DiJetAnalysis *createDiJetAnalysis(const int &collisionSystem, const int &collEnergyGeV, const bool &isMc, 
+                                   const bool &isPbGoingDir, const float *ptHatCut, 
+                                   JetCut *recoJetCut, JetCut *genJetCut, DiJetCut *dijetCut, 
+                                   const float &etaShift) {
+
+    // Create DiJetAnalysis object
+    DiJetAnalysis *analysis = new DiJetAnalysis{};
+
+    analysis->setCollisionSystem( collisionSystem );
+    analysis->setCollisionEnergyInGeV( collEnergyGeV );
+    analysis->setIsMc( isMc );
+    if ( isMc ) {
+        analysis->setPtHatRange(ptHatCut[0], ptHatCut[1]);
+    }
+    if ( isPbGoingDir ) {
+        analysis->setPbGoing();
+    }
+    analysis->setRecoJetCut( recoJetCut );
+    analysis->setGenJetCut( genJetCut );
+    analysis->setDiJetCut( dijetCut );
+    analysis->setEtaShift( etaShift );
+
+    if ( isMc ) {
+        analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
+    }
+
+    //analysis->setVerbose();
+
+    return analysis;
 }
 
 //________________
@@ -67,6 +277,7 @@ int main(int argc, char const *argv[]) {
     // ptHatHi                        - High ptHat cut (for embedding)
     // useJEUSyst                     - 0 (default), 1 (JEU+), -1 (JEU-)
     // useJERSyst                     - 0 (default), 1 (JER+), -1 (JER-)
+    // triggerId                      - 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100
 
     // Read input argument list 
     if (argc <= 1) {
@@ -132,138 +343,52 @@ int main(int argc, char const *argv[]) {
         JEUFileName = "Summer16_23Sep2016HV4_DATA_Uncertainty_AK4PF.txt";
     } // else
 
+    //
     // Initialize package manager
+    //
     Manager *manager = new Manager{};
 
+    //
     // Initialize event cut
-    EventCut *eventCut = new EventCut{};
-    eventCut->setVz(-15., 15.);
-    // Skim
-    eventCut->usePBeamScrapingFilter();
-    eventCut->usePPAprimaryVertexFilter();
-    eventCut->useHBHENoiseFilterResultRun2Loose();
-    eventCut->usePhfCoincFilter();
+    //
+    EventCut *eventCut = createEventCut(isMc, triggerId, ptHatCut);
 
-    eventCut->usePVertexFilterCutdz1p0();    // Default cut
-    // eventCut->usePVertexFilterCutGplus(); // Pile-up systematics
-    // Pile-up systematics
-    //eventCut->usePVertexFilterCutVtx1();
+    //
+    // Initialize reco jet cut 
+    //
+    JetCut *recoJetCut = createRecoJetCut(collEnergyGeV);
 
-    // eventCut->addRunIdToSelect( 285480 ); // PU 0.04
-    // eventCut->addRunIdToSelect( 285505 ); // PU 0.25
-    // eventCut->addRunIdToSelect( 285517 ); // PU 0.1
-    // eventCut->addRunIdToSelect( 285832 ); // PU 0.004
-    // eventCut->addRunIdToSelect( 285993 ); // PU 0.2
-    
-    
-    
-    // Trigger
-    if ( !isMc ) {
-        if ( triggerId == 1 ) {            
-            eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
-        }
-        else if ( triggerId == 2 ) {
-            eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
-        }
-        else if ( triggerId == 3 ) {
-            eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
-        }
-        else {
-            // No trigger = MB trigger
-        }
-    }
+    //
+    // Initialize gen jet cut
+    //
+    JetCut *genJetCut = createGenJetCut(collEnergyGeV);
 
-    // Set ptHat cut for embedding
-    if ( isMc ) {
-        eventCut->setPtHat(ptHatCut[0], ptHatCut[1]);
-    }
-    //eventCut->setVerbose();
+    //
+    // Initialize dijet cut
+    //
+    DiJetCut *dijetCut = createDiJetCut();
 
-    // Initialize jet cut 
-    JetCut *jetCut = new JetCut{};
-    //jetCut->setMustHaveGenMathing();
-    jetCut->setPt(20., 1500.);
-    jetCut->setEta(-5.1, 5.1);
-    //jetCut->setVerbose();
 
+    //
     // Initialize event reader
-    ForestAODReader *reader = new ForestAODReader(inFileName);
-    if (isMc) {
-        // If is MC
-        reader->setIsMc();
-        if ( isCentWeightCalc ) {
-            // Apply hiBin shift and centrality weight calculation
-            reader->setCorrectCentMC();
-        }
-    }
-    reader->setPbGoingDir( isPbGoingDir );
-    reader->useHltBranch();
-    reader->useSkimmingBranch();
-    reader->useRecoJetBranch();
-    reader->setRecoJetBranchName( recoJetBranchName.Data() );
-
-    if ( recoJetBranchName.CompareTo("akcs4pfjetanalyzer", TString::kIgnoreCase) == 0 ) {
-        std::cout << "Extra correction will be used for JEC" << std::endl;
-        reader->useExtraJECCorrForConstSubtraction();
-    }
-
-    //reader->useCaloJetBranch();
-    reader->setCollidingSystem( collisionSystemName.Data() );
-    reader->setCollidingEnergy( collEnergyGeV ) ;
-    reader->setYearOfDataTaking( collYear );
-    reader->setEventCut(eventCut);
-    reader->fixJetArrays();
-
-    // Set path to jet analysis (then will automatically add path to aux_files)
-    reader->setPath2JetAnalysis( path2JEC.Data() );
-    reader->addJECFile( JECFileName.Data() );
-    if ( !isMc ) {
-        reader->setUseJEU( useJEUSyst );
-        reader->addJECFile( JECFileDataName.Data() );
-        reader->setJEUFileName( JEUFileName );
-    }
-    if ( isMc ) {
-        reader->useJERSystematics( useJERSyst ); // 0-default, 1-JER+, -1-JER-, other - not use
-        if ( isPbGoingDir ) {
-            reader->setJERFitParams(0.0018, 0.9352); // in |eta|<1.6
-        }
-        else {
-            reader->setJERFitParams(0.0018, 0.9352); // in |eta|<1.6
-        }
-        reader->setJERSystParams();
-    }
-    // If want to use manual JEC
-    // reader->setUseManualJEC();
-    // reader->setVerbose();
+    //
+    ForestAODReader *reader = createForestAODReader(inFileName, isMc, isCentWeightCalc, isPbGoingDir, 
+                                                    recoJetBranchName, collisionSystemName, collEnergyGeV, 
+                                                    collYear, path2JEC, JECFileName, JECFileDataName, 
+                                                    JEUFileName, useJEUSyst, useJERSyst, eventCut);
 
     // Pass reader to the manager
     manager->setEventReader(reader);
 
+    //
     // Initialize analysis
-    DiJetAnalysis *analysis = new DiJetAnalysis{};
-    analysis->setCollisionSystem( collisionSystem );
-    analysis->setCollisionEnergyInGeV( collEnergyGeV );
-    analysis->setIsMc( isMc );
-    if ( isMc ) {
-        analysis->setPtHatRange(ptHatCut[0], ptHatCut[1]);
-    }
-    if ( isPbGoingDir ) {
-        analysis->setPbGoing();
-    }
-    //analysis->useJetIdSelection();
-    analysis->setEtaShift( etaShift );
-    analysis->setLeadJetPtLow( float(50.) );
-    analysis->setSubLeadJetPtLow( float(40.) );
-    analysis->setJetEtaLabRange( (float)-2.5, (float)2.5 );
-    analysis->setJetEtaCMRange( (float)-2.0, (float)2.0 );
-    analysis->setDijetPhiCut( (float)(2. * TMath::Pi() / 3) );
-    if ( isMc ) {
-        analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
-    }
-    // analysis->selectJetsInCMFrame();
-    // analysis->setVerbose();
+    //
+    DiJetAnalysis *analysis = createDiJetAnalysis(collisionSystem, collEnergyGeV, isMc, isPbGoingDir, 
+                                                  ptHatCut, recoJetCut, genJetCut, dijetCut, etaShift);
     
+    //
     // Initialize histogram manager
+    //
     HistoManagerDiJet *hm = new HistoManagerDiJet{};
     hm->setIsMc( isMc );
     hm->init();
@@ -289,6 +414,6 @@ int main(int argc, char const *argv[]) {
     TFile* oFile = new TFile(oFileName, "recreate");
     hm->writeOutput();
     oFile->Close();
-    
+
     return 0;
 }

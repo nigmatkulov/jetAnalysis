@@ -3,10 +3,10 @@
 
 // ROOT headers
 #include "TString.h"
+#include "TMath.h"
 
 // C++ headers
 #include <iostream>
-
 
 //________________
 DiJet::DiJet(float leadJetPt, float leadJetEtaLab, float leadJetEtaCM, float leadJetPhi,
@@ -16,6 +16,35 @@ DiJet::DiJet(float leadJetPt, float leadJetEtaLab, float leadJetEtaCM, float lea
     fSubLeadJetPt(subLeadJetPt), fSubLeadJetEtaLab(subLeadJetEtaLab), 
     fSubLeadJetEtaCM(subLeadJetEtaCM), fSubLeadJetPhi(subLeadJetPhi) {
     // Empty constructor body
+}
+
+//________________
+DiJet& DiJet::operator=(const DiJet& other) {
+    // Assignment operator
+    if (this != &other) {
+        fLeadJetPt = other.fLeadJetPt;
+        fLeadJetEtaLab = other.fLeadJetEtaLab;
+        fLeadJetEtaCM = other.fLeadJetEtaCM;
+        fLeadJetPhi = other.fLeadJetPhi;
+        fSubLeadJetPt = other.fSubLeadJetPt;
+        fSubLeadJetEtaLab = other.fSubLeadJetEtaLab;
+        fSubLeadJetEtaCM = other.fSubLeadJetEtaCM;
+        fSubLeadJetPhi = other.fSubLeadJetPhi;
+    }
+    return *this;
+}
+
+//________________
+bool DiJet::operator==(const DiJet& other) const {
+    // Compare all members for equality
+    return (fLeadJetPt == other.fLeadJetPt &&
+            fLeadJetEtaLab == other.fLeadJetEtaLab &&
+            fLeadJetEtaCM == other.fLeadJetEtaCM &&
+            fLeadJetPhi == other.fLeadJetPhi &&
+            fSubLeadJetPt == other.fSubLeadJetPt &&
+            fSubLeadJetEtaLab == other.fSubLeadJetEtaLab &&
+            fSubLeadJetEtaCM == other.fSubLeadJetEtaCM &&
+            fSubLeadJetPhi == other.fSubLeadJetPhi);
 }
 
 //________________
@@ -35,4 +64,18 @@ void DiJet::print() {
                  fSubLeadJetPt, fSubLeadJetEtaLab, fSubLeadJetEtaCM, fSubLeadJetPhi) << std::endl;
     std::cout << Form("--> pTave: %.2f etaLab: %.2f etaCM: %.2f dEtaCM: %.2f dphi: %.2f",
                  this->ptAve(), this->etaLab(), this->etaCM(), this->dEta(), this->dPhi()) << std::endl;
+}
+
+//________________
+void DiJet::cleanParameters() {
+    // Reset all parameters to zero
+    fLeadJetPt = 0.0f;
+    fLeadJetEtaLab = 0.0f;
+    fLeadJetEtaCM = 0.0f;
+    fLeadJetPhi = 0.0f;
+
+    fSubLeadJetPt = 0.0f;
+    fSubLeadJetEtaLab = 0.0f;
+    fSubLeadJetEtaCM = 0.0f;
+    fSubLeadJetPhi = 0.0f;
 }

@@ -1,20 +1,44 @@
+/** @file DiJet.h
+ * 
+ * @brief Header file for the DiJet class, which represents a pair of jets in high-energy physics.
+ * @author Grigory Nigmatkulov (gnigmat@uic.edu)
+ * @version 1.0
+ * @date 2025-06-05
+ * 
+ * @copyright Copyright (c) 2025
+ */
+
 #ifndef DiJet_h
 #define DiJet_h
 
 // ROOT headers
 #include "TObject.h"
-#include "TMath.h"
 
 //________________
 class DiJet : public TObject {
   public:
     /// @brief Default constructor
-    DiJet() : fLeadJetPt(0), fLeadJetEtaLab(0), fLeadJetEtaCM(0), fLeadJetPhi(0),
-              fSubLeadJetPt(0), fSubLeadJetEtaLab(0), fSubLeadJetEtaCM(0), fSubLeadJetPhi(0) {};
+    DiJet() : TObject(), fLeadJetPt(0), fLeadJetEtaLab(0), fLeadJetEtaCM(0), fLeadJetPhi(0),
+              fSubLeadJetPt(0), fSubLeadJetEtaLab(0), fSubLeadJetEtaCM(0), fSubLeadJetPhi(0) {}
 
     /// @brief Constructor with parameters
-    DiJet(float leadJetPt = 0, float leadJetEtaLab = 0, float leadJetEtaCM = 0, float leadJetPhi = 0,
-          float subLeadJetPt = 0, float subLeadJetEtaLab = 0, float subLeadJetEtaCM = 0, float subLeadJetPhi = 0);
+    DiJet(float leadJetPt, float leadJetEtaLab, float leadJetEtaCM, float leadJetPhi,
+          float subLeadJetPt, float subLeadJetEtaLab, float subLeadJetEtaCM, float subLeadJetPhi);
+
+    /// @brief Copy constructor
+    DiJet(const DiJet& other) : TObject(other),
+        fLeadJetPt(other.fLeadJetPt), fLeadJetEtaLab(other.fLeadJetEtaLab),
+        fLeadJetEtaCM(other.fLeadJetEtaCM), fLeadJetPhi(other.fLeadJetPhi),
+        fSubLeadJetPt(other.fSubLeadJetPt),
+        fSubLeadJetEtaLab(other.fSubLeadJetEtaLab), fSubLeadJetEtaCM(other.fSubLeadJetEtaCM),
+        fSubLeadJetPhi(other.fSubLeadJetPhi) {};
+
+    /// @brief Assignment operator
+    DiJet& operator=(const DiJet& other);
+    /// @brief Compare two DiJet objects
+    bool operator==(const DiJet& other) const;
+    /// @brief Compare two DiJet objects
+    bool operator!=(const DiJet& other) const { return !(*this == other); }
 
     /// @brief Destructor
     virtual ~DiJet() { /* Empty*/ }
@@ -80,7 +104,11 @@ class DiJet : public TObject {
     /// @brief Get relative azimuthal angle between two jets 
     static float deltaPhi(const float& phi1, const float &phi2);
 
+    /// @brief Clean parameters of the dijet
+    void cleanParameters();
+
   private:
+
     /// Leading jet pT
     Float_t fLeadJetPt;
     /// Leading jet pseudorapidity in the lab frame

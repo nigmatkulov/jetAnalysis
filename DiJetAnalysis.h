@@ -23,10 +23,14 @@
 #include "BaseAnalysis.h"
 #include "HistoManagerDiJet.h"
 #include "Event.h"
-#include "DiJet.h"
 
 // C++ headers
 #include <vector>
+
+// Forward declarations
+class JetCut;
+class DiJet;
+class DiJetCut;
 
 //________________
 class DiJetAnalysis : public BaseAnalysis {
@@ -82,6 +86,13 @@ class DiJetAnalysis : public BaseAnalysis {
     void setJetEtaLabRange(const float& lo, const float& hi) { fJetEtaLab[0]=lo; fJetEtaLab[1]=hi; }
     /// @brief Set eta range to select jets in the center-of-mass frame
     void setJetEtaCMRange(const float& lo, const float& hi) { fJetEtaCM[0]=lo; fJetEtaCM[1]=hi; }
+
+    /// @brief Set reco jet cut
+    void setRecoJetCut(JetCut *cut) { fRecoJetCut = cut; }
+    /// @brief Set gen jet cut
+    void setGenJetCut(JetCut *cut)  { fGenJetCut = cut; }
+    /// @brief Set dijet cut
+    void setDiJetCut(DiJetCut *cut)   { fDiJetCut = cut; }
 
     /// @brief Reweight MC to data (trigger-dependent): 
     /// 0 - do not reweight (default)
@@ -237,6 +248,14 @@ class DiJetAnalysis : public BaseAnalysis {
     std::vector<int> fRecoPtSortedJetIds;
     std::vector<int> fGenPtSortedJetIds;
     std::vector<int> fRefSelRecoPtSortedJetIds;
+
+    DiJet *fRecoDijet;
+    DiJet *fGenDijet;
+    DiJet *fRefDijet;
+
+    JetCut *fRecoJetCut;
+    JetCut *fGenJetCut;
+    DiJetCut *fDiJetCut;
 
     /// @brief Values for new dijet ptAve binning
     std::vector<float> fPtAveBins;

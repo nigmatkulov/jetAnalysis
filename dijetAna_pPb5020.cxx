@@ -143,7 +143,9 @@ int main(int argc, char const *argv[]) {
     JetCut *jetCut = new JetCut{};
     //jetCut->setMustHaveGenMathing();
     jetCut->setPt(20., 1500.);
-    jetCut->setEta(-5.1, 5.1);
+    jetCut->setEtaLab(-5.2f, 5.2f);
+    jetCut->setEtaCM(-5.2f, 5.2f);
+    jetCut->setSelectionMethod(1); // 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
     //jetCut->setVerbose();
 
     // Initialize event reader

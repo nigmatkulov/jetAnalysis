@@ -5,8 +5,8 @@ project(JetAnalysis
 
 set(libname JetAnalysis)
 
-# set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 #set(CMAKE_CXX_STANDARD 17)
 #set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -68,6 +68,7 @@ set(HEADERS
         JetUncertainty.h
         EventCut.h
         JetCut.h
+        DiJetCut.h
         Manager.h
         TriggerAndSkim.h
         DiJetAnalysis.h
@@ -91,6 +92,7 @@ set(SRC
         JetUncertainty.cc
         EventCut.cc
         JetCut.cc
+        DiJetCut.cc
         Manager.cc
         TriggerAndSkim.cc
         DiJetAnalysis.cc

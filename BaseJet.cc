@@ -1,10 +1,26 @@
 // JetAnalysis headers
 #include "BaseJet.h"
 
+// C++ headers
+#include <cmath>
+
 //________________
 BaseJet::BaseJet() : TObject(), fPt{0}, fEta{0}, fPhi{0}, 
     fWTAEta{0}, fWTAPhi{0} {
     /* Empty */
+}
+
+//________________
+BaseJet& BaseJet::operator=(const BaseJet& other) {
+    // Assignment operator
+    if (this != &other) {
+        fPt = other.fPt;
+        fEta = other.fEta;
+        fPhi = other.fPhi;
+        fWTAEta = other.fWTAEta;
+        fWTAPhi = other.fWTAPhi;
+    }
+    return *this;
 }
 
 //________________
