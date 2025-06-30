@@ -69,6 +69,11 @@ class JetCut {
         }
     }
 
+    /// @brief Set loose or tight jetId cut (default: true = loose)
+    void setLooseJetIdCut(const bool& loose = true) {
+        fLooseJetIdCut = loose; // true = loose, false = tight
+    }
+
     /// @brief Set verbose mode
     void setVerbose() { fVerbose = true; }
 
@@ -92,6 +97,8 @@ class JetCut {
     float fEtaCM[2];
     /// @brief Selection method: 0 - no selection (default), 1 - trkMaxPt/RawPt, 2 - jetId
     int   fSelectionMethod;
+    /// @brief Loose or tight jetId cut (default: true = loose)
+    bool fLooseJetIdCut; 
     /// @brief Print status for each jet
     bool   fVerbose; 
 };

@@ -110,7 +110,7 @@ class RecoJet : public BaseJet {
     /// @brief Check if jet passes trackMaxPt/jetRawPt cut in various eta ranges
     bool isGoodTrkMax() const;
     /// @brief Check if jet passes jetId selection criteria for various eta ranges
-    bool isGoodJetId(const bool& useLooseJetIdCut = false) const;
+    bool isGoodJetId(const bool& useLooseJetIdCut = true) const;
 
   private:
 

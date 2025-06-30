@@ -23,7 +23,7 @@
 //________________
 JetCut::JetCut() : fPt{0., 1e6}, fConeR{1e6},
     fEtaLab{-1e6, 1e6}, fEtaCM{-1e6, 1e6},
-    fSelectionMethod{0}, fVerbose{false} {
+    fSelectionMethod{0}, fLooseJetIdCut{true}, fVerbose{false} {
     /* Empty */
 }
 
@@ -101,7 +101,7 @@ bool JetCut::pass(const RecoJet* jet, bool isCM, bool isMC, bool requireMatching
     } 
     else if (fSelectionMethod == 2) {
         // jetId selection
-        goodSelection = jet->isGoodJetId();
+        goodSelection = jet->isGoodJetId(fLooseJetIdCut);
     }
 
     bool isGood = goodPt && goodConeR && goodMatching && goodEta && goodSelection;
