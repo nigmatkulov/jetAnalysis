@@ -14,7 +14,6 @@
 #include "TFile.h"
 #include "TMath.h"
 #include "TString.h"
-#include "dijetAna_pPb8160.h"
 
 //________________
 void usage() {
