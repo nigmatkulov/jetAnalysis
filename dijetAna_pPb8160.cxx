@@ -17,7 +17,7 @@
 
 //________________
 void usage() {
-    std::cout << "./programName inputFileList oFileName isMc isPbGoingDir ptHatLow ptHatHi jeuSyst jerSyst triggerId" << std::endl;
+    std::cout << "./programName inputFileList oFileName isMc isPbGoingDir ptHatLow ptHatHi jeuSyst jerSyst triggerId recoJetSelMethod" << std::endl;
     std::cout << "isMc: 1 (embedding), 0 (data)" << std::endl;
     std::cout << "isPbGoingDir: 1 (Pb-going), 0 (p-going)" << std::endl;
     std::cout << "ptHatLow: Low ptHat cut (for embedding)" << std::endl;
@@ -25,6 +25,7 @@ void usage() {
     std::cout << "jeuSyst: 0 (default), 1 (JEU+), -1 (JEU-)" << std::endl;
     std::cout << "jerSyst: 0 (default), 1 (JER+), -1 (JER-), other - only JEC is applied" << std::endl;
     std::cout << "triggerId: 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100" << std::endl;
+    std::cout << "recoJetSelMethod: 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId" << std::endl;
 }
 
 //________________
@@ -93,12 +94,12 @@ EventCut *createEventCut(const bool &isMc, const int &triggerId, const float *pt
 }
 
 //________________
-JetCut *createRecoJetCut(int collEnergyGeV) {
+JetCut *createRecoJetCut(int collEnergyGeV, int recoJetSelMethod) {
     JetCut *jetCut = new JetCut{};
     jetCut->setPt(1.0f, static_cast<float>(collEnergyGeV));
     jetCut->setEtaLab(-5.2f, 5.2f);
     jetCut->setEtaCM(-5.2f, 5.2f);
-    jetCut->setSelectionMethod(1); // 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
+    jetCut->setSelectionMethod(recoJetSelMethod); // 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
     // jetCut->setVerbose();
     return jetCut;
 }
@@ -265,6 +266,7 @@ int main(int argc, char const *argv[]) {
     int   useJERSyst{-99};   // 0-default, 1-JER+, -1-JER-, other - only JEC is applied
     float etaShift = 0.465;
     int   triggerId{0};     // 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100
+    int   recoJetSelMethod{1}; // 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
 
     // Sequence of command line arguments:
     //
@@ -277,6 +279,7 @@ int main(int argc, char const *argv[]) {
     // useJEUSyst                     - 0 (default), 1 (JEU+), -1 (JEU-)
     // useJERSyst                     - 0 (default), 1 (JER+), -1 (JER-)
     // triggerId                      - 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100
+    // recoJetSelMethod               - 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
 
     // Read input argument list 
     if (argc <= 1) {
@@ -300,6 +303,12 @@ int main(int argc, char const *argv[]) {
         else {
             triggerId = atoi( argv[9] );
         }
+        if (argc <= 10 ) {
+            recoJetSelMethod = 1; // Default is trkMaxPt/RawPt
+        }
+        else {
+            recoJetSelMethod = atoi( argv[10] );
+        }
     }
 
     std::cout << "Arguments passed:\n"
@@ -314,6 +323,7 @@ int main(int argc, char const *argv[]) {
               << "Use JEU systematics                    : " << useJEUSyst << std::endl
               << "Use JER systematics                    : " << useJERSyst << std::endl
               << "Trigger ID                             : " << triggerId << std::endl
+              << "Reco jet selection method              : " << recoJetSelMethod << std::endl
               << std::endl;
 
     if (isMc) {
@@ -355,7 +365,7 @@ int main(int argc, char const *argv[]) {
     //
     // Initialize reco jet cut 
     //
-    JetCut *recoJetCut = createRecoJetCut(collEnergyGeV);
+    JetCut *recoJetCut = createRecoJetCut(collEnergyGeV, recoJetSelMethod);
 
     //
     // Initialize gen jet cut

@@ -17,6 +17,8 @@ pt_hat_low=$5
 pt_hat_hi=$6
 jeuSyst=$7
 jerSyst=$8
+triggerId=$9
+recoJetSelMethod=${10}
 
 echo -e "Input file list  : ${input_file_list}"
 echo -e "Output file name : ${output_file_name}"
@@ -26,9 +28,11 @@ echo -e "ptHatLow         : ${pt_hat_low}"
 echo -e "ptHatHi          : ${pt_hat_hi}"
 echo -e "JEU syst         : ${jeuSyst}"
 echo -e "JER syst         : ${jerSyst}"
+echo -e "Trigger ID      : ${triggerId}"
+echo -e "RecoJet selMethod: ${recoJetSelMethod}"
 
 # Run jetAna
-../build/dijetAna_pPb8160 ${input_file_list} ${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst}
+../build/dijetAna_pPb8160 ${input_file_list} ${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst} ${triggerId} ${recoJetSelMethod}
 
 
 echo -e "Data processing of ${input_file_list} is finished"
