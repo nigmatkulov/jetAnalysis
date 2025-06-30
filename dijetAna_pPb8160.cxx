@@ -135,20 +135,24 @@ DiJetCut *createDiJetCut() {
 }
 
 //________________
-ForestAODReader *createForestAODReader(const TString &inFileName, const bool &isMc, const bool &isCentWeightCalc, const bool &isPbGoingDir, 
-                                       const TString &recoJetBranchName, const TString &collisionSystemName, const int &collEnergyGeV, 
-                                       const int &collYear, const TString &path2JEC, const TString &JECFileName, const TString &JECFileDataName, 
-                                       const TString &JEUFileName, const int &useJEUSyst, const int &useJERSyst, 
-                                       EventCut *eventCut = nullptr, JetCut *jetCut = nullptr) {
+ForestAODReader *createForestAODReader(const TString &inFileName, const bool &isMc, 
+    const bool &isCentWeightCalc, const bool &isPbGoingDir, const TString &recoJetBranchName, 
+    const TString &collisionSystemName, const int &collisionSystem, const int &collEnergyGeV, 
+    const int &collYear, const float &etaShift, const TString &path2JEC, const TString &JECFileName, 
+    const TString &JECFileDataName, const TString &JEUFileName, const int &useJEUSyst, 
+    const int &useJERSyst, EventCut *eventCut = nullptr, JetCut *jetCut = nullptr) {
 
     // Create ForestAODReader object
     ForestAODReader *forestReader = new ForestAODReader{inFileName};
 
     // Define collision system parameters
-    forestReader->setCollidingSystem( collisionSystemName.Data() );
-    forestReader->setCollidingEnergy( collEnergyGeV ) ;
+    forestReader->setCollisionSystemName( collisionSystemName.Data() );
+    forestReader->setCollisionSystem( collisionSystem );
+    forestReader->setCollisionEnergyInGeV( collEnergyGeV ) ;
     forestReader->setYearOfDataTaking( collYear );
     forestReader->setPbGoingDir( isPbGoingDir );
+    // Set eta shift for the analysis
+    forestReader->setEtaShift( etaShift );
 
     // Set isMc flag anc centrality correction flag
     if (isMc) {
@@ -216,8 +220,8 @@ DiJetAnalysis *createDiJetAnalysis(const int &collisionSystem, const int &collEn
 
     analysis->setCollisionSystem( collisionSystem );
     analysis->setCollisionEnergyInGeV( collEnergyGeV );
-    analysis->setIsMc( isMc );
     if ( isMc ) {
+        analysis->setIsMc();
         analysis->setPtHatRange(ptHatCut[0], ptHatCut[1]);
     }
     if ( isPbGoingDir ) {
@@ -244,6 +248,8 @@ DiJetAnalysis *createDiJetAnalysis(const int &collisionSystem, const int &collEn
 /// @return 0 in case of OKAY
 int main(int argc, char const *argv[]) {
 
+    std::cout << "Starting dijetAna_pPb8160 program" << std::endl;
+
     // Set default values for arguments
     bool isMc{true};
     bool isCentWeightCalc{false};
@@ -251,7 +257,19 @@ int main(int argc, char const *argv[]) {
     TString inFileName{};
     int   collEnergyGeV{8160};
     int   collisionSystem{1}; // 0 - pp, 1 -pPb, 2 - PbPb 
-    TString collisionSystemName{"pPb"};
+    TString collisionSystemName;
+    if (collisionSystem == 0) {
+        collisionSystemName = "pp";
+    } 
+    else if (collisionSystem == 1) {
+        collisionSystemName = "pPb";
+    } 
+    else if (collisionSystem == 2) {
+        collisionSystemName = "PbPb";
+    }
+    else {
+        collisionSystemName = "pPb";
+    }
     int   collYear{2016};
     //TString recoJetBranchName{"akCs4PFJetAnalyzer"};
     TString recoJetBranchName{"ak4PFJetAnalyzer"};
@@ -378,14 +396,13 @@ int main(int argc, char const *argv[]) {
     //
     DiJetCut *dijetCut = createDiJetCut();
 
-
     //
     // Initialize event reader
     //
     ForestAODReader *reader = createForestAODReader(inFileName, isMc, isCentWeightCalc, isPbGoingDir, 
-                                                    recoJetBranchName, collisionSystemName, collEnergyGeV, 
-                                                    collYear, path2JEC, JECFileName, JECFileDataName, 
-                                                    JEUFileName, useJEUSyst, useJERSyst, eventCut);
+                                                    recoJetBranchName, collisionSystemName, collisionSystem, collEnergyGeV, 
+                                                    collYear, etaShift, path2JEC, JECFileName, JECFileDataName, 
+                                                    JEUFileName, useJEUSyst, useJERSyst, eventCut, nullptr);
 
     // Pass reader to the manager
     manager->setEventReader(reader);

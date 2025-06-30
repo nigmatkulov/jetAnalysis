@@ -61,12 +61,13 @@ bool JetCut::operator==(const JetCut& other) const {
 
 //________________
 void JetCut::report() {
-    TString report = "\nReporting from JetCut";
-    report += TString::Format( "pT              :\t %f - %f\n", fPt[0], fPt[1] );
-    report += TString::Format( "cone R          :\t %f\n", fConeR );
-    report += TString::Format( "eta lab         :\t %f - %f\n", fEtaLab[0], fEtaLab[1] );
-    report += TString::Format( "eta CM          :\t %f - %f\n", fEtaCM[0], fEtaCM[1] );
-    report += TString::Format( "selection method:\t %d\n", fSelectionMethod );
+    TString report = "Reporting from JetCut\n";
+    report += TString::Format( "--> pT              :\t %f - %f\n", fPt[0], fPt[1] );
+    report += TString::Format( "--> cone R (max)    :\t %f\n", fConeR );
+    report += TString::Format( "--> eta lab         :\t %f - %f\n", fEtaLab[0], fEtaLab[1] );
+    report += TString::Format( "--> eta CM          :\t %f - %f\n", fEtaCM[0], fEtaCM[1] );
+    report += TString::Format( "--> selection method:\t %d\n", fSelectionMethod );
+    report += TString::Format( "--> loose jetId cut :\t %s\n", (fLooseJetIdCut) ? "true" : "false" );
     std::cout << report.Data() << std::endl;
 }
 

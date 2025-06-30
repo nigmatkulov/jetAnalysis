@@ -33,16 +33,12 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fVzWeight{nullptr}, fDijetPtAveWeight{nullptr},
     fUseCentralityWeight{}, fHM{nullptr},
     fEtaShift{0.465}, fIsMc{false}, fCollisionSystem{1}, fCollisionEnergy{8160},
-    fLeadJetPtLow{50.}, fSubleadJetPtLow{40.},
-    fDijetPhiCut{ TMath::TwoPi() / 3},
     fIsPbGoingDir{false}, fVerbose{false},
     fNEventsInSample{1000000},
-    fUseJetIdSelection{false}, fIsLooseJetIdCut{false}, 
     fIsGenDijetLabFound{false}, fIsGenDijetCMFound{false},
     fIsRecoDijetLabFound{false}, fIsRecoDijetCMFound{false},
     fIsRefSelDijetLabFound{false}, fIsRefSelDijetCMFound{false},
-    fUseMcReweighting{0}, fJetPtBins{75}, fJetPtLow{20},
-    fJetPtHi{1520}, fJetPtStep{20}, fSelectJetsInCMFrame{false},
+    fUseMcReweighting{0}, fJetPtBins{75},
     fMcReweight{1}, 
     fRecoIdLead{-1}, fRecoIdSubLead{-1}, fGenIdLead{-1}, fGenIdSubLead{-1}, fRefSelRecoIdLead{-1}, fRefSelRecoIdSubLead{-1},
     fRecoPtSortedJetIds{}, fGenPtSortedJetIds{}, fRefSelRecoPtSortedJetIds{},
@@ -50,8 +46,6 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fRecoJetCut{nullptr}, fGenJetCut{nullptr}, fDiJetCut{nullptr},
     fPtAveBins{}, fPtAveOldBins{} {
 
-    fJetEtaLab[0] = -3.; fJetEtaLab[1] = 3.;
-    fJetEtaCM[0] = -2.5; fJetEtaCM[1] = 2.5;
     fPtHatRange[0] = {0};
     fPtHatRange[1] = {100000000};
     for (int i=0; i<fJetPtBins; i++) {
@@ -95,8 +89,10 @@ void DiJetAnalysis::init() {
     // Initialize analysis
     if ( fVerbose ) {
         std::cout << "\nDiJetAnalysis::init -- begin" << std::endl;
-        print();
     }
+
+    // Print analysis setup
+    print();
 
     // pT leading, pT subleading weighting matrix
     if ( fUseMcReweighting != 0 ) {
@@ -204,9 +200,6 @@ void DiJetAnalysis::init() {
         initVzWeightFunction();
     }
 
-    // Initialize vz weight function
-    initVzWeightFunction();
-
     if ( fVerbose ) {
         std::cout << "DiJetAnalysis::init -- end" << std::endl;
     }
@@ -277,13 +270,19 @@ void DiJetAnalysis::print() {
               << "Collision energy (GeV)      : " << fCollisionEnergy << std::endl
               << "Is Pb-going direction       : " << fIsPbGoingDir << std::endl
               << "eta shift                   : " << fEtaShift << std::endl
-              << "ptHat range                 : " << fPtHatRange[0] << "-" << fPtHatRange[1] << std::endl
-              << "Use jetId selection         : " << fUseJetIdSelection << std::endl
-              << "Use loose jetId cut         : " << fIsLooseJetIdCut << std::endl
-              << "Leading jet pT              : " << fLeadJetPtLow << std::endl
-              << "SubLeading jet pT           : " << fSubleadJetPtLow << std::endl
-              << "Dijet phi cut               : " << fDijetPhiCut << std::endl
-              << "Select jets in CM frame     : " << fSelectJetsInCMFrame << std::endl;
+              << "ptHat range                 : " << fPtHatRange[0] << "-" << fPtHatRange[1] << std::endl;
+              if ( fRecoJetCut ) {
+                  std::cout << "Reco jet cut parameters     : " << std::endl;
+                  fRecoJetCut->report();
+              }
+              if ( fGenJetCut ) {
+                  std::cout << "Gen jet cut parameters      : " << std::endl;
+                  fGenJetCut->report();
+              }
+              if ( fDiJetCut ) {
+                  std::cout << "Di-jet cut parameters       : " << std::endl;
+                  fDiJetCut->report();
+              }
     std::cout << "----------------------------------------\n";
 }
 
@@ -402,61 +401,6 @@ double DiJetAnalysis::eventWeight(const float& ptHat, const float& vz,
 }
 
 //________________
-void DiJetAnalysis::findLeadSubleadJets(const float &pt, const int &counter,
-                                        float &ptLead, float &ptSublead,
-                                        int &idLead, int &idSubLead) {
-    // Find leading and subleading jets
-    // if ( fVerbose ) {
-    //     std::cout << "DiJetAnalysis::findLeadSubleadJets -- begin" << std::endl;
-    // }
-
-    if ( pt > ptLead ) {
-        ptSublead = ptLead;
-        idSubLead = idLead;
-        ptLead = pt;
-        idLead = counter;
-    }
-    else if ( pt > ptSublead ) {
-        ptSublead = pt;
-        idSubLead = counter;
-    }
-
-    // if ( fVerbose ) {
-    //     std::cout << Form("Lead pT: %5.2f SubLead pT: %5.2f Lead id: %d SubLead id: %d\n", 
-    //                       ptLead, ptSublead, idLead, idSubLead);
-    //     std::cout << "DiJetAnalysis::findLeadSubleadJets - end" << std::endl;
-    // }
-}
-
-//________________
-bool DiJetAnalysis::isGoodGenJet(const GenJet* jet) {
-    bool goodJet{false};
-    float etaCut[2] {fJetEtaLab[0], fJetEtaLab[1]}; 
-    float eta = jet->eta();
-
-    if ( fSelectJetsInCMFrame ) {
-
-        eta = boostEta2CM( eta );
-
-        etaCut[0] = fJetEtaCM[0];
-        etaCut[1] = fJetEtaCM[1];
-    }
-    else {
-        eta = etaLab( eta );
-    }
-
-    if ( jet->pt() > 20. && etaCut[0] < eta && eta < etaCut[1] ) {
-        goodJet = {true};
-    }
-    
-    if ( fVerbose ) {
-        std::cout << Form("Gen jet cut %s\n", goodJet ? "\t[passed]" : "\t[failed]" );
-    }
-
-    return goodJet;
-}
-
-//________________
 float DiJetAnalysis::dijetEtaInFrame(const float& eta1, const float& eta2, bool isCM) {
     float etaDijet = 0.5 * (eta1 + eta2);
     if ( isCM ) {
@@ -560,83 +504,8 @@ float DiJetAnalysis::etaLab(const float &eta) {
 }
     
 //________________
-bool DiJetAnalysis::isGoodRecoJet(const RecoJet* jet) {
-    bool goodJet{false};
-    bool goodKine{false};
-    bool hasMatching{false};
-
-    float etaCut[2] {fJetEtaLab[0], fJetEtaLab[1]};
-
-    float eta = jet->eta();
-
-    if ( fSelectJetsInCMFrame ) {
-
-        eta = boostEta2CM( eta );
-
-        etaCut[0] = fJetEtaCM[0]; 
-        etaCut[1] = fJetEtaCM[1];
-    }
-    else {
-        eta = etaLab( eta );
-    }
-
-    if ( jet->ptJECCorr() > 20 && etaCut[0] < eta && eta < etaCut[1] ) {
-        goodKine = {true};
-    }
-
-    if ( fIsMc ) {
-        if ( jet->hasMatching() ) {
-            hasMatching = {true};
-        }
-    }
-    else {
-        hasMatching = {true};
-    }
-
-    goodJet = goodKine && hasMatching;
-
-    if ( fVerbose ) {
-        std::cout << Form("Reco jet cut %s", goodJet ? "\t[passed]" : "\t[failed]"); 
-        if ( goodJet ) {
-            std::cout << std::endl;
-        }
-        else {
-            std::cout << Form("\t goodKine: %d hasMatching: %d\n", goodKine, hasMatching);
-        }
-    } // if ( fVerbose )
-
-    return goodJet;
-}
-
-//________________
 void DiJetAnalysis::findMcWeight(const float& ptLead, const float& ptSublead) {
-
     fMcReweight = {1};
-    // if ( fUseMcReweighting !=0 ) {
-    //     if ( fVerbose ) {
-    //         std::cout << Form("DiJetAnalysis::findMcWeight - ptLead: %5.1f ptSublead: %5.1f\n", ptLead, ptSublead);
-    //     }
-
-    //     int ptLeadBin{-1}; 
-    //     if ( ptLead >= fJetPtLow && ptLead <= fJetPtHi ) {
-    //         ptLeadBin = ( ptLead - fJetPtLow ) / fJetPtStep;
-    //     }
-    //     int ptSubleadBin{-1};
-    //     if ( ptSublead >= fJetPtLow && ptSublead <= fJetPtHi ) {
-    //         ptSubleadBin = ( ptSublead - fJetPtLow ) / fJetPtStep;
-    //     }
-    //     float val = ( ptLeadBin >=0 && ptSubleadBin >= 0 ) ? 
-    //                 fJetPtLeadPtSubleadReweightMatrix[ptLeadBin][ptSubleadBin] : 1.;
-
-    //     if ( fVerbose ) {
-    //         std::cout << Form("\t ptLeadBin: %d ptSubleadBin: %d weight: %6.3f\n", ptLeadBin, ptSubleadBin, val);
-    //     }    
-
-    //     fMcReweight = val;
-    // }
-    // else {
-    //     fMcReweight = {1};
-    // }
 }
 
 //________________
@@ -669,8 +538,8 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
         recoJetCounter++;
 
         // For the test purpose (*jet, isCM, isMC, requireMatching)
-        if ( fIsMc ) {
-            if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, false, false) ) continue; // Do not 
+        if ( fIsMc ) { // Do not require matching for the MC case (in order to check fakes later)
+            if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, false, false) ) continue; 
         }
         else {
             if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, false, false) ) continue;
@@ -1641,6 +1510,18 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // For Monte Carlo check if reco jets have matched gen jets. Skip reco dijet if not
     if ( fIsMc ) {
 
+        // Leading and subleading jets must have matching gen jets (just a protection, easy to comment out)
+        if ( !recoLeadJet->hasMatching() || !recoSubLeadJet->hasMatching() ) {
+            if ( fVerbose ) {
+                std::cout << Form("Reco dijet has unmatched jets. idRecoLead: %d idRecoSubLead: %d Lead has matching: %s SubLead has matching: %s", 
+                                fRecoIdLead, fRecoIdSubLead, 
+                                (recoLeadJet->hasMatching() ? "[true]" : "[false]"), 
+                                (recoSubLeadJet->hasMatching() ? "[true]" : "[false]"));
+                std::cout << "\tSkip reco dijet\n";
+            }
+            return;
+        }
+
         if ( recoLeadJet->hasMatching() ) {
             // Matching gen jet for leading reco jet
             refLeadJet = event->genJetCollection()->at( recoLeadJet->genJetId() );
@@ -2411,48 +2292,6 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
 }
 
 //________________
-bool DiJetAnalysis::isGoodDijet(const DiJet& dijet, const bool& isCM) {
-
-    // if ( fVerbose ) {
-    //     std::cout << "\nDiJetAnalysis::isGoodDijet -- begin" << std::endl;
-    // }
-
-    float eta1 = ( isCM ) ? dijet.etaCM() : dijet.leadJetEtaLab();
-    float eta2 = ( isCM ) ? dijet.subLeadJetEtaLab() : dijet.subLeadJetEtaLab();
-    float etaCut[2] = { fJetEtaLab[0], fJetEtaLab[1] };
-    if ( isCM ) {
-        etaCut[0] = fJetEtaCM[0];
-        etaCut[1] = fJetEtaCM[1];
-    }
-    bool isGood = ( dijet.leadJetPt() > fLeadJetPtLow &&
-                    etaCut[0] <= eta1 && eta1 < etaCut[1] &&
-                    dijet.subLeadJetPt() > fSubleadJetPtLow &&
-                    etaCut[0] <= eta2 && eta2 < etaCut[1] &&
-                    TMath::Abs( dijet.dPhi() ) > fDijetPhiCut );
-
-    fMcReweight = {1.};
-    // // Check reweight
-    // if ( fIsMc && fUseMcReweighting != 0 ) {
-    //     findMcWeight(ptLead, ptSubLead);
-    // }
-    // else {
-    //     fMcReweight = {1.};
-    // }
-
-    // if ( fVerbose ) {
-    //     std::cout << Form("Dijet status: %s\n", ( (isGood) ? "[good]" : "[bad]" ) );
-    //     std::cout << Form("Leading jet pT %5.2f > %5.2f GeV: \t%s\n", ptLead, fLeadJetPtLow, ( (ptLead > fLeadJetPtLow) ? "[good]" : "[bad]" ) );
-    //     std::cout << Form("Subleading jet pT %5.2f > %5.2f GeV: \t%s\n", ptSubLead, fSubleadJetPtLow, ( (ptSubLead > fSubleadJetPtLow) ? "[good]" : "[bad]" ) );
-    //     std::cout << Form("Leading jet eta %3.2f <= %3.2f < %3.2f: \t%s\n", etaCut[0], eta1, etaCut[1], ( (etaCut[0] <= eta1 && eta1 < etaCut[1]) ? "[good]" : "[bad]" ) );
-    //     std::cout << Form("Subleading jet eta %3.2f <= %3.2f < %3.2f: \t%s\n", etaCut[0], eta2, etaCut[1], ( (etaCut[0] <= eta2 && eta2 < etaCut[1]) ? "[good]" : "[bad]" ) );
-    //     std::cout << Form("Delta phi %3.2f > %3.2f: \t%s\n", TMath::Abs( dphi ), fDijetPhiCut, ( (TMath::Abs( dphi ) > fDijetPhiCut) ? "[good]" : "[bad]" ) );
-    //     std::cout << Form("Reweighting factor: %5.2f\n", fMcReweight);
-    //     std::cout << "DiJetAnalysis::isGoodDijet -- end" << std::endl;
-    // }
-    return isGood;
-}
-
-//________________
 void DiJetAnalysis::processEvent(const Event* event) {
     // Perform the analysis
     if ( fVerbose ) {
@@ -2615,13 +2454,6 @@ void DiJetAnalysis::processEvent(const Event* event) {
 
 //________________
 void DiJetAnalysis::finish() {
-    // Save data and close files
-    // fCycleCounter++;
-    // std::cout << Form("DiJetAnalysis::processEvent [INFO] Total events processed: %d Sample fraction: %3.2f%%", 
-    //                   (fCycleCounter * 50000) + fEventCounter, 
-    //                   (double)(fCycleCounter * 50000 + fEventCounter) / fNEventsInSample )
-    //           << std::endl;
-    // std::cout << Form("DiJetAnalysis::processEvent [INFO]: Total number of events processed: %d", fTotalCounter) << std::endl;
     std::cout << "DiJetAnalysis::finish" << std::endl;
 }
 

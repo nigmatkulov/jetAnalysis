@@ -67,9 +67,11 @@ class ForestAODReader : public BaseReader {
     void useTrackBranch()       { fUseTrackBranch = {true}; }
 
     /// @brief Set colliding system
-    void setCollidingSystem(const char *sys = "PbPb") { fCollidingSystem = sys; }
+    void setCollisionSystemName(const char *sys = "PbPb") { fCollisionSystemName = sys; }
+    /// @brief Set collision system: 0 - pp, 1 - pPb, 2 - PbPb
+    void setCollisionSystem(const int& syst) { fCollisionSystem = syst; }
     /// @brief Set colliding energy
-    void setCollidingEnergy(const int& ene = 5020)    { fCollidingEnergyGeV = {ene}; }
+    void setCollisionEnergyInGeV(const int& ene = 5020)    { fCollisionEnergyGeV = {ene}; }
     /// @brief Set year of data taking
     void setYearOfDataTaking(const int& year = 2018)  { fYearOfDataTaking = {year}; }
     /// @brief Path to jetAnalysis directory (or any folder) that contains aux_files/... with JEC corrections
@@ -105,7 +107,9 @@ class ForestAODReader : public BaseReader {
     /// @brief Set use manually calculate JEC correction function
     void setUseManualJEC() { fUseManualJEC = true; }
     /// @brief Set Pb-direction (default is true)
-    void setPbGoingDir(const bool &pb = true) { fIsPbGoing = pb; }
+    void setPbGoingDir(const bool &pb = true) { fIsPbGoingDir = pb; }
+    /// @brief Add lorentz shift
+    void setEtaShift(const float& shift)  { fEtaShift = shift; }
 
     /// @brief Return amount of events to read
     Long64_t nEventsTotal() const { return fEvents2Read; }
@@ -150,6 +154,11 @@ class ForestAODReader : public BaseReader {
     /// @brief Manual JEC correction
     double jecManualCorrection(const double &pt, const double &eta);
 
+    /// @brief Boost eta to the center-of-mass frame
+    float boostEta2CM(const float &etaLab);
+    /// @brief Get proper eta in the lab frame depending on beam direction 
+    float etaLab(const float &eta);
+
     /// @brief Event with jets and other variables
     Event *fEvent;
 
@@ -167,7 +176,7 @@ class ForestAODReader : public BaseReader {
     /// @brief Use JEC computed manually (default false)
     bool fUseManualJEC;
     /// @brief Pb-direction (default true)
-    bool fIsPbGoing;
+    bool fIsPbGoingDir;
 
     /// @brief Switch HLT branch ON
     bool fUseHltBranch;
@@ -423,9 +432,11 @@ class ForestAODReader : public BaseReader {
     TString fJEUInputFileName;
 
     /// @brief Colliding system: pp, pPb or PbPb
-    TString fCollidingSystem;
+    TString fCollisionSystemName;
+    /// @brief  Type of collision system: 0 - pp, 1 - pPb, 2 - PbPb. Default is PbPb
+    int    fCollisionSystem;
     /// @brief Colliding energy
-    int fCollidingEnergyGeV;
+    int fCollisionEnergyGeV;
     /// @brief Year of data taking
     int fYearOfDataTaking;
     /// @brief Apply jet pT-smearing 
@@ -468,6 +479,9 @@ class ForestAODReader : public BaseReader {
     TF1 *fJERSmearFunc;
     /// @brief Random number generator
     TRandom3 *fRndm;
+
+    /// @brief  Pseudorapidity shift for asymmetric collisions (pPb)
+    float fEtaShift;
 
     /// @brief  Verbose mode
     bool  fVerbose;

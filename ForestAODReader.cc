@@ -29,14 +29,14 @@ ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEve
     fRecoJetTree{nullptr}, fTrkTree{nullptr}, fGenTrkTree{nullptr},
     fRecoJetTreeName{"akCs4PFJetAnalyzer"},
     fJEC{nullptr}, fJECFiles{}, fJECPath{}, fJEU{nullptr}, fJEUInputFileName{},
-    fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
+    fCollisionSystemName{Form("PbPb")}, fCollisionSystem{1}, fCollisionEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{false}, 
     fFixJetArrays{false}, fEventCut{nullptr}, fJetCut{nullptr},
     fRecoJet2GenJetId{}, fGenJet2RecoJet{}, 
     fUseExtraJECforAk4Cs{false}, fJECScaleCorr{nullptr}, fUseJEU{0},
     fUseJERSystematics{0}, fAlphaJER{0.0415552}, fBetaJER{0.960013},
     fJERSmearFunc{nullptr}, fRndm{nullptr},
-    fVerbose{false} {
+    fEtaShift{0}, fVerbose{false} {
     if ( fVerbose ) {
         std::cout << "ForestAODReader::ForestAODReader()" << std::endl;
     }
@@ -54,13 +54,14 @@ ForestAODReader::ForestAODReader(const char* inputStream,
                                  const bool& isMc) : 
     fEvent{nullptr}, fInFileName{inputStream}, fEvents2Read{0}, 
     fEventsProcessed{0}, fIsMc{isMc}, fCorrectCentMC{false}, 
-    fUseManualJEC{false}, fIsPbGoing{true},
+    fUseManualJEC{false}, fIsPbGoingDir{true},
     fUseHltBranch{useHltBranch}, fUseSkimmingBranch{useSkimmingBranch}, 
+    fUseHltBranch{useHltBranch}, fUseSkimmingBranch{ useSkimmingBranch}, 
     fUseRecoJetBranch{useRecoJetBranch}, 
     fUseTrackBranch{useTrackBranch}, fUseGenTrackBranch{useGenTrackBranch},
     fRecoJetTreeName{"akCs4PFJetAnalyzer"},
     fJEC{nullptr}, fJECFiles{}, fJECPath{}, fJEU{nullptr}, fJEUInputFileName{},
-    fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
+    fCollisionSystemName{Form("PbPb")}, fCollisionEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{false}, 
     fFixJetArrays{false}, fEventCut{nullptr}, fJetCut{nullptr},
     fJECScaleCorr{nullptr}, fUseJEU{0}, fUseJERSystematics{0}, 
@@ -260,7 +261,7 @@ double ForestAODReader::jecManualCorrection(const double &pt, const double &eta)
     int iPt = findBinIndex(pt, jetPtVals, jetNPtBins);
 
     double retVal = {0.};
-    if ( (fIsMc && fIsPbGoing) || (!fIsMc && !fIsPbGoing) ) { // Pb-going in MC
+    if ( (fIsMc && fIsPbGoingDir) || (!fIsMc && !fIsPbGoingDir) ) { // Pb-going in MC
 
         // [eta][pt] binning
         double corrFactor[82][25] = {
@@ -353,8 +354,8 @@ double ForestAODReader::jecManualCorrection(const double &pt, const double &eta)
         if ( iEta >= 0 && iEta < jetNEtaL2L3StdBins && iPt >= 0 && iPt < jetNPtBins ) {
             retVal = corrFactor[iEta][iPt];
         }
-    } // if ( (fIsMc && fIsPbGoing) || (!fIsMc && !fIsPbGoing) )
-    else if ( (fIsMc && !fIsPbGoing) || (!fIsMc && fIsPbGoing) ) { // p-going in MC
+    } // if ( (fIsMc && fIsPbGoingDir) || (!fIsMc && !fIsPbGoingDir) )
+    else if ( (fIsMc && !fIsPbGoingDir) || (!fIsMc && fIsPbGoingDir) ) { // p-going in MC
 
 
         // [eta][pt] binning
@@ -447,7 +448,7 @@ double ForestAODReader::jecManualCorrection(const double &pt, const double &eta)
         if ( iEta >= 0 && iEta < jetNEtaL2L3StdBins && iPt >= 0 && iPt < jetNPtBins ) {
             retVal = corrFactor[iEta][iPt];
         }
-    } // else if ( (fIsMc && fIsPbGoing) || (!fIsMc && !fIsPbGoing) )
+    } // else if ( (fIsMc && fIsPbGoingDir) || (!fIsMc && !fIsPbGoingDir) )
 
     if ( fVerbose ) {
         std::cout << Form("eta range: %f - %f, pT range: %f - %f \t", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1], jetPtVals[iPt], jetPtVals[iPt+1]);
@@ -659,8 +660,8 @@ void ForestAODReader::setupJEC() {
     std::vector< std::string > tmp;
     for (unsigned int i{0}; i<fJECFiles.size(); i++) {
         tmp.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
-                             fJECPath.Data(), fCollidingSystem.Data(),
-                             fCollidingEnergyGeV, fJECFiles.at(i).c_str() ) );
+                             fJECPath.Data(), fCollisionSystemName.Data(),
+                             fCollisionEnergyGeV, fJECFiles.at(i).c_str() ) );
     }
         
     fJECFiles.clear();
@@ -706,8 +707,8 @@ void ForestAODReader::setupJEU() {
     }
 
     TString tmp = Form( "%s/aux_files/%s_%i/JEC/%s", 
-                        fJECPath.Data(), fCollidingSystem.Data(),
-                        fCollidingEnergyGeV, fJEUInputFileName.Data() );
+                        fJECPath.Data(), fCollisionSystemName.Data(),
+                        fCollisionEnergyGeV, fJEUInputFileName.Data() );
     fJEUInputFileName = tmp;
 
     fJEU = new JetUncertainty( fJEUInputFileName.Data() );
@@ -1310,6 +1311,97 @@ void ForestAODReader::fixIndices() {
     if ( fVerbose ) {
         std::cout << "\t[DONE]\n";
     }
+}
+
+//________________
+float ForestAODReader::boostEta2CM(const float &eta) {
+    // if ( fVerbose ) {
+    //     std::cout << "ForestAODReader::boostEta2CM -- begin" << std::endl;
+    // }
+    float etaCM = eta;
+
+    // Apply lab frame boost to CM
+    if ( fCollisionSystem == 0 ) { // pp
+        // For pp do nothing. Already in the CM frame
+    }
+
+    else if ( fCollisionSystem == 1 ) { // pPb
+        if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            if ( fIsPbGoingDir ) {
+                etaCM += fEtaShift;
+                etaCM = -etaCM;
+            }
+            else {
+                etaCM -= fEtaShift;
+            }
+        }
+        else { // For data: p goes to negative, Pb goes to positive
+            if ( fIsPbGoingDir ) {
+                etaCM -= fEtaShift;
+            }
+            else {
+                etaCM += fEtaShift;
+                etaCM = -etaCM;
+            }
+        }
+    } 
+    else if ( fCollisionSystem == 2 ) { // PbPb
+        // For PbPb do nothing. Already in the CM frame
+    }
+    else {
+        // Unknown collision system
+        // Do nothing
+    }
+
+    // if ( fVerbose ) {
+    //     std::cout << Form("eta: %5.2f  ->  etaCM: %5.2f", eta, etaCM) << std::endl;
+    //     std::cout << "ForestAODReader::boostEta2CM -- end" << std::endl;
+    // }
+    return etaCM;
+}
+
+//________________
+float ForestAODReader::etaLab(const float &eta) {
+    // if ( fVerbose ) {
+    //     std::cout << "ForestAODReader::etaLab -- begin" << std::endl;
+    // }
+
+    float etaL = eta;
+    // Check collision system
+    if ( fCollisionSystem == 0 ) { 
+        // For pp apply eta shift (to move from CM to lab frame, to match pPb)
+        etaL += fEtaShift;
+    }
+    else if ( fCollisionSystem == 1 ) { 
+        // For pPb we already in the lab frame. Just need to properly address
+        // beam direction
+        if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            if (fIsPbGoingDir) {
+                etaL = -etaL;
+            }
+        }
+        else { // For data: p goes to negative, Pb goes to positive
+            if (fIsPbGoingDir) {
+            }
+            else {
+                etaL = -etaL;
+            }
+        }
+    }
+    else if ( fCollisionSystem == 2 ) { 
+        // For PbPb apply eta shift (to move from CM to lab frame, to match pPb)
+        etaL += fEtaShift;
+    }
+    else {
+        // Unknown collision system
+        // Do nothing
+    }
+
+    // if ( fVerbose ) {
+    //     std::cout << Form("eta: %5.2f  ->  etaLab: %5.2f", eta, etaL) << std::endl;
+    //     std::cout << "ForestAODReader::etaLab -- end" << std::endl;
+    // }
+    return etaL;
 }
 
 //_________________

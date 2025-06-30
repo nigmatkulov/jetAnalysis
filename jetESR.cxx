@@ -131,8 +131,8 @@ int main(int argc, char const *argv[]) {
     reader->useSkimmingBranch();
     reader->useRecoJetBranch();
     reader->setRecoJetBranchName( recoJetBranchName.Data() );
-    reader->setCollidingSystem( collSystem.Data() );
-    reader->setCollidingEnergy( collEnergyGeV ) ;
+    reader->setCollisionSystemName( collSystem.Data() );
+    reader->setCollisionEnergyInGeV( collEnergyGeV ) ;
     reader->setYearOfDataTaking( collYear );
     reader->setEventCut(eventCut);
     reader->setJetCut(jetCut);

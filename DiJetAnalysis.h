@@ -57,19 +57,13 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Add lorentz shift
     void setEtaShift(const float& shift)  { fEtaShift = shift; }
     /// @brief Set dataset to be MC
-    void setIsMc(const bool& isMc)         { fIsMc = isMc; }
+    void setIsMc()         { fIsMc = {true}; }
     /// @brief Set collision system: 0 - pp, 1 - pPb, 2 - PbPb
     void setCollisionSystem(const int& syst) { fCollisionSystem = syst; }
     /// @brief Set collision energy in GeV (default: 8160 GeV)
     void setCollisionEnergyInGeV(const int& en)    { fCollisionEnergy = en; }
     /// @brief Set cut on the ptHat of the event (for MC in pPb only due to the xsection matching)
     void setPtHatRange(const float& lo, const float& hi) { fPtHatRange[0] = lo; fPtHatRange[1] = hi; }
-    /// @brief Cut on the lowest momentum of leading jet
-    void setLeadJetPtLow(const float& lo) { fLeadJetPtLow = lo; }
-    /// @brief Cut on the lowest momentum of subleading jet
-    void setSubLeadJetPtLow(const float& lo) { fSubleadJetPtLow = lo; }
-    /// @brief Cut on angle between leading and subleading jet
-    void setDijetPhiCut(const float& cut) { fDijetPhiCut = cut; }
     /// @brief Set the direction of Pb-going ion
     void setPbGoing()                        { fIsPbGoingDir = {true}; }
     /// @brief Set the direction of p-going ion
@@ -78,14 +72,6 @@ class DiJetAnalysis : public BaseAnalysis {
     void setVerbose()                        { fVerbose = {true}; }
     /// @brief Set number of events in the embedding sample (for the given ptHat)
     void setNEventsInSample(const int& n)  { fNEventsInSample = n; }
-    /// @brief Set loose jetId cut
-    void setLooseJetIdCut()                  { fIsLooseJetIdCut = {true}; }
-    /// @brief Select inclusive jets in the center-of-mass frame
-    void selectJetsInCMFrame()               { fSelectJetsInCMFrame = {true}; }
-    /// @brief Set eta range to select jets in the lab frame
-    void setJetEtaLabRange(const float& lo, const float& hi) { fJetEtaLab[0]=lo; fJetEtaLab[1]=hi; }
-    /// @brief Set eta range to select jets in the center-of-mass frame
-    void setJetEtaCMRange(const float& lo, const float& hi) { fJetEtaCM[0]=lo; fJetEtaCM[1]=hi; }
 
     /// @brief Set reco jet cut
     void setRecoJetCut(JetCut *cut) { fRecoJetCut = cut; }
@@ -101,9 +87,6 @@ class DiJetAnalysis : public BaseAnalysis {
     /// 3 - Jet80
     /// 4 - Jet100
     void setUseMcReweighting(const int& w = 0) { fUseMcReweighting = (short)w; }
-
-    /// @brief Set jetId selection of the jets (default: trkMax)
-    void useJetIdSelection()                       { fUseJetIdSelection = {true}; }
 
     void findMcWeight(const float& ptLead, const float& ptSublead);
     /// @brief Print DiJetAnalysis setup
@@ -142,13 +125,6 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Process ref dijets
     void processRefDijets(const Event* event, const double &weight);
 
-    /// @brief Dijet selection
-    bool isGoodDijet(const DiJet& dijet, const bool& isCM = false);
-
-    /// @brief Single gen/ref jet selection criteria
-    bool isGoodGenJet(const GenJet* jet);
-    /// @brief Single reco jet selection criteria
-    bool isGoodRecoJet(const RecoJet* jet);
     /// @brief Boost eta to the center-of-mass frame
     float boostEta2CM(const float &etaLab);
     /// @brief Get proper eta in the lab frame depending on beam direction 
@@ -156,10 +132,6 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Dijet eta calculation
     float dijetEtaInFrame(const float& eta1, const float& eta2, bool isCM = false);
 
-    /// @brief Pass pt of the jet and check if it is leading or subleading jet
-    void findLeadSubleadJets(const float &pt, const int &counter, float &ptLead, float &ptSublead, 
-                             int &idLead, int &idSubLead);
-                             
     /// @brief Find dijet ptAve bin
     int  findDijetPtAveBin(const float& pt);
     /// @brief Find dijet ptAve bin (old binning)
@@ -187,23 +159,12 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief ptHat range for the generated events (must cut events on this one)
     float fPtHatRange[2];
 
-    /// @brief Momentum selection of the leading jet
-    float fLeadJetPtLow;
-    
-    /// @brief Momentum selection of the subleading jet
-    float fSubleadJetPtLow;
-    /// @brief Angular selection of dijet
-    float fDijetPhiCut;
     /// @brief Lead going direction for pPb collisions
     bool   fIsPbGoingDir;
     /// @brief Verbose mode
     bool   fVerbose;
     /// @brief Number of events in the embedding sample
     int    fNEventsInSample;
-    /// @brief Use jetId selection (default - false, i.e. trkMax)
-    bool   fUseJetIdSelection;
-    /// @brief Is loose/tight jetId cut (default: false = tight)
-    bool   fIsLooseJetIdCut;
 
     /// @brief Gen dijet in the lab frame found (default: false)
     bool   fIsGenDijetLabFound;
@@ -218,8 +179,6 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Ref-selected dijet in the center-of-mass frame found
     bool   fIsRefSelDijetCMFound;
 
-    /// @brief Select jets in the center-of-mass frame (default: false)
-    bool   fSelectJetsInCMFrame;
     /// @brief Reweight MC to data (trigger-dependent): 
     /// 0 - do not reweight (default)
     /// 1 - MB
@@ -228,15 +187,8 @@ class DiJetAnalysis : public BaseAnalysis {
     /// 4 - Jet100
     short   fUseMcReweighting;
     int     fJetPtBins;
-    float  fJetPtLow;
-    float  fJetPtHi;
-    float  fJetPtStep;
     float  fJetPtLeadPtSubleadReweightMatrix[75][75];
     double  fMcReweight;
-    /// Range of eta selection in the lab frame
-    float  fJetEtaLab[2];
-    /// Range of eta selection in the center-of-mass frame
-    float  fJetEtaCM[2];
 
     // Indices of the leading and subleading jets (at the beginning of the event processing must be set to -1)
     int    fRecoIdLead;

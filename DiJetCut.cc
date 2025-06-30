@@ -60,15 +60,15 @@ bool DiJetCut::operator==(const DiJetCut& other) const {
 
 //________________
 void DiJetCut::report() {
-    // Report the cut parameters
-    std::cout << "DiJetCut parameters:" << std::endl;
-    std::cout << "--> Minimum leading jet pT: " << fLeadJetPt << std::endl;
-    std::cout << "--> Minimum subleading jet pT: " << fSubLeadJetPt << std::endl;
-    std::cout << "--> Leading jet eta (lab frame): [" << fLeadJetEtaLab[0] << ", " << fLeadJetEtaLab[1] << "]" << std::endl;
-    std::cout << "--> Subleading jet eta (lab frame): [" << fSubLeadJetEtaLab[0] << ", " << fSubLeadJetEtaLab[1] << "]" << std::endl;
-    std::cout << "--> Leading jet eta (CM frame): [" << fLeadJetEtaCM[0] << ", " << fLeadJetEtaCM[1] << "]" << std::endl;
-    std::cout << "--> Subleading jet eta (CM frame): [" << fSubLeadJetEtaCM[0] << ", " << fSubLeadJetEtaCM[1] << "]" << std::endl;
-    std::cout << "--> Dijet dPhi cut: " << fDijetDPhiCut << std::endl;
+    TString report = "Reporting from DiJetCut\n";
+    report += TString::Format("--> Minimum leading jet pT: %.2f\n", fLeadJetPt);
+    report += TString::Format("--> Minimum subleading jet pT: %.2f\n", fSubLeadJetPt);
+    report += TString::Format("--> Leading jet eta (lab frame): [%f - %f]\n", fLeadJetEtaLab[0], fLeadJetEtaLab[1]);
+    report += TString::Format("--> Subleading jet eta (lab frame): [%f - %f]\n", fSubLeadJetEtaLab[0], fSubLeadJetEtaLab[1]);
+    report += TString::Format("--> Leading jet eta (CM frame): [%f - %f]\n", fLeadJetEtaCM[0], fLeadJetEtaCM[1]);
+    report += TString::Format("--> Subleading jet eta (CM frame): [%f - %f]\n", fSubLeadJetEtaCM[0], fSubLeadJetEtaCM[1]);
+    report += TString::Format("--> Dijet dPhi cut: %f\n", fDijetDPhiCut);
+    std::cout << report.Data() << std::endl;
 }
 
 //________________
