@@ -1520,9 +1520,9 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
                                 (recoLeadJet->hasMatching() ? "[true]" : "[false]"), 
                                 (recoSubLeadJet->hasMatching() ? "[true]" : "[false]"));
                 std::cerr << Form("Reco lead pt: %5.2f etaLab: %5.2f SubLead pt: %5.2f etaLab: %5.2f <-> Gen lead pt: %5.2f etaLab: %5.2f SubLead pt: %5.2f etaLab: %5.2f\n",
-                                    recoLeadJet->pt(), recoLeadJet->etaLab(), recoSubLeadJet->pt(), recoSubLeadJet->etaLab(),
-                                    genLeadJet ? genLeadJet->pt() : -1, genLeadJet ? genLeadJet->etaLab() : -1,
-                                    genSubLeadJet ? genSubLeadJet->pt() : -1, genSubLeadJet ? genSubLeadJet->etaLab() : -1);
+                                    recoLeadJet->pt(), etaRecoLeadLab, recoSubLeadJet->pt(), etaRecoSubLeadLab,
+                                    genLeadJet ? genLeadJet->pt() : -1, genLeadJet ? genLeadJet->eta() : -1,
+                                    genSubLeadJet ? genSubLeadJet->pt() : -1, genSubLeadJet ? genSubLeadJet->eta() : -1);
             // }
             return;
         }
