@@ -1512,13 +1512,12 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
 
         // Leading and subleading jets must have matching gen jets (just a protection, easy to comment out)
         if ( !recoLeadJet->hasMatching() || !recoSubLeadJet->hasMatching() ) {
-            if ( fVerbose ) {
-                std::cout << Form("Reco dijet has unmatched jets. idRecoLead: %d idRecoSubLead: %d Lead has matching: %s SubLead has matching: %s", 
+            // if ( fVerbose ) {
+                std::cerr << Form("[ERROR] Unmatched dijet idLead: %d idSubLead: %d Lead matched: %s SubLead matched: %s - Skip\n", 
                                 fRecoIdLead, fRecoIdSubLead, 
                                 (recoLeadJet->hasMatching() ? "[true]" : "[false]"), 
                                 (recoSubLeadJet->hasMatching() ? "[true]" : "[false]"));
-                std::cout << "\tSkip reco dijet\n";
-            }
+            // }
             return;
         }
 
