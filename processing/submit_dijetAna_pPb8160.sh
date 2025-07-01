@@ -19,7 +19,7 @@ if [ $triggerId -ne 0 ]; then
 fi
 
 # Beam direction
-is_Pbgoing=0
+is_Pbgoing=1
 if [ "$is_Pbgoing" -eq 1 ]; then
     direction=Pbgoing
 else
@@ -35,7 +35,7 @@ jeuSyst=0
 # JER systematics: 0 - default, -1 - JER-, 1 - JER+, other - no extra smearing is applied (pure JEC)
 jerSyst=-99
 # RecoJet selection method: 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
-recoJetSelMethod=0 
+recoJetSelMethod=1
 
 # Generate path to the inputfile list
 if [ "$sample_name" == "DATA_MB" ]; then
