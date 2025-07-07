@@ -183,7 +183,7 @@ ForestAODReader *createForestAODReader(const TString &inFileName, const bool &is
     if ( jetCut ) forestReader->setJetCut(jetCut);
 
     // Set verbose mode
-    forestReader->setVerbose();
+    // forestReader->setVerbose();
 
     return forestReader;
 }
@@ -210,7 +210,7 @@ JetESRAnalysis *createJetESRAnalysis(const int &collisionSystem, const int &coll
     analysis->setGenJetCut( genJetCut );
     analysis->setEtaShift( etaShift );
 
-    //analysis->setVerbose();
+    // analysis->setVerbose();
 
     return analysis;
 }
