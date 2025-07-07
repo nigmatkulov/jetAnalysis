@@ -1,6 +1,6 @@
 universe   = vanilla
 getenv     = True
-executable = run_jetAta.sh
+executable = run_jetAna.sh
 +JobFlavour  = "workday"
 requirements = ((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
 transfer_input_files  = voms_proxy.txt
