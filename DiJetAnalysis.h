@@ -187,7 +187,7 @@ class DiJetAnalysis : public BaseAnalysis {
     /// 4 - Jet100
     short   fUseMcReweighting;
     int     fJetPtBins;
-    float  fJetPtLeadPtSubleadReweightMatrix[75][75];
+    float   fJetPtLeadPtSubleadReweightMatrix[75][75];
     double  fMcReweight;
 
     // Indices of the leading and subleading jets (at the beginning of the event processing must be set to -1)

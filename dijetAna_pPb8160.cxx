@@ -204,7 +204,7 @@ ForestAODReader *createForestAODReader(const TString &inFileName, const bool &is
     if ( jetCut ) forestReader->setJetCut(jetCut);
 
     // Set verbose mode
-    // forestReader->setVerbose();
+    forestReader->setVerbose();
 
     return forestReader;
 }
@@ -420,10 +420,14 @@ int main(int argc, char const *argv[]) {
     hm->setIsMc( isMc );
     hm->init();
 
+    //
     // Add histogram manager to analysis
+    //
     analysis->addHistoManager( hm );
 
+    //
     // Add analysis to manager
+    //
     manager->addAnalysis( analysis );
 
     // Run chain of analyses

@@ -148,7 +148,7 @@ double ForestAODReader::retrieveResolutionFactor(const double& eta) {
     double res{0.};
 
     // Search for the bin index
-    for (int i{0}; i<fJerEtaLow.size(); i++) {
+    for (size_t i{0}; i<fJerEtaLow.size(); i++) {
         if ( eta>=fJerEtaLow.at(i) && eta<fJerEtaHi.at(i) ) {
             if ( fUseJERSystematics == -1 ) {
                 val = fJerLow.at(i);
@@ -542,7 +542,7 @@ void ForestAODReader::clearVariables() {
     fPVertexFilterCutVtx1 = {0};
 
     // Loop over jets and tracks
-    for (short i{0}; i<TRACK_ARRAY_SIZE; i++) {
+    for (size_t i{0}; i<TRACK_ARRAY_SIZE; i++) {
 
         // Jet variables
         if (i<JET_ARRAY_SIZE) {
@@ -1248,27 +1248,53 @@ void ForestAODReader::fixIndices() {
             return;
         }
 
+        if ( fVerbose ) {
+            std::cout << "Reco/Ref jet parameters:\n";
+            for (int i{0}; i<fNRecoJets; i++) {
+                std::cout << Form("RecoJet #%d recoRawPt: %5.2f recoEta: %3.2f recoPhi: %3.2f refPt: %5.2f refEta: %3.2f refPhi: %3.2f\n",
+                                  i, fRecoJetPt[i], fRecoJetEta[i], fRecoJetPhi[i], fRefJetPt[i], fRefJetEta[i], fRefJetPhi[i]);
+            }
+            std::cout << "Gen jet parameters:\n";
+            for (int i{0}; i<fNGenJets; i++) {
+                std::cout << Form("GenJet #%d genPt: %5.2f genEta: %3.2f genPhi: %3.2f\n",
+                                  i, fGenJetPt[i], fGenJetEta[i], fGenJetPhi[i]);
+            }
+        }
+
         // Loop over reconstructed jets
         for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
             // Skip if no matched gen jet in ref info
-            if (fRefJetPt[iRecoJet] < 0) continue;
+            // TODO: check why next line generates error (occasionally skips the first reco jet with matching gen jet)
+            // if (fRefJetPt[iRecoJet] < 0) continue;
 
             float refEta = fRefJetEta[iRecoJet];
             float refPhi = fRefJetPhi[iRecoJet];
             float refPt = fRefJetPt[iRecoJet];
 
+            float recoEta = fRecoJetEta[iRecoJet];
+            float recoPhi = fRecoJetPhi[iRecoJet];
+
             // Loop over gen jets to find a match
             for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
-                bool matched = (fabs(refPt - fGenJetPt[iGenJet]) < std::numeric_limits<float>::epsilon() &&
-                                fabs(refEta - fGenJetEta[iGenJet]) < std::numeric_limits<float>::epsilon() &&
-                                fabs(refPhi - fGenJetPhi[iGenJet]) < std::numeric_limits<float>::epsilon());
+
+                // Check rotation of the phi angle to match the reference jet phi
+                double dphi = recoPhi - fGenJetPhi[iGenJet];
+                while (dphi > TMath::Pi()) dphi -= TMath::TwoPi();
+                while (dphi <= -TMath::Pi()) dphi += TMath::TwoPi();
+
+                float dR = sqrt( (recoEta - fGenJetEta[iGenJet]) * (recoEta - fGenJetEta[iGenJet]) +
+                                 dphi * dphi );
+                bool matched = false;
+                // bool matched = (fabs(refEta - fGenJetEta[iGenJet]) < std::numeric_limits<float>::epsilon() &&
+                //                 fabs(refPhi - fGenJetPhi[iGenJet]) < std::numeric_limits<float>::epsilon());
+                if ( dR < 0.4 ) matched = true;
+
                 if (fVerbose) {
-                    std::cout << Form("Comparing RecoJet #%d to GenJet #%d (refPt - genPt): %f (refEta - genEta): %f (refPhi - genPhi): %f [%s]\n",
-                                      iRecoJet, iGenJet,
-                                      refPt - fGenJetPt[iGenJet],
-                                      refEta - fGenJetEta[iGenJet],
-                                      refPhi - fGenJetPhi[iGenJet],
-                                      (matched ? "true" : "false"));
+                    std::cout << Form("Comparing RecoJet #%d to GenJet #%d (dR): %4.3f (refEta - genEta): %4.3f (refPhi - genPhi): %4.3f [%s]\n",
+                                    iRecoJet, iGenJet, dR, 
+                                    refEta - fGenJetEta[iGenJet],
+                                    refPhi - fGenJetPhi[iGenJet],
+                                    (matched ? "true" : "false"));
                 }
                 // Use floating point epsilons to compare the values
                 if (matched) {
@@ -1550,6 +1576,7 @@ Event* ForestAODReader::returnEvent() {
             }
             for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
                 GenJet *jet = new GenJet{};
+                jet->setId( iGenJet );
                 jet->setPt( fGenJetPt[iGenJet] );
                 jet->setEta( fGenJetEta[iGenJet] );
                 jet->setPhi( fGenJetPhi[iGenJet] );
@@ -1560,7 +1587,7 @@ Event* ForestAODReader::returnEvent() {
                 jet->setPtWeight( 1. );
                 if ( fVerbose ) {
                     std::cout << Form("GenJet #%d pT: %.2f, eta: %.2f", iGenJet, jet->pt(), jet->eta()) << std::endl;
-                    jet->print();
+                    // jet->print();
                 }
 
                 // Gen jets are not allowed to be thrown away by any cuts
@@ -1595,6 +1622,7 @@ Event* ForestAODReader::returnEvent() {
             } // if ( fIsMc )
 
             // Reco
+            jet->setId( iJet );
             jet->setRawPt( fRecoJetPt[iJet] );
             jet->setEta( fRecoJetEta[iJet] );
             jet->setPhi( fRecoJetPhi[iJet] );

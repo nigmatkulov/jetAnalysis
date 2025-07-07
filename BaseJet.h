@@ -39,47 +39,55 @@ class BaseJet : public TObject {
     // Setters
     //
 
+    /// @brief Set jet unique identifier
+    void setId(const unsigned int& id) { fId = static_cast<UInt_t>(id); }
+    /// @brief Set jet unique identifier
+    void setId(const int& id) { fId = static_cast<UInt_t>(id); }
     /// @brief Set jet-matched generated jet transverse momentum
     void setPt(const float& pt)      { fPt = {pt}; }
     /// @brief Set jet-matched generated jet transverse momentum
-    void setPt(const double& pt)     { fPt = static_cast<float>(pt); }
+    void setPt(const double& pt)     { fPt = static_cast<Float_t>(pt); }
     /// @brief Set jet-matched generated jet eta
     void setEta(const float& eta)    { fEta = {eta}; }
     /// @brief Set jet-matched generated jet eta
-    void setEta(const double& eta)   { fEta = static_cast<float>(eta); }
+    void setEta(const double& eta)   { fEta = static_cast<Float_t>(eta); }
     /// @brief Set jet-matched generated jet phi
     void setPhi(const float& phi)    { fPhi = {phi}; }
     /// @brief Set jet-matched generated jet phi
-    void setPhi(const double& phi)   { fPhi = static_cast<float>(phi); }
+    void setPhi(const double& phi)   { fPhi = static_cast<Float_t>(phi); }
     /// @brief Set jet-matched generated jet WTA eta
     void setWTAEta(const float& eta) { fWTAEta = {eta}; }
     /// @brief Set jet-matched generated jet WTA eta
-    void setWTAEta(const double& eta) { fWTAEta = static_cast<float>(eta); }
+    void setWTAEta(const double& eta) { fWTAEta = static_cast<Float_t>(eta); }
     /// @brief Set jet-matched generated jet WTA phi
     void setWTAPhi(const float& phi) { fWTAPhi = {phi}; }
     /// @brief Set jet-matched generated jet WTA phi
-    void setWTAPhi(const double& phi) { fWTAPhi = static_cast<float>(phi); }
+    void setWTAPhi(const double& phi) { fWTAPhi = static_cast<Float_t>(phi); }
 
     //
     // Getters
     //
 
+    /// @brief Get jet unique identifier
+    unsigned int id() const { return static_cast<unsigned int>(fId); }
     /// @brief Transverse momentum 
-    float pt() const         { return fPt; }
+    float pt() const         { return static_cast<float>(fPt); }
     /// @brief Pseudorapidity 
-    float eta() const        { return fEta; }
+    float eta() const        { return static_cast<float>(fEta); }
     /// @brief Azimuthal angle 
-    float phi() const        { return fPhi; }
+    float phi() const        { return static_cast<float>(fPhi); }
     /// @brief Return reconstructed jet parameters
     TVector3 vec() const 
     { TVector3 v; v.SetPtEtaPhi(fPt, fEta, fPhi); return v; }
     /// @brief Pseudorapidity of the WTA axis 
-    float WTAEta() const     { return fWTAEta; }
+    float WTAEta() const     { return static_cast<float>(fWTAEta); }
     /// @brief Azimuthal angle of the WTA axis
-    float WTAPhi() const     { return fWTAPhi; }
+    float WTAPhi() const     { return static_cast<float>(fWTAPhi); }
 
   private:
 
+    /// @brief Jet unique identifier
+    UInt_t fId; 
     /// @brief  Transverse momentum
     Float_t fPt;
     /// @brief Pseudorapidity

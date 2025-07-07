@@ -98,7 +98,23 @@ bool JetCut::pass(const RecoJet* jet, bool isCM, bool isMC, bool requireMatching
     } 
     else if (fSelectionMethod == 1) {
         // trackMaxPt/RawPt selection
-        goodSelection = jet->isGoodTrkMax();
+        goodSelection = true;
+        if ( fabs(jet->eta()) < 2.4 ) {
+            if ( jet->trackMaxPt() / jet->rawPt() < 0.01 ) {
+                goodSelection = false;
+                if ( fVerbose ) {
+                    std::cout << Form("--> trackMaxPt/RawPt: %5.2f <= %5.2f \t [failed]\n",
+                                      jet->trackMaxPt(), jet->rawPt());
+                }
+            }
+            if ( jet->trackMaxPt() / jet->rawPt() > 0.98 ) {
+                goodSelection = false;
+                if ( fVerbose ) {
+                    std::cout << Form("--> trackMaxPt/RawPt: %5.2f >= %5.2f \t [failed]\n",
+                                      jet->trackMaxPt(), jet->rawPt());
+                }
+            }
+        }
     } 
     else if (fSelectionMethod == 2) {
         // jetId selection
@@ -109,7 +125,7 @@ bool JetCut::pass(const RecoJet* jet, bool isCM, bool isMC, bool requireMatching
 
     if (fVerbose) {
         std::cout << "\n----- Reco jet cut -----\n";
-        std::cout << Form("--> isCM: %d, isMC: %d, requireMatching: %s\n", isCM, isMC, (requireMatching) ? "[passed]" : "[failed]");
+        std::cout << Form("--> isCM: %d, isMC: %d, requireMatching: %s\n", isCM, isMC, (requireMatching) ? "1" : "0");
         std::cout << Form("--> pT : %5.2f <= %5.2f <= %5.2f \t %s \n", fPt[0], jet->ptJECCorr(), fPt[1], ( goodPt ) ? "[passed]" : "[failed]" );
         std::cout << Form("--> cone R: %5.2f <= %5.2f \t %s \n", recoR, fConeR, ( goodConeR ) ? "[passed]" : "[failed]" );
         std::cout << Form("--> has matching: \t %s \n", ( goodMatching ) ? "[passed]" : "[failed]" );

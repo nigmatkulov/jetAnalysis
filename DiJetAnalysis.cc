@@ -532,18 +532,14 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
 
     // Jet counter
     int recoJetCounter{0};
+    // std::cout << "Reco jet collection size: " << event->recoJetCollection()->size() << std::endl;
     // Loop over reconstructed jets and store indices of good jets
     for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
         recoJetCounter++;
 
-        // For the test purpose (*jet, isCM, isMC, requireMatching)
-        if ( fIsMc ) { // Do not require matching for the MC case (in order to check fakes later)
-            if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, false, false) ) continue; 
-        }
-        else {
-            if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, false, false) ) continue;
-        }
+        // Check if reconstructed jet passes selection criteria (*jet, isCM, isMC, requireMatching)
+        if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, true, false) ) continue; 
 
         fRecoPtSortedJetIds.push_back( recoJetCounter-1 );
     } // for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ )
@@ -556,7 +552,7 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
     if ( fVerbose ) {
         // Print sorted indices and corresponding jet pT    
         for (const auto& id : fRecoPtSortedJetIds) {
-            std::cout << Form("Sorted reco jet index: %d | pT: %5.1f\n", id, event->recoJetCollection()->at(id)->ptJECCorr());
+            std::cout << Form("Sorted reco jet index: %d | pT: %5.1f eta: %3.2f\n", id, event->recoJetCollection()->at(id)->ptJECCorr(), etaLab(event->recoJetCollection()->at(id)->eta()));
         }
     }
 
@@ -599,7 +595,7 @@ void DiJetAnalysis::makePtSortedJetVectors(const Event* event) {
         if ( fVerbose ) {
             // Print sorted indices and corresponding jet pT
             for (const auto& id : fGenPtSortedJetIds) {
-                std::cout << Form("Sorted gen jet index: %d | pT: %5.1f\n", id, event->genJetCollection()->at(id)->pt());
+                std::cout << Form("Sorted gen jet index: %d | pT: %5.1f eta: %3.2f\n", id, event->genJetCollection()->at(id)->pt(), etaLab(event->genJetCollection()->at(id)->eta()));
             }
         }
 
@@ -1510,22 +1506,33 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // For Monte Carlo check if reco jets have matched gen jets. Skip reco dijet if not
     if ( fIsMc ) {
 
-        // Leading and subleading jets must have matching gen jets (just a protection, easy to comment out)
-        if ( !recoLeadJet->hasMatching() || !recoSubLeadJet->hasMatching() ) {
-            // if ( fVerbose ) {
-                GenJet* genLeadJet = event->genJetCollection()->at( fGenIdLead );
-                GenJet* genSubLeadJet = event->genJetCollection()->at( fGenIdSubLead );
-                std::cerr << Form("[ERROR] Unmatched dijet idLead: %d idSubLead: %d Lead matched: %s SubLead matched: %s - Skip\n", 
-                                fRecoIdLead, fRecoIdSubLead, 
-                                (recoLeadJet->hasMatching() ? "[true]" : "[false]"), 
-                                (recoSubLeadJet->hasMatching() ? "[true]" : "[false]"));
-                std::cerr << Form("Reco lead pt: %5.2f etaLab: %5.2f SubLead pt: %5.2f etaLab: %5.2f <-> Gen lead pt: %5.2f etaLab: %5.2f SubLead pt: %5.2f etaLab: %5.2f\n",
-                                    recoLeadJet->pt(), etaRecoLeadLab, recoSubLeadJet->pt(), etaRecoSubLeadLab,
-                                    genLeadJet ? genLeadJet->pt() : -1, genLeadJet ? genLeadJet->eta() : -1,
-                                    genSubLeadJet ? genSubLeadJet->pt() : -1, genSubLeadJet ? genSubLeadJet->eta() : -1);
-            // }
-            return;
-        }
+        // // Leading and subleading jets must have matching gen jets (just a protection, easy to comment out)
+        // if ( !recoLeadJet->hasMatching() || !recoSubLeadJet->hasMatching() ) {
+        //     // if ( fVerbose ) {
+        //         GenJet* genLeadJet = event->genJetCollection()->at( fGenIdLead );
+        //         GenJet* genSubLeadJet = event->genJetCollection()->at( fGenIdSubLead );
+        //         std::cerr << Form("[ERROR] Unmatched dijet idLead: %d idSubLead: %d Lead matched: %s SubLead matched: %s - Skip\n", 
+        //                         fRecoIdLead, fRecoIdSubLead, 
+        //                         (recoLeadJet->hasMatching() ? "[true]" : "[false]"), 
+        //                         (recoSubLeadJet->hasMatching() ? "[true]" : "[false]"));
+        //         std::cerr << Form("Reco lead pt: %5.2f etaLab: %5.2f SubLead pt: %5.2f etaLab: %5.2f <-> Gen lead pt: %5.2f etaLab: %5.2f SubLead pt: %5.2f etaLab: %5.2f\n",
+        //                             recoLeadJet->ptJECCorr(), etaRecoLeadLab, recoSubLeadJet->ptJECCorr(), etaRecoSubLeadLab,
+        //                             genLeadJet ? genLeadJet->pt() : -1, genLeadJet ? etaLab(genLeadJet->eta()) : -1,
+        //                             genSubLeadJet ? genSubLeadJet->pt() : -1, genSubLeadJet ? etaLab(genSubLeadJet->eta()) : -1);
+        //         std::cerr << std::endl;
+        //             std::cerr << "Sorted reco jets (id, ptCorr, ptRaw, eta, matched):" << std::endl;
+        //             for (const auto& id : fRecoPtSortedJetIds) {
+        //                 RecoJet* jet = event->recoJetCollection()->at(id);
+        //                 std::cerr << Form("-->  id: %d, ptCorr: %5.2f, ptRaw: %5.2f, eta: %3.2f matched: %s", jet->id(), jet->ptJECCorr(), jet->pt(), etaLab(jet->eta()), (jet->hasMatching() ? "[true]" : "[false]")) << std::endl;
+        //             }
+        //             std::cerr << "Sorted gen jets (id, pt, eta):" << std::endl;
+        //             for (const auto& id : fGenPtSortedJetIds) {
+        //                 GenJet* jet = event->genJetCollection()->at(id);
+        //                 std::cerr << Form("-->  id: %d, pt: %5.2f, eta: %3.2f", jet->id(), jet->pt(), etaLab(jet->eta())) << std::endl;
+        //             }
+        //     // }
+        //     return;
+        // }
 
         if ( recoLeadJet->hasMatching() ) {
             // Matching gen jet for leading reco jet
@@ -2308,6 +2315,7 @@ void DiJetAnalysis::processEvent(const Event* event) {
 
     if ( !fHM ) {
         std::cout << "[Warning] No histogram manager connected to the DiJetAnalysis\n";
+        return;
     }
 
     // Must be flushed for each event !!!!
@@ -2374,16 +2382,6 @@ void DiJetAnalysis::processEvent(const Event* event) {
     // Calculate event weight
     weight = eventWeight(ptHat, vz, centW, ptHatW);
 
-    // Fill event histograms
-    fHM->hVz->Fill( vz,  1. );
-    fHM->hVzWeighted->Fill( vz, weight );
-
-    fHM->hPtHat->Fill( ptHat, 1. );
-    fHM->hPtHatWeighted->Fill( ptHat, weight );
-
-    fHM->hHiBin->Fill( event->hiBin(), 1. );
-    fHM->hHiBinWeighted->Fill( event->hiBin(), weight );
-
     //
     // Create pT-sorted jet indices
     //
@@ -2400,6 +2398,16 @@ void DiJetAnalysis::processEvent(const Event* event) {
             return;
         }
     } // if ( fIsMc )
+
+    // Fill event histograms
+    fHM->hVz->Fill( vz,  1. );
+    fHM->hVzWeighted->Fill( vz, weight );
+
+    fHM->hPtHat->Fill( ptHat, 1. );
+    fHM->hPtHatWeighted->Fill( ptHat, weight );
+
+    fHM->hHiBin->Fill( event->hiBin(), 1. );
+    fHM->hHiBinWeighted->Fill( event->hiBin(), weight );
 
     //
     // Loop over jet collections (reco, gen, ref)

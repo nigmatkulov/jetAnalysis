@@ -2,10 +2,10 @@
  * @file JetESRAnalysis.h
  * @author Grigory Nigmatkulov (gnigmat@uic.edu)
  * @brief Jet energy scale and resolution analysis
- * @version 0.1
- * @date 2023-10-19
+ * @version 1.2
+ * @date 2025-06-02
  * 
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2025
  * 
  */
 
@@ -23,6 +23,9 @@
 #include "BaseAnalysis.h"
 #include "HistoManagerJetESR.h"
 #include "Event.h"
+
+// Forward declarations
+class JetCut;
 
 //________________
 class JetESRAnalysis : public BaseAnalysis {
@@ -46,8 +49,6 @@ class JetESRAnalysis : public BaseAnalysis {
 
     /// @brief Set centrality weight
     void useCentralityWeight()                     { fUseCentralityWeight = {true}; }
-    /// @brief Set jetId selection of the jets (default: trkMax)
-    void useJetIdSelection()                       { fUseJetIdSelection = {true}; }
     /// @brief Set debug information
     void setVerbose()                              { fVerbose = {true}; }
     /// @brief Add histogram manager to the analysis
@@ -60,22 +61,17 @@ class JetESRAnalysis : public BaseAnalysis {
     void setPbGoing()                              { fIsPbGoingDir = {true}; }
     /// @brief Set cut on the ptHat of the event (for MC in pPb only due to the xsection matching)
     void setPtHatRange(const double& lo, const double& hi) { fPtHatRange[0] = lo; fPtHatRange[1] = hi; }
+    /// @brief Set if is Monte Carlo (default: true)
+    void setIsMc(const bool& isMc = true)           { fIsMc = isMc; }
+    /// @brief Add lorentz shift
+    void setEtaShift(const float& shift)            { fEtaShift = shift; }
+    /// @brief Set reco jet cut
+    void setRecoJetCut(JetCut *cut)                 { fRecoJetCut = cut; }
+    /// @brief Set gen jet cut
+    void setGenJetCut(JetCut *cut)                  { fGenJetCut = cut; }
 
-    /// @brief Set leading jet pt low cut
-    void setLeadJetPtLowCut(const double& pt)       { fLeadJetPtLow = pt; }
-    /// @brief Set leading jet eta range
-    void setLeadJetEtaCut(const double& lo, const double& hi) { fLeadJetEta[0] = lo; fLeadJetEta[1] = hi; }
-    /// @brief Set subleading jet pt low cut
-    void setSubleadJetPtLowCut(const double& pt)    { fSubleadJetPtLow = pt; }
-    /// @brief Set subleading jet eta range
-    void setSubleadJetEtaCut(const double& lo, const double& hi) { fSubleadJetEta[0] = lo; fSubleadJetEta[1] = hi; }
-    /// @brief Set dijet dPhi cut
-    void setDijetDPhiCut(const double& cut)         { fDijetDPhiCut = cut; }
     /// @brief Set number of events in the embedding sample (for cross section recovery in pPb embedding)
     void setNEventsInSample(const int& n)           { fNEventsInSample = n; }
-
-    /// @brief Set loose jetId cut (default: tight = false)
-    void setLooseJetIdCut()                         { fIsLooseJetIdCut = {true}; }
 
     /// @brief Return collision system name 
     TString collisionSystem() const;
@@ -85,39 +81,39 @@ class JetESRAnalysis : public BaseAnalysis {
 
   private:
 
-    /// @brief Check if dijet is good
-    bool isGoodDijet(const double& ptLead, const double& etaLead, const double& ptSubLead, 
-                     const double& etaSubLead, const double& dphi);
+    /// @brief Loop over reco, gen and ref-selected reco jets and save jet indices in pT-sorted vectors
+    void makePtSortedJetVectors(const Event* event);
+
+    /// Check if event is overweighted in MC
+    bool isOverweightedEvent(const Event* event, const double& weight);
+    /// @brief  Check if event is overweighted
+    bool isOverweighted(const float& ptLead, const float& dijetPtAve, const float& ptHat);
+
+      /// Loop over reco, gen and ref jets and search for leading and subleading jets
+    void processInclusiveJets(const Event* event, const double& weight);
     /// @brief Calculate event weight
     double eventWeight(const double& ptHat, const double& vz, const double& centWeight, const double& ptHatW);
     /// @brief Process gen jets
-    void processGenJets(const Event* event, double weight);
+    void processGenJets(const Event* event, const double &weight);
     /// @brief Process reco jets
-    void processRecoJets(const Event* event, double weight);
+    void processRecoJets(const Event* event, const double &weight);
     /// @brief Process ref jets
-    //void processRefJets(const Event* event, double weight);
-    /// @brief Pass pt of the jet and check if it is leading or subleading jet
-    void findLeadSubleadJets(const double &pt, const int &counter, double &ptLead, double &ptSublead, 
-                             int &idLead, int &idSubLead);
-    /// @brief Check if jet passes jetId requirements
-    bool isGoodJetId(const RecoJet* jet);
-    /// @brief Check if good track max cut
-    bool isGoodTrkMax(const RecoJet* jet);
+    void processRefJets(const Event* event, const double &weight);
+    /// @brief Boost eta to the center-of-mass frame
+    float boostEta2CM(const float &etaLab);
+    /// @brief Get proper eta in the lab frame depending on beam direction 
+    float etaLab(const float &eta);
 
     /// @brief Initialize vz weight function
     void initVzWeightFunction();
 
-    /// @brief Check if gen jet is good
-    bool isGoodGenJet(const GenJet* jet);
-    /// @brief Check if reco jet is good
-    bool isGoodRecoJet(const RecoJet* jet);
-    /// @brief Angle between two jets
-    double deltaPhi(const double& phi1, const double &phi2);
-
-    /// @brief Pring debug information
+    /// @brief Print debug information
     bool   fVerbose;
+
     /// @brief Histogram manager
     HistoManagerJetESR *fHM;
+    /// @brief Vz weight to match MC to data
+    TF1 *fVzWeight;
 
     /// @brief Centrality weight
     bool   fUseCentralityWeight;
@@ -131,27 +127,27 @@ class JetESRAnalysis : public BaseAnalysis {
     bool   fIsPbGoingDir;
     /// @brief ptHat range for the generated events (must cut events on this one) in case of pPb
     double fPtHatRange[2];
+    /// @brief Set if is Monte Carlo
+    bool   fIsMc;
 
-    /// @brief Use jetId selection (default - false, i.e. trkMax)
-    bool   fUseJetIdSelection;
-    /// @brief Is loose/tight jetId cut (default: false = tight)
-    bool   fIsLooseJetIdCut;
-
-    /// @brief Leading jet pt low cut
-    double fLeadJetPtLow;
-    /// @brief Leading jet eta range
-    double fLeadJetEta[2];
-    /// @brief Subleading jet pt low cut
-    double fSubleadJetPtLow;
-    /// @brief Subleading jet eta range
-    double fSubleadJetEta[2];
-    /// @brief Dijet phi cut
-    double fDijetDPhiCut;
     /// @brief Number of events in the sample (for pPb cross section MC recovery)
     int    fNEventsInSample;
 
-    /// @brief Vz weight to match MC to data
-    TF1 *fVzWeight;
+    // Indices of the leading and subleading jets (at the beginning of the event processing must be set to -1)
+    int    fRecoIdLead;
+    int    fRecoIdSubLead;
+    int    fGenIdLead;
+    int    fGenIdSubLead;
+    int    fRefSelRecoIdLead;
+    int    fRefSelRecoIdSubLead;
+    std::vector<int> fRecoPtSortedJetIds;
+    std::vector<int> fGenPtSortedJetIds;
+    std::vector<int> fRefSelRecoPtSortedJetIds;
+
+    JetCut *fRecoJetCut;
+    JetCut *fGenJetCut;
+
+    ClassDef(JetESRAnalysis, 0)
 };
 
 #endif // #define JetESRAnalysis_h
