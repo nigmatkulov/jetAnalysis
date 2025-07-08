@@ -1241,6 +1241,15 @@ void HistoManagerDiJet::init() {
                                        fEtaBins, fEtaRange[0], fEtaRange[1],
                                        fEtaBins, fEtaRange[0], fEtaRange[1]);
     hRecoEtaCMLeadEtaCMSubleadMcReweight->Sumw2();
+
+    hRecoDijetEtaCM = new TH1D("hRecoDijetEtaCM","Reco dijet #eta in CM;Reco #eta^{dijet}_{CM};Entries",
+                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    hRecoDijetEtaCM->Sumw2();
+    hRecoDijetPtEtaCM = new TH2D("hRecoDijetPtEtaCM", "Reco dijet #eta vs p_{T} in CM;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}", 
+                               fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                               fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
+    if (fUseVariableBinning) hRecoDijetPtEtaCM->GetYaxis()->Set(dijetEtaBins, dijetEtaVals);
+    hRecoDijetPtEtaCM->Sumw2();
     hRecoDijetPtEtaCMForward = new TH2D("hRecoDijetPtEtaCMForward", "Reco dijet info in CM frame (forward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                         fDijetEtaBins, 0., fDijetEtaRange[1]);
@@ -1261,9 +1270,7 @@ void HistoManagerDiJet::init() {
                                         fDijetEtaBins, 0., fDijetEtaRange[1]);
     if (fUseVariableBinning) hRecoDijetPtEtaCMBackwardWeighted->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
     hRecoDijetPtEtaCMBackwardWeighted->Sumw2();
-    hRecoDijetEtaCM = new TH1D("hRecoDijetEtaCM","Reco dijet #eta in CM;Reco #eta^{dijet}_{CM};Entries",
-                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
-    hRecoDijetEtaCM->Sumw2();
+
     hRecoDijetPtEtaPhiCM = new TH3D("hRecoDijetPtEtaPhiCM","Reco dijet info in CM;p_{T}^{ave} (GeV);#eta^{dijet}_{CM};#Delta#phi (rad)",
                                    fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                    fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1],
