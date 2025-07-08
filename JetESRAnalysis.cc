@@ -547,6 +547,7 @@ void JetESRAnalysis::makePtSortedJetVectors(const Event* event) {
     } // if ( fIsMc )
 
     if ( fVerbose ) {
+        std::cout << Form("Reco leadId: %d, subleadId: %d\nGen leadId: %d, subleadId: %d\n", fRecoIdLead, fRecoIdSubLead, fRefSelRecoIdLead, fRefSelRecoIdSubLead) << std::endl;
         std::cout << "JetESRAnalysis::makePtSortedJetVectors -- end" << std::endl;
     }
 }
@@ -661,6 +662,8 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
         float eta = etaLab( (*recoJetIter)->eta() );
         float phi = (*recoJetIter)->phi();
         float ptRaw = (*recoJetIter)->rawPt();
+
+        if ( fabs(phi) > std::numeric_limits<float>::max() ) continue;
 
         if ( fVerbose ) {
             if ( !fIsMc ) {
@@ -855,6 +858,8 @@ void JetESRAnalysis::processRefJets(const Event* event, const double &weight) {
         for ( recoJetIter = event->recoJetCollection()->begin(); recoJetIter != event->recoJetCollection()->end(); recoJetIter++ ) {
 
             refSelJetCounter++;
+
+            if ( fabs( (*recoJetIter)->phi() ) > std::numeric_limits<float>::max() ) continue;
 
             // Check selection criteria (*recoJet, isCM, isMC, requireMatching)
             if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, true, true) ) continue; 

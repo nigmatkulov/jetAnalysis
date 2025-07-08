@@ -230,7 +230,7 @@ int main(int argc, char const *argv[]) {
     bool isPbGoingDir{};
     TString inFileName{};
     int   collEnergyGeV{8160};
-    int   collisionSystem{1}; // 0 - pp, 1 -pPb, 2 - PbPb 
+    int   collisionSystem{1}; // 0 - pp, 1 - pPb, 2 - PbPb 
     TString collisionSystemName;
     if (collisionSystem == 0) {
         collisionSystemName = "pp";

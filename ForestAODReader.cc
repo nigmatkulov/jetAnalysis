@@ -1269,9 +1269,11 @@ void ForestAODReader::fixIndices() {
 
             float refEta = fRefJetEta[iRecoJet];
             float refPhi = fRefJetPhi[iRecoJet];
+            // if ( abs( fRefJetPhi[iRgecoJet]) ) > std::numeric_limits<float>::max() ) continue;
             float refPt = fRefJetPt[iRecoJet];
 
             float recoEta = fRecoJetEta[iRecoJet];
+            // if ( abs( fRecoJetPhi[iRecoJet] ) > std::numeric_limits<float>::max() ) continue;
             float recoPhi = fRecoJetPhi[iRecoJet];
 
             // Loop over gen jets to find a match
@@ -1619,6 +1621,9 @@ Event* ForestAODReader::returnEvent() {
                 // Add index of the matched GenJet
                 jet->setGenJetId( fRecoJet2GenJetId.at(iJet) );
             } // if ( fIsMc )
+
+            // std::cout << Form("RecoJet #%d raw pT: %.2f, eta: %.2f, phi: %.2f",
+            //               iJet, fRecoJetPt[iJet], fRecoJetEta[iJet], fRecoJetPhi[iJet]) << std::endl;
 
             // Reco
             jet->setId( iJet );

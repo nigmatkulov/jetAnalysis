@@ -107,15 +107,6 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Calculate event weight
     double eventWeight(const float& ptHat, const float& vz, const float& centWeight, const float& ptHatW);
 
-    /// Loop over reco, gen and ref jets and search for leading and subleading jets
-    void processInclusiveJets(const Event* event, const double& weight);
-    /// @brief Process gen jets
-    void processGenJets(const Event* event, const double &weight);
-    /// @brief Process reco jets
-    void processRecoJets(const Event* event, const double &weight);
-    /// @brief Process ref jets
-    void processRefJets(const Event* event, const double &weight);
-
     /// @brief Process dijets
     void processDijets(const Event* event, const double &weight);
     /// @brief Process gen dijets

@@ -153,11 +153,10 @@ void SingleJetCorrector::Initialize(std::string FileName) {
             //std::cout << "IsDefinition = true" << std::endl;
 
             nvar = atoi(Parts[0].c_str());
-            if (Parts.size() <= nvar + 1)
-                continue;
+            if ( (int)Parts.size() <= (nvar + 1)) continue;
+
             npar = atoi(Parts[nvar + 1].c_str());
-            if (Parts.size() <= nvar + 1 + npar + 1)
-                continue;
+            if ( (int)Parts.size() <= (nvar + 1 + npar + 1)) continue;
 
             CurrentFormula = Parts[nvar + 1 + npar + 1];
 
@@ -177,7 +176,7 @@ void SingleJetCorrector::Initialize(std::string FileName) {
 
             //std::cout << "IsDefinition = false" << std::endl;
 
-            if (Parts.size() < nvar * 2 + npar * 2 + 1) continue;
+            if ((int)Parts.size() < (nvar * 2 + npar * 2 + 1)) continue;
 
             std::vector<double> Parameter;
             for (int i = nvar * 2 + npar * 2 + 1; i < (int)Parts.size(); i++) {
@@ -330,13 +329,16 @@ double SingleJetCorrector::GetCorrection() {
         double V[3] = {0, 0, 0};
         for (int i = 0; i < 3; i++) {
 
-            if (Dependencies[iE].size() <= i) continue;
+            if ((int)Dependencies[iE].size() <= i) continue;
 
             double Value = GetValue(Dependencies[iE][i]);
-            if (Value < DependencyRanges[iE][i * 2])
+            // std::cout << "Value: " << Value << std::endl;
+            if (Value < DependencyRanges[iE][i * 2]) {
                 Value = DependencyRanges[iE][i * 2];
-            if (Value > DependencyRanges[iE][i * 2 + 1])
+            }
+            if (Value > DependencyRanges[iE][i * 2 + 1]){
                 Value = DependencyRanges[iE][i * 2 + 1];
+            }
             V[i] = Value;
         }
 
@@ -418,17 +420,12 @@ double SingleJetCorrector::GetValue(Type T) {
 std::string SingleJetCorrector::Hack4(std::string Formula, char V, int N) {
     int Size = Formula.size();
     for (int i = 0; i < Size; i++) {
-        if (Formula[i] != V)
-            continue;
+        if (Formula[i] != V) continue;
 
-        if (i != 0 && Formula[i - 1] >= 'a' && Formula[i - 1] <= 'z')
-            continue;
-        if (i != 0 && Formula[i - 1] >= 'A' && Formula[i - 1] <= 'Z')
-            continue;
-        if (i != Size - 1 && Formula[i + 1] >= 'a' && Formula[i + 1] <= 'z')
-            continue;
-        if (i != Size - 1 && Formula[i + 1] >= 'A' && Formula[i + 1] <= 'Z')
-            continue;
+        if (i != 0 && Formula[i - 1] >= 'a' && Formula[i - 1] <= 'z') continue;
+        if (i != 0 && Formula[i - 1] >= 'A' && Formula[i - 1] <= 'Z') continue;
+        if (i != Size - 1 && Formula[i + 1] >= 'a' && Formula[i + 1] <= 'z') continue;
+        if (i != Size - 1 && Formula[i + 1] >= 'A' && Formula[i + 1] <= 'Z') continue;
 
         Formula.erase(i, 1);
         Formula.insert(i, Form("[%d]", N));
