@@ -15,7 +15,24 @@
 #include <vector>
 
 //________________
-void plotCMSHeader(int collSystem = 0, double energy = 5.02) {
+bool directoryExists(const char* directoryPath) {
+    TSystemFile file(directoryPath, "");
+    return file.IsDirectory();
+}
+
+//________________
+void createDirectory(const char* directoryPath) {
+    // Create the directory with read, write, and execute permissions for owner, group, and others
+    if (mkdir(directoryPath, S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
+        std::cout << "Directory created successfully." << std::endl;
+    } else {
+        std::cerr << "Failed to create directory." << std::endl;
+    }
+}
+
+
+//________________
+void plotCMSHeader(int collSystem = 1, double energy = 8.16) {
     // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
     TString collSystemStr = (collSystem == 0) ? "pp" : (collSystem == 1) ? "pPb" : "PbPb";
@@ -184,7 +201,7 @@ void plotJESandJER(TCanvas *c, TH2D *h2D,
 }
 
 //________________
-void plotJESandJER(TFile *f, int collSystem = 0, double energy = 5.02) {
+void plotJESandJER(TFile *f, int collSystem = 0, double energy = 5.02, TString date = "20250129") {
     // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
 
@@ -220,12 +237,14 @@ void plotJESandJER(TFile *f, int collSystem = 0, double energy = 5.02) {
     // -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 5.2
     std::vector<int> jetEtaBinsHi  {8, 11, 12, 13, 14, 15, 16, 18, 26, 34, 36, 38, 39, 40, 41, 44, 52};
 
-    // pT binning
-    // TODO: Implement pT binning
 
+    std::vector<int> jetPtBinsLow { 5, 10, 15,  20, 25, 50 };
+    std::vector<int> jetPtBinsHi  { 9, 14, 19,  24, 49, 100 };
 
     TH2D *hJESvsPt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
+    TH2D *hJESvsEta[ ptHatBins.size() ][ jetPtBinsLow.size() ];
     TCanvas *cJESvsPt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
+    TCanvas *cJESvsEta[ ptHatBins.size() ][ jetPtBinsLow.size() ];
 
     // Loop over ptHat bins
     for (unsigned int i{0}; i<ptHatBins.size(); i++) {
@@ -242,16 +261,18 @@ void plotJESandJER(TFile *f, int collSystem = 0, double energy = 5.02) {
 
             // Create 2D histogram
             hJESvsPt[i][j] = dynamic_cast<TH2D*>( hJESPars->Projection(0, 1) );
-            hJESvsPt[i][j]->SetName( Form("hJES_%d_%d", i, j) );
+            hJESvsPt[i][j]->SetName( Form("hJES_pt_%d_%d", i, j) );
             set2DStyle(hJESvsPt[i][j]);
 
             // Create canvas
-            cJESvsPt[i][j] = new TCanvas( Form("cJES_%d_%d", i, j), Form("cJES_%d_%d", i, j), 1500, 500 );
+            cJESvsPt[i][j] = new TCanvas( Form("cJES_pt_%d_%d", i, j), Form("cJES_pt_%d_%d", i, j), 1500, 500 );
             cJESvsPt[i][j]->Divide(3, 1);
 
-            double lowVal = etaStart + (jetEtaBinsLow[j] - 1) * etaStep;
-            double hiVal = etaStart + jetEtaBinsHi[j] * etaStep;
+            double lowVal = hJESPars->GetAxis(2)->GetBinLowEdge(jetEtaBinsLow[j]);
+            double hiVal = hJESPars->GetAxis(2)->GetBinUpEdge(jetEtaBinsHi[j]);
             plotJESandJER(cJESvsPt[i][j], hJESvsPt[i][j], lowVal, hiVal, collSystem, energy, true, true);
+
+            cJESvsPt[i][j]->SaveAs( Form("%s/JES_vs_pt_%d_%d.pdf", date.Data(), i, j) );
 
         } // for (unsigned int j{0}; j<jetEtaBinsLow.size(); j++)
 
@@ -260,7 +281,25 @@ void plotJESandJER(TFile *f, int collSystem = 0, double energy = 5.02) {
         //
         // JES vs. jet eta for different pt bins
         //
-        // TODO: Implement JES vs. eta
+        for (unsigned int j{0}; j<jetPtBinsLow.size(); j++) {
+
+            // Set axis limits for THnSparse
+            hJESPars->GetAxis(1)->SetRange( jetPtBinsLow[j], jetPtBinsHi[j] );
+
+            // Create 2D histogram
+            hJESvsEta[i][j] = dynamic_cast<TH2D*>( hJESPars->Projection(0, 2) );
+            hJESvsEta[i][j]->SetName( Form("hJES_eta_%d_%d", i, j) );
+            set2DStyle(hJESvsEta[i][j]);
+
+            // Create canvas
+            cJESvsEta[i][j] = new TCanvas( Form("cJES_eta_%d_%d", i, j), Form("cJES_eta_%d_%d", i, j), 1500, 500 );
+            cJESvsEta[i][j]->Divide(3, 1);
+
+            double lowVal = hJESPars->GetAxis(1)->GetBinLowEdge(jetPtBinsLow[j]);
+            double hiVal = hJESPars->GetAxis(1)->GetBinUpEdge(jetPtBinsHi[j]);
+            plotJESandJER(cJESvsEta[i][j], hJESvsEta[i][j], lowVal, hiVal, collSystem, energy, false, false);
+            cJESvsEta[i][j]->SaveAs( Form("%s/JES_vs_eta_%d_%d.pdf", date.Data(), i, j) );
+        } // for (unsigned int j{0}; j<jetPtBinsLow.size(); j++)
 
     } // for (unsigned int i{0}; i<ptHatBins.size(); i++)
 
@@ -335,6 +374,14 @@ void plotJES() {
     // Username of the machine
     TString username = gSystem->GetFromPipe("whoami");
 
+    // Date extraction
+    TDatime dt; 
+    TString date { Form( "%d",dt.GetDate() ) };
+
+    if ( !directoryExists( date.Data() ) ) {
+        createDirectory( date.Data() );
+    } 
+
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
     int collSystem = 0;
     double energy = 5.02;
@@ -351,8 +398,9 @@ void plotJES() {
     // pPb8160 embedding
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_pPb8160_Pbgoing_ak4.root", username.Data()) );
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/pgoing/oEmbedding_pgoing_def_ak4_eta25.root", username.Data()) );
+    TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oEmbedding_Pbgoing_def_ak4_eta20.root", username.Data()) );
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oPythia_Pbgoing_def_ak4_eta20.root", username.Data()) );
-    TFile *inputFile = TFile::Open( Form("/Users/%s/work/cms/soft/jetAnalysis/build/oTest_pPb8160_dijet_ptHat_50_80_noTrkMax.root", username.Data()) );
+    // TFile *inputFile = TFile::Open( Form("/Users/%s/work/cms/soft/jetAnalysis/build/oTest_pPb8160_dijet_ptHat_50_80_noTrkMax.root", username.Data()) );
     if ( !inputFile || inputFile->IsZombie() ) {
         std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/Pbgoing/oPythia_Pbgoing_def_ak4_eta20.root", username.Data()) << std::endl;
         return;
@@ -364,5 +412,5 @@ void plotJES() {
     // plotSimpleJES( inputFile, collSystem, energy );
 
     // Plot JES for different ptHat selections
-    plotJESandJER( inputFile, collSystem, energy );
+    plotJESandJER( inputFile, collSystem, energy, date );
 }

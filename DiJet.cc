@@ -7,6 +7,7 @@
 
 // C++ headers
 #include <iostream>
+#include <cmath>
 
 //________________
 DiJet::DiJet(float leadJetPt, float leadJetEtaLab, float leadJetEtaCM, float leadJetPhi,
@@ -56,6 +57,12 @@ float DiJet::deltaPhi(const float& phi1, const float &phi2) {
 }
 
 //________________
+float DiJet::wrapTo0to2Pi(const float &angle) {
+    float wrapped = std::fmod(angle, TMath::TwoPi());
+    return wrapped < 0 ? wrapped + TMath::TwoPi() : wrapped;
+}
+
+//________________
 void DiJet::print() {
     std::cout << "DiJet parameters:" << std::endl;
     std::cout << Form("--> Leading jet: pTave: %.2f etaLab: %.2f etaCM: %.2f phi: %.2f",
@@ -78,4 +85,21 @@ void DiJet::cleanParameters() {
     fSubLeadJetEtaLab = 0.0f;
     fSubLeadJetEtaCM = 0.0f;
     fSubLeadJetPhi = 0.0f;
+}
+
+//________________
+float DiJet::phi() const {
+    // Calculate the azimuthal angle of the dijet
+    float phiLead = fLeadJetPhi;
+    float phiSubLead = fSubLeadJetPhi;
+
+    float pxLead = fLeadJetPt * TMath::Cos(phiLead);
+    float pyLead = fLeadJetPt * TMath::Sin(phiLead);
+    float pxSubLead = fSubLeadJetPt * TMath::Cos(phiSubLead);
+    float pySubLead = fSubLeadJetPt * TMath::Sin(phiSubLead);
+
+    float pxDijet = pxLead + pxSubLead;
+    float pyDijet = pyLead + pySubLead;
+
+    return TMath::ATan2(pyDijet, pxDijet);
 }

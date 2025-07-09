@@ -204,7 +204,7 @@ ForestAODReader *createForestAODReader(const TString &inFileName, const bool &is
     if ( jetCut ) forestReader->setJetCut(jetCut);
 
     // Set verbose mode
-    forestReader->setVerbose();
+    // forestReader->setVerbose();
 
     return forestReader;
 }
@@ -418,6 +418,7 @@ int main(int argc, char const *argv[]) {
     //
     HistoManagerDiJet *hm = new HistoManagerDiJet{};
     hm->setIsMc( isMc );
+    // hm->setUseVariableBinning( true ); // Use variable binning for eta (mainly dijet)
     hm->init();
 
     //

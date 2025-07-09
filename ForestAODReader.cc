@@ -1284,10 +1284,13 @@ void ForestAODReader::fixIndices() {
 
                 float dR = sqrt( (recoEta - fGenJetEta[iGenJet]) * (recoEta - fGenJetEta[iGenJet]) +
                                  dphi * dphi );
-                bool matched = false;
+                bool matched = ( dR < 0.4 &&
+                                 fabs(refEta - fGenJetEta[iGenJet]) < 1e-6 &&
+                                 fabs(refPhi - fGenJetPhi[iGenJet]) < 1e-6 );
+
                 // bool matched = (fabs(refEta - fGenJetEta[iGenJet]) < std::numeric_limits<float>::epsilon() &&
                 //                 fabs(refPhi - fGenJetPhi[iGenJet]) < std::numeric_limits<float>::epsilon());
-                if ( dR < 0.4 ) matched = true;
+                // if ( dR < 0.4 ) matched = true;
 
                 if (fVerbose) {
                     std::cout << Form("Comparing RecoJet #%d to GenJet #%d (dR): %4.3f (refEta - genEta): %4.3f (refPhi - genPhi): %4.3f [%s]\n",

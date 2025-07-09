@@ -94,8 +94,10 @@ class DiJet : public TObject {
     float etaLab() const { return 0.5 * (fLeadJetEtaLab + fSubLeadJetEtaLab); }
     /// @brief Get the pseudorapidity of the dijet in the center of mass frame
     float etaCM() const { return 0.5 * (fLeadJetEtaCM + fSubLeadJetEtaCM); }
-    /// @brief Get the azimuthal angle of the dijet
+    /// @brief Get the opening azimuthal angle of the dijet
     float dPhi() const { return deltaPhi(fLeadJetPhi, fSubLeadJetPhi); }
+    /// @brief Get the azimuthal angle of the dijet
+    float phi() const;
     /// @brief Get the relative pseudorapidity between two jets
     float dEta() const { return 0.5 * (fLeadJetEtaCM - fSubLeadJetEtaCM); }
     /// @brief Alias for dEta() in the center of mass frame
@@ -103,6 +105,8 @@ class DiJet : public TObject {
 
     /// @brief Get relative azimuthal angle between two jets 
     static float deltaPhi(const float& phi1, const float &phi2);
+    /// @brief Wrap angle to the range [0, 2π) 
+    static float wrapTo0to2Pi(const float &angle);
 
     /// @brief Clean parameters of the dijet
     void cleanParameters();
