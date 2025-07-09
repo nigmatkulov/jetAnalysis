@@ -319,10 +319,10 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
 
         cEfficiency2D->Clear();
         hEfficiency2D[i]->Draw("colz");
-        // hEfficiency2D[i]->GetXaxis()->SetRangeUser(-3.6, 3.6);
-        //hEfficiency2D[i]->GetYaxis()->SetRangeUser(20., 400.);
-        hEfficiency2D[i]->SetMaximum(5.0);
-        hEfficiency2D[i]->SetMinimum(1.01);
+        hEfficiency2D[i]->GetXaxis()->SetRangeUser(-3.6, 3.6);
+        hEfficiency2D[i]->GetYaxis()->SetRangeUser(20., 400.);
+        hEfficiency2D[i]->SetMaximum(2.0);
+        hEfficiency2D[i]->SetMinimum(0.);
         hEfficiency2D[i]->GetXaxis()->SetTitle("#eta");
         hEfficiency2D[i]->GetYaxis()->SetTitle("p_{T} (GeV)");
         plotCMSHeader(collSystem, energy);
@@ -350,6 +350,8 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
     setPadStyle();
     TCanvas *cEfficiencyCombined = new TCanvas( "cEfficiencyCombined", "cEfficiencyCombined", canvXSize, canvYSize );
     setPadStyle();
+
+    TLegend *leg{nullptr};
 
     // Plot projections of matched and fakes on eta as a function of pT
     for (size_t i = 0; i < nEtaRanges - 1; ++i) {
@@ -424,6 +426,17 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
             } 
             else {
                 hEfficiencyPt[j][i]->Draw("same");
+                if ( j == 2 ) {
+                    leg = new TLegend(0.5, 0.3, 0.8, 0.5);
+                    leg->SetTextSize(0.04);
+                    leg->SetBorderSize(0);
+                    leg->SetFillStyle(0);
+                    leg->SetFillColor(0);
+                    leg->AddEntry(hEfficiencyPt[0][i], "Inclusive", "p");
+                    leg->AddEntry(hEfficiencyPt[1][i], "Lead", "p");
+                    leg->AddEntry(hEfficiencyPt[2][i], "SubLead", "p");
+                    leg->Draw();
+                }
             }
         } // for (size_t j = 0; j < nJetTypes; ++j)
 
@@ -438,13 +451,13 @@ void plotEfficiency(TFile *f, int collSystem = 0, double energy = 5.02, int jetT
 
 
     // Clean up
-    if (cEfficiencyIndividual) delete cEfficiencyIndividual;
-    if (cEfficiencyCombined) delete cEfficiencyCombined;
-    if (cEfficiency2D) delete cEfficiency2D;
+    // if (cEfficiencyIndividual) delete cEfficiencyIndividual;
+    // if (cEfficiencyCombined) delete cEfficiencyCombined;
+    // if (cEfficiency2D) delete cEfficiency2D;
 }
 
 //________________
-void plotFakes(TFile *f, int collSystem = 0, double energy = 5.02, int jetType = 0, TString date = "20250606") {
+void plotFakes(TFile *f, int collSystem = 0, double energy = 5.02, TString date = "20250606") {
 
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
@@ -842,6 +855,9 @@ void plotEfficiencyAndFakes() {
     // Username of the machine
     TString uname = gSystem->GetFromPipe("whoami");
 
+    int selectionMethod{2}; // 0 - nocuts, 1 - trkMax, 2 - jetId
+    TString selectionMethodStr = (selectionMethod == 0) ? "nocut_" : ((selectionMethod == 1) ? "" : "jetId_");
+
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
     int collisionSystem = 1;         // 0 - pp, 1 - pPb, 2 - pPb5020, 3 - pPb8160
     double collisionEnergy = 8.16;   // 8.16 TeV
@@ -856,23 +872,23 @@ void plotEfficiencyAndFakes() {
     // Monte Carlo file
     TFile *f = nullptr;
     if ( direction < 2 ) {
-        f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+        f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta20.root", uname.Data(), directionStr.Data(), directionStr.Data(), selectionMethodStr.Data()) );
         if ( !f ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta20.root", uname.Data(), directionStr.Data(), directionStr.Data(), selectionMethodStr.Data()) << std::endl;
             return;
         }
     }
     else {
-        f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), selectionMethodStr.Data()) );
         if ( !f ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), selectionMethodStr.Data()) << std::endl;
             return;
         }
     }
 
     // Plot efficiency
-    plotEfficiency(f, collisionSystem, collisionEnergy, jetType, date);
+    // plotEfficiency(f, collisionSystem, collisionEnergy, jetType, date);
 
     // Plot fakes
-    // plotFakes(f, collisionSystem, collisionEnergy, jetType, date);
+    plotFakes(f, collisionSystem, collisionEnergy, date);
 }

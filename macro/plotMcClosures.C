@@ -857,17 +857,17 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         rescaleEta( hRefSelDijetEta1DLab[i] );
 
         hReco2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DLab[i]->Clone( Form("hReco2GenDijetEta1DLab_%d", i) ) );
-        hReco2GenDijetEta1DLab[i]->Reset();
-        computeNonBinomialRatio( hRecoDijetEta1DLab[i], hGenDijetEta1DLab[i], hReco2GenDijetEta1DLab[i] );
-        // hReco2GenDijetEta1DLab[i]->Divide( hReco2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1. );
+        // hReco2GenDijetEta1DLab[i]->Reset();
+        // computeNonBinomialRatio( hRecoDijetEta1DLab[i], hGenDijetEta1DLab[i], hReco2GenDijetEta1DLab[i] );
+        hReco2GenDijetEta1DLab[i]->Divide( hReco2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1. );
         hRef2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRefDijetEta1DLab[i]->Clone( Form("hRef2GenDijetEta1DLab_%d", i) ) );
-        hRef2GenDijetEta1DLab[i]->Reset();
-        computeBinomialRatio( hRefDijetEta1DLab[i], hGenDijetEta1DLab[i], hRef2GenDijetEta1DLab[i] );
-        // hRef2GenDijetEta1DLab[i]->Divide( hRef2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
+        // hRef2GenDijetEta1DLab[i]->Reset();
+        // computeBinomialRatio( hRefDijetEta1DLab[i], hGenDijetEta1DLab[i], hRef2GenDijetEta1DLab[i] );
+        hRef2GenDijetEta1DLab[i]->Divide( hRef2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
         hRefSel2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRefSelDijetEta1DLab[i]->Clone( Form("hRefSel2GenDijetEta1DLab_%d", i) ) );
-        hRefSel2GenDijetEta1DLab[i]->Reset();
-        computeBinomialRatio( hRefSelDijetEta1DLab[i], hGenDijetEta1DLab[i], hRefSel2GenDijetEta1DLab[i] );
-        // hRefSel2GenDijetEta1DLab[i]->Divide( hRefSel2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
+        // hRefSel2GenDijetEta1DLab[i]->Reset();
+        // computeBinomialRatio( hRefSelDijetEta1DLab[i], hGenDijetEta1DLab[i], hRefSel2GenDijetEta1DLab[i] );
+        hRefSel2GenDijetEta1DLab[i]->Divide( hRefSel2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
 
         //
         // CM frame
@@ -890,17 +890,17 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         rescaleEta( hRefSelDijetEta1DCM[i] );
         
         hReco2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DCM[i]->Clone( Form("hReco2GenDijetEta1DCM_%d", i) ) );
-        hReco2GenDijetEta1DCM[i]->Reset();
-        computeNonBinomialRatio( hRecoDijetEta1DCM[i], hGenDijetEta1DCM[i], hReco2GenDijetEta1DCM[i] );
-        // hReco2GenDijetEta1DCM[i]->Divide( hReco2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1. /* , "b" */ );
+        // hReco2GenDijetEta1DCM[i]->Reset();
+        // computeNonBinomialRatio( hRecoDijetEta1DCM[i], hGenDijetEta1DCM[i], hReco2GenDijetEta1DCM[i] );
+        hReco2GenDijetEta1DCM[i]->Divide( hReco2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1. /* , "b" */ );
         hRef2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRefDijetEta1DCM[i]->Clone( Form("hRef2GenDijetEta1DCM_%d", i) ) );
-        hRef2GenDijetEta1DCM[i]->Reset();
-        computeBinomialRatio( hRefDijetEta1DCM[i], hGenDijetEta1DCM[i], hRef2GenDijetEta1DCM[i] );
-        // hRef2GenDijetEta1DCM[i]->Divide( hRef2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
+        // hRef2GenDijetEta1DCM[i]->Reset();
+        // computeBinomialRatio( hRefDijetEta1DCM[i], hGenDijetEta1DCM[i], hRef2GenDijetEta1DCM[i] );
+        hRef2GenDijetEta1DCM[i]->Divide( hRef2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
         hRefSel2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRefSelDijetEta1DCM[i]->Clone( Form("hRefSel2GenDijetEta1DCM_%d", i) ) );
-        hRefSel2GenDijetEta1DCM[i]->Reset();
-        computeBinomialRatio( hRefSelDijetEta1DCM[i], hGenDijetEta1DCM[i], hRefSel2GenDijetEta1DCM[i] );
-        // hRefSel2GenDijetEta1DCM[i]->Divide( hRefSel2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
+        // hRefSel2GenDijetEta1DCM[i]->Reset();
+        // computeBinomialRatio( hRefSelDijetEta1DCM[i], hGenDijetEta1DCM[i], hRefSel2GenDijetEta1DCM[i] );
+        hRefSel2GenDijetEta1DCM[i]->Divide( hRefSel2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
 
         //
         // Forward/backward ratios
@@ -2085,12 +2085,12 @@ void plotMcClosures() {
     // collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
     // jetType: 0 = Inclusive, 1 = Lead, 2 = SubLead
     // date: date string for saving the plots (default is "20250129")
-    inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
+    // inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
 
     //
     // Comparison of dijet reco and ref to gen distributions
     //
-    // dijetClosures( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    dijetClosures( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
 
     //

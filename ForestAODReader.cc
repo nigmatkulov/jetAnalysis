@@ -1264,13 +1264,14 @@ void ForestAODReader::fixIndices() {
         // Loop over reconstructed jets
         for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
             // Skip if no matched gen jet in ref info
+            
             // TODO: check why next line generates error (occasionally skips the first reco jet with matching gen jet)
-            // if (fRefJetPt[iRecoJet] < 0) continue;
+            if (fRefJetPt[iRecoJet] < 0) continue;
 
             float refEta = fRefJetEta[iRecoJet];
             float refPhi = fRefJetPhi[iRecoJet];
             // if ( abs( fRefJetPhi[iRgecoJet]) ) > std::numeric_limits<float>::max() ) continue;
-            float refPt = fRefJetPt[iRecoJet];
+            // float refPt = fRefJetPt[iRecoJet];
 
             float recoEta = fRecoJetEta[iRecoJet];
             // if ( abs( fRecoJetPhi[iRecoJet] ) > std::numeric_limits<float>::max() ) continue;
@@ -1286,8 +1287,8 @@ void ForestAODReader::fixIndices() {
 
                 float dR = sqrt( (recoEta - fGenJetEta[iGenJet]) * (recoEta - fGenJetEta[iGenJet]) +
                                  dphi * dphi );
-                bool matched = ( fabs(refEta - fGenJetEta[iGenJet]) < 2 * std::numeric_limits<float>::epsilon() &&
-                                 fabs(refPhi - fGenJetPhi[iGenJet]) < 2 * std::numeric_limits<float>::epsilon() &&
+                bool matched = ( fabs(refEta - fGenJetEta[iGenJet]) < 1e-6 &&
+                                 fabs(refPhi - fGenJetPhi[iGenJet]) < 1e-6 &&
                                  dR < 0.4);
 
                 if (fVerbose) {
