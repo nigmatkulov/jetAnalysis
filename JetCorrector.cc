@@ -296,7 +296,7 @@ double SingleJetCorrector::GetCorrection() {
     //std::cout << "Inside GetCorrection" << std::endl;
 
     int N = Formulas.size();
-    std::cout << "Formulas size: " << N << std::endl;
+    // std::cout << "Formulas size: " << N << std::endl;
 
     for (int iE = 0; iE < N; iE++) {
         //std::cout << "iE: " << iE << std::endl;
