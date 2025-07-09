@@ -886,7 +886,7 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     // Lab frame
     //
 
-    bool fIsGenDijetLabFound {false};
+    fIsGenDijetLabFound = {false};
     if ( !fDiJetCut ) {
         fIsGenDijetLabFound = true; // No cut, so dijet is always found
     } 
@@ -985,7 +985,7 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     // CM frame
     //
 
-    bool fIsGenDijetCMFound{false};
+    fIsGenDijetCMFound = {false};
     if ( !fDiJetCut ) {
         fIsGenDijetCMFound = true; // No cut, so dijet is always found
     } 
@@ -1288,7 +1288,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // Lab frame
     //
 
-    bool fIsRecoDijetLabFound{false}; 
+    fIsRecoDijetLabFound = {false}; 
     if ( !fDiJetCut ) {
         fIsRecoDijetLabFound = true; // No cut, so dijet is always found
     } 
@@ -1475,7 +1475,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // CM frame
     // 
 
-    bool fIsRecoDijetCMFound{false};
+    fIsRecoDijetCMFound = {false};
     if ( !fDiJetCut ) {
         fIsRecoDijetCMFound = true; // No cut, so dijet is always found
     } 
@@ -1794,7 +1794,7 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
     // Lab frame
     //
 
-    bool fIsRefSelDijetLabFound{false}; 
+    fIsRefSelDijetLabFound = {false}; 
     if ( !fDiJetCut ) {
         fIsRefSelDijetLabFound = true; // No cut, so dijet is always found
     } 
@@ -1880,7 +1880,7 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
     // CM frame
     //
 
-    bool fIsRefSelDijetCMFound{false};
+    fIsRefSelDijetCMFound = {false};
     if ( !fDiJetCut ) {
         fIsRefSelDijetCMFound = true; // No cut, so dijet is always found
     } 

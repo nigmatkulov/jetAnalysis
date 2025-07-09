@@ -306,11 +306,16 @@ double SingleJetCorrector::GetCorrection() {
         for (int iB = 0; iB < (int)BinTypes[iE].size(); iB++) {
             //std::cout << "iB: " << iB << std::endl;
             double Value = GetValue(BinTypes[iE][iB]);
-            //std::cout << "Value: " << Value << std::endl;
+            
             if (Value < BinRanges[iE][iB * 2] || Value > BinRanges[iE][iB * 2 + 1]) {
                 InBin = false;
                 //std::cout << "InBin = FALSE" << std::endl;
             }
+
+            // if ( InBin ) {
+            //     std::cout << "Value: " << Value << " Range: " << BinRanges[iE][iB * 2] 
+            //               << " - " << BinRanges[iE][iB * 2 + 1] << std::endl;
+            // }
         }
 
         if (InBin == false) continue;
@@ -331,11 +336,13 @@ double SingleJetCorrector::GetCorrection() {
             if (Dependencies[iE].size() <= i) continue;
 
             double Value = GetValue(Dependencies[iE][i]);
-            // std::cout << "Value: " << Value << std::endl;
+            // std::cout << "i: " << i << " value: " << Value 
+            //           << " Dependency [i*2]: " << DependencyRanges[iE][i * 2] 
+            //           << " - " << " Dependency [i*2 + 1]:" << DependencyRanges[iE][i * 2 + 1] << std::endl;
             if (Value < DependencyRanges[iE][i * 2]) {
                 Value = DependencyRanges[iE][i * 2];
             }
-            if (Value > DependencyRanges[iE][i * 2 + 1]){
+            if (Value > DependencyRanges[iE][i * 2 + 1]) {
                 Value = DependencyRanges[iE][i * 2 + 1];
             }
             V[i] = Value;
@@ -355,14 +362,22 @@ double SingleJetCorrector::GetCorrection() {
 
             Functions[iE] = Function;
         }
-        else
+        else {
             Function = Functions[iE];
+        }
 
-        for (int i = 0; i < (int)Parameters[iE].size(); i++)
+        for (int i = 0; i < (int)Parameters[iE].size(); i++) {
             Function->SetParameter(i, Parameters[iE][i]);
-        if (Dependencies[iE].size() == 4)
+        }
+        if (Dependencies[iE].size() == 4) {
             Function->SetParameter(Parameters[iE].size(), GetValue(Dependencies[iE][3]));
-        double Result = Function->EvalPar(V);
+        }
+
+        double Result = -1;
+        if ( Function ) {
+            Result = Function->EvalPar(V);
+        }
+        // std::cout << "Result: " << Result << std::endl;
 
 
         // std::cout << Formulas[iE] << std::endl;
