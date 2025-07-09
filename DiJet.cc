@@ -57,7 +57,7 @@ float DiJet::deltaPhi(const float& phi1, const float &phi2) {
 }
 
 //________________
-float wrapTo0to2Pi(const float &angle) {
+float DiJet::wrapTo0to2Pi(const float &angle) {
     float wrapped = std::fmod(angle, TMath::TwoPi());
     return wrapped < 0 ? wrapped + TMath::TwoPi() : wrapped;
 }
