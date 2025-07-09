@@ -50,8 +50,7 @@ void JetCorrector::Initialize(std::string File) {
 //_________________
 void JetCorrector::Initialize(std::vector<std::string> Files) {
     JEC.clear();
-    for (auto File : Files)
-    {
+    for (auto File : Files) {
         JEC.push_back(SingleJetCorrector(File));
     }
 }
@@ -69,7 +68,7 @@ double JetCorrector::GetCorrection() {
 double JetCorrector::GetCorrectedPT() {
     double PT = JetPT;
 
-    //std::cout << "GetCorrectedPT first: " << PT << std::endl;
+    // std::cout << "GetCorrectedPT first: " << PT << std::endl;
 
     for (int i = 0; i < (int)JEC.size(); i++) {
         JEC[i].SetJetPT(PT);
@@ -80,7 +79,9 @@ double JetCorrector::GetCorrectedPT() {
 
         PT = JEC[i].GetCorrectedPT();
 
-        //std::cout << "GetCorrectedPT mid: " << PT << std::endl;
+        // std::cout << "ptCorr: " << PT << " eta: " << JetEta 
+        //         << " phi: " << JetPhi << " area: " << JetArea 
+        //         << " rho: " << Rho  << std::endl;
 
         if (PT < 0) break;
     }
@@ -90,7 +91,7 @@ double JetCorrector::GetCorrectedPT() {
 }
 
 //________________
-SingleJetCorrector::SingleJetCorrector() : Initialized{false}, IsFunction{false},
+SingleJetCorrector::SingleJetCorrector() : Initialized{false}, /*IsFunction{false},*/
     JetPT{-999.}, JetEta{-999.}, JetPhi{-999.}, JetArea{-999.}, Rho{-999.},
     Formulas{}, Parameters{}, BinTypes{}, BinRanges{}, 
     Dependencies{}, DependencyRanges{}, Functions{} { 
@@ -99,7 +100,7 @@ SingleJetCorrector::SingleJetCorrector() : Initialized{false}, IsFunction{false}
 
 //________________
 SingleJetCorrector::SingleJetCorrector(std::string File) : 
-    Initialized{false}, IsFunction{false}, 
+    Initialized{false}, /*IsFunction{false},*/
     JetPT{-999.}, JetEta{-999.}, JetPhi{-999.}, JetArea{-999.}, Rho{-999.},
     Formulas{}, Parameters{}, BinTypes{}, BinRanges{}, 
     Dependencies{}, DependencyRanges{}, Functions{} { 
@@ -295,8 +296,7 @@ double SingleJetCorrector::GetCorrection() {
     //std::cout << "Inside GetCorrection" << std::endl;
 
     int N = Formulas.size();
-
-    //std::cout << "Formulas size: " << N << std::endl;
+    std::cout << "Formulas size: " << N << std::endl;
 
     for (int iE = 0; iE < N; iE++) {
         //std::cout << "iE: " << iE << std::endl;
@@ -313,8 +313,7 @@ double SingleJetCorrector::GetCorrection() {
             }
         }
 
-        if (InBin == false)
-            continue;
+        if (InBin == false) continue;
 
         if (Dependencies[iE].size() == 0) {
             //std::cout << "Dependencies size: 0" << std::endl; 
@@ -329,7 +328,7 @@ double SingleJetCorrector::GetCorrection() {
         double V[3] = {0, 0, 0};
         for (int i = 0; i < 3; i++) {
 
-            if ((int)Dependencies[iE].size() <= i) continue;
+            if (Dependencies[iE].size() <= i) continue;
 
             double Value = GetValue(Dependencies[iE][i]);
             // std::cout << "Value: " << Value << std::endl;

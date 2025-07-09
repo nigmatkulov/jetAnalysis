@@ -1682,7 +1682,7 @@ void HistoManagerDiJet::init() {
         hGenDijetPtEtaCMBackwardWeighted->Sumw2();
 
 
-        for (int i=0; i<fPtAveBins.size()-1; i++) {
+        for (int i=0; i< (int)(fPtAveBins.size()-1); i++) {
             double ptAveLow = fPtAveBins.at(i);
             double ptAveHi = fPtAveBins.at(i+1);
             hGenDijetEta1D[i] = new TH1D(Form("hGenDijetEta1D_%d",i), Form("Gen #eta^{dijet} in the lab frame in %d for %3.0f<p_{T} (GeV)<%3.0f;#eta^{dijet};dN/d#eta^{dijet}",i, ptAveLow, ptAveHi),
@@ -1748,7 +1748,7 @@ void HistoManagerDiJet::init() {
             hGenDijetEtaCMBackward1DWeighted[i]->Sumw2();
         }
 
-        for (int i=0; i<fPtAveOldBins.size()-1; i++) {
+        for (int i=0; i<(int)(fPtAveOldBins.size()-1); i++) {
 
             double ptAveLow = fPtAveOldBins.at(i);
             double ptAveHi = fPtAveOldBins.at(i+1);

@@ -624,7 +624,7 @@ void JetESRAnalysis::processGenJets(const Event* event, const double &weight) {
                 fHM->hGenSubLeadJetPtEta->Fill(eta, pt, weight);
                 fHM->hGenSubLeadJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
             }
-    
+
             if ( pt > 30. ) {
                 fHM->hGenGoodInclusiveJetEtaLabFrame->Fill( etaLab(eta), weight);
                 fHM->hGenGoodInclusiveJetEtaCMFrame->Fill( boostEta2CM(eta), weight );
@@ -662,8 +662,6 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
         float eta = etaLab( (*recoJetIter)->eta() );
         float phi = (*recoJetIter)->phi();
         float ptRaw = (*recoJetIter)->rawPt();
-
-        if ( fabs(phi) > std::numeric_limits<float>::max() ) continue;
 
         if ( fVerbose ) {
             if ( !fIsMc ) {
@@ -741,7 +739,20 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
                 float genEta = etaLab( matchedJet->eta() );
                 float genPhi = matchedJet->phi();
 
+                if ( fabs( genPt ) < 1e-6 ) {
+                    std::cerr << "JetESRAnalysis::processRecoJets -- ref jet pt is zero. Skip processing." << std::endl;
+                    continue;
+                }
+
+                if ( fabs( genPt ) > std::numeric_limits<float>::max() ||
+                     fabs( genEta ) > std::numeric_limits<float>::max() ||
+                     fabs( genPhi )  > std::numeric_limits<float>::max() ) {
+                    std::cerr << "JetESRAnalysis::processRecoJets -- ref jet properties are crazy. Skip processing." << std::endl;
+                    continue;
+                }
+
                 float JES = pt/genPt;
+
                 double res1[4] = { JES, genPt, genEta, ptHat };
                 double res2[4] = { JES, pt, eta, ptHat };
 
@@ -773,6 +784,7 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
 
                 // Leading jet
                 if ( (fRecoIdLead >= 0) && ((recoJetCounter-1) == fRecoIdLead) ) {
+
                     fHM->hLeadingJetJESGenPtEtaPtHatWeighted->Fill( res1, weight );
                     // Leading matched reco jet
                     fHM->hRecoLeadMatchedJetPtEta->Fill( eta, pt, weight);
@@ -780,9 +792,7 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
                     // Leading ref jet
                     fHM->hRefLeadJetPtEta->Fill( genEta, genPt, weight );
                     fHM->hRefLeadJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
-
                     fHM->hLeadReco2RefJetPtEtaPhiPtHat->Fill( reco2refJetPtEtaPhiPtHat, weight );
-
                     if ( (*recoJetIter)->genJetId() == fGenIdLead ) {
                         fHM->hRefLeadUnswappedJetPtEta->Fill( genEta, genPt, weight );
                         fHM->hRefLeadUnswappedJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
@@ -807,9 +817,9 @@ void JetESRAnalysis::processRecoJets(const Event* event, const double &weight) {
                         fHM->hRefSubLeadUnswappedJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
                     }
                 }
-
             } // if ( (*recoJetIter)->hasMatching() )
             else {
+
                 // Fill unmatched reco jets
                 fHM->hRecoInclusiveUnmatchedJetPt->Fill(pt, weight);
                 fHM->hRecoInclusiveUnmatchedJetPtEta->Fill(eta, pt, weight);
@@ -859,7 +869,7 @@ void JetESRAnalysis::processRefJets(const Event* event, const double &weight) {
 
             refSelJetCounter++;
 
-            if ( fabs( (*recoJetIter)->phi() ) > std::numeric_limits<float>::max() ) continue;
+            // if ( fabs( (*recoJetIter)->phi() ) > std::numeric_limits<float>::max() ) continue;
 
             // Check selection criteria (*recoJet, isCM, isMC, requireMatching)
             if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, true, true) ) continue; 

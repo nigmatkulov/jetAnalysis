@@ -23,6 +23,8 @@
 
 //________________
 HistoManagerJetESR::HistoManagerJetESR() :
+    BaseHistoManager(),
+
     //
     // Event histograms
     //
