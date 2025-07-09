@@ -251,9 +251,9 @@ int main(int argc, char const *argv[]) {
     TString JECFileName;
     TString JECFileDataName;
     TString JEUFileName;
-    // TString path2JEC = "..";
+    TString path2JEC = "..";
     // For debugging purposes (using VS Code)
-    TString path2JEC = "/Users/gnigmat/work/cms/soft/jetAnalysis";
+    // TString path2JEC = "/Users/gnigmat/work/cms/soft/jetAnalysis";
     float ptHatCut[2] {15., 30.};
     int   useJEUSyst{0};     // 0-default, 1-JEU+, -1-JEU-
     int   useJERSyst{-99};   // 0-default, 1-JER+, -1-JER-, other - only JEC is applied
