@@ -1,0 +1,74 @@
+universe   = vanilla
+getenv     = True
+executable = run_dijetAna_pPb8160.sh
++JobFlavour  = "workday"
+requirements = ((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
+transfer_input_files  = voms_proxy.txt
+environment = "X509_USER_PROXY=voms_proxy.txt"
+RequestCpus = 2
+
+log        = condor/log/pthat15_emb_pgoing.log
+output     = condor/log/pthat15_emb_pgoing.out
+error      = condor/log/pthat15_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat15_pgoing_embedded.root oEmbedding_pPb8160_pgoing_15.root 1 0 15 30 0 -99 0 1
+queue
+
+log        = condor/log/pthat30_emb_pgoing.log
+output     = condor/log/pthat30_emb_pgoing.out
+error      = condor/log/pthat30_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat30_pgoing_embedded.root oEmbedding_pPb8160_pgoing_30.root 1 0 30 50 0 -99 0 1
+queue
+
+log        = condor/log/pthat50_emb_pgoing.log
+output     = condor/log/pthat50_emb_pgoing.out
+error      = condor/log/pthat50_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat50_pgoing_embedded.root oEmbedding_pPb8160_pgoing_50.root 1 0 50 80 0 -99 0 1
+queue
+
+log        = condor/log/pthat80_emb_pgoing.log
+output     = condor/log/pthat80_emb_pgoing.out
+error      = condor/log/pthat80_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat80_pgoing_embedded.root oEmbedding_pPb8160_pgoing_80.root 1 0 80 120 0 -99 0 1
+queue
+
+log        = condor/log/pthat120_emb_pgoing.log
+output     = condor/log/pthat120_emb_pgoing.out
+error      = condor/log/pthat120_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat120_pgoing_embedded.root oEmbedding_pPb8160_pgoing_120.root 1 0 120 170 0 -99 0 1
+queue
+
+log        = condor/log/pthat170_emb_pgoing.log
+output     = condor/log/pthat170_emb_pgoing.out
+error      = condor/log/pthat170_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat170_pgoing_embedded.root oEmbedding_pPb8160_pgoing_170.root 1 0 170 220 0 -99 0 1
+queue
+
+log        = condor/log/pthat220_emb_pgoing.log
+output     = condor/log/pthat220_emb_pgoing.out
+error      = condor/log/pthat220_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat220_pgoing_embedded.root oEmbedding_pPb8160_pgoing_220.root 1 0 220 280 0 -99 0 1
+queue
+
+log        = condor/log/pthat280_emb_pgoing.log
+output     = condor/log/pthat280_emb_pgoing.out
+error      = condor/log/pthat280_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat280_pgoing_embedded.root oEmbedding_pPb8160_pgoing_280.root 1 0 280 370 0 -99 0 1
+queue
+
+log        = condor/log/pthat370_emb_pgoing.log
+output     = condor/log/pthat370_emb_pgoing.out
+error      = condor/log/pthat370_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat370_pgoing_embedded.root oEmbedding_pPb8160_pgoing_370.root 1 0 370 460 0 -99 0 1
+queue
+
+log        = condor/log/pthat460_emb_pgoing.log
+output     = condor/log/pthat460_emb_pgoing.out
+error      = condor/log/pthat460_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat460_pgoing_embedded.root oEmbedding_pPb8160_pgoing_460.root 1 0 460 540 0 -99 0 1
+queue
+
+log        = condor/log/pthat540_emb_pgoing.log
+output     = condor/log/pthat540_emb_pgoing.out
+error      = condor/log/pthat540_emb_pgoing.err
+arguments  = /eos/cms/store/group/phys_heavyions_ops/ddesouza/Jets_pPb/MC_withjetid/embedded/pgoing/HiForestSkim_pPb_MC_pthat540_pgoing_embedded.root oEmbedding_pPb8160_pgoing_540.root 1 0 540 8160 0 -99 0 1
+queue
