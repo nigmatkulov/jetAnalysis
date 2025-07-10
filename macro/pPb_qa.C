@@ -884,110 +884,65 @@ void plotJetIdHistos(TFile *inFile, TString date) {
         direction = "pgoing";
     }
     else {
-        direction = "unknownDir";
+        direction = "combined";
     }
 
-    // Retrieve histograms
-    TH1D *hNHF[4];
-    TH1D *hNEmF[4];
-    TH1D *hNumOfConst[4];
-    TH1D *hMUF[4];
-    TH1D *hCHF[4];
-    TH1D *hChargedMult[4];
-    TH1D *hCEmF[4];
-    TH1D *hNumOfNeutPart[4];
+    // Eta bin labels
+    const char* etaLabels[4] = {
+        "-2.4 #leq #eta #leq 2.4",
+        "2.4 < |#eta| #leq 2.7",
+        "2.7 < |#eta| #leq 3.0",
+        "|#eta| > 3.0"
+    };
 
-    TCanvas *c[4];
-    TString text;
+    // Histogram base names and titles
+    const char* histBaseNames[8] = {
+        "hRecoInclusiveJetNHF",
+        "hRecoInclusiveJetNEmF",
+        "hRecoInclusiveJetNumOfConst",
+        "hRecoInclusiveJetMUF",
+        "hRecoInclusiveJetCHF",
+        "hRecoInclusiveJetChargedMult",
+        "hRecoInclusiveJetCEmF",
+        "hRecoInclusiveJetNumOfNeutPart"
+    };
+
+    const char* histTitles[8] = {
+        "NHF", "NEmF", "NumOfConst", "MUF", "CHF", "ChargedMult", "CEmF", "NumOfNeutPart"
+    };
+
     TLatex t;
     t.SetTextFont(42);
     t.SetTextSize(0.06);
 
-    // Loop over 4 eta bins
-    for (Int_t i{0}; i<4; i++) {
+    // TODO: Move canvas creation here. Set styles 0-2 and 6
+    // Save individual canvas at the end
 
-        if      ( i == 0 ) { text = "-2.4 #leq #eta #leq 2.4"; }
-        else if ( i == 1 ) { text = "2.4 < |#eta| #leq 2.7"; }
-        else if ( i == 2 ) { text = "2.7 < |#eta| #leq 3.0"; }
-        else               { text = "|#eta| > 3.0"; }
-
-
-        hNHF[i] = (TH1D*)inFile->Get(Form("hNHF_%d",i));
-        set1DStyle(hNHF[i], 0, kTRUE);
-
-        hNEmF[i] = (TH1D*)inFile->Get(Form("hNEmF_%d",i));
-        set1DStyle(hNEmF[i], 0, kTRUE);
-
-        hNumOfConst[i] = (TH1D*)inFile->Get(Form("hNumOfConst_%d",i));
-        set1DStyle(hNumOfConst[i], 0, kTRUE);
-
-        hMUF[i] = (TH1D*)inFile->Get(Form("hMUF_%d",i));
-        set1DStyle(hMUF[i], 0, kTRUE);
-
-        hCHF[i] = (TH1D*)inFile->Get(Form("hCHF_%d",i));
-        set1DStyle(hCHF[i], 0, kTRUE);
-
-        hChargedMult[i] = (TH1D*)inFile->Get(Form("hChargedMult_%d",i));
-        set1DStyle(hChargedMult[i], 0, kTRUE);
-
-        hCEmF[i] = (TH1D*)inFile->Get(Form("hCEmF_%d",i));
-        set1DStyle(hCEmF[i], 0, kTRUE);
-
-        hNumOfNeutPart[i] = (TH1D*)inFile->Get(Form("hNumOfNeutPart_%d",i));
-        set1DStyle(hNumOfNeutPart[i], 0, kTRUE);
-
-        c[i] = new TCanvas(Form("c%d",i), Form("c%d",i), 1200, 800);
-        c[i]->Divide(4, 2);
-
-        c[i]->cd(1);
+    // Loop over histogram types
+    for (int h = 0; h < 8; ++h) {
+        TCanvas *c = new TCanvas(Form("c_%s", histBaseNames[h]), Form("c_%s", histBaseNames[h]), 1000, 800);
+        c->cd();
         setPadStyle();
-        hNEmF[i]->Draw();
-        gPad->SetLogy();
-        t.DrawLatexNDC(0.4, 0.93, text.Data() );
+        TLegend *leg = new TLegend(0.6, 0.7, 0.88, 0.88);
+        leg->SetTextSize(0.045);
+        leg->SetLineWidth(0);
 
-        c[i]->cd(2);
-        setPadStyle();
-        hNHF[i]->Draw();
-        gPad->SetLogy();
-        t.DrawLatexNDC(0.4, 0.93, text.Data() );
-
-        c[i]->cd(3);
-        setPadStyle();
-        hNumOfConst[i]->Draw();
-        gPad->SetLogy();
-        t.DrawLatexNDC(0.4, 0.93, text.Data() );
-
-        c[i]->cd(4);
-        setPadStyle();
-        hMUF[i]->Draw();
-        gPad->SetLogy();
-        t.DrawLatexNDC(0.4, 0.93, text.Data() );
-
-        c[i]->cd(5);
-        setPadStyle();
-        hCHF[i]->Draw();
-        gPad->SetLogy();
-        t.DrawLatexNDC(0.4, 0.93, text.Data() );
-
-        c[i]->cd(6);
-        setPadStyle();
-        hChargedMult[i]->Draw();
-        gPad->SetLogy();
-        t.DrawLatexNDC(0.4, 0.93, text.Data() );
-
-        c[i]->cd(7);
-        setPadStyle();
-        hCEmF[i]->Draw();
-        gPad->SetLogy();
-        t.DrawLatexNDC(0.4, 0.93, text.Data() );
-
-        c[i]->cd(8);
-        setPadStyle();
-        hNumOfNeutPart[i]->Draw();
-        gPad->SetLogy();
-        t.DrawLatexNDC(0.4, 0.93, text.Data() );
-
-        c[i]->SaveAs(Form("%s/pPb8160_%s_jetId_%d.pdf", date.Data(), direction.Data(), i) );
+        for (int i = 0; i < 4; ++i) {
+            TH1D *h1 = (TH1D*)inFile->Get(Form("%s_%d", histBaseNames[h], i));
+            if (!h1) continue;
+            (i < 3) ? set1DStyle(h1, i, kTRUE) : set1DStyle(h1, 6, kTRUE);
+            if (i == 0){
+                h1->Draw();
+            }
+            else{
+                h1->Draw("SAME");
+            }
+            leg->AddEntry(h1, etaLabels[i], "p");
+        }
+        leg->Draw();
+        t.DrawLatexNDC(0.15, 0.93, histTitles[h]);
+        c->SaveAs(Form("%s/pPb8160_%s_%s.pdf", date.Data(), direction.Data(), histTitles[h]));
+        delete c;
     }
 }
 
@@ -3189,11 +3144,39 @@ void pPb_qa() {
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
+    // Username of the machine
+    TString uname = gSystem->GetFromPipe("whoami");
+
+    int collisionSystem = 1;         // 0 - pp, 1 - pPb, 2 - pPb5020, 3 - pPb8160
+    double collisionEnergy = 8.16;   // 8.16 TeV
+    int direction = 2;               // 0-p-going, 1-Pb-going, 2 - combined
+    TString directionStr = (direction == 0) ? "pgoing" : ((direction == 1) ? "Pbgoing" : "");
+    int dataTrigger = 0;               // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
+    TString dataStr = (dataTrigger == 0) ? "MB" : ((dataTrigger == 1) ? "Jet60" : ((dataTrigger == 2) ? "Jet80" : ((dataTrigger == 3) ? "Jet100" : "unknownData")));
+    TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
+    int jetType = 0; // 0 - inclusive, 1 - lead, 2 - sublead
+    int matchType = 0; // 0 - inclusive, 1 - matched, 2 - unmatched
+
     // File names
     // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root";
     // const Char_t *embeddingFileName = "../build/oEmbedding_pPb8160_Pbgoing_ak4.root";
     // const Char_t *embeddingFileName = "../build/oEmbedding_pPb8160_pgoing_ak4.root";
-    const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4.root";
+    TFile *embFile = nullptr;
+    if ( direction < 2 ) {
+        embFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+        if ( !embFile ) {
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+            return;
+        }
+    }
+    else {
+        embFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        if ( !embFile ) {
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            return;
+        }
+    }
+
     // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightMB_ak4.root";
     // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightJet60_ak4.root";
     // const Char_t *embeddingFileName = "/Users/gnigmat/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_weightJet80_ak4.root";
@@ -3204,14 +3187,12 @@ void pPb_qa() {
     const Char_t *jet100FileName = "/Users/gnigmat/cernbox/ana/pPb8160/exp/Jet100_pPb8160_ak4.root";
 
     // Files
-    TFile *embFile = TFile::Open(embeddingFileName);
     TFile *mbFile = TFile::Open(mbFileName);
     TFile *jet60File = TFile::Open(jet60FileName);
     TFile *jet80File = TFile::Open(jet80FileName);
     TFile *jet100File = TFile::Open(jet100FileName);
 
     // Check files are good
-    if ( !isGoodFile( embFile ) ) return;
     if ( !isGoodFile( mbFile ) ) return;
     if ( !isGoodFile( jet60File ) ) return;
     if ( !isGoodFile( jet80File ) ) return;
@@ -3244,7 +3225,7 @@ void pPb_qa() {
     // plotEfficiency(embFile, date);
 
     // Plot dijet distributions
-    plotDijetDistributions(embFile, mbFile, jet60File, jet80File, jet100File, date);
+    // plotDijetDistributions(embFile, mbFile, jet60File, jet80File, jet100File, date);
 
     // Plot reco, reco with matching and calculate fakes
     // plotRecoAndFakes(embFile, date);
@@ -3253,7 +3234,7 @@ void pPb_qa() {
     // plotEtaDijetCorrelation(embFile, date);
 
     // Plot distributions for jetId
-    // plotJetIdHistos(embFile, date);
+    plotJetIdHistos(embFile, date);
 
     // Plot JES and JER
     // plotJESandJER(embFile, date, 1);

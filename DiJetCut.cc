@@ -1,0 +1,113 @@
+// Jet analysis headers
+#include "DiJetCut.h"
+
+// ROOT headers
+#include "TString.h"
+
+// C++ headers
+#include <iostream>
+#include <cmath>
+
+//________________
+DiJetCut::DiJetCut() : fLeadJetPt{0.0f}, fSubLeadJetPt{0.0f},
+                       fLeadJetEtaLab{-1000.f, 1000.f}, fSubLeadJetEtaLab{-1000.f, 1000.f},
+                       fLeadJetEtaCM{-1000.f, 1000.f}, fSubLeadJetEtaCM{-1000.f, 1000.f},
+                       fDijetDPhiCut{0.f}, fVerbose{false} {
+    // Default constructor initializes all members to default values
+}
+
+//________________
+DiJetCut::~DiJetCut() {
+    // Destructor does nothing for now
+}
+
+//________________
+DiJetCut& DiJetCut::operator=(const DiJetCut& other) {
+    // Assignment operator
+    if (this != &other) {
+        fLeadJetPt = other.fLeadJetPt;
+        fSubLeadJetPt = other.fSubLeadJetPt;
+        fLeadJetEtaLab[0] = other.fLeadJetEtaLab[0];
+        fLeadJetEtaLab[1] = other.fLeadJetEtaLab[1];
+        fSubLeadJetEtaLab[0] = other.fSubLeadJetEtaLab[0];
+        fSubLeadJetEtaLab[1] = other.fSubLeadJetEtaLab[1];
+        fLeadJetEtaCM[0] = other.fLeadJetEtaCM[0];
+        fLeadJetEtaCM[1] = other.fLeadJetEtaCM[1];
+        fSubLeadJetEtaCM[0] = other.fSubLeadJetEtaCM[0];
+        fSubLeadJetEtaCM[1] = other.fSubLeadJetEtaCM[1];
+        fDijetDPhiCut = other.fDijetDPhiCut;
+        fVerbose = other.fVerbose;
+    }
+    return *this;
+}
+
+//________________
+bool DiJetCut::operator==(const DiJetCut& other) const {
+    // Compare all members for equality
+    return (fLeadJetPt == other.fLeadJetPt &&
+            fSubLeadJetPt == other.fSubLeadJetPt &&
+            fLeadJetEtaLab[0] == other.fLeadJetEtaLab[0] &&
+            fLeadJetEtaLab[1] == other.fLeadJetEtaLab[1] &&
+            fSubLeadJetEtaLab[0] == other.fSubLeadJetEtaLab[0] &&
+            fSubLeadJetEtaLab[1] == other.fSubLeadJetEtaLab[1] &&
+            fLeadJetEtaCM[0] == other.fLeadJetEtaCM[0] &&
+            fLeadJetEtaCM[1] == other.fLeadJetEtaCM[1] &&
+            fSubLeadJetEtaCM[0] == other.fSubLeadJetEtaCM[0] &&
+            fSubLeadJetEtaCM[1] == other.fSubLeadJetEtaCM[1] &&
+            fDijetDPhiCut == other.fDijetDPhiCut &&
+            fVerbose == other.fVerbose);
+}
+
+//________________
+void DiJetCut::report() {
+    TString report = "Reporting from DiJetCut\n";
+    report += TString::Format("--> Minimum leading jet pT: %.2f\n", fLeadJetPt);
+    report += TString::Format("--> Minimum subleading jet pT: %.2f\n", fSubLeadJetPt);
+    report += TString::Format("--> Leading jet eta (lab frame): [%f - %f]\n", fLeadJetEtaLab[0], fLeadJetEtaLab[1]);
+    report += TString::Format("--> Subleading jet eta (lab frame): [%f - %f]\n", fSubLeadJetEtaLab[0], fSubLeadJetEtaLab[1]);
+    report += TString::Format("--> Leading jet eta (CM frame): [%f - %f]\n", fLeadJetEtaCM[0], fLeadJetEtaCM[1]);
+    report += TString::Format("--> Subleading jet eta (CM frame): [%f - %f]\n", fSubLeadJetEtaCM[0], fSubLeadJetEtaCM[1]);
+    report += TString::Format("--> Dijet dPhi cut: %f\n", fDijetDPhiCut);
+    std::cout << report.Data() << std::endl;
+}
+
+//________________
+bool DiJetCut::pass(const DiJet* dijet, bool isCM) {
+    // Check if the dijet passes the cut criteria
+    if (!dijet) {
+        std::cerr << "DiJetCut::pass: dijet pointer is null!" << std::endl;
+        return false;
+    }
+
+    float eta1 = ( isCM ) ? dijet->leadJetEtaCM() : dijet->leadJetEtaLab();
+    float eta2 = ( isCM ) ? dijet->subLeadJetEtaCM() : dijet->subLeadJetEtaLab();
+    float pt1 = dijet->leadJetPt();
+    float pt2 = dijet->subLeadJetPt();
+    float dphi = fabs( dijet->dPhi() );
+
+    if ( fVerbose ) {
+        std::cout << "DiJetCut::pass: Checking dijet with parameters in " << (isCM ? "CM" : "lab") << " frame:" << std::endl;
+        std::cout << Form("--> Lead jet pT: %.2f > %.2f  %s\n", pt1, fLeadJetPt, ((pt1 > fLeadJetPt) ? "[passed]" : "[failed]"));
+        std::cout << Form("--> Sublead jet pT: %.2f > %.2f  %s\n", pt2, fSubLeadJetPt, (pt2 > fSubLeadJetPt) ? "[passed]" : "[failed]");
+        std::cout << Form("--> Lead jet eta: %.2f in [%f, %f]  %s\n", eta1, fLeadJetEtaLab[0], fLeadJetEtaLab[1], 
+                          ((eta1 >= fLeadJetEtaLab[0] && eta1 <= fLeadJetEtaLab[1]) ? "[passed]" : "[failed]"));
+        std::cout << Form("--> Sublead jet eta: %.2f in [%f, %f]  %s\n", eta2, fSubLeadJetEtaLab[0], fSubLeadJetEtaLab[1], 
+                          ((eta2 >=  fSubLeadJetEtaLab[0] && eta2 <= fSubLeadJetEtaLab[1]) ? "[passed]" : "[failed]"));
+        std::cout << Form("--> Dijet dPhi: %.2f > %.2f  %s\n", dphi, fDijetDPhiCut,
+                          ((dphi > fDijetDPhiCut) ? "[passed]" : "[failed]"));
+    }
+
+    if (pt1 < fLeadJetPt) return false;
+    if (pt2 < fSubLeadJetPt) return false;
+    if ( isCM ) {
+        if (eta1 < fLeadJetEtaCM[0] || eta1 > fLeadJetEtaCM[1]) return false;
+        if (eta2 < fSubLeadJetEtaCM[0] || eta2 > fSubLeadJetEtaCM[1]) return false;
+    } 
+    else {
+        if (eta1 < fLeadJetEtaLab[0] || eta1 > fLeadJetEtaLab[1]) return false;
+        if (eta2 < fSubLeadJetEtaLab[0] || eta2 > fSubLeadJetEtaLab[1]) return false;
+    }
+    if (dphi < fDijetDPhiCut) return false;
+
+    return true;
+}

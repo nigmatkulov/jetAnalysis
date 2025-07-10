@@ -27,38 +27,41 @@ class RecoJet : public BaseJet {
     /// @brief Destructor
     virtual ~RecoJet() { /* empty */ }
 
+    /// @brief Equality operator to compare two RecoJet objects
+    bool operator==(const RecoJet& other) const;
+
     //
     // Setters
     //
 
     /// @brief Set reconstructed jet JEC-corrected pt
-    void setPtJECCorr(const Float_t& pt) { fPtJECCorr = {pt}; }
+    void setPtJECCorr(const float& pt) { fPtJECCorr = pt; }
     /// @brief Set index of the matched GenJet
-    void setGenJetId(const Int_t& id)    { fGenJetId = (Char_t)id; }
+    void setGenJetId(const int& id)    { fGenJetId = (Short_t)id; }
     /// @brief Set transverse momentum of tracks in jet
-    void setRawPt(const Float_t& pt)     { fRawPt = pt; }
+    void setRawPt(const float& pt)     { this->setPt(pt); }
     /// @brief Set momentum of the track with the highest pt in the jet
-    void setTrackMaxPt(const Float_t& pt){ fTrackPtMax = pt; }
+    void setTrackMaxPt(const float& pt){ fTrackPtMax = pt; }
     /// @brief Set neutral hadron fraction
-    void setJtPfNHF(const Float_t& x) { fJtPfNHF = x; }
+    void setJtPfNHF(const float& x) { fJtPfNHF = x; }
     /// @brief Set neutral ElectroMagnetic (EM) fraction
-    void setJtPfNEF(const Float_t& x) { fJtPfNEF = x; }
+    void setJtPfNEF(const float& x) { fJtPfNEF = x; }
     /// @brief Set charged hadron fraction
-    void setJtPfCHF(const Float_t& x) { fJtPfCHF = x; }
+    void setJtPfCHF(const float& x) { fJtPfCHF = x; }
     /// @brief Set muon fraction
-    void setJtPfMUF(const Float_t& x) { fJtPfMUF = x; }
+    void setJtPfMUF(const float& x) { fJtPfMUF = x; }
     /// @brief Set charged ElectroMagnetic fraction
-    void setJtPfCEF(const Float_t& x) { fJtPfCEF = x; }
+    void setJtPfCEF(const float& x) { fJtPfCEF = x; }
     /// @brief Set charged hadron multiplicity
-    void setJtPfCHM(const Int_t& x) { fJtPfCHM = (UChar_t)x; }
+    void setJtPfCHM(const int& x) { fJtPfCHM = (UChar_t)x; }
     /// @brief Set charged EM multiplicity
-    void setJtPfCEM(const Int_t& x) { fJtPfCEM = (UChar_t)x; }
+    void setJtPfCEM(const int& x) { fJtPfCEM = (UChar_t)x; }
     /// @brief Set neutral hadron multiplicity
-    void setJtPfNHM(const Int_t& x) { fJtPfNHM = (UChar_t)x; }
+    void setJtPfNHM(const int& x) { fJtPfNHM = (UChar_t)x; }
     /// @brief Set neutral EM multiplicity
-    void setJtPfNEM(const Int_t& x) { fJtPfNEM = (UChar_t)x; }
+    void setJtPfNEM(const int& x) { fJtPfNEM = (UChar_t)x; }
     /// @brief Set muon multiplicity
-    void setJtPfMUM(const Int_t& x) { fJtPfMUM = (UChar_t)x; }
+    void setJtPfMUM(const int& x) { fJtPfMUM = (UChar_t)x; }
 
 
     /// @brief Print parameters of the given jet
@@ -69,49 +72,54 @@ class RecoJet : public BaseJet {
     //
 
     /// @brief Transverse momentum after JEC
-    Float_t ptJECCorr() const { return fPtJECCorr; }
+    float ptJECCorr() const { return fPtJECCorr; }
     /// @brief Return reconstructed jet parameters
     TVector3 vecJECCorr() const 
     { TVector3 v; v.SetPtEtaPhi(fPtJECCorr, this->eta(), this->phi()); return v; }
     /// @brief Check if reconstructed jet has matched MC jet 
-    Bool_t hasMatching() const  
+    bool hasMatching() const  
     { return (fGenJetId < 0) ? kFALSE : kTRUE; }
     /// @brief Index of the matched GenJet
-    Int_t genJetId() const  { return (Int_t)fGenJetId; }
+    int genJetId() const  { return (int)fGenJetId; }
     /// @brief Return sum of tracks pT in the jet
-    Float_t rawPt() const      { return fRawPt; }
+    float rawPt() const      { return this->pt(); }
     /// @brief Return transverse momentum of the track with highest pT in the jet
-    Float_t trackMaxPt() const { return fTrackPtMax; }
+    float trackMaxPt() const { return fTrackPtMax; }
 
     /// @brief Return neutral hadron fraction
-    Float_t jtPfNHF() const { return fJtPfNHF; }
+    float jtPfNHF() const { return fJtPfNHF; }
     /// @brief Return neutral ElectroMagnetic (EM) fraction
-    Float_t jtPfNEF() const { return fJtPfNEF; }
+    float jtPfNEF() const { return fJtPfNEF; }
     /// @brief Return charged hadron fraction
-    Float_t jtPfCHF() const { return fJtPfCHF; }
+    float jtPfCHF() const { return fJtPfCHF; }
     /// @brief Return muon fraction
-    Float_t jtPfMUF() const { return fJtPfMUF; }
+    float jtPfMUF() const { return fJtPfMUF; }
     /// @brief Return charged ElectroMagnetic fraction
-    Float_t jtPfCEF() const { return fJtPfCEF; }
+    float jtPfCEF() const { return fJtPfCEF; }
     /// @brief Return charged hadron multiplicity
-    Int_t jtPfCHM() const { return (Int_t)fJtPfCHM; }
+    int jtPfCHM() const { return (int)fJtPfCHM; }
     /// @brief Return charged EM multiplicity
-    Int_t jtPfCEM() const { return (Int_t)fJtPfCEM; }
+    int jtPfCEM() const { return (int)fJtPfCEM; }
     /// @brief Return neutral hadron multiplicity
-    Int_t jtPfNHM() const { return (Int_t)fJtPfNHM; }
+    int jtPfNHM() const { return (int)fJtPfNHM; }
     /// @brief Return neutral EM multiplicity
-    Int_t jtPfNEM() const { return (Int_t)fJtPfNEM; }
+    int jtPfNEM() const { return (int)fJtPfNEM; }
     /// @brief Return muon multiplicity
-    Int_t jtPfMUM() const { return (Int_t)fJtPfMUM; }
+    int jtPfMUM() const { return (int)fJtPfMUM; }
+
+    /// @brief Check if jet passes trackMaxPt/jetRawPt cut in various eta ranges
+    bool isGoodTrkMax() const;
+    /// @brief Check if jet passes jetId selection criteria for various eta ranges
+    bool isGoodJetId(const bool& useLooseJetIdCut = true) const;
 
   private:
 
-    /// @brief Transverse momentum after JEC
+    // Note: rawPt is stored in BaseJet class, so no need to redefine it here
+
+    /// @brief Jet-energy-corrected transverse momentum
     Float_t fPtJECCorr;
     /// @brief Index of the matched Monte Carlo jet (-99 if not matched)
-    Char_t   fGenJetId;
-    /// @brief Raw pT of tracks in the jet
-    Float_t fRawPt;
+    Short_t   fGenJetId;
     /// @brief Track in the jet with the highest pT
     Float_t fTrackPtMax;
     /// @brief Neutral hadron fraction
@@ -135,7 +143,7 @@ class RecoJet : public BaseJet {
     /// @brief Muon multiplicity
     UChar_t fJtPfMUM;
     
-    ClassDef(RecoJet, 3)
+    ClassDef(RecoJet, 5)
 };
 
 #endif // #define RecoJet_h

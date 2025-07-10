@@ -5,11 +5,39 @@ project(JetAnalysis
 
 set(libname JetAnalysis)
 
-#set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
-
 #set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_STANDARD_REQUIRED True)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Set default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING
+      "Choose the type of build: Debug, Release, RelWithDebInfo" FORCE)
+endif()
+
+# Print the build type
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+# Define common warning flags
+set(WARNING_FLAGS
+    -Wall
+    -Wextra
+    -Wpedantic
+)
+
+# Build type specific flags
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -DDEBUG")
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -DNDEBUG")
+    elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g -DNDEBUG")
+    endif() 
+
+    # Apply common warning flags
+    add_compile_options(${WARNING_FLAGS})
+endif()
 
 
 message(STATUS "Looking for CERN ROOT")
@@ -59,6 +87,7 @@ set(HEADERS
         BaseReader.h
         BaseHistoManager.h
         BaseJet.h
+        DiJet.h
         HistoManagerJetESR.h
         HistoManagerDiJet.h
         Collections.h
@@ -67,6 +96,7 @@ set(HEADERS
         JetUncertainty.h
         EventCut.h
         JetCut.h
+        DiJetCut.h
         Manager.h
         TriggerAndSkim.h
         DiJetAnalysis.h
@@ -82,6 +112,7 @@ set(SRC
         GenJet.cc
         BaseReader.cc
         BaseJet.cc
+        DiJet.cc
         HistoManagerJetESR.cc
         HistoManagerDiJet.cc
         ForestAODReader.cc
@@ -89,6 +120,7 @@ set(SRC
         JetUncertainty.cc
         EventCut.cc
         JetCut.cc
+        DiJetCut.cc
         Manager.cc
         TriggerAndSkim.cc
         DiJetAnalysis.cc
@@ -136,4 +168,6 @@ target_link_libraries(dijetAna_pp5020 ${libname})
 # Include directories 
 #target_include_directories(jetAna PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})
 
-
+# (Optional) Print final compiler flags
+message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}: ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")

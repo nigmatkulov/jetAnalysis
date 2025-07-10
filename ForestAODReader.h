@@ -67,9 +67,11 @@ class ForestAODReader : public BaseReader {
     void useTrackBranch()       { fUseTrackBranch = {true}; }
 
     /// @brief Set colliding system
-    void setCollidingSystem(const char *sys = "PbPb") { fCollidingSystem = sys; }
+    void setCollisionSystemName(const char *sys = "PbPb") { fCollisionSystemName = sys; }
+    /// @brief Set collision system: 0 - pp, 1 - pPb, 2 - PbPb
+    void setCollisionSystem(const int& syst) { fCollisionSystem = syst; }
     /// @brief Set colliding energy
-    void setCollidingEnergy(const int& ene = 5020)    { fCollidingEnergyGeV = {ene}; }
+    void setCollisionEnergyInGeV(const int& ene = 5020)    { fCollisionEnergyGeV = {ene}; }
     /// @brief Set year of data taking
     void setYearOfDataTaking(const int& year = 2018)  { fYearOfDataTaking = {year}; }
     /// @brief Path to jetAnalysis directory (or any folder) that contains aux_files/... with JEC corrections
@@ -105,7 +107,9 @@ class ForestAODReader : public BaseReader {
     /// @brief Set use manually calculate JEC correction function
     void setUseManualJEC() { fUseManualJEC = true; }
     /// @brief Set Pb-direction (default is true)
-    void setPbGoingDir(const bool &pb = true) { fIsPbGoing = pb; }
+    void setPbGoingDir(const bool &pb = true) { fIsPbGoingDir = pb; }
+    /// @brief Add lorentz shift
+    void setEtaShift(const float& shift)  { fEtaShift = shift; }
 
     /// @brief Return amount of events to read
     Long64_t nEventsTotal() const { return fEvents2Read; }
@@ -150,6 +154,11 @@ class ForestAODReader : public BaseReader {
     /// @brief Manual JEC correction
     double jecManualCorrection(const double &pt, const double &eta);
 
+    /// @brief Boost eta to the center-of-mass frame
+    float boostEta2CM(const float &etaLab);
+    /// @brief Get proper eta in the lab frame depending on beam direction 
+    float etaLab(const float &eta);
+
     /// @brief Event with jets and other variables
     Event *fEvent;
 
@@ -167,7 +176,7 @@ class ForestAODReader : public BaseReader {
     /// @brief Use JEC computed manually (default false)
     bool fUseManualJEC;
     /// @brief Pb-direction (default true)
-    bool fIsPbGoing;
+    bool fIsPbGoingDir;
 
     /// @brief Switch HLT branch ON
     bool fUseHltBranch;
@@ -294,59 +303,62 @@ class ForestAODReader : public BaseReader {
     // Jet information
     //
 
+    static constexpr size_t JET_ARRAY_SIZE = 1000;
+    static constexpr size_t TRACK_ARRAY_SIZE = 20000;
+
     /// @brief Number of reconstructed jets
     int   fNRecoJets;
     /// @brief Reconstructed jet transverse momentum (without JEC)
-    float fRecoJetPt[10000];
+    float fRecoJetPt[JET_ARRAY_SIZE];
     /// @brief Pseudorapidity of reconstructed jet
-    float fRecoJetEta[10000];
+    float fRecoJetEta[JET_ARRAY_SIZE];
     /// @brief Azimuthal angle of reconstructed jet
-    float fRecoJetPhi[10000];
+    float fRecoJetPhi[JET_ARRAY_SIZE];
     /// @brief WTA eta of reconstructed jet
-    float fRecoJetWTAEta[10000];
+    float fRecoJetWTAEta[JET_ARRAY_SIZE];
     /// @brief WTA phi of reconstructed jet
-    float fRecoJetWTAPhi[10000];
+    float fRecoJetWTAPhi[JET_ARRAY_SIZE];
     /// @brief Track with maximum pT in reconstructed jet
-    float fRecoJetTrackMax[10000];
+    float fRecoJetTrackMax[JET_ARRAY_SIZE];
 
-    float fRecoJtPfNHF[10000];
-    float fRecoJtPfNEF[10000];
-    float fRecoJtPfCHF[10000];
-    float fRecoJtPfMUF[10000];
-    float fRecoJtPfCEF[10000];
-    int fRecoJtPfCHM[10000];
-    int fRecoJtPfCEM[10000];
-    int fRecoJtPfNHM[10000];
-    int fRecoJtPfNEM[10000];
-    int fRecoJtPfMUM[10000];
+    float fRecoJtPfNHF[JET_ARRAY_SIZE];
+    float fRecoJtPfNEF[JET_ARRAY_SIZE];
+    float fRecoJtPfCHF[JET_ARRAY_SIZE];
+    float fRecoJtPfMUF[JET_ARRAY_SIZE];
+    float fRecoJtPfCEF[JET_ARRAY_SIZE];
+    int fRecoJtPfCHM[JET_ARRAY_SIZE];
+    int fRecoJtPfCEM[JET_ARRAY_SIZE];
+    int fRecoJtPfNHM[JET_ARRAY_SIZE];
+    int fRecoJtPfNEM[JET_ARRAY_SIZE];
+    int fRecoJtPfMUM[JET_ARRAY_SIZE];
 
     /// @brief Transverse momentum of generated jet that was matched with reconstructed jet
-    float fRefJetPt[10000];
+    float fRefJetPt[JET_ARRAY_SIZE];
     /// @brief /// @brief Pseudorapidity of generated jet that was matched with reconstructed jet
-    float fRefJetEta[10000];
+    float fRefJetEta[JET_ARRAY_SIZE];
     /// @brief Azimuthal angle of generated jet that was matched with reconstructed jet
-    float fRefJetPhi[10000];
+    float fRefJetPhi[JET_ARRAY_SIZE];
     /// @brief WTA eta of generated jet that was matched with reconstructed jet
-    float fRefJetWTAEta[10000];
+    float fRefJetWTAEta[JET_ARRAY_SIZE];
     /// @brief WTA phi of generated jet that was matched with reconstructed jet
-    float fRefJetWTAPhi[10000];
+    float fRefJetWTAPhi[JET_ARRAY_SIZE];
     /// @brief Parton flavor of generated jet that was matched with reconstructed jet
-    int   fRefJetPartonFlavor[10000];
+    int   fRefJetPartonFlavor[JET_ARRAY_SIZE];
     /// @brief Parton flavor for B of generated jet that was matched with reconstructed jet
-    int   fRefJetPartonFlavorForB[10000];
+    int   fRefJetPartonFlavorForB[JET_ARRAY_SIZE];
 
     /// @brief Number of generated jets
     int   fNGenJets;
     /// @brief Generated jet transverse momentum
-    float fGenJetPt[10000];
+    float fGenJetPt[JET_ARRAY_SIZE];
     /// @brief Pseudorapidity of generated jet
-    float fGenJetEta[10000];
+    float fGenJetEta[JET_ARRAY_SIZE];
     /// @brief Azimuthal angle of generated jet
-    float fGenJetPhi[10000];
+    float fGenJetPhi[JET_ARRAY_SIZE];
     /// @brief WTA eta of generated jet
-    float fGenJetWTAEta[10000];
+    float fGenJetWTAEta[JET_ARRAY_SIZE];
     /// @brief WTA phi of generated jet
-    float fGenJetWTAPhi[10000];
+    float fGenJetWTAPhi[JET_ARRAY_SIZE];
 
     //
     // Reconstructed tracks
@@ -355,41 +367,41 @@ class ForestAODReader : public BaseReader {
     /// @brief Number of tracks
     int   fNTracks;
     /// @brief Track transverse momentum
-    float fTrackPt[20000];
+    float fTrackPt[TRACK_ARRAY_SIZE];
     /// @brief Track pseudorapidity
-    float fTrackEta[20000];
+    float fTrackEta[TRACK_ARRAY_SIZE];
     /// @brief Track azimuthal angle
-    float fTrackPhi[20000];
+    float fTrackPhi[TRACK_ARRAY_SIZE];
     /// @brief Track pT error (uncertainty)
-    float fTrackPtErr[20000];
+    float fTrackPtErr[TRACK_ARRAY_SIZE];
     /// @brief Track distance of closest approach in transverse plane (XY)
-    float fTrackDcaXY[20000];
+    float fTrackDcaXY[TRACK_ARRAY_SIZE];
     /// @brief Track distance of closest approach in beam direction (z)
-    float fTrackDcaZ[20000];
+    float fTrackDcaZ[TRACK_ARRAY_SIZE];
     /// @brief Track distance of closest approach error in transverse plane (XY)
-    float fTrackDcaXYErr[20000];
+    float fTrackDcaXYErr[TRACK_ARRAY_SIZE];
     /// @brief Track distance of closest approach error in beam direction (z)
-    float fTrackDcaZErr[20000];
+    float fTrackDcaZErr[TRACK_ARRAY_SIZE];
     /// @brief Track fitting (reconstruction) chi2
-    float fTrackChi2[20000];
-    /// @brief Track number of degrees of freedom in the fitting 
-    unsigned char fTrackNDOF[20000];    
+    float fTrackChi2[TRACK_ARRAY_SIZE];
+    /// @brief Track number of degrees of freedom in the fitting
+    unsigned char fTrackNDOF[TRACK_ARRAY_SIZE];
     /// @brief Particle flow energy deposited in ECAL from the given track
-    float fTrackPartFlowEcal[20000];
+    float fTrackPartFlowEcal[TRACK_ARRAY_SIZE];
     /// @brief Particle flow energy deposited in HCAL from the given track
-    float fTrackPartFlowHcal[20000];
+    float fTrackPartFlowHcal[TRACK_ARRAY_SIZE];
     /// @brief Track MVA for each step
-    float fTrackMVA[20000];
+    float fTrackMVA[TRACK_ARRAY_SIZE];
     /// @brief Track algorithm/step
-    unsigned char fTrackAlgo[20000];
+    unsigned char fTrackAlgo[TRACK_ARRAY_SIZE];
     /// @brief Track charge
-    int   fTrackCharge[20000];
+    int   fTrackCharge[TRACK_ARRAY_SIZE];
     /// @brief Number of hits in the tracker
-    unsigned char fTrackNHits[20000];
+    unsigned char fTrackNHits[TRACK_ARRAY_SIZE];
     /// @brief Number of layers with measurement in the tracker
-    unsigned char fTrackNLayers[20000];
+    unsigned char fTrackNLayers[TRACK_ARRAY_SIZE];
     /// @brief Tracker steps MVA selection
-    bool  fTrackHighPurity[20000];
+    bool  fTrackHighPurity[TRACK_ARRAY_SIZE];
 
     //
     // Monte Carlo tracks
@@ -420,9 +432,11 @@ class ForestAODReader : public BaseReader {
     TString fJEUInputFileName;
 
     /// @brief Colliding system: pp, pPb or PbPb
-    TString fCollidingSystem;
+    TString fCollisionSystemName;
+    /// @brief  Type of collision system: 0 - pp, 1 - pPb, 2 - PbPb. Default is PbPb
+    int    fCollisionSystem;
     /// @brief Colliding energy
-    int fCollidingEnergyGeV;
+    int fCollisionEnergyGeV;
     /// @brief Year of data taking
     int fYearOfDataTaking;
     /// @brief Apply jet pT-smearing 
@@ -465,6 +479,9 @@ class ForestAODReader : public BaseReader {
     TF1 *fJERSmearFunc;
     /// @brief Random number generator
     TRandom3 *fRndm;
+
+    /// @brief  Pseudorapidity shift for asymmetric collisions (pPb)
+    float fEtaShift;
 
     /// @brief  Verbose mode
     bool  fVerbose;

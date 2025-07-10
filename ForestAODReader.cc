@@ -29,14 +29,14 @@ ForestAODReader::ForestAODReader() : fEvent{nullptr}, fInFileName{nullptr}, fEve
     fRecoJetTree{nullptr}, fTrkTree{nullptr}, fGenTrkTree{nullptr},
     fRecoJetTreeName{"akCs4PFJetAnalyzer"},
     fJEC{nullptr}, fJECFiles{}, fJECPath{}, fJEU{nullptr}, fJEUInputFileName{},
-    fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
+    fCollisionSystemName{Form("PbPb")}, fCollisionSystem{1}, fCollisionEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{false}, 
     fFixJetArrays{false}, fEventCut{nullptr}, fJetCut{nullptr},
     fRecoJet2GenJetId{}, fGenJet2RecoJet{}, 
     fUseExtraJECforAk4Cs{false}, fJECScaleCorr{nullptr}, fUseJEU{0},
     fUseJERSystematics{0}, fAlphaJER{0.0415552}, fBetaJER{0.960013},
     fJERSmearFunc{nullptr}, fRndm{nullptr},
-    fVerbose{false} {
+    fEtaShift{0}, fVerbose{false} {
     if ( fVerbose ) {
         std::cout << "ForestAODReader::ForestAODReader()" << std::endl;
     }
@@ -54,13 +54,13 @@ ForestAODReader::ForestAODReader(const char* inputStream,
                                  const bool& isMc) : 
     fEvent{nullptr}, fInFileName{inputStream}, fEvents2Read{0}, 
     fEventsProcessed{0}, fIsMc{isMc}, fCorrectCentMC{false}, 
-    fUseManualJEC{false}, fIsPbGoing{true},
+    fUseManualJEC{false}, fIsPbGoingDir{true},
     fUseHltBranch{useHltBranch}, fUseSkimmingBranch{useSkimmingBranch}, 
     fUseRecoJetBranch{useRecoJetBranch}, 
     fUseTrackBranch{useTrackBranch}, fUseGenTrackBranch{useGenTrackBranch},
     fRecoJetTreeName{"akCs4PFJetAnalyzer"},
     fJEC{nullptr}, fJECFiles{}, fJECPath{}, fJEU{nullptr}, fJEUInputFileName{},
-    fCollidingSystem{Form("PbPb")}, fCollidingEnergyGeV{5020},
+    fCollisionSystemName{Form("PbPb")}, fCollisionEnergyGeV{5020},
     fYearOfDataTaking{2018}, fDoJetPtSmearing{false}, 
     fFixJetArrays{false}, fEventCut{nullptr}, fJetCut{nullptr},
     fJECScaleCorr{nullptr}, fUseJEU{0}, fUseJERSystematics{0}, 
@@ -148,7 +148,7 @@ double ForestAODReader::retrieveResolutionFactor(const double& eta) {
     double res{0.};
 
     // Search for the bin index
-    for (int i{0}; i<fJerEtaLow.size(); i++) {
+    for (size_t i{0}; i<fJerEtaLow.size(); i++) {
         if ( eta>=fJerEtaLow.at(i) && eta<fJerEtaHi.at(i) ) {
             if ( fUseJERSystematics == -1 ) {
                 val = fJerLow.at(i);
@@ -260,7 +260,7 @@ double ForestAODReader::jecManualCorrection(const double &pt, const double &eta)
     int iPt = findBinIndex(pt, jetPtVals, jetNPtBins);
 
     double retVal = {0.};
-    if ( (fIsMc && fIsPbGoing) || (!fIsMc && !fIsPbGoing) ) { // Pb-going in MC
+    if ( (fIsMc && fIsPbGoingDir) || (!fIsMc && !fIsPbGoingDir) ) { // Pb-going in MC
 
         // [eta][pt] binning
         double corrFactor[82][25] = {
@@ -353,8 +353,8 @@ double ForestAODReader::jecManualCorrection(const double &pt, const double &eta)
         if ( iEta >= 0 && iEta < jetNEtaL2L3StdBins && iPt >= 0 && iPt < jetNPtBins ) {
             retVal = corrFactor[iEta][iPt];
         }
-    } // if ( (fIsMc && fIsPbGoing) || (!fIsMc && !fIsPbGoing) )
-    else if ( (fIsMc && !fIsPbGoing) || (!fIsMc && fIsPbGoing) ) { // p-going in MC
+    } // if ( (fIsMc && fIsPbGoingDir) || (!fIsMc && !fIsPbGoingDir) )
+    else if ( (fIsMc && !fIsPbGoingDir) || (!fIsMc && fIsPbGoingDir) ) { // p-going in MC
 
 
         // [eta][pt] binning
@@ -447,7 +447,7 @@ double ForestAODReader::jecManualCorrection(const double &pt, const double &eta)
         if ( iEta >= 0 && iEta < jetNEtaL2L3StdBins && iPt >= 0 && iPt < jetNPtBins ) {
             retVal = corrFactor[iEta][iPt];
         }
-    } // else if ( (fIsMc && fIsPbGoing) || (!fIsMc && !fIsPbGoing) )
+    } // else if ( (fIsMc && fIsPbGoingDir) || (!fIsMc && !fIsPbGoingDir) )
 
     if ( fVerbose ) {
         std::cout << Form("eta range: %f - %f, pT range: %f - %f \t", jetEtaL2L3StdVals[iEta], jetEtaL2L3StdVals[iEta+1], jetPtVals[iPt], jetPtVals[iPt+1]);
@@ -542,16 +542,19 @@ void ForestAODReader::clearVariables() {
     fPVertexFilterCutVtx1 = {0};
 
     // Loop over jets and tracks
-    for (short i{0}; i<20000; i++) {
+    for (size_t i{0}; i<TRACK_ARRAY_SIZE; i++) {
 
         // Jet variables
-        if (i<10000) {
+        if (i<JET_ARRAY_SIZE) {
+            // Reco jet variables
             fRecoJetPt[i] = {0.f};
             fRecoJetEta[i] = {0.f};
             fRecoJetPhi[i] = {0.f};
             fRecoJetWTAEta[i] = {0.f};
             fRecoJetWTAPhi[i] = {0.f};
             fRecoJetTrackMax[i] = {0.f};
+
+            // Ref jet variables
             fRefJetPt[i] = {0.f};
             fRefJetEta[i] = {0.f};
             fRefJetPhi[i] = {0.f};
@@ -559,13 +562,15 @@ void ForestAODReader::clearVariables() {
             fRefJetWTAPhi[i] = {0.f};
             fRefJetPartonFlavor[i] = {-999};
             fRefJetPartonFlavorForB[i] = {-99};
+
+            // Gen jet variables
             fGenJetPt[i] = {0.f};
             fGenJetEta[i] = {0.f};
             fGenJetPhi[i] = {0.f};
             fGenJetWTAEta[i] = {0.f};
             fGenJetWTAPhi[i] = {0.f};
         } // if (i<100)
-
+        
         // Track variables
         fTrackPt[i] = {0.f};
         fTrackEta[i] = {0.f};
@@ -587,12 +592,14 @@ void ForestAODReader::clearVariables() {
         fTrackHighPurity[i] = {false};
     } // for (short i{0}; i<9999; i++)
 
-    fGenTrackPt.clear();
-    fGenTrackEta.clear();
-    fGenTrackPhi.clear();
-    fGenTrackCharge.clear();
-    fGenTrackPid.clear();
-    fGenTrackSube.clear();
+    if ( fIsMc && fUseGenTrackBranch ) {
+        fGenTrackPt.clear();
+        fGenTrackEta.clear();
+        fGenTrackPhi.clear();
+        fGenTrackCharge.clear();
+        fGenTrackPid.clear();
+        fGenTrackSube.clear();
+    }
 
     if (fIsMc) {
         fRecoJet2GenJetId.clear();
@@ -652,8 +659,8 @@ void ForestAODReader::setupJEC() {
     std::vector< std::string > tmp;
     for (unsigned int i{0}; i<fJECFiles.size(); i++) {
         tmp.push_back( Form( "%s/aux_files/%s_%i/JEC/%s", 
-                             fJECPath.Data(), fCollidingSystem.Data(),
-                             fCollidingEnergyGeV, fJECFiles.at(i).c_str() ) );
+                             fJECPath.Data(), fCollisionSystemName.Data(),
+                             fCollisionEnergyGeV, fJECFiles.at(i).c_str() ) );
     }
         
     fJECFiles.clear();
@@ -661,7 +668,7 @@ void ForestAODReader::setupJEC() {
 
     std::cout << "JEC files added: " << std::endl;
     for (unsigned int i{0}; i<fJECFiles.size(); i++) {
-        std::cout << i << fJECFiles.at(i) << std::endl;
+        std::cout << i << " " << fJECFiles.at(i) << std::endl;
     }
 	
 	fJEC = new JetCorrector( fJECFiles );
@@ -699,8 +706,8 @@ void ForestAODReader::setupJEU() {
     }
 
     TString tmp = Form( "%s/aux_files/%s_%i/JEC/%s", 
-                        fJECPath.Data(), fCollidingSystem.Data(),
-                        fCollidingEnergyGeV, fJEUInputFileName.Data() );
+                        fJECPath.Data(), fCollisionSystemName.Data(),
+                        fCollisionEnergyGeV, fJEUInputFileName.Data() );
     fJEUInputFileName = tmp;
 
     fJEU = new JetUncertainty( fJEUInputFileName.Data() );
@@ -1190,21 +1197,6 @@ void ForestAODReader::readEvent() {
         std::cout << "ForestAODReader::readEvent()\n";
     }
 
-    if (fIsMc) {
-        fRecoJet2GenJetId.clear();
-        fGenJet2RecoJet.clear();
-    }
-
-    // Or one can call the clearVariables() function (will take more time)
-    if (fUseGenTrackBranch && fIsMc) {
-        fGenTrackPt.clear();
-        fGenTrackEta.clear();
-        fGenTrackPhi.clear();
-        fGenTrackCharge.clear();
-        fGenTrackPid.clear();
-        fGenTrackSube.clear();
-    }
-
     if ( fEventsProcessed >= fEvents2Read ) { 
         std::cerr << "ForestAODReader::readEvent() out of entry numbers\n"; 
         fReaderStatus = 2; // End of input stream
@@ -1248,58 +1240,86 @@ void ForestAODReader::fixIndices() {
             fGenJet2RecoJet.push_back(-1);
         }
 
+        // Nothing to do if no gen jets
+        if ( fNGenJets <= 0 ) {
+            if ( fVerbose ) {
+                std::cout << "No gen jets found, skipping index fixing\n";
+            }
+            return;
+        }
+
+        if ( fVerbose ) {
+            std::cout << "Reco/Ref jet parameters:\n";
+            for (int i{0}; i<fNRecoJets; i++) {
+                std::cout << Form("RecoJet #%d recoRawPt: %5.2f recoEta: %3.2f recoPhi: %3.2f refPt: %5.2f refEta: %3.2f refPhi: %3.2f\n",
+                                  i, fRecoJetPt[i], fRecoJetEta[i], fRecoJetPhi[i], fRefJetPt[i], fRefJetEta[i], fRefJetPhi[i]);
+            }
+            std::cout << "Gen jet parameters:\n";
+            for (int i{0}; i<fNGenJets; i++) {
+                std::cout << Form("GenJet #%d genPt: %5.2f genEta: %3.2f genPhi: %3.2f\n",
+                                  i, fGenJetPt[i], fGenJetEta[i], fGenJetPhi[i]);
+            }
+        }
+
         // Loop over reconstructed jets
         for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
+            // Skip if no matched gen jet in ref info
+            // TODO: check why next line generates error (occasionally skips the first reco jet with matching gen jet)
+            // if (fRefJetPt[iRecoJet] < 0) continue;
 
-            // Event must have gen jets
-            if ( fNGenJets <= 0 )  break;
-
-            // Must have a matched gen jet
-            if ( fRefJetPt[iRecoJet] < 0) continue;
-
-            // Matched gen jet cone radius
             float refEta = fRefJetEta[iRecoJet];
             float refPhi = fRefJetPhi[iRecoJet];
-            float refPt = fRefJetPt[iRecoJet];
+            // float refPt = fRefJetPt[iRecoJet];
 
-            // Loop over gen jets
+            float recoEta = fRecoJetEta[iRecoJet];
+            float recoPhi = fRecoJetPhi[iRecoJet];
+
+            // Loop over gen jets to find a match
             for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
 
-                //std::cout << "iGen: " << iGenJet << " genPt: " << fGenJetPt[iGenJet] << std::endl;
-                float genEta = fGenJetEta[iGenJet];
-                float genPhi = fGenJetPhi[iGenJet];
-                float genPt = fGenJetPt[iGenJet];
+                // Check rotation of the phi angle to match the reference jet phi
+                double dphi = recoPhi - fGenJetPhi[iGenJet];
+                while (dphi > TMath::Pi()) dphi -= TMath::TwoPi();
+                while (dphi <= -TMath::Pi()) dphi += TMath::TwoPi();
 
-                float dR = TMath::Sqrt(TMath::Power(genEta - refEta, 2) + TMath::Power(genPhi - refPhi, 2));
-                float dPt = TMath::Abs(genPt - refPt);
+                float dR = sqrt( (recoEta - fGenJetEta[iGenJet]) * (recoEta - fGenJetEta[iGenJet]) +
+                                 dphi * dphi );
+                bool matched = ( dR < 0.4 &&
+                                 fabs(refEta - fGenJetEta[iGenJet]) < 1e-6 &&
+                                 fabs(refPhi - fGenJetPhi[iGenJet]) < 1e-6 );
 
-                if ( fVerbose ) {
-                    std::cout << Form("Reco/RefJet # %d GenJet # %d dR: %f dPt: %f dEta: %f matched: %s", iRecoJet, iGenJet, dR, dPt, genEta-refEta, (((dR < 0.1) && (TMath::Abs(genPt - refPt) < 0.1 )) ? "true" : "false" )) << std::endl;
+                // bool matched = (fabs(refEta - fGenJetEta[iGenJet]) < std::numeric_limits<float>::epsilon() &&
+                //                 fabs(refPhi - fGenJetPhi[iGenJet]) < std::numeric_limits<float>::epsilon());
+                // if ( dR < 0.4 ) matched = true;
+
+                if (fVerbose) {
+                    std::cout << Form("Comparing RecoJet #%d to GenJet #%d (dR): %4.3f (refEta - genEta): %4.3f (refPhi - genPhi): %4.3f [%s]\n",
+                                    iRecoJet, iGenJet, dR, 
+                                    refEta - fGenJetEta[iGenJet],
+                                    refPhi - fGenJetPhi[iGenJet],
+                                    (matched ? "true" : "false"));
                 }
-                
-                if ( (dR < 0.1) && TMath::Abs(genPt - refPt) < 0.1 ) {
-                    fRefJetEta[iRecoJet] = fGenJetEta[iGenJet];
-                    fRefJetPhi[iRecoJet] = fGenJetPhi[iGenJet];
-                    fRefJetWTAEta[iRecoJet] = fGenJetWTAEta[iGenJet];
-                    fRefJetWTAPhi[iRecoJet] = fGenJetWTAPhi[iGenJet];
-                    fRecoJet2GenJetId[iRecoJet] = iGenJet;  
+                // Use floating point epsilons to compare the values
+                if (matched) {
+                    fRecoJet2GenJetId[iRecoJet] = iGenJet;
                     fGenJet2RecoJet[iGenJet] = iRecoJet;
                     break;
                 }
             } // for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++)
+        } // for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++)
 
-        } //for (int iRecoJet=0; iRecoJet<fNRecoJets; iRecoJet++)
-
-        // // Fill the corresponding index in the reco vector and fill the gen
-        // for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
-        //     std::vector<int>::iterator it=std::find(fRecoJet2GenJetId.begin(), fRecoJet2GenJetId.end(), iGenJet);
-        //     if (it != fRecoJet2GenJetId.end()) {
-        //         fGenJet2RecoJet.push_back( std::distance(fRecoJet2GenJetId.begin(), it) );
-        //     }
-        //     else {
-        //         fGenJet2RecoJet.push_back(-1);
-        //     }
-        // }
+        // Check for duplicates (i.e. multiple reco jets matched to the same gen jet)
+        for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
+            int count{0};
+            for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
+                if (fRecoJet2GenJetId[iRecoJet] == iGenJet) {
+                    count++;
+                }
+            }
+            if (count > 1) {
+                std::cout << "Warning: Gen jet #" << iGenJet << " matched to multiple reco jets: " << count << std::endl;
+            }
+        }
 
         if ( fVerbose ) {
             std::cout << "Reco 2 Gen Jet Ids: ";
@@ -1321,12 +1341,106 @@ void ForestAODReader::fixIndices() {
     }
 }
 
+//________________
+float ForestAODReader::boostEta2CM(const float &eta) {
+    // if ( fVerbose ) {
+    //     std::cout << "ForestAODReader::boostEta2CM -- begin" << std::endl;
+    // }
+    float etaCM = eta;
+
+    // Apply lab frame boost to CM
+    if ( fCollisionSystem == 0 ) { // pp
+        // For pp do nothing. Already in the CM frame
+    }
+
+    else if ( fCollisionSystem == 1 ) { // pPb
+        if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            if ( fIsPbGoingDir ) {
+                etaCM += fEtaShift;
+                etaCM = -etaCM;
+            }
+            else {
+                etaCM -= fEtaShift;
+            }
+        }
+        else { // For data: p goes to negative, Pb goes to positive
+            if ( fIsPbGoingDir ) {
+                etaCM -= fEtaShift;
+            }
+            else {
+                etaCM += fEtaShift;
+                etaCM = -etaCM;
+            }
+        }
+    } 
+    else if ( fCollisionSystem == 2 ) { // PbPb
+        // For PbPb do nothing. Already in the CM frame
+    }
+    else {
+        // Unknown collision system
+        // Do nothing
+    }
+
+    // if ( fVerbose ) {
+    //     std::cout << Form("eta: %5.2f  ->  etaCM: %5.2f", eta, etaCM) << std::endl;
+    //     std::cout << "ForestAODReader::boostEta2CM -- end" << std::endl;
+    // }
+    return etaCM;
+}
+
+//________________
+float ForestAODReader::etaLab(const float &eta) {
+    // if ( fVerbose ) {
+    //     std::cout << "ForestAODReader::etaLab -- begin" << std::endl;
+    // }
+
+    float etaL = eta;
+    // Check collision system
+    if ( fCollisionSystem == 0 ) { 
+        // For pp apply eta shift (to move from CM to lab frame, to match pPb)
+        etaL += fEtaShift;
+    }
+    else if ( fCollisionSystem == 1 ) { 
+        // For pPb we already in the lab frame. Just need to properly address
+        // beam direction
+        if ( fIsMc ) { // For embedding: Pb goes to negative, p goes to positive
+            if (fIsPbGoingDir) {
+                etaL = -etaL;
+            }
+        }
+        else { // For data: p goes to negative, Pb goes to positive
+            if (fIsPbGoingDir) {
+            }
+            else {
+                etaL = -etaL;
+            }
+        }
+    }
+    else if ( fCollisionSystem == 2 ) { 
+        // For PbPb apply eta shift (to move from CM to lab frame, to match pPb)
+        etaL += fEtaShift;
+    }
+    else {
+        // Unknown collision system
+        // Do nothing
+    }
+
+    // if ( fVerbose ) {
+    //     std::cout << Form("eta: %5.2f  ->  etaLab: %5.2f", eta, etaL) << std::endl;
+    //     std::cout << "ForestAODReader::etaLab -- end" << std::endl;
+    // }
+    return etaL;
+}
+
 //_________________
 Event* ForestAODReader::returnEvent() {
 
     if ( fVerbose ) {
         std::cout << "ForestAODReader::returnEvent() - begin\n";
     }
+
+    // Clear all event, jet and track variables
+    clearVariables();
 
     //std::cout << "ForestAODReader::returnEvent" << std::endl;
     readEvent();
@@ -1465,6 +1579,7 @@ Event* ForestAODReader::returnEvent() {
             }
             for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++) {
                 GenJet *jet = new GenJet{};
+                jet->setId( iGenJet );
                 jet->setPt( fGenJetPt[iGenJet] );
                 jet->setEta( fGenJetEta[iGenJet] );
                 jet->setPhi( fGenJetPhi[iGenJet] );
@@ -1474,9 +1589,11 @@ Event* ForestAODReader::returnEvent() {
                 jet->setFlavorForB( fRefJetPartonFlavorForB[fGenJet2RecoJet.at(iGenJet)] );
                 jet->setPtWeight( 1. );
                 if ( fVerbose ) {
-                    std::cout << Form("GenJet #%d pT: %.2f, eta: %.2f", iGenJet, fGenJetPt[iGenJet], fGenJetEta[iGenJet]) << std::endl;
+                    std::cout << Form("GenJet #%d pT: %.2f, eta: %.2f", iGenJet, jet->pt(), jet->eta()) << std::endl;
                     // jet->print();
                 }
+
+                // Gen jets are not allowed to be thrown away by any cuts
                 
                 fEvent->genJetCollection()->push_back( jet );
             } // for (int iGenJet{0}; iGenJet<fNGenJets; iGenJet++)
@@ -1508,12 +1625,12 @@ Event* ForestAODReader::returnEvent() {
             } // if ( fIsMc )
 
             // Reco
-            jet->setPt( fRecoJetPt[iJet] );
+            jet->setId( iJet );
+            jet->setRawPt( fRecoJetPt[iJet] );
             jet->setEta( fRecoJetEta[iJet] );
             jet->setPhi( fRecoJetPhi[iJet] );
             jet->setWTAEta( fRecoJetWTAEta[iJet] );
             jet->setWTAPhi( fRecoJetWTAPhi[iJet] );
-            jet->setRawPt( fRecoJetPt[iJet] );
             jet->setTrackMaxPt( fRecoJetTrackMax[iJet] );
             if ( fJEC ) {
                 fJEC->SetJetPT( fRecoJetPt[iJet] );
@@ -1587,14 +1704,14 @@ Event* ForestAODReader::returnEvent() {
             jet->setJtPfMUM( fRecoJtPfMUM[iJet] );
 
             if ( fVerbose ) {
-                std::cout << Form("RecoJet # %d Raw pT: %.2f Corr pT: %.2f eta: %.2f", iJet, jet->rawPt(), jet->ptJECCorr(), jet->eta()) << std::endl;
+                std::cout << Form("RecoJet # %d Raw pT: %.2f Corr pT: %.2f eta: %.2f genId: %d", iJet, jet->rawPt(), jet->ptJECCorr(), jet->eta(), jet->genJetId()) << std::endl;
                 // jet->print();
             }
 
-            // Check fronе-loaded cut
-            if ( fJetCut && !fJetCut->pass(jet) ) {
+            // Check front-loaded cut
+            if ( fJetCut && !fJetCut->pass(jet, false, false, false) ) {
                 if ( fVerbose ) {
-                    std::cout << "Jet did not pass the cut" << std::endl;
+                    std::cout << "Reco jet # " << iJet << " failed cut" << std::endl;
                 }
                 delete jet;
                 continue;

@@ -10,18 +10,22 @@ cd $EXEC_PATH
 # Date of submission
 formatted_date=$(date +"%Y%m%d")
 
-# Read input parameters
-# First parameters tells the dataset name: DATA_MB, DATA_HM185, DATA_HM250, DATA_PAEGJet
-#sample_name=DATA_MB
-sample_name=DATA_PAEGJet
+# Trigger case
+triggerId=0 # 0 - MB, 1 - jet60, 2 - jet80, 3 - jet100
+
+sample_name=DATA_MB
+if [ $triggerId -ne 0 ]; then
+    sample_name=DATA_PAEGJet
+fi
 
 # Beam direction
-is_Pbgoing=0
+is_Pbgoing=1
 if [ "$is_Pbgoing" -eq 1 ]; then
     direction=Pbgoing
 else
     direction=pgoing
 fi
+
 
 # Dataset number
 pd_number=$1
@@ -30,6 +34,8 @@ pd_number=$1
 jeuSyst=0 
 # JER systematics: 0 - default, -1 - JER-, 1 - JER+, other - no extra smearing is applied (pure JEC)
 jerSyst=-99
+# RecoJet selection method: 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
+recoJetSelMethod=1
 
 # Generate path to the inputfile list
 if [ "$sample_name" == "DATA_MB" ]; then
@@ -92,7 +98,7 @@ EOF
 
 for ((jobId = 1; jobId <= $n_sublists; jobId++)); do
     cat <<EOF >>condor/sub/pPb8160/${formatted_date}/pPb8160_${sample_prefix}.sub
-arguments             = input/pPb8160/${formatted_date}/${sample_prefix}_$jobId.list ${sample_prefix}_pPb8160_$jobId.root 0 ${is_Pbgoing} 0 15000 ${jeuSyst} ${jerSyst} 
+arguments             = input/pPb8160/${formatted_date}/${sample_prefix}_$jobId.list ${sample_prefix}_pPb8160_$jobId.root 0 ${is_Pbgoing} 0 15000 ${jeuSyst} ${jerSyst} ${triggerId} ${recoJetSelMethod}
 output                = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.out
 error                 = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.err
 log                   = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.log

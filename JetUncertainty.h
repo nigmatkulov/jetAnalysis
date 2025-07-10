@@ -35,7 +35,7 @@ class JetUncertainty {
   public:
     JetUncertainty()                  { Initialized = false; }
     JetUncertainty(std::string File)  { Initialized = false; Initialize(File); }
-    ~JetUncertainty()                 {}
+    virtual ~JetUncertainty()         {}
     void SetJetPT(double value)       { JetPT = value; }
     void SetJetEta(double value)      { JetEta = value; }
     void SetJetPhi(double value)      { JetPhi = value; }

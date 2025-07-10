@@ -81,8 +81,8 @@ class EventCut {
     void usePVertexFilterCutGplus()         { fPVertexFilterCutGplus = {true}; }
     void usePVertexFilterCutVtx1()          { fPVertexFilterCutVtx1 = {true}; }
 
-    void addRunIdToSelect(const int& runId) { fRunIdsToSelect.push_back(runId); }
-    void addRunIdToExclude(const int& runId) { fRunIdsToExclude.push_back(runId); }
+    void addRunIdToSelect(const unsigned int& runId) { fRunIdsToSelect.push_back(runId); }
+    void addRunIdToExclude(const unsigned int& runId) { fRunIdsToExclude.push_back(runId); }
 
     /// @brief Report information about
     void report();
@@ -144,9 +144,9 @@ class EventCut {
     bool fHLT_HIAK4PFJet80_v1;         // pp 5020
 
     // Include next runIds
-    std::vector<int> fRunIdsToSelect;
+    std::vector<unsigned int> fRunIdsToSelect;
     // Exclude next runIds
-    std::vector<int> fRunIdsToExclude;
+    std::vector<unsigned int> fRunIdsToExclude;
 
     /// @brief Number of events passed cut
     Long64_t fEventsPassed;
