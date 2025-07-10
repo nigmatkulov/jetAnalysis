@@ -23,6 +23,8 @@
 
 //________________
 HistoManagerJetESR::HistoManagerJetESR() :
+    BaseHistoManager(),
+
     //
     // Event histograms
     //
@@ -390,6 +392,8 @@ void HistoManagerJetESR::init() {
 
     hVz = new TH1D("hVz","Vertex z position;vz (cm);Entries", vzBins, vzRange[0], vzRange[1]);
     hVz->Sumw2();
+    hVzPtHatWeighted = new TH1D("hVzPtHatWeighted","Vertex z position with #hat{p_{T}} weight;vz (cm);Entries", vzBins, vzRange[0], vzRange[1]);
+    hVzPtHatWeighted->Sumw2();
     hVzCentWeighted = new TH1D("hVzCentWeighted", "Vertex z position (centrality weighted);vz (cm);Entries", vzBins, vzRange[0], vzRange[1]);
     hVzCentWeighted->Sumw2();
     hVzWeighted = new TH1D("hVzWeighted","Vertex z position;vz (cm);Entries", 400, -50., 50.);
