@@ -1216,7 +1216,7 @@ void HistoManagerDiJet::init() {
 
     // Old binning convention
     const int dijetPtOldBins{6};
-    double dijetPtOldVals[dijetPtBins+1] {25., 55., 75., 95., 115., 150., 400.}; // 6 bins
+    double dijetPtOldVals[dijetPtOldBins+1] {25., 55., 75., 95., 115., 150., 400.}; // 6 bins
     
     int    prescale = 1;
 
