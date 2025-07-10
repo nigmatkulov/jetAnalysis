@@ -57,9 +57,13 @@ EventCut *createEventCut(const bool &isMc, const int &triggerId, const float *pt
     
     // Triggers from Vipul
     if ( !isMc ) {
+        if ( triggerId == 0 ) {
         eventCut->useHLT_HIAK4PFJet60_v1();
-        // eventCut->useHLT_HIAK4PFJet80_v1();
-
+        }
+        else if ( triggerId == 1 ) {
+           eventCut->useHLT_HIAK4PFJet80_v1();
+        }
+        
         //eventCut->useHLT_HIAK4CaloJet60_v1();
         // eventCut->useHLT_HIAK4CaloJet80_v1();
     }

@@ -1269,7 +1269,7 @@ void ForestAODReader::fixIndices() {
 
             float refEta = fRefJetEta[iRecoJet];
             float refPhi = fRefJetPhi[iRecoJet];
-            float refPt = fRefJetPt[iRecoJet];
+            // float refPt = fRefJetPt[iRecoJet];
 
             float recoEta = fRecoJetEta[iRecoJet];
             float recoPhi = fRecoJetPhi[iRecoJet];

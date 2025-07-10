@@ -56,9 +56,15 @@ EventCut *createEventCut(const bool &isMc, const int &triggerId, const float *pt
     
     // Trigger
     if ( !isMc ) {
-        eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
-        // eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
-        // eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
+        if ( triggerId == 0 ) {
+            eventCut->useHLT_PAAK4PFJet60_Eta5p1_v4();
+        }
+        else if ( triggerId == 1 ) {
+            eventCut->useHLT_PAAK4PFJet80_Eta5p1_v3();
+        }
+        else if ( triggerId == 2 ) {
+            eventCut->useHLT_PAAK4PFJet100_Eta5p1_v3();
+        }
     }
 
     // Set ptHat cut for embedding
@@ -137,6 +143,7 @@ ForestAODReader *createForestAODReader(const TString &inFileName, const bool &is
 
     // Define collision system parameters
     forestReader->setCollisionSystemName( collisionSystemName.Data() );
+    forestReader->setCollisionEnergyInGeV( collEnergyGeV );
     forestReader->setCollisionEnergyInGeV( 8160 ); // To use same corrections as for pPb8160
     forestReader->setCollisionSystem( collisionSystem );
     forestReader->setYearOfDataTaking( collYear );
