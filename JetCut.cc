@@ -73,9 +73,6 @@ void JetCut::report() {
 
 //________________
 bool JetCut::pass(const RecoJet* jet, bool isCM, bool isMC, bool requireMatching) {
-    if (fVerbose) {
-
-    }
 
     bool goodPt = (fPt[0] <= jet->ptJECCorr() && jet->ptJECCorr() <= fPt[1]);
     float recoR = sqrt( jet->phi() * jet->phi() + jet->eta() * jet->eta() );

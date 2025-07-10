@@ -122,10 +122,10 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     // Dijet pt, dijet eta, dijet dphi, lead pt, lead eta, lead phi, 
     // sublead pt, sublead eta, sublead phi [9]
-    THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
+    THnSparseD *hGenDijetInfo;
     // Dijet pt, dijet eta, dijet dphi, lead pt, lead eta, lead phi, 
     // sublead pt, sublead eta, sublead phi weighted [9]
-    THnSparseD *hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
+    THnSparseD *hGenDijetInfoWeighted;
     TH1D *hGenInclusiveJetPt;
     TH1D *hGenInclusiveJetEta;
     TH1D *hGenInclusiveJetEtaUnweighted;
@@ -264,14 +264,14 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Reconstructed jet acceptance
     TH2D *hRecoInclusiveAllJetPtRawEta;
 
-    // Reco dijet pt, reco dijet eta, reco dijet dphi,
+    // Reco dijet pt, reco dijet eta, reco dijet phi,
     // Reco lead pt, reco lead eta, reco lead phi,
     // Reco sublead pt, reco sublead eta, reco sublead phi [9]
-    THnSparseD *hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi;
-    // Reco dijet pt, reco dijet eta, reco dijet dphi,
+    THnSparseD *hRecoDijetInfo;
+    // Reco dijet pt, reco dijet eta, reco dijet phi,
     // Reco lead pt, reco lead eta, reco lead phi,
     // Reco sublead pt, reco sublead eta, reco sublead phi weighted [9]
-    THnSparseD *hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted;
+    THnSparseD *hRecoDijetInfoWeighted;
 
 
     TH1D *hRecoInclusiveAllJetPt;

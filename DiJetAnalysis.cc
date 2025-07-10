@@ -1273,12 +1273,12 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         fHM->hGenPtLeadPtSubleadMcReweight->Fill( ptGenLead, ptGenSubLead, weight * fMcReweight );
         fHM->hGenEtaLeadEtaSubleadMcReweight->Fill( etaGenLeadLab, etaGenSubLeadLab, weight * fMcReweight );
 
-        double genDijetLeadSublead[9] {dijetGenPtAve, dijetGenEtaLab, dijetGenDphi, 
+        double genDijetLeadSublead[9] { dijetGenPtAve, dijetGenEtaLab, dijetGenPhi, 
                                         ptGenLead, etaGenLeadLab, phiGenLead, 
                                         ptGenSubLead, etaGenSubLeadLab, phiGenSubLead };
 
-        fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(genDijetLeadSublead);
-        fHM->hGenDijetPtEtaPhiDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(genDijetLeadSublead, weight * fMcReweight );
+        fHM->hGenDijetInfo->Fill(genDijetLeadSublead);
+        fHM->hGenDijetInfoWeighted->Fill(genDijetLeadSublead, weight * fMcReweight );
         fHM->hGenDijetEta->Fill(dijetGenEtaLab, weight * fMcReweight );
         fHM->hGenDijetPtEtaPhi->Fill(dijetGenPtAve, dijetGenEtaLab, dijetGenPhi, 1.);
         fHM->hGenDijetPtEtaPhiWeighted->Fill(dijetGenPtAve, dijetGenEtaLab, dijetGenPhi, weight * fMcReweight );
@@ -1638,11 +1638,11 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         fHM->hRecoPtLeadPtSubleadMcReweight->Fill( ptRecoLead, ptRecoSubLead, weight * fMcReweight );
         fHM->hRecoEtaLeadEtaSubleadMcReweight->Fill( etaRecoLeadLab, etaRecoSubLeadLab, weight * fMcReweight );
 
-        double dijetRecoInfo[9] { dijetRecoPtAve, dijetRecoEtaLab, dijetRecoDphi,
-                                    ptRecoLead, etaRecoLeadLab, phiRecoLead,
-                                    ptRecoSubLead, etaRecoSubLeadLab, phiRecoSubLead };
-        fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhi->Fill(dijetRecoInfo);
-        fHM->hRecoDijetPtEtaDeltaPhiLeadJetPtEtaPhiSubleadJetPtEtaPhiWeighted->Fill(dijetRecoInfo, weight * fMcReweight);
+        double dijetRecoInfo[9] { dijetRecoPtAve, dijetRecoEtaLab, dijetRecoPhi,
+                                  ptRecoLead, etaRecoLeadLab, phiRecoLead,
+                                  ptRecoSubLead, etaRecoSubLeadLab, phiRecoSubLead };
+        fHM->hRecoDijetInfo->Fill(dijetRecoInfo);
+        fHM->hRecoDijetInfoWeighted->Fill(dijetRecoInfo, weight * fMcReweight);
         fHM->hRecoDijetEta->Fill( dijetRecoEtaLab, weight * fMcReweight);
         fHM->hRecoDijetPtEta->Fill( dijetRecoPtAve, dijetRecoEtaLab, weight * fMcReweight);
         fHM->hRecoDijetPtEtaPhi->Fill( dijetRecoPtAve, dijetRecoEtaLab, dijetRecoPhi, 1. );
