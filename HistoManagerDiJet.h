@@ -57,13 +57,27 @@ class HistoManagerDiJet : public BaseHistoManager {
     /// @brief Set eta range
     void setJetEtaRange(const double& lo=-2.5, const double& hi=2.5) { fEtaRange[0]=lo; fEtaRange[1]=hi; }
     /// @brief Set number of phi bins
-    void setJetPhiBins(const int& n=64) { fPhiBins = n; }
+    void setJetPhiBins(const int& n=16) { fPhiBins = n; }
     /// @brief Set phi range
     void setJetPhiRange(const double& lo=-TMath::Pi(), const double& hi=TMath::Pi()) { fPhiRange[0]=lo; fPhiRange[1]=hi; }
+    /// @brief Number of dijet pT bins
+    void setDijetPtBins(const int& n = 196) { fDijetPtBins = n; }
+    /// @brief Dijet pT range
+    void setDijetPtRange(const double& lo = 20., const double& hi = 1000.) { fDijetPtRange[0] = lo; fDijetPtRange[1] = hi; }
+    /// @brief Number of dijet eta bins
+    void setDijetEtaBins(const int& n = 52) { fDijetEtaBins = n; }
+    /// @brief Dijet eta range
+    void setDijetEtaRange(const double& lo = -5.2, const double& hi = 5.2) { fDijetEtaRange[0] = lo; fDijetEtaRange[1] = hi; }
+    /// @brief Number of dijet delta phi bins
+    void setDijetDphiBins(const int& n = 16) { fDijetDphiBins = n; }
+    /// @brief Dijet delta phi range
+    void setDijetDphiRange(const double& lo = -TMath::Pi(), const double& hi = TMath::Pi()) { fDijetDphiRange[0] = lo; fDijetDphiRange[1] = hi; }
     /// @brief Set number of bins for ptHat
     void setPtHatBins(const int& n=10) { fPtHatBins = n; }
     /// @brief Set range of ptHat
     void setPtHatRange(const double& lo=15., const double& hi=215.) { fPtHatRange[0]=lo; fPtHatRange[1]=hi; }
+    /// @brief Set variable binning for histograms
+    void setUseVariableBinning(const bool& useVariableBinning = true) { fUseVariableBinning = useVariableBinning; }
 
     //
     // Event histograms
@@ -466,14 +480,14 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Ref dijet pt, dijet eta,
     // Ref lead pt, lead eta,
     // Ref sublead pt, sublead eta [12]
-    THnSparseD *hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEta;
+    THnSparseD *hReco2RefFull;
     // Reco dijet pt, dijet eta, 
     // Reco lead pt, lead eta,
     // Reco sublead pt, sublead eta,
     // Ref dijet pt, dijet eta,
     // Ref lead pt, lead eta,
     // Ref sublead pt, sublead eta weighted [12]
-    THnSparseD *hRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
+    THnSparseD *hReco2RefFullWeighted;
 
     // Reco dijet pt, eta
     // Ref dijet pt, eta
@@ -487,7 +501,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Ref dijet pt, dijet eta,
     // Ref lead pt, lead eta,
     // Ref sublead pt, sublead eta weighted [12]
-    THnSparseD *hRefSelRecoDijetPtEtaLeadJetPtEtaSubleadJetPtEtaGenDijetPtEtaLeadPtEtaSubleadPtEtaWeighted;
+    THnSparseD *hRefSel2RecoFullWeighted;
 
     TH1D *hRefDijetEta;
     TH2D *hRefDijetEtaVsRecoDijetEta;
@@ -704,6 +718,8 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     /// @brief Is Monte Carlo
     bool fIsMc;
+    /// @brief Use variable binning (default is true)
+    bool fUseVariableBinning;
     // /// @brief  Number of centrality bins
     // int    fCentBins;
     // /// @brief Centrality range
