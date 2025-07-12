@@ -130,6 +130,65 @@ void rescaleEta(TH1* h) {
 }
 
 //________________
+// Rescale a 3D histogram by its volume-weighted integral
+// This function rescales a 3D histogram by its volume-weighted integral.
+// It calculates the total volume-weighted sum of the histogram and then normalizes each bin content and error accordingly.
+// The function assumes that the histogram has non-equidistant axes.
+void rescaleHisto3D(TH3D* h3) {
+    if (!h3) return;
+
+    TAxis* xAxis = h3->GetXaxis();
+    TAxis* yAxis = h3->GetYaxis();  // Non-equidistant
+    TAxis* zAxis = h3->GetZaxis();
+
+    int nX = xAxis->GetNbins();
+    int nY = yAxis->GetNbins();
+    int nZ = zAxis->GetNbins();
+
+    double total = 0.0;
+
+    // First pass: calculate total volume-weighted sum
+    for (int i = 1; i <= nX; ++i) {
+        double dx = xAxis->GetBinWidth(i);
+        for (int j = 1; j <= nY; ++j) {
+            double dy = yAxis->GetBinWidth(j);
+            for (int k = 1; k <= nZ; ++k) {
+                double dz = zAxis->GetBinWidth(k);
+                double content = h3->GetBinContent(i, j, k);
+                total += content * dx * dy * dz;
+            }
+        }
+    }
+
+    if (total == 0.0) {
+        std::cerr << "Warning: Histogram has zero total volume-weighted integral." << std::endl;
+        return;
+    }
+
+    // Second pass: normalize bin content and errors
+    for (int i = 1; i <= nX; ++i) {
+        double dx = xAxis->GetBinWidth(i);
+        for (int j = 1; j <= nY; ++j) {
+            double dy = yAxis->GetBinWidth(j);
+            for (int k = 1; k <= nZ; ++k) {
+                double dz = zAxis->GetBinWidth(k);
+                double volume = dx * dy * dz;
+
+                double content = h3->GetBinContent(i, j, k);
+                double error = h3->GetBinError(i, j, k);
+
+                double normFactor = 1.0 / total;
+                double newContent = content * normFactor;
+                double newError = error * normFactor;
+
+                h3->SetBinContent(i, j, k, newContent);
+                h3->SetBinError(i, j, k, newError);
+            }
+        }
+    }
+}
+
+//________________
 void checkIntegral(TH1* h) {
     if (h->Integral() <= 0) {
         std::cout << "Warning: " << h->GetName() << " has zero or negative integral." << std::endl;
@@ -532,24 +591,24 @@ void drawSingleJetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullp
 //________________
 // Draw comparison of reco, ref, gen and refSel dijet eta distributions
 void drawDijetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr, 
-                         TH1D *hGen = nullptr, TH1D *hRefSel = nullptr,
-                         TH1D *hData = nullptr,
-                         int ptLow = 50, int ptHi = 60, 
-                         bool isCM = false, bool isFB = false,
-                         int collisionSystem = 1, double energy = 8.16) {
+                              TH1D *hGen = nullptr, TH1D *hRefSel = nullptr,
+                              TH1D *hData = nullptr,
+                              int ptLow = 50, int ptHi = 60, 
+                              bool isCM = false, bool isFB = false,
+                              int collisionSystem = 1, double energy = 8.16) {
 
     TLatex t;
     t.SetTextFont( 42 );
     t.SetTextSize( 0.05 );
     TLegend *leg;
 
-    double xRange[2] = { -3.2, 3.2 };
+    double xRange[2] = { -3., 3. };
     double yRange[2] = {0.0000001, 0.08 };
 
     if ( isCM ) {
         if ( !isFB ) {
             xRange[0] = -2.5; xRange[1] = 2.5;
-            yRange[0] = 0.0000001; yRange[1] = 0.08;
+            yRange[0] = 0.0000001; yRange[1] = 0.12;
         }
         else {
             xRange[0] = 0; xRange[1] = 2.5;
@@ -574,7 +633,7 @@ void drawDijetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr,
     hReco->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
     gPad->SetGrid();
     plotCMSHeader(collisionSystem, energy);        
-    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi) );
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} GeV < %d", ptLow, ptHi) );
     if ( isFB ) {
         leg = new TLegend(0.2, 0.25, 0.4, 0.4);
     }
@@ -612,7 +671,7 @@ void drawDijetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
     t.SetTextSize(0.05);
     TLegend *leg;
 
-    double xRange[2] = {-3.2, 3.2};
+    double xRange[2] = {-3.0, 3.0};
     double yRange[2] = {0.7, 1.3};
 
     if (isCM) {
@@ -642,7 +701,7 @@ void drawDijetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
     hReco2Gen->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
     gPad->SetGrid();
     plotCMSHeader(collisionSystem, energy);
-    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} (GeV) < %d", ptLow, ptHi));
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} GeV < %d", ptLow, ptHi));
     leg = new TLegend(0.2, 0.25, 0.4, 0.4);
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
@@ -774,54 +833,46 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
                              300, 500};
     int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
 
-    std::vector<int> dijetPtVals; 
-    dijetPtVals.assign(dijetPtNewVals, dijetPtNewVals + sizeOfPtVals);
 
-    std::cout << "Number of pT bins: " << dijetPtVals.size() << std::endl;
-
-    // Bins for projections from 3D
-    std::vector<int> ptDijetBinLow {5, 7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 31, 35, 45, 55 };
-    std::vector<int> ptDijetBinHi  {6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 30, 34, 44, 54, 94 };
-
-    TH1D *h1DProj[ ptDijetBinLow.size() ];
-    TH1D *h1DDirect[ ptDijetBinLow.size() ];
+    TH1D *h1DProj{nullptr};
+    TH1D *h1DDirect{nullptr};
 
     //
     // Lab frame
     //
-    TH1D *hRecoDijetEta1DLab[ ptDijetBinLow.size() ];
-    TH1D *hGenDijetEta1DLab[ ptDijetBinLow.size() ];
-    TH1D *hRefDijetEta1DLab[ ptDijetBinLow.size() ];
-    TH1D *hRefSelDijetEta1DLab[ ptDijetBinLow.size() ];
-    TH1D *hReco2GenDijetEta1DLab[ ptDijetBinLow.size() ];
-    TH1D *hRef2GenDijetEta1DLab[ ptDijetBinLow.size() ];
-    TH1D *hRefSel2GenDijetEta1DLab[ ptDijetBinLow.size() ];
+    TH1D *hRecoDijetEta1DLab{nullptr};
+    TH1D *hGenDijetEta1DLab{nullptr};
+    TH1D *hRefDijetEta1DLab{nullptr};
+    TH1D *hRefSelDijetEta1DLab{nullptr};
+    TH1D *hReco2GenDijetEta1DLab{nullptr};
+    TH1D *hRef2GenDijetEta1DLab{nullptr};
+    TH1D *hRefSel2GenDijetEta1DLab{nullptr};
 
     //
     // CM frame
     //
-    TH1D *hRecoDijetEta1DCM[ ptDijetBinLow.size() ];
-    TH1D *hGenDijetEta1DCM[ ptDijetBinLow.size() ];
-    TH1D *hRefDijetEta1DCM[ ptDijetBinLow.size() ];
-    TH1D *hRefSelDijetEta1DCM[ ptDijetBinLow.size() ];
-    TH1D *hReco2GenDijetEta1DCM[ ptDijetBinLow.size() ];
-    TH1D *hRef2GenDijetEta1DCM[ ptDijetBinLow.size() ];
-    TH1D *hRefSel2GenDijetEta1DCM[ ptDijetBinLow.size() ];
+    TH1D *hRecoDijetEta1DCM{nullptr};
+    TH1D *hGenDijetEta1DCM{nullptr};
+    TH1D *hRefDijetEta1DCM{nullptr};
+    TH1D *hRefSelDijetEta1DCM{nullptr};
+    TH1D *hReco2GenDijetEta1DCM{nullptr};
+    TH1D *hRef2GenDijetEta1DCM{nullptr};
+    TH1D *hRefSel2GenDijetEta1DCM{nullptr};
 
     //
     // Forward/backward ratios
     //
 
-    TH1D *hRecoDijetEtaCMForward1D[ ptDijetBinLow.size() ];
-    TH1D *hRecoDijetEtaCMBackward1D[ ptDijetBinLow.size() ];
-    TH1D *hGenDijetEtaCMForward1D[ ptDijetBinLow.size() ];
-    TH1D *hGenDijetEtaCMBackward1D[ ptDijetBinLow.size() ];
-    TH1D *hRefDijetEtaCMForward1D[ ptDijetBinLow.size() ];
-    TH1D *hRefDijetEtaCMBackward1D[ ptDijetBinLow.size() ];
+    TH1D *hRecoDijetEtaCMForward1D{nullptr};
+    TH1D *hRecoDijetEtaCMBackward1D{nullptr};
+    TH1D *hGenDijetEtaCMForward1D{nullptr};
+    TH1D *hGenDijetEtaCMBackward1D{nullptr};
+    TH1D *hRefDijetEtaCMForward1D{nullptr};
+    TH1D *hRefDijetEtaCMBackward1D{nullptr};
 
-    TH1D *hRecoDijetFBEtaCM1D[ ptDijetBinLow.size() ];
-    TH1D *hGenDijetFBEtaCM1D[ ptDijetBinLow.size() ];
-    TH1D *hRefDijetFBEtaCM1D[ ptDijetBinLow.size() ];
+    TH1D *hRecoDijetFBEtaCM1D{nullptr};
+    TH1D *hGenDijetFBEtaCM1D{nullptr};
+    TH1D *hRefDijetFBEtaCM1D{nullptr};
 
     TLatex t;
     t.SetTextFont( 42 );
@@ -830,148 +881,468 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
     TCanvas *c = new TCanvas( "c", "c", 1000, 1000 );
 
     // Loop over dijet ptAve bins
-    for (unsigned int i = 0; i < ptDijetBinLow.size(); i++) {
+    for (int i = 0; i < sizeOfPtVals-1; i++) {
 
-        int ptLow = dijetPtVals[i];
-        int ptHi = dijetPtVals[i+1];
+        int ptLow = dijetPtNewVals[i];
+        int ptHi = dijetPtNewVals[i+1];
         int canvX{1000}, canvY{1000};
 
         //
         // Lab frame
         //
-        hRecoDijetEta1DLab[i] = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEta1DWeighted_%d", i) ) );
-        hRecoDijetEta1DLab[i]->SetName( Form("hRecoDijetEta1DLab_%d", i) );
-        set1DStyle( hRecoDijetEta1DLab[i], 0 );
-        rescaleEta( hRecoDijetEta1DLab[i] );
-        hGenDijetEta1DLab[i] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEta1DWeighted_%d", i) ) );
-        hGenDijetEta1DLab[i]->SetName( Form("hGenDijetEta1DLab_%d", i) );
-        set1DStyle( hGenDijetEta1DLab[i], 4 );
-        rescaleEta( hGenDijetEta1DLab[i] );
-        hRefDijetEta1DLab[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEta1DWeighted_%d", i) ) );
-        hRefDijetEta1DLab[i]->SetName( Form("hRefDijetEta1DLab_%d", i) );
-        set1DStyle( hRefDijetEta1DLab[i], 1 );
-        rescaleEta( hRefDijetEta1DLab[i] );
-        hRefSelDijetEta1DLab[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefSelDijetEta1DWeighted_%d", i) ) );
-        hRefSelDijetEta1DLab[i]->SetName( Form("hRefSelDijetEta1DLab_%d", i) );
-        set1DStyle( hRefSelDijetEta1DLab[i], 2 );
-        rescaleEta( hRefSelDijetEta1DLab[i] );
+        hRecoDijetEta1DLab = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEta1D_%d", i) ) );
+        hRecoDijetEta1DLab->SetName( Form("hRecoDijetEta1DLab_%d", i) );
+        rescaleEta( hRecoDijetEta1DLab );
+        set1DStyle( hRecoDijetEta1DLab, 0 );
+        hGenDijetEta1DLab = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEta1D_%d", i) ) );
+        hGenDijetEta1DLab->SetName( Form("hGenDijetEta1DLab_%d", i) );
+        rescaleEta( hGenDijetEta1DLab );
+        set1DStyle( hGenDijetEta1DLab, 4 );
+        hRefDijetEta1DLab = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEta1D_%d", i) ) );
+        hRefDijetEta1DLab->SetName( Form("hRefDijetEta1DLab_%d", i) );
+        rescaleEta( hRefDijetEta1DLab );
+        set1DStyle( hRefDijetEta1DLab, 1 );
+        hRefSelDijetEta1DLab = dynamic_cast<TH1D*>( f->Get( Form("hRefSelDijetEta1D_%d", i) ) );
+        hRefSelDijetEta1DLab->SetName( Form("hRefSelDijetEta1DLab_%d", i) );
+        rescaleEta( hRefSelDijetEta1DLab );
+        set1DStyle( hRefSelDijetEta1DLab, 2 );
+        
 
-        hReco2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DLab[i]->Clone( Form("hReco2GenDijetEta1DLab_%d", i) ) );
-        hReco2GenDijetEta1DLab[i]->Reset();
-        computeNonBinomialRatio( hRecoDijetEta1DLab[i], hGenDijetEta1DLab[i], hReco2GenDijetEta1DLab[i] );
-        // hReco2GenDijetEta1DLab[i]->Divide( hReco2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1. );
-        hRef2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRefDijetEta1DLab[i]->Clone( Form("hRef2GenDijetEta1DLab_%d", i) ) );
-        hRef2GenDijetEta1DLab[i]->Reset();
-        computeBinomialRatio( hRefDijetEta1DLab[i], hGenDijetEta1DLab[i], hRef2GenDijetEta1DLab[i] );
-        // hRef2GenDijetEta1DLab[i]->Divide( hRef2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
-        hRefSel2GenDijetEta1DLab[i] = dynamic_cast<TH1D*>( hRefSelDijetEta1DLab[i]->Clone( Form("hRefSel2GenDijetEta1DLab_%d", i) ) );
-        hRefSel2GenDijetEta1DLab[i]->Reset();
-        computeBinomialRatio( hRefSelDijetEta1DLab[i], hGenDijetEta1DLab[i], hRefSel2GenDijetEta1DLab[i] );
-        // hRefSel2GenDijetEta1DLab[i]->Divide( hRefSel2GenDijetEta1DLab[i], hGenDijetEta1DLab[i], 1., 1., "b" );
+        hReco2GenDijetEta1DLab = dynamic_cast<TH1D*>( hRecoDijetEta1DLab->Clone( Form("hReco2GenDijetEta1DLab_%d", i) ) );
+        hReco2GenDijetEta1DLab->Divide( hReco2GenDijetEta1DLab, hGenDijetEta1DLab, 1., 1., "b" );
+        hRef2GenDijetEta1DLab = dynamic_cast<TH1D*>( hRefDijetEta1DLab->Clone( Form("hRef2GenDijetEta1DLab_%d", i) ) );
+        hRef2GenDijetEta1DLab->Divide( hRef2GenDijetEta1DLab, hGenDijetEta1DLab, 1., 1., "b" );
+        hRefSel2GenDijetEta1DLab = dynamic_cast<TH1D*>( hRefSelDijetEta1DLab->Clone( Form("hRefSel2GenDijetEta1DLab_%d", i) ) );
+        hRefSel2GenDijetEta1DLab->Divide( hRefSel2GenDijetEta1DLab, hGenDijetEta1DLab, 1., 1., "b" );
 
         //
         // CM frame
         //
-        hRecoDijetEta1DCM[i] = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEta1DCMWeighted_%d", i) ) );
-        hRecoDijetEta1DCM[i]->SetName( Form("hRecoDijetEta1DCM_%d", i) );
-        set1DStyle( hRecoDijetEta1DCM[i], 0 );
-        rescaleEta( hRecoDijetEta1DCM[i] );
-        hGenDijetEta1DCM[i] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEta1DCMWeighted_%d", i) ) );
-        hGenDijetEta1DCM[i]->SetName( Form("hGenDijetEta1DCM_%d", i) );
-        set1DStyle( hGenDijetEta1DCM[i], 4 );
-        rescaleEta( hGenDijetEta1DCM[i] );
-        hRefDijetEta1DCM[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEta1DCMWeighted_%d", i) ) );
-        hRefDijetEta1DCM[i]->SetName( Form("hRefDijetEta1DCM_%d", i) );
-        set1DStyle( hRefDijetEta1DCM[i], 1 );
-        rescaleEta( hRefDijetEta1DCM[i] );
-        hRefSelDijetEta1DCM[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefSelDijetEta1DCMWeighted_%d", i) ) );
-        hRefSelDijetEta1DCM[i]->SetName( Form("hRefSelDijetEta1DCM_%d", i) );
-        set1DStyle( hRefSelDijetEta1DCM[i], 2 );
-        rescaleEta( hRefSelDijetEta1DCM[i] );
-        
-        hReco2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRecoDijetEta1DCM[i]->Clone( Form("hReco2GenDijetEta1DCM_%d", i) ) );
-        hReco2GenDijetEta1DCM[i]->Reset();
-        computeNonBinomialRatio( hRecoDijetEta1DCM[i], hGenDijetEta1DCM[i], hReco2GenDijetEta1DCM[i] );
-        // hReco2GenDijetEta1DCM[i]->Divide( hReco2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1. /* , "b" */ );
-        hRef2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRefDijetEta1DCM[i]->Clone( Form("hRef2GenDijetEta1DCM_%d", i) ) );
-        hRef2GenDijetEta1DCM[i]->Reset();
-        computeBinomialRatio( hRefDijetEta1DCM[i], hGenDijetEta1DCM[i], hRef2GenDijetEta1DCM[i] );
-        // hRef2GenDijetEta1DCM[i]->Divide( hRef2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
-        hRefSel2GenDijetEta1DCM[i] = dynamic_cast<TH1D*>( hRefSelDijetEta1DCM[i]->Clone( Form("hRefSel2GenDijetEta1DCM_%d", i) ) );
-        hRefSel2GenDijetEta1DCM[i]->Reset();
-        computeBinomialRatio( hRefSelDijetEta1DCM[i], hGenDijetEta1DCM[i], hRefSel2GenDijetEta1DCM[i] );
-        // hRefSel2GenDijetEta1DCM[i]->Divide( hRefSel2GenDijetEta1DCM[i], hGenDijetEta1DCM[i], 1., 1., "b" );
+        hRecoDijetEta1DCM = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEta1DCM_%d", i) ) );
+        hRecoDijetEta1DCM->SetName( Form("hRecoDijetEta1DCM_%d", i) );
+        set1DStyle( hRecoDijetEta1DCM, 0 );
+        rescaleEta( hRecoDijetEta1DCM );
+        hGenDijetEta1DCM = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEta1DCM_%d", i) ) );
+        hGenDijetEta1DCM->SetName( Form("hGenDijetEta1DCM_%d", i) );
+        set1DStyle( hGenDijetEta1DCM, 4 );
+        rescaleEta( hGenDijetEta1DCM );
+        hRefDijetEta1DCM = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEta1DCM_%d", i) ) );
+        hRefDijetEta1DCM->SetName( Form("hRefDijetEta1DCM_%d", i) );
+        set1DStyle( hRefDijetEta1DCM, 1 );
+        rescaleEta( hRefDijetEta1DCM );
+        hRefSelDijetEta1DCM = dynamic_cast<TH1D*>( f->Get( Form("hRefSelDijetEta1DCM_%d", i) ) );
+        hRefSelDijetEta1DCM->SetName( Form("hRefSelDijetEta1DCM_%d", i) );
+        set1DStyle( hRefSelDijetEta1DCM, 2 );
+        rescaleEta( hRefSelDijetEta1DCM );
+
+        hReco2GenDijetEta1DCM = dynamic_cast<TH1D*>( hRecoDijetEta1DCM->Clone( Form("hReco2GenDijetEta1DCM_%d", i) ) );
+        hReco2GenDijetEta1DCM->Divide( hReco2GenDijetEta1DCM, hGenDijetEta1DCM, 1., 1., "b" );
+        hRef2GenDijetEta1DCM = dynamic_cast<TH1D*>( hRefDijetEta1DCM->Clone( Form("hRef2GenDijetEta1DCM_%d", i) ) );
+        hRef2GenDijetEta1DCM->Divide( hRef2GenDijetEta1DCM, hGenDijetEta1DCM, 1., 1., "b" );
+        hRefSel2GenDijetEta1DCM = dynamic_cast<TH1D*>( hRefSelDijetEta1DCM->Clone( Form("hRefSel2GenDijetEta1DCM_%d", i) ) );
+        hRefSel2GenDijetEta1DCM->Divide( hRefSel2GenDijetEta1DCM, hGenDijetEta1DCM, 1., 1., "b" );
 
         //
         // Forward/backward ratios
         //
-        hRecoDijetEtaCMForward1D[i] = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEtaCMForward1DWeighted_%d", i) ) );
-        hRecoDijetEtaCMForward1D[i]->SetName( Form("hRecoDijetEtaCMForward1D_%d", i) );
-        hRecoDijetEtaCMBackward1D[i] = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEtaCMBackward1DWeighted_%d", i) ) );
-        hRecoDijetEtaCMBackward1D[i]->SetName( Form("hRecoDijetEtaCMBackward1D_%d", i) );
-        hGenDijetEtaCMForward1D[i] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMForward1DWeighted_%d", i) ) );
-        hGenDijetEtaCMForward1D[i]->SetName( Form("hGenDijetEtaCMForward1D_%d", i) );
-        hGenDijetEtaCMBackward1D[i] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMBackward1DWeighted_%d", i) ) );
-        hGenDijetEtaCMBackward1D[i]->SetName( Form("hGenDijetEtaCMBackward1D_%d", i) );
-        hRefDijetEtaCMForward1D[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEtaCMForward1DWeighted_%d", i) ) );
-        hRefDijetEtaCMForward1D[i]->SetName( Form("hRefDijetEtaCMForward1D_%d", i) );
-        hRefDijetEtaCMBackward1D[i] = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEtaCMBackward1DWeighted_%d", i) ) );
-        hRefDijetEtaCMBackward1D[i]->SetName( Form("hRefDijetEtaCMBackward1D_%d", i) );
+        hRecoDijetEtaCMForward1D = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEtaCMForward1D_%d", i) ) );
+        hRecoDijetEtaCMForward1D->SetName( Form("hRecoDijetEtaCMForward1D_%d", i) );
+        hRecoDijetEtaCMBackward1D = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEtaCMBackward1D_%d", i) ) );
+        hRecoDijetEtaCMBackward1D->SetName( Form("hRecoDijetEtaCMBackward1D_%d", i) );
+        hGenDijetEtaCMForward1D = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMForward1D_%d", i) ) );
+        hGenDijetEtaCMForward1D->SetName( Form("hGenDijetEtaCMForward1D_%d", i) );
+        hGenDijetEtaCMBackward1D = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMBackward1D_%d", i) ) );
+        hGenDijetEtaCMBackward1D->SetName( Form("hGenDijetEtaCMBackward1D_%d", i) );
+        hRefDijetEtaCMForward1D = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEtaCMForward1D_%d", i) ) );
+        hRefDijetEtaCMForward1D->SetName( Form("hRefDijetEtaCMForward1D_%d", i) );
+        hRefDijetEtaCMBackward1D = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEtaCMBackward1D_%d", i) ) );
+        hRefDijetEtaCMBackward1D->SetName( Form("hRefDijetEtaCMBackward1D_%d", i) );
 
-        rescaleForwardBackward( hRecoDijetEtaCMForward1D[i], hRecoDijetEtaCMBackward1D[i] );
-        rescaleForwardBackward( hGenDijetEtaCMForward1D[i], hGenDijetEtaCMBackward1D[i] );
-        rescaleForwardBackward( hRefDijetEtaCMForward1D[i], hRefDijetEtaCMBackward1D[i] );
-        set1DStyle( hRecoDijetEtaCMForward1D[i], 0 );
-        set1DStyle( hGenDijetEtaCMForward1D[i], 2 );
-        set1DStyle( hRefDijetEtaCMForward1D[i], 1 );
+        rescaleForwardBackward( hRecoDijetEtaCMForward1D, hRecoDijetEtaCMBackward1D );
+        rescaleForwardBackward( hGenDijetEtaCMForward1D, hGenDijetEtaCMBackward1D );
+        rescaleForwardBackward( hRefDijetEtaCMForward1D, hRefDijetEtaCMBackward1D );
+        set1DStyle( hRecoDijetEtaCMForward1D, 0 );
+        set1DStyle( hGenDijetEtaCMForward1D, 2 );
+        set1DStyle( hRefDijetEtaCMForward1D, 1 );
 
-        hRecoDijetFBEtaCM1D[i] = dynamic_cast<TH1D*>( hRecoDijetEtaCMForward1D[i]->Clone( Form("hRecoDijetFBEtaCM1D_%d", i) ) );
-        hRecoDijetFBEtaCM1D[i]->Divide( hRecoDijetEtaCMBackward1D[i] );
-        hRecoDijetFBEtaCM1D[i]->GetYaxis()->SetTitle("Forward/Backward");
-        hGenDijetFBEtaCM1D[i] = dynamic_cast<TH1D*>( hGenDijetEtaCMForward1D[i]->Clone( Form("hGenDijetFBEtaCM1D_%d", i) ) );
-        hGenDijetFBEtaCM1D[i]->Divide( hGenDijetEtaCMBackward1D[i] );
-        hGenDijetFBEtaCM1D[i]->GetYaxis()->SetTitle("Forward/Backward");
-        hRefDijetFBEtaCM1D[i] = dynamic_cast<TH1D*>( hRefDijetEtaCMForward1D[i]->Clone( Form("hRefDijetFBEtaCM1D_%d", i) ) );
-        hRefDijetFBEtaCM1D[i]->Divide( hRefDijetEtaCMBackward1D[i] );
-        hRefDijetFBEtaCM1D[i]->GetYaxis()->SetTitle("Forward/Backward");
+        hRecoDijetFBEtaCM1D = dynamic_cast<TH1D*>( hRecoDijetEtaCMForward1D->Clone( Form("hRecoDijetFBEtaCM1D_%d", i) ) );
+        hRecoDijetFBEtaCM1D->Divide( hRecoDijetEtaCMBackward1D );
+        hRecoDijetFBEtaCM1D->GetYaxis()->SetTitle("Forward/Backward");
+        hGenDijetFBEtaCM1D = dynamic_cast<TH1D*>( hGenDijetEtaCMForward1D->Clone( Form("hGenDijetFBEtaCM1D_%d", i) ) );
+        hGenDijetFBEtaCM1D->Divide( hGenDijetEtaCMBackward1D );
+        hGenDijetFBEtaCM1D->GetYaxis()->SetTitle("Forward/Backward");
+        hRefDijetFBEtaCM1D = dynamic_cast<TH1D*>( hRefDijetEtaCMForward1D->Clone( Form("hRefDijetFBEtaCM1D_%d", i) ) );
+        hRefDijetFBEtaCM1D->Divide( hRefDijetEtaCMBackward1D );
+        hRefDijetFBEtaCM1D->GetYaxis()->SetTitle("Forward/Backward");
 
         //
         // Plot comparisons in the lab frame
         //
-        drawDijetToGenComparison(c, hRecoDijetEta1DLab[i], hRefDijetEta1DLab[i], hGenDijetEta1DLab[i], hRefSelDijetEta1DLab[i], nullptr,
-                            dijetPtVals[i], dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );        
+        drawDijetToGenComparison(c, hRecoDijetEta1DLab, hRefDijetEta1DLab, hGenDijetEta1DLab, hRefSelDijetEta1DLab, nullptr,
+                                 dijetPtNewVals[i], dijetPtNewVals[i+1],
+                                 false, false, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), directionStr.Data(), 
+                        dijetPtNewVals[i], dijetPtNewVals[i+1]) );
 
         //
         // Plot ratios in the lab frame
         //
-        drawDijetToGenRatio(c, hReco2GenDijetEta1DLab[i], hRef2GenDijetEta1DLab[i], hRefSel2GenDijetEta1DLab[i], nullptr,
-                       dijetPtVals[i], dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        drawDijetToGenRatio(c, hReco2GenDijetEta1DLab, hRef2GenDijetEta1DLab, hRefSel2GenDijetEta1DLab, nullptr,
+                            dijetPtNewVals[i], dijetPtNewVals[i+1], false, false, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), directionStr.Data(), 
+                        dijetPtNewVals[i], dijetPtNewVals[i+1]) );
 
         //
         // Plot comparisons in the CM frame
         //
 
-        drawDijetToGenComparison(c, hRecoDijetEta1DCM[i], hRefDijetEta1DCM[i], hGenDijetEta1DCM[i], hRefSelDijetEta1DCM[i], nullptr,
-                            dijetPtVals[i], dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        drawDijetToGenComparison(c, hRecoDijetEta1DCM, hRefDijetEta1DCM, hGenDijetEta1DCM, hRefSelDijetEta1DCM, nullptr,
+                                 dijetPtNewVals[i], dijetPtNewVals[i+1], true, false, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), directionStr.Data(), 
+                        dijetPtNewVals[i], dijetPtNewVals[i+1]) );
 
         //
         // Plot ratios in the CM frame
         //
-        drawDijetToGenRatio(c, hReco2GenDijetEta1DCM[i], hRef2GenDijetEta1DCM[i], hRefSel2GenDijetEta1DCM[i], nullptr,
-                       dijetPtVals[i], dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_RecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
+        drawDijetToGenRatio(c, hReco2GenDijetEta1DCM, hRef2GenDijetEta1DCM, hRefSel2GenDijetEta1DCM, nullptr,
+                            dijetPtNewVals[i], dijetPtNewVals[i+1], true, false, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), directionStr.Data(), 
+                        dijetPtNewVals[i], dijetPtNewVals[i+1]) );
 
         //
         // Forward/backward ratios
         //
-        drawDijetToGenComparison(c, hRecoDijetFBEtaCM1D[i], hRefDijetFBEtaCM1D[i], hGenDijetFBEtaCM1D[i], nullptr, nullptr,
-                            dijetPtVals[i], dijetPtVals[i+1], true, true, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaFB_RecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), dijetPtVals[i], dijetPtVals[i+1]) );
-            
+        drawDijetToGenComparison(c, hRecoDijetFBEtaCM1D, hRefDijetFBEtaCM1D, hGenDijetFBEtaCM1D, nullptr, nullptr,
+                                 dijetPtNewVals[i], dijetPtNewVals[i+1], true, true, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaFB_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), directionStr.Data(), 
+                        dijetPtNewVals[i], dijetPtNewVals[i+1]) );
+
     } // end loop over dijet pt bins
+}
+
+
+//________________
+// This function retrieves 3D histograms (eta, pT, phi)  for reconstructed, generated, 
+// and reference jets, and computes the ratios (to gen).
+// f is the input TFile containing the histograms.
+// collisionSystem: 0 = pp, 1 = pPb, 2 = PbPb
+// collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
+// date: date string for saving the plots (default is "20250129")
+void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
+    
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    // Determine the direction based on the filename
+    TString directionStr;
+    TString filename = f->GetName();
+    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } else {
+        directionStr = "combined";
+    }
+
+    // Dijet ptAve binning
+    int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
+                             100, 110,  120, 130, 140,
+                             150, 160,  180, 200, 250, 
+                             300, 500 };
+    int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
+
+    // Laboratory frame
+    TH3D *hRecoDijetPtEtaPhiLab = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiWeighted"));
+    if (!hRecoDijetPtEtaPhiLab) {
+        std::cerr << "Error: hRecoDijetPtEtaPhiWeighted not found in file." << std::endl;
+        return;
+    }
+    TH3D *hGenDijetPtEtaPhiLab = dynamic_cast<TH3D *>(f->Get("hGenDijetPtEtaPhiWeighted"));
+    if (!hGenDijetPtEtaPhiLab) {
+        std::cerr << "Error: hGenDijetPtEtaPhiWeighted not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefDijetPtEtaPhiLab = dynamic_cast<TH3D *>(f->Get("hRefDijetPtEtaPhiWeighted"));
+    if (!hRefDijetPtEtaPhiLab) {
+        std::cerr << "Error: hRefDijetPtEtaPhiWeighted not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefSelDijetPtEtaPhiLab = dynamic_cast<TH3D *>(f->Get("hRefSelDijetPtEtaPhiWeighted"));
+    if (!hRefSelDijetPtEtaPhiLab) {
+        std::cerr << "Error: hRefSelDijetPtEtaPhiWeighted not found in file." << std::endl;
+        return;
+    }
+
+    // Rescale the 3D histograms by their volume-weighted integral
+    rescaleHisto3D(hRecoDijetPtEtaPhiLab);
+    rescaleHisto3D(hGenDijetPtEtaPhiLab);
+    rescaleHisto3D(hRefDijetPtEtaPhiLab);
+    rescaleHisto3D(hRefSelDijetPtEtaPhiLab);
+
+    // Center of mass frame
+    TH3D *hRecoDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiCMWeighted"));
+    if (!hRecoDijetPtEtaPhiCM) {
+        std::cerr << "Error: hRecoDijetPtEtaPhiCMWeighted not found in file." << std::endl;
+        return;
+    }
+    TH3D *hGenDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hGenDijetPtEtaPhiCMWeighted"));
+    if (!hGenDijetPtEtaPhiCM) {
+        std::cerr << "Error: hGenDijetPtEtaPhiCMWeighted not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hRefDijetPtEtaPhiCMWeighted"));
+    if (!hRefDijetPtEtaPhiCM) {
+        std::cerr << "Error: hRefDijetPtEtaPhiCMWeighted not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefSelDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hRefSelDijetPtEtaPhiCMWeighted"));
+    if (!hRefSelDijetPtEtaPhiCM) {
+        std::cerr << "Error: hRefSelDijetPtEtaPhiCMWeighted not found in file." << std::endl;
+        return;
+    }
+
+    // Rescale the 3D histograms by their volume-weighted integral
+    rescaleHisto3D(hRecoDijetPtEtaPhiCM);
+    rescaleHisto3D(hGenDijetPtEtaPhiCM);
+    rescaleHisto3D(hRefDijetPtEtaPhiCM);
+    rescaleHisto3D(hRefSelDijetPtEtaPhiCM);
+
+    // Distributions for laboratory frame
+    TH1D *hRecoEtaLab{nullptr};
+    TH1D *hGenEtaLab{nullptr};
+    TH1D *hRefEtaLab{nullptr};
+    TH1D *hRefSelEtaLab{nullptr};
+    TH1D *hReco2GenEtaLab{nullptr};
+    TH1D *hRef2GenEtaLab{nullptr};
+    TH1D *hRefSel2GenEtaLab{nullptr};
+
+    TH1D *hRecoPhiLab{nullptr};
+    TH1D *hGenPhiLab{nullptr};
+    TH1D *hRefPhiLab{nullptr};
+    TH1D *hRefSelPhiLab{nullptr};
+    TH1D *hReco2GenPhiLab{nullptr};
+    TH1D *hRef2GenPhiLab{nullptr};
+    TH1D *hRefSel2GenPhiLab{nullptr};
+
+    // Distributions for center of mass frame
+    TH1D *hRecoEtaCM{nullptr};
+    TH1D *hGenEtaCM{nullptr};
+    TH1D *hRefEtaCM{nullptr};
+    TH1D *hRefSelEtaCM{nullptr};
+    TH1D *hReco2GenEtaCM{nullptr};
+    TH1D *hRef2GenEtaCM{nullptr};
+    TH1D *hRefSel2GenEtaCM{nullptr};
+
+    TH1D *hRecoPhiCM{nullptr};
+    TH1D *hGenPhiCM{nullptr};
+    TH1D *hRefPhiCM{nullptr};
+    TH1D *hRefSelPhiCM{nullptr};
+    TH1D *hReco2GenPhiCM{nullptr};
+    TH1D *hRef2GenPhiCM{nullptr};
+    TH1D *hRefSel2GenPhiCM{nullptr};
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+    setPadStyle();
+    TLegend *leg{nullptr};
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    // Loop over dijet ptAve bins
+    for (int i = 0; i < sizeOfPtVals - 1; ++i) {
+        int ptLow = dijetPtNewVals[i];
+        int ptHi = dijetPtNewVals[i + 1];
+
+        //
+        // Laboratory frame
+        //
+
+        // Dijet pseudorapidity
+        hRecoEtaLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiLab->ProjectionY(Form("hRecoEtaLab_%d", i), 
+                                           hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
+                                           hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        hGenEtaLab = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiLab->ProjectionY(Form("hGenEtaLab_%d", i), 
+                                          hGenDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
+                                          hGenDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        hRefEtaLab = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiLab->ProjectionY(Form("hRefEtaLab_%d", i), 
+                                          hRefDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
+                                          hRefDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        hRefSelEtaLab = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiLab->ProjectionY(Form("hRefSelEtaLab_%d", i), 
+                                             hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
+                                             hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        set1DStyle(hRecoEtaLab, 0, true);
+        set1DStyle(hGenEtaLab, 4, true);
+        set1DStyle(hRefEtaLab, 1, true);
+        set1DStyle(hRefSelEtaLab, 2, true);
+
+        // Compute ratios for laboratory frame
+        hReco2GenEtaLab = dynamic_cast<TH1D *>(hRecoEtaLab->Clone(Form("hReco2GenEtaLab_%d", i)));
+        hReco2GenEtaLab->Divide(hReco2GenEtaLab, hGenEtaLab, 1., 1., "b");
+        hRef2GenEtaLab = dynamic_cast<TH1D *>(hRefEtaLab->Clone(Form("hRef2GenEtaLab_%d", i)));
+        hRef2GenEtaLab->Divide(hRef2GenEtaLab, hGenEtaLab, 1., 1., "b");
+        hRefSel2GenEtaLab = dynamic_cast<TH1D *>(hRefSelEtaLab->Clone(Form("hRefSel2GenEtaLab_%d", i)));
+        hRefSel2GenEtaLab->Divide(hRefSel2GenEtaLab, hGenEtaLab, 1., 1., "b");
+
+        // std::cout << "pAve bin: " << i 
+        //           << " ptLowBin: " << hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) 
+        //           << " ptLow: " << hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) )   
+        //           << " ptHiBin: " << hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1
+        //           << " ptHi: " << hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1) << std::endl;
+
+        // Plot comparisons
+        drawDijetToGenComparison(c, hRecoEtaLab, hRef2GenEtaLab, hGenEtaLab, hRefSel2GenEtaLab, nullptr,
+                                 (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
+                                 (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1), 
+                                false, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaLab_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        // Plot ratios
+        drawDijetToGenRatio(c, hReco2GenEtaLab, hRef2GenEtaLab, hRefSel2GenEtaLab, nullptr,
+                            (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
+                            (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1), 
+                            false, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        
+
+        // Dijet azimuthal angle
+        hRecoPhiLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiLab->ProjectionZ(Form("hRecoPhiLab_%d", i),
+                                           hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
+                                           hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        hGenPhiLab = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiLab->ProjectionZ(Form("hGenPhiLab_%d", i), 
+                                          hGenDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
+                                          hGenDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        hRefPhiLab = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiLab->ProjectionZ(Form("hRefPhiLab_%d", i), 
+                                          hRefDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
+                                          hRefDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        hRefSelPhiLab = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiLab->ProjectionZ(Form("hRefSelPhiLab_%d", i), 
+                                             hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
+                                             hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        set1DStyle(hRecoPhiLab, 0, true);
+        set1DStyle(hGenPhiLab, 4, true);
+        set1DStyle(hRefPhiLab, 1, true);
+        set1DStyle(hRefSelPhiLab, 2, true);
+
+        // Compute ratios for laboratory frame
+        hReco2GenPhiLab = dynamic_cast<TH1D *>(hRecoPhiLab->Clone(Form("hReco2GenPhiLab_%d", i)));
+        hReco2GenPhiLab->Divide(hReco2GenPhiLab, hGenPhiLab, 1., 1., "b");
+        hRef2GenPhiLab = dynamic_cast<TH1D *>(hRefPhiLab->Clone(Form("hRef2GenPhiLab_%d", i)));
+        hRef2GenPhiLab->Divide(hRef2GenPhiLab, hGenPhiLab, 1., 1., "b");
+        hRefSel2GenPhiLab = dynamic_cast<TH1D *>(hRefSelPhiLab->Clone(Form("hRefSel2GenPhiLab_%d", i)));
+        hRefSel2GenPhiLab->Divide(hRefSel2GenPhiLab, hGenPhiLab, 1., 1., "b");
+
+        // Plot comparisons
+        drawDijetToGenComparison(c, hRecoPhiLab, hRef2GenPhiLab, hGenPhiLab, hRefSel2GenPhiLab, nullptr,
+                                 hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
+                                 hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1), 
+                                 false, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetPhiLab_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+        // Plot ratios
+        drawDijetToGenRatio(c, hReco2GenPhiLab, hRef2GenPhiLab, hRefSel2GenPhiLab, nullptr,
+                            hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
+                            hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1), 
+                            false, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetPhiLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        
+        //
+        // Center of mass frame
+        //
+
+        // Dijet pseudorapidity
+        hRecoEtaCM = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiCM->ProjectionY(Form("hRecoEtaCM_%d", i), 
+                                          hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
+                                          hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        hGenEtaCM = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiCM->ProjectionY(Form("hGenEtaCM_%d", i), 
+                                         hGenDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
+                                         hGenDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        hRefEtaCM = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiCM->ProjectionY(Form("hRefEtaCM_%d", i), 
+                                         hRefDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
+                                         hRefDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        hRefSelEtaCM = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiCM->ProjectionY(Form("hRefSelEtaCM_%d", i), 
+                                            hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
+                                            hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        set1DStyle(hRecoEtaCM, 0, true);
+        set1DStyle(hGenEtaCM, 4, true);
+        set1DStyle(hRefEtaCM, 1, true);
+        set1DStyle(hRefSelEtaCM, 2, true);
+
+        // Compute ratios for center of mass frame
+        hReco2GenEtaCM = dynamic_cast<TH1D *>(hRecoEtaCM->Clone(Form("hReco2GenEtaCM_%d", i)));
+        hReco2GenEtaCM->Divide(hReco2GenEtaCM, hGenEtaCM, 1., 1., "b");
+        hRef2GenEtaCM = dynamic_cast<TH1D *>(hRefEtaCM->Clone(Form("hRef2GenEtaCM_%d", i)));
+        hRef2GenEtaCM->Divide(hRef2GenEtaCM, hGenEtaCM, 1., 1., "b");
+        hRefSel2GenEtaCM = dynamic_cast<TH1D *>(hRefSelEtaCM->Clone(Form("hRefSel2GenEtaCM_%d", i)));
+        hRefSel2GenEtaCM->Divide(hRefSel2GenEtaCM, hGenEtaCM, 1., 1., "b");
+
+        // Plot comparisons
+        drawDijetToGenComparison(c, hRecoEtaCM, hRef2GenEtaCM, hGenEtaCM, hRefSel2GenEtaCM, nullptr,
+                                 (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
+                                 (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
+                                 true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+        // Plot ratios
+        drawDijetToGenRatio(c, hReco2GenEtaCM, hRef2GenEtaCM, hRefSel2GenEtaCM, nullptr,
+                            (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
+                            (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
+                            true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_RecoRefGenRatio_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        // Dijet azimuthal angle
+        hRecoPhiCM = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiCM->ProjectionZ(Form("hRecoPhiCM_%d", i), 
+                                          hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
+                                          hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        hGenPhiCM = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiCM->ProjectionZ(Form("hGenPhiCM_%d", i), 
+                                         hGenDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
+                                         hGenDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        hRefPhiCM = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiCM->ProjectionZ(Form("hRefPhiCM_%d", i), 
+                                         hRefDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
+                                         hRefDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        hRefSelPhiCM = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiCM->ProjectionZ(Form("hRefSelPhiCM_%d", i), 
+                                              hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
+                                              hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        set1DStyle(hRecoPhiCM, 0, true);
+        set1DStyle(hGenPhiCM, 4, true);
+        set1DStyle(hRefPhiCM, 1, true);
+        set1DStyle(hRefSelPhiCM, 2, true);
+
+        // Compute ratios for center of mass frame
+        hReco2GenPhiCM = dynamic_cast<TH1D *>(hRecoPhiCM->Clone(Form("hReco2GenPhiCM_%d", i)));
+        hReco2GenPhiCM->Divide(hReco2GenPhiCM, hGenPhiCM, 1., 1., "b");
+        hRef2GenPhiCM = dynamic_cast<TH1D *>(hRefPhiCM->Clone(Form("hRef2GenPhiCM_%d", i)));
+        hRef2GenPhiCM->Divide(hRef2GenPhiCM, hGenPhiCM, 1., 1., "b");
+        hRefSel2GenPhiCM = dynamic_cast<TH1D *>(hRefSelPhiCM->Clone(Form("hRefSel2GenPhiCM_%d", i)));
+        hRefSel2GenPhiCM->Divide(hRefSel2GenPhiCM, hGenPhiCM, 1., 1., "b");
+
+        // Plot comparisons
+        drawDijetToGenComparison(c, hRecoPhiCM, hRef2GenPhiCM, hGenPhiCM, hRefSel2GenPhiCM, nullptr,
+                                 (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
+                                 (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
+                                 true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetPhiCM_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+        // Plot ratios
+        drawDijetToGenRatio(c, hReco2GenPhiCM, hRef2GenPhiCM, hRefSel2GenPhiCM, nullptr,
+                            (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
+                            (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
+                            true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetPhiCM_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+
+    } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
+
 }
 
 //_________________
@@ -2009,7 +2380,7 @@ void plotMcClosures() {
 
     int collisionSystem = 1;         // 0 - pp, 1 - pPb, 2 - pPb5020, 3 - pPb8160
     double collisionEnergy = 8.16;   // 8.16 TeV
-    int direction = 1;               // 0-p-going, 1-Pb-going, 2 - combined
+    int direction = 2;               // 0-p-going, 1-Pb-going, 2 - combined
     TString directionStr = (direction == 0) ? "pgoing" : ((direction == 1) ? "Pbgoing" : "");
     int dataTrigger = 0;               // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
     TString dataStr = (dataTrigger == 0) ? "MB" : ((dataTrigger == 1) ? "Jet60" : ((dataTrigger == 2) ? "Jet80" : ((dataTrigger == 3) ? "Jet100" : "unknownData")));
@@ -2085,12 +2456,17 @@ void plotMcClosures() {
     // collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
     // jetType: 0 = Inclusive, 1 = Lead, 2 = SubLead
     // date: date string for saving the plots (default is "20250129")
-    inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
+    // inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
 
     //
     // Comparison of dijet reco and ref to gen distributions
     //
     // dijetClosures( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+
+    //
+    // Comparison of dijet reco and ref to gen distributions from 3D histograms
+    //
+    dijetClosuresFrom3D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
 
 
     //
