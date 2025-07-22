@@ -50,7 +50,7 @@ void plotCMSHeader(int collSystem = 0, double energy = 5.02) {
 //________________
 void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
-    Double_t markerSize = 0.9;
+    Double_t markerSize = 1.2;
     Int_t lineWidth = 2;
     Int_t color = 2;
     if (type == 0) {
@@ -118,15 +118,89 @@ void setPadStyle() {
 }
 
 //________________
-void rescaleEta(TH1* h) {
-    for (Int_t iBin=1; iBin<=h->GetNbinsX(); iBin++) {
-        Double_t val = h->GetBinContent( iBin );
-        Double_t valErr = h->GetBinError( iBin );
-        Double_t binWidth = h->GetBinWidth( iBin );
-        h->SetBinContent( iBin, val / binWidth );
-        h->SetBinError( iBin, valErr / binWidth );
+// Rescale a 1D histogram by its area-weighted integral
+// This function rescales a 1D histogram by its area-weighted integral.
+// It calculates the total area-weighted sum of the histogram and then normalizes each bin content and error accordingly.
+// The function assumes that the histogram has non-equidistant axes.
+void rescaleHisto1D(TH1* h1) {
+    if (!h1) {
+        std::cerr << "Null histogram pointer!" << std::endl;
+        return;
     }
-    h->Scale( 1. / h->Integral() );
+
+    const int nBins = h1->GetNbinsX();
+    TAxis* xAxis = h1->GetXaxis();
+
+    double total = 0.0;
+
+    // First pass: calculate total sum (content × bin width)
+    for (int i = 1; i <= nBins; ++i) {
+        double width = xAxis->GetBinWidth(i);
+        double content = h1->GetBinContent(i);
+        total += content * width;
+    }
+
+    // Second pass: normalize content and error
+    if (total > 0) {
+        for (int i = 1; i <= nBins; ++i) {
+            double content = h1->GetBinContent(i);
+            double error   = h1->GetBinError(i);
+
+            h1->SetBinContent(i, content / total);
+            h1->SetBinError(i, error / total);
+        }
+    } 
+    else {
+        std::cerr << "Warning: total area-normalized sum is zero!" << std::endl;
+    }
+    h1->Scale(1.0 / h1->Integral()); // Normalize to unity
+}
+
+//________________
+// Rescale a 2D histogram by its area-weighted integral
+// This function rescales a 2D histogram by its area-weighted integral.
+// It calculates the total area-weighted sum of the histogram and then normalizes each bin content and error accordingly.
+// The function assumes that the histogram has non-equidistant axes.
+void rescaleHisto2D(TH2* h2) {
+    if (!h2) {
+        std::cerr << "Null histogram pointer!" << std::endl;
+        return;
+    }
+
+    const int nBinsX = h2->GetNbinsX();
+    const int nBinsY = h2->GetNbinsY();
+    TAxis* xAxis = h2->GetXaxis();
+    TAxis* yAxis = h2->GetYaxis();
+
+    double total = 0.0;
+
+    // First pass: calculate total bin-area-weighted sum
+    for (int ix = 1; ix <= nBinsX; ++ix) {
+        double dx = xAxis->GetBinWidth(ix);
+        for (int iy = 1; iy <= nBinsY; ++iy) {
+            double dy = yAxis->GetBinWidth(iy);
+            double content = h2->GetBinContent(ix, iy);
+            total += content * dx * dy;
+        }
+    }
+
+    // Second pass: normalize content and error
+    if (total > 0) {
+        for (int ix = 1; ix <= nBinsX; ++ix) {
+            for (int iy = 1; iy <= nBinsY; ++iy) {
+                double content = h2->GetBinContent(ix, iy);
+                double error   = h2->GetBinError(ix, iy);
+
+                double normContent = content / total;
+                double normError   = error / total;
+
+                h2->SetBinContent(ix, iy, normContent);
+                h2->SetBinError(ix, iy, normError);
+            }
+        }
+    } else {
+        std::cerr << "Warning: total area-normalized sum is zero!" << std::endl;
+    }
 }
 
 //________________
@@ -603,7 +677,7 @@ void drawDijetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr,
     TLegend *leg;
 
     double xRange[2] = { -3., 3. };
-    double yRange[2] = {0.0000001, 0.08 };
+    double yRange[2] = {0.0000001, 0.12 };
 
     if ( isCM ) {
         if ( !isFB ) {
@@ -611,7 +685,7 @@ void drawDijetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr,
             yRange[0] = 0.0000001; yRange[1] = 0.12;
         }
         else {
-            xRange[0] = 0; xRange[1] = 2.5;
+            xRange[0] = 0; xRange[1] = 2.4;
             yRange[0] = 0.8; yRange[1] = 1.2;
         }
     }
@@ -619,7 +693,9 @@ void drawDijetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr,
     c->cd();
     setPadStyle();
     hReco->Draw();
-    hGen->Draw("same");
+    if ( hGen ) {
+        hGen->Draw("same");
+    }
     if ( hRef ) {
         hRef->Draw("same");
     }
@@ -631,6 +707,7 @@ void drawDijetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr,
     }
     hReco->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
     hReco->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
+    // gPad->SetLogy(); // Set log scale for y-axis
     gPad->SetGrid();
     plotCMSHeader(collisionSystem, energy);        
     t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} GeV < %d", ptLow, ptHi) );
@@ -648,7 +725,9 @@ void drawDijetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr,
         leg->AddEntry( hData, "Data", "p" );
     }
     leg->AddEntry( hReco, "Reco", "p" );
-    leg->AddEntry( hGen, "Gen", "p" );
+    if ( hGen ) {
+        leg->AddEntry( hGen, "Gen", "p" );
+    }
     if ( hRef ) {
         leg->AddEntry( hRef, "Ref", "p" );        
     }
@@ -677,7 +756,7 @@ void drawDijetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
     if (isCM) {
         if (!isFB) {
             xRange[0] = -2.5; xRange[1] = 2.5;
-            yRange[0] =0.7; yRange[1] = 1.3;
+            yRange[0] =0.85; yRange[1] = 1.15;
         }
         else {
             xRange[0] = 0; xRange[1] = 2.5;
@@ -892,19 +971,19 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         //
         hRecoDijetEta1DLab = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEta1D_%d", i) ) );
         hRecoDijetEta1DLab->SetName( Form("hRecoDijetEta1DLab_%d", i) );
-        rescaleEta( hRecoDijetEta1DLab );
+        rescaleHisto1D( hRecoDijetEta1DLab );
         set1DStyle( hRecoDijetEta1DLab, 0 );
         hGenDijetEta1DLab = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEta1D_%d", i) ) );
         hGenDijetEta1DLab->SetName( Form("hGenDijetEta1DLab_%d", i) );
-        rescaleEta( hGenDijetEta1DLab );
+        rescaleHisto1D( hGenDijetEta1DLab );
         set1DStyle( hGenDijetEta1DLab, 4 );
         hRefDijetEta1DLab = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEta1D_%d", i) ) );
         hRefDijetEta1DLab->SetName( Form("hRefDijetEta1DLab_%d", i) );
-        rescaleEta( hRefDijetEta1DLab );
+        rescaleHisto1D( hRefDijetEta1DLab );
         set1DStyle( hRefDijetEta1DLab, 1 );
         hRefSelDijetEta1DLab = dynamic_cast<TH1D*>( f->Get( Form("hRefSelDijetEta1D_%d", i) ) );
         hRefSelDijetEta1DLab->SetName( Form("hRefSelDijetEta1DLab_%d", i) );
-        rescaleEta( hRefSelDijetEta1DLab );
+        rescaleHisto1D( hRefSelDijetEta1DLab );
         set1DStyle( hRefSelDijetEta1DLab, 2 );
         
 
@@ -921,19 +1000,19 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         hRecoDijetEta1DCM = dynamic_cast<TH1D*>( f->Get( Form("hRecoDijetEta1DCM_%d", i) ) );
         hRecoDijetEta1DCM->SetName( Form("hRecoDijetEta1DCM_%d", i) );
         set1DStyle( hRecoDijetEta1DCM, 0 );
-        rescaleEta( hRecoDijetEta1DCM );
+        rescaleHisto1D( hRecoDijetEta1DCM );
         hGenDijetEta1DCM = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEta1DCM_%d", i) ) );
         hGenDijetEta1DCM->SetName( Form("hGenDijetEta1DCM_%d", i) );
         set1DStyle( hGenDijetEta1DCM, 4 );
-        rescaleEta( hGenDijetEta1DCM );
+        rescaleHisto1D( hGenDijetEta1DCM );
         hRefDijetEta1DCM = dynamic_cast<TH1D*>( f->Get( Form("hRefDijetEta1DCM_%d", i) ) );
         hRefDijetEta1DCM->SetName( Form("hRefDijetEta1DCM_%d", i) );
         set1DStyle( hRefDijetEta1DCM, 1 );
-        rescaleEta( hRefDijetEta1DCM );
+        rescaleHisto1D( hRefDijetEta1DCM );
         hRefSelDijetEta1DCM = dynamic_cast<TH1D*>( f->Get( Form("hRefSelDijetEta1DCM_%d", i) ) );
         hRefSelDijetEta1DCM->SetName( Form("hRefSelDijetEta1DCM_%d", i) );
         set1DStyle( hRefSelDijetEta1DCM, 2 );
-        rescaleEta( hRefSelDijetEta1DCM );
+        rescaleHisto1D( hRefSelDijetEta1DCM );
 
         hReco2GenDijetEta1DCM = dynamic_cast<TH1D*>( hRecoDijetEta1DCM->Clone( Form("hReco2GenDijetEta1DCM_%d", i) ) );
         hReco2GenDijetEta1DCM->Divide( hReco2GenDijetEta1DCM, hGenDijetEta1DCM, 1., 1., "b" );
@@ -1050,10 +1129,11 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
     }
 
     // Dijet ptAve binning
-    int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
-                             100, 110,  120, 130, 140,
-                             150, 160,  180, 200, 250, 
-                             300, 500 };
+    // int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
+    //                          100, 110,  120, 130, 140,
+    //                          150, 160,  180, 200, 250, 
+    //                          300, 500 };
+    int dijetPtNewVals[9] {  50,  90,   120,  180, 200, 250, 300, 350, 500 };
     int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
 
     // Laboratory frame
@@ -1078,7 +1158,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         return;
     }
 
-    // Rescale the 3D histograms by their volume-weighted integral
+    // Rescale the histograms by their volume-weighted integral
     rescaleHisto3D(hRecoDijetPtEtaPhiLab);
     rescaleHisto3D(hGenDijetPtEtaPhiLab);
     rescaleHisto3D(hRefDijetPtEtaPhiLab);
@@ -1106,7 +1186,49 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         return;
     }
 
-    // Rescale the 3D histograms by their volume-weighted integral
+    TH2D *hRecoDijetPtEtaCMForward = dynamic_cast<TH2D *>(f->Get("hRecoDijetPtEtaCMForwardWeighted"));
+    if (!hRecoDijetPtEtaCMForward) {
+        std::cerr << "Error: hRecoDijetPtEtaCMForwardWeighted not found in file." << std::endl;
+        return;
+    }
+    TH2D *hGenDijetPtEtaCMForward = dynamic_cast<TH2D *>(f->Get("hGenDijetPtEtaCMForwardWeighted"));
+    if (!hGenDijetPtEtaCMForward) {
+        std::cerr << "Error: hGenDijetPtEtaCMForwardWeighted not found in file." << std::endl;
+        return;
+    }
+    TH2D *hRefDijetPtEtaCMForward = dynamic_cast<TH2D *>(f->Get("hRefDijetPtEtaCMForwardWeighted"));
+    if (!hRefDijetPtEtaCMForward) {
+        std::cerr << "Error: hRefDijetPtEtaCMForwardWeighted not found in file." << std::endl;
+        return;
+    }
+    // TH2D *hRefSelDijetPtEtaCMForward = dynamic_cast<TH2D *>(f->Get("hRefSelDijetPtEtaCMForwardWeighted"));
+    // if (!hRefSelDijetPtEtaCMForward) {
+    //     std::cerr << "Error: hRefSelDijetPtEtaCMForwardWeighted not found in file." << std::endl;
+    //     return;
+    // }
+    
+    TH2D *hRecoDijetPtEtaCMBackward = dynamic_cast<TH2D *>(f->Get("hRecoDijetPtEtaCMBackwardWeighted"));
+    if (!hRecoDijetPtEtaCMBackward) {
+        std::cerr << "Error: hRecoDijetPtEtaCMBackwardWeighted not found in file." << std::endl;
+        return;
+    }
+    TH2D *hGenDijetPtEtaCMBackward = dynamic_cast<TH2D *>(f->Get("hGenDijetPtEtaCMBackwardWeighted"));
+    if (!hGenDijetPtEtaCMBackward) {
+        std::cerr << "Error: hGenDijetPtEtaCMBackwardWeighted not found in file." << std::endl;
+        return;
+    }
+    TH2D *hRefDijetPtEtaCMBackward = dynamic_cast<TH2D *>(f->Get("hRefDijetPtEtaCMBackwardWeighted"));
+    if (!hRefDijetPtEtaCMBackward) {
+        std::cerr << "Error: hRefDijetPtEtaCMBackwardWeighted not found in file." << std::endl;
+        return;
+    }
+    // TH2D *hRefSelDijetPtEtaCMBackward = dynamic_cast<TH2D *>(f->Get("hRefSelDijetPtEtaCMBackwardWeighted"));
+    // if (!hRefSelDijetPtEtaCMBackward) {
+    //     std::cerr << "Error: hRefSelDijetPtEtaCMBackwardWeighted not found in file." << std::endl;
+    //     return;
+    // }
+
+    // Rescale the histograms by their volume-weighted integral
     rescaleHisto3D(hRecoDijetPtEtaPhiCM);
     rescaleHisto3D(hGenDijetPtEtaPhiCM);
     rescaleHisto3D(hRefDijetPtEtaPhiCM);
@@ -1137,6 +1259,20 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
     TH1D *hReco2GenEtaCM{nullptr};
     TH1D *hRef2GenEtaCM{nullptr};
     TH1D *hRefSel2GenEtaCM{nullptr};
+
+    TH1D *hRecoEtaCMForward{nullptr};
+    TH1D *hRecoEtaCMBackward{nullptr};
+    TH1D *hGenEtaCMForward{nullptr};
+    TH1D *hGenEtaCMBackward{nullptr};
+    TH1D *hRefEtaCMForward{nullptr};
+    TH1D *hRefEtaCMBackward{nullptr};
+    // TH1D *hRefSelEtaCMForward{nullptr};
+    // TH1D *hRefSelEtaCMBackward{nullptr};
+
+    TH1D *hRecEtaFBCM{nullptr};
+    TH1D *hGenEtaFBCM{nullptr};
+    TH1D *hRefEtaFBCM{nullptr};
+    // TH1D *hRefSelEtaFBCM{nullptr};
 
     TH1D *hRecoPhiCM{nullptr};
     TH1D *hGenPhiCM{nullptr};
@@ -1176,7 +1312,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
                                              hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
                                              hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
         set1DStyle(hRecoEtaLab, 0, true);
-        set1DStyle(hGenEtaLab, 4, true);
+        set1DStyle(hGenEtaLab, 5, true);
         set1DStyle(hRefEtaLab, 1, true);
         set1DStyle(hRefSelEtaLab, 2, true);
 
@@ -1195,7 +1331,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         //           << " ptHi: " << hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1) << std::endl;
 
         // Plot comparisons
-        drawDijetToGenComparison(c, hRecoEtaLab, hRef2GenEtaLab, hGenEtaLab, hRefSel2GenEtaLab, nullptr,
+        drawDijetToGenComparison(c, hRecoEtaLab, hRefEtaLab, hGenEtaLab, hRefSelEtaLab, nullptr,
                                  (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
                                  (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1), 
                                 false, false, collisionSystem, collisionEnergy);
@@ -1226,7 +1362,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
                                              hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
                                              hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
         set1DStyle(hRecoPhiLab, 0, true);
-        set1DStyle(hGenPhiLab, 4, true);
+        set1DStyle(hGenPhiLab, 5, true);
         set1DStyle(hRefPhiLab, 1, true);
         set1DStyle(hRefSelPhiLab, 2, true);
 
@@ -1239,7 +1375,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         hRefSel2GenPhiLab->Divide(hRefSel2GenPhiLab, hGenPhiLab, 1., 1., "b");
 
         // Plot comparisons
-        drawDijetToGenComparison(c, hRecoPhiLab, hRef2GenPhiLab, hGenPhiLab, hRefSel2GenPhiLab, nullptr,
+        drawDijetToGenComparison(c, hRecoPhiLab, hRefPhiLab, hGenPhiLab, hRefSelPhiLab, nullptr,
                                  hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
                                  hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1), 
                                  false, false, collisionSystem, collisionEnergy);
@@ -1272,7 +1408,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
                                             hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
                                             hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
         set1DStyle(hRecoEtaCM, 0, true);
-        set1DStyle(hGenEtaCM, 4, true);
+        set1DStyle(hGenEtaCM, 5, true);
         set1DStyle(hRefEtaCM, 1, true);
         set1DStyle(hRefSelEtaCM, 2, true);
 
@@ -1285,7 +1421,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         hRefSel2GenEtaCM->Divide(hRefSel2GenEtaCM, hGenEtaCM, 1., 1., "b");
 
         // Plot comparisons
-        drawDijetToGenComparison(c, hRecoEtaCM, hRef2GenEtaCM, hGenEtaCM, hRefSel2GenEtaCM, nullptr,
+        drawDijetToGenComparison(c, hRecoEtaCM, hRefEtaCM, hGenEtaCM, hRefSelEtaCM, nullptr,
                                  (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
                                  (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
                                  true, false, collisionSystem, collisionEnergy);
@@ -1313,7 +1449,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
                                               hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
                                               hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
         set1DStyle(hRecoPhiCM, 0, true);
-        set1DStyle(hGenPhiCM, 4, true);
+        set1DStyle(hGenPhiCM, 5, true);
         set1DStyle(hRefPhiCM, 1, true);
         set1DStyle(hRefSelPhiCM, 2, true);
 
@@ -1326,7 +1462,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         hRefSel2GenPhiCM->Divide(hRefSel2GenPhiCM, hGenPhiCM, 1., 1., "b");
 
         // Plot comparisons
-        drawDijetToGenComparison(c, hRecoPhiCM, hRef2GenPhiCM, hGenPhiCM, hRefSel2GenPhiCM, nullptr,
+        drawDijetToGenComparison(c, hRecoPhiCM, hRefPhiCM, hGenPhiCM, hRefSelPhiCM, nullptr,
                                  (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
                                  (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
                                  true, false, collisionSystem, collisionEnergy);
@@ -1340,6 +1476,69 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         c->SaveAs(Form("%s/%s_%s_dijetPhiCM_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
 
+
+        //
+        // Forward and backward dijet pseudorapidity
+        //
+        hRecoEtaCMForward = dynamic_cast<TH1D *>(hRecoDijetPtEtaCMForward->ProjectionY(Form("hRecoEtaCMForward_%d", i), 
+                                                hRecoDijetPtEtaCMForward->GetXaxis()->FindBin(ptLow), 
+                                                hRecoDijetPtEtaCMForward->GetXaxis()->FindBin(ptHi)-1));
+        hGenEtaCMForward = dynamic_cast<TH1D *>(hGenDijetPtEtaCMForward->ProjectionY(Form("hGenEtaCMForward_%d", i), 
+                                             hGenDijetPtEtaCMForward->GetXaxis()->FindBin(ptLow), 
+                                             hGenDijetPtEtaCMForward->GetXaxis()->FindBin(ptHi)-1));
+        hRefEtaCMForward = dynamic_cast<TH1D *>(hRefDijetPtEtaCMForward->ProjectionY(Form("hRefEtaCMForward_%d", i), 
+                                             hRefDijetPtEtaCMForward->GetXaxis()->FindBin(ptLow), 
+                                             hRefDijetPtEtaCMForward->GetXaxis()->FindBin(ptHi)-1));
+        // hRefSelEtaCMForward = dynamic_cast<TH1D *>(hRefSelDijetPtEtaCMForward->ProjectionY(Form("hRefSelEtaCMForward_%d", i), 
+        //                                           hRefSelDijetPtEtaCMForward->GetXaxis()->FindBin(ptLow), 
+        //                                           hRefSelDijetPtEtaCMForward->GetXaxis()->FindBin(ptHi)-1));
+
+        hRecoEtaCMBackward = dynamic_cast<TH1D *>(hRecoDijetPtEtaCMBackward->ProjectionY(Form("hRecoEtaCMBackward_%d", i),
+                                                  hRecoDijetPtEtaCMBackward->GetXaxis()->FindBin(ptLow), 
+                                                  hRecoDijetPtEtaCMBackward->GetXaxis()->FindBin(ptHi)-1));
+        hGenEtaCMBackward = dynamic_cast<TH1D *>(hGenDijetPtEtaCMBackward->ProjectionY(Form("hGenEtaCMBackward_%d", i), 
+                                                hGenDijetPtEtaCMBackward->GetXaxis()->FindBin(ptLow), 
+                                                hGenDijetPtEtaCMBackward->GetXaxis()->FindBin(ptHi)-1));
+        hRefEtaCMBackward = dynamic_cast<TH1D *>(hRefDijetPtEtaCMBackward->ProjectionY(Form("hRefEtaCMBackward_%d", i), 
+                                                hRefDijetPtEtaCMBackward->GetXaxis()->FindBin(ptLow), 
+                                                hRefDijetPtEtaCMBackward->GetXaxis()->FindBin(ptHi)-1));
+        // hRefSelEtaCMBackward = dynamic_cast<TH1D *>(hRefSelDijetPtEtaCMBackward->ProjectionY(Form("hRefSelEtaCMBackward_%d", i), 
+        //                                               hRefSelDijetPtEtaCMBackward->GetXaxis()->FindBin(ptLow), 
+        //                                               hRefSelDijetPtEtaCMBackward->GetXaxis()->FindBin(ptHi)-1));
+
+        set1DStyle(hRecoEtaCMForward, 0);
+        set1DStyle(hGenEtaCMForward, 2);
+        set1DStyle(hRefEtaCMForward, 1);
+        // set1DStyle(hRefSelEtaCMForward, 2);
+
+        set1DStyle(hRecoEtaCMBackward, 0);
+        set1DStyle(hGenEtaCMBackward, 2);
+        set1DStyle(hRefEtaCMBackward, 1);
+        // set1DStyle(hRefSelEtaCMBackward, 2);
+
+        rescaleForwardBackward(hRecoEtaCMForward, hRecoEtaCMBackward);
+        rescaleForwardBackward(hGenEtaCMForward, hGenEtaCMBackward);
+        rescaleForwardBackward(hRefEtaCMForward, hRefEtaCMBackward);
+        // rescaleForwardBackward(hRefSelEtaCMForward, hRefSelEtaCMBackward);
+
+        // Compute ratios for forward and backward center of mass frame
+        hRecEtaFBCM = dynamic_cast<TH1D *>(hRecoEtaCMForward->Clone(Form("hRecEtaFBCM_%d", i)));
+        hRecEtaFBCM->Divide(hRecEtaFBCM, hRecoEtaCMBackward, 1., 1.);
+        hGenEtaFBCM = dynamic_cast<TH1D *>(hGenEtaCMForward->Clone(Form("hGenEtaFBCM_%d", i)));
+        hGenEtaFBCM->Divide(hGenEtaFBCM, hGenEtaCMBackward, 1., 1.);
+        hRefEtaFBCM = dynamic_cast<TH1D *>(hRefEtaCMForward->Clone(Form("hRefEtaFBCM_%d", i)));
+        hRefEtaFBCM->Divide(hRefEtaFBCM, hRefEtaCMBackward, 1., 1.);
+        // hRefSelEtaFBCM = dynamic_cast<TH1D *>(hRefSelEtaCMForward->Clone(Form("hRefSelEtaFBCM_%d", i)));
+        // hRefSelEtaFBCM->Divide(hRefSelEtaFBCM, hRefSelEtaCMBackward, 1., 1.);
+
+        // Plot comparisons
+        drawDijetToGenComparison(c, hRecEtaFBCM, hRefEtaFBCM, hGenEtaFBCM, nullptr, nullptr,
+                                 (int)hRecoDijetPtEtaCMForward->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaCMForward->GetXaxis()->FindBin(ptLow) ), 
+                                 (int)hRecoDijetPtEtaCMForward->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaCMForward->GetXaxis()->FindBin(ptHi)-1), 
+                                 true, true, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaFBRatio_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), 
+                       ptLow, ptHi));
 
     } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
 
@@ -1390,25 +1589,16 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    // Create vector of ptHat and jet pT bins for projections
-    int ptHatStart = 15;
-    int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
-    int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins{1, 3, 7}; 
+    // ptHat binning
+    int ptHatVals[] { 15, 60, 90 };
+    int sizeOfPtHatVals = sizeof(ptHatVals)/sizeof(ptHatVals[0]);
 
-    // Jet pT binning
-    int jetPtStart = 5;
-    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBinsLow(i) - 1) * jetPtStep
-    int jetPtBinsMax = 150;
-    std::vector<int> jetPtBinsLow  {3,   7,  13,  19,  24,   3,   7,  13,  19}; // 25,  65, 125, 185,  235,   25,   65,  125,  185
-    std::vector<int> jetPtBinsHigh {6,  12,  18,  23, 150, 150, 150, 150, 150}; // 65, 125, 185, 235, 1505, 1505, 1505, 1505, 1505
+    // jet pT and eta binning
+    int jetPtVals[] = {30, 50, 90, 120, 200};
+    int sizeOfJetPtVals = sizeof(jetPtVals)/sizeof(jetPtVals[0]);
 
-    // Eta binning
-    // 52 bins from (-5.2, 5.2)
-    int nEtaBins = 52;
-    double etaStep = 0.2;
-    std::vector<int> jetEtaBinsLow{19, 12, 38};
-    std::vector<int> jetEtaBinsHigh{35, 16, 42};
+    double jetEtaVals[] = {-3.6, -2.4, -1.6, 1.6, 2.4, 3.6};
+    int sizeOfJetEtaVals = sizeof(jetEtaVals)/sizeof(jetEtaVals[0]);
 
     std::cout << Form("Reco histogram to read: ") << Form("hReco%s%sJetPtEtaPtHat", tJetType.Data(), tMatched.Data() ) << std::endl;
     std::cout << Form("Gen histogram to read: ") << Form("hGen%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
@@ -1435,9 +1625,6 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     if ( !hRefSelPtEtaPtHat ) {
         std::cerr << "Histogram hRefSelPtEtaPtHat not found in file." << std::endl; return;
     }
-
-
-    ptHatBinsMax = hRecoPtEtaPtHat->GetZaxis()->GetNbins();
 
     // //
     // // 2D distributions
@@ -1474,25 +1661,22 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     //
     // Declare canvases and histograms
     //
-    TCanvas *cPtVsEta[ptHatBins.size()];
-    TCanvas *cClosureEta[ptHatBins.size()][jetPtBinsLow.size()];
-    TCanvas *cClosurePt[ptHatBins.size()][jetEtaBinsLow.size()];
 
-    TH2D *hRecoPtVsEta[ptHatBins.size()];
-    TH2D *hGenPtVsEta[ptHatBins.size()];
-    TH1D *hRecoPt[ptHatBins.size()][jetEtaBinsLow.size()];
-    TH1D *hGenPt[ptHatBins.size()][jetEtaBinsLow.size()];
+    TH2D *hRecoPtVsEta{nullptr};
+    TH2D *hGenPtVsEta{nullptr};
+    TH1D *hRecoPt{nullptr};
+    TH1D *hGenPt{nullptr};
 
-    TH1D *hRecoEta[ptHatBins.size()][jetPtBinsLow.size()];
-    TH1D *hGenEta[ptHatBins.size()][jetPtBinsLow.size()];
-    TH1D *hRefEta[ptHatBins.size()][jetPtBinsLow.size()];
-    TH1D *hRefSelEta[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hRecoEta{nullptr};
+    TH1D *hGenEta{nullptr};
+    TH1D *hRefEta{nullptr};
+    TH1D *hRefSelEta{nullptr};
 
-    TH1D *hReco2GenEta[ptHatBins.size()][jetPtBinsLow.size()];
-    TH1D *hRef2GenEta[ptHatBins.size()][jetPtBinsLow.size()];
-    TH1D *hRefSel2GenEta[ptHatBins.size()][jetPtBinsLow.size()];
+    TH1D *hReco2GenEta{nullptr};
+    TH1D *hRef2GenEta{nullptr};
+    TH1D *hRefSel2GenEta{nullptr};
 
-    TCanvas *c = new TCanvas("c", "c", 900, 900);
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
 
 
     //
@@ -1501,18 +1685,21 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     //
 
     // Loop over ptHat bins
-    for (unsigned int i = 0; i < ptHatBins.size(); i++) {
+    for (int i = 0; i < sizeOfPtHatVals-1; i++) {
 
-        double ptHatLow = hRecoPtEtaPtHat->GetZaxis()->GetBinLowEdge(ptHatBins[i]);
+        int ptHatBinLow = hRecoPtEtaPtHat->GetZaxis()->FindBin(ptHatVals[i]);
+        int ptHatBinHigh = hRecoPtEtaPtHat->GetNbinsZ();
+        double ptHatLow = hRecoPtEtaPtHat->GetZaxis()->GetBinLowEdge( hRecoPtEtaPtHat->GetZaxis()->FindBin( ptHatVals[i]));
+        double ptHatHigh = hRecoPtEtaPtHat->GetZaxis()->GetBinUpEdge( hRecoPtEtaPtHat->GetNbinsZ() );
 
         //
         // Set ptHat range
         //
-        hRecoPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i],  ptHatBinsMax);
-        hGenPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i],  ptHatBinsMax);
-        hRefPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i],  ptHatBinsMax);
-        hRefSelPtEtaPtHat->GetZaxis()->SetRange(ptHatBins[i],  ptHatBinsMax);
-        
+        hRecoPtEtaPtHat->GetZaxis()->SetRange(ptHatLow,  ptHatHigh);
+        hGenPtEtaPtHat->GetZaxis()->SetRange(ptHatLow,  ptHatHigh);
+        hRefPtEtaPtHat->GetZaxis()->SetRange(ptHatLow,  ptHatHigh);
+        hRefSelPtEtaPtHat->GetZaxis()->SetRange(ptHatLow,  ptHatHigh);
+
 
         // // Make 2D histograms
         // hRecoPtVsEta[i] = dynamic_cast<TH2D *>(hRecoPtEtaPtHat->Project3D("yx"));
@@ -1549,86 +1736,88 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
         //
         // Loop over jet pT bins
         //
-        for (unsigned int j = 0; j < jetPtBinsLow.size(); j++) {
+        for (int j = 0; j < sizeOfJetPtVals-1; j++) {
 
             //
             // Make projections of the 3D histograms
             //
 
-            double ptLow = hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]);
-            double ptHi = hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]);
+            int ptBinLow = hRecoPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[j]);
+            int ptBinHigh = hRecoPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[j+1]) - 1;
+            double ptLow = hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(ptBinLow);
+            double ptHigh = hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(ptBinHigh);
 
             // Reco jets
-            hRecoEta[i][j] = dynamic_cast<TH1D *>(hRecoPtEtaPtHat->ProjectionX(Form("hRecoEta_%d_%d", i, j),
-                                                                               jetPtBinsLow[j], jetPtBinsHigh[j],
-                                                                               ptHatBins[i], ptHatBinsMax));
-            set1DStyle(hRecoEta[i][j], 0, kTRUE);
-            checkIntegral(hRecoEta[i][j]);
-            rescaleEta(hRecoEta[i][j]);
+            hRecoEta = dynamic_cast<TH1D *>(hRecoPtEtaPtHat->ProjectionX(Form("hRecoEta_%d_%d", i, j),
+                                                                               ptBinLow, ptBinHigh,
+                                                                               ptHatBinLow, ptHatBinHigh));
+            set1DStyle(hRecoEta, 0, true);
+            checkIntegral(hRecoEta);
+            rescaleHisto1D(hRecoEta);
 
             // Gen jets
-            hGenEta[i][j] = dynamic_cast<TH1D *>(hGenPtEtaPtHat->ProjectionX(Form("hGenEta_%d_%d", i, j),
-                                                 jetPtBinsLow[j], jetPtBinsHigh[j],
-                                                 ptHatBins[i], ptHatBinsMax));
-            set1DStyle(hGenEta[i][j], 5, kTRUE);
-            checkIntegral(hGenEta[i][j]);
-            rescaleEta(hGenEta[i][j]);
+            hGenEta = dynamic_cast<TH1D *>(hGenPtEtaPtHat->ProjectionX(Form("hGenEta_%d_%d", i, j),
+                                           ptBinLow, ptBinHigh,
+                                           ptHatBinLow, ptHatBinHigh));
+            set1DStyle(hGenEta, 5, true);
+            checkIntegral(hGenEta);
+            rescaleHisto1D(hGenEta);
 
 
             // Ref jets
-            hRefEta[i][j] = dynamic_cast<TH1D *>(hRefPtEtaPtHat->ProjectionX(Form("hRefEta_%d_%d", i, j),
-                                                 jetPtBinsLow[j], jetPtBinsHigh[j],
-                                                 ptHatBins[i], ptHatBinsMax));
-            set1DStyle(hRefEta[i][j], 1, kTRUE);
-            checkIntegral(hRefEta[i][j]);
-            rescaleEta(hRefEta[i][j]);
+            hRefEta = dynamic_cast<TH1D *>(hRefPtEtaPtHat->ProjectionX(Form("hRefEta_%d_%d", i, j),
+                                           ptBinLow, ptBinHigh,
+                                           ptHatBinLow, ptHatBinHigh));
+            set1DStyle(hRefEta, 1, true);
+            checkIntegral(hRefEta);
+            rescaleHisto1D(hRefEta);
         
             // RefSel jets
-            hRefSelEta[i][j] = dynamic_cast<TH1D *>(hRefSelPtEtaPtHat->ProjectionX(Form("hRefSelEta_%d_%d", i, j),
-                                                 jetPtBinsLow[j], jetPtBinsHigh[j],
-                                                 ptHatBins[i], ptHatBinsMax));
-            set1DStyle(hRefSelEta[i][j], 2, kTRUE);
-            checkIntegral(hRefSelEta[i][j]);
-            rescaleEta(hRefSelEta[i][j]);
+            hRefSelEta = dynamic_cast<TH1D *>(hRefSelPtEtaPtHat->ProjectionX(Form("hRefSelEta_%d_%d", i, j),
+                                                 ptBinLow, ptBinHigh,
+                                                 ptHatBinLow, ptHatBinHigh));
+            set1DStyle(hRefSelEta, 2, true);
+            checkIntegral(hRefSelEta);
+            rescaleHisto1D(hRefSelEta);
 
             //
             // Ratios of reco, ref and refSel to gen
             //
-            hReco2GenEta[i][j] = dynamic_cast<TH1D *>(hRecoEta[i][j]->Clone(Form("hReco2GenEta_%d_%d", i, j)));
-            // hReco2GenEta[i][j]->Reset();
-            // computeNonBinomialRatio(hRecoEta[i][j], hGenEta[i][j], hReco2GenEta[i][j]);
-            hReco2GenEta[i][j]->Divide(hReco2GenEta[i][j], hGenEta[i][j], 1., 1. /*, "b" */);
-            hRef2GenEta[i][j] = dynamic_cast<TH1D *>(hRefEta[i][j]->Clone(Form("hRef2GenEta_%d_%d", i, j)));
-            // hRef2GenEta[i][j]->Reset();
-            // computeBinomialRatio(hRefEta[i][j], hGenEta[i][j], hRef2GenEta[i][j]);
-            hRef2GenEta[i][j]->Divide(hRef2GenEta[i][j], hGenEta[i][j], 1., 1., "b");
-            hRefSel2GenEta[i][j] = dynamic_cast<TH1D *>(hRefSelEta[i][j]->Clone(Form("hRefSel2GenEta_%d_%d", i, j)));
-            // hRefSel2GenEta[i][j]->Reset();
-            // computeBinomialRatio(hRefSelEta[i][j], hGenEta[i][j], hRefSel2GenEta[i][j]);
-            hRefSel2GenEta[i][j]->Divide(hRefSel2GenEta[i][j], hGenEta[i][j], 1., 1., "b");
+            hReco2GenEta = dynamic_cast<TH1D *>(hRecoEta->Clone(Form("hReco2GenEta_%d_%d", i, j)));
+            // hReco2GenEta->Reset();
+            // computeNonBinomialRatio(hRecoEta, hGenEta, hReco2GenEta);
+            hReco2GenEta->Divide(hReco2GenEta, hGenEta, 1., 1. /*, "b" */);
+            hRef2GenEta = dynamic_cast<TH1D *>(hRefEta->Clone(Form("hRef2GenEta_%d_%d", i, j)));
+            // hRef2GenEta->Reset();
+            // computeBinomialRatio(hRefEta, hGenEta, hRef2GenEta);
+            hRef2GenEta->Divide(hRef2GenEta, hGenEta, 1., 1., "b");
+            hRefSel2GenEta = dynamic_cast<TH1D *>(hRefSelEta->Clone(Form("hRefSel2GenEta_%d_%d", i, j)));
+            // hRefSel2GenEta->Reset();
+            // computeBinomialRatio(hRefSelEta, hGenEta, hRefSel2GenEta);
+            hRefSel2GenEta->Divide(hRefSel2GenEta, hGenEta, 1., 1., "b");
 
             //
             // Plot comparisons
             //
-            drawSingleJetToGenComparison(c, hRecoEta[i][j], hRefEta[i][j], hGenEta[i][j], hRefSelEta[i][j], nullptr,
-                                         hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
-                                         hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]),
+            drawSingleJetToGenComparison(c, hRecoEta, hRefEta, hGenEta, hRefSelEta, nullptr,
+                                         hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(ptBinLow), 
+                                         hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(ptBinHigh),
                                          ptHatLow, false, false, collisionSystem, collisionEnergy);
             c->SaveAs(Form("%s/%s_%s_jetEta_RecoRefGenComp_ptAve_%d_%d_ptHatLow_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(),
-                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
-                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]), 
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(ptBinLow),
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(ptBinHigh),
                            (int)ptHatLow));
 
             //
             // Plot ratios
             //
-            drawSingleJetToGenRatio(c, hReco2GenEta[i][j], hRef2GenEta[i][j], hRefSel2GenEta[i][j], nullptr,
-                                    hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
-                                    hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]),
+            drawSingleJetToGenRatio(c, hReco2GenEta, hRef2GenEta, hRefSel2GenEta, nullptr,
+                                    hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(ptBinLow), 
+                                    hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(ptBinHigh),
                                     ptHatLow, false, false, collisionSystem, collisionEnergy);
             c->SaveAs(Form("%s/%s_%s_jetEta_RecoRef2GenRatio_ptAve_%d_%d_ptHatLow_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), 
-                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[j]), 
-                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[j]), 
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge(ptBinLow), 
+                           (int)hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge(ptBinHigh), 
                            (int)ptHatLow));
 
 
@@ -1724,98 +1913,94 @@ void data2mcInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem = 1,
     TH3D *hGenMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hGenInclusiveJetPtEtaPtHat"));
     hGenMcPtEtaPtHat->SetName("hGenMcPtEtaPtHat");
 
-    // Create vector of ptHat and jet pT bins for projections
-    int ptHatStart = 10;
-    int ptHatStep = 10; // Starting from 10 GeV: ptHatStart + (ptHatBins(i) - 1) * ptHatStep
-    int ptHatBinsMax = 100;
-    std::vector<int> ptHatBins{4}; // 30
+    // ptHat binning
+    int ptHatVals[] { 15, 60, 90 };
+    int sizeOfPtHatVals = sizeof(ptHatVals)/sizeof(ptHatVals[0]);
+
+    // jet pT and eta binning
+    int jetPtVals[] = {30, 50, 90, 120, 200};
+    int sizeOfJetPtVals = sizeof(jetPtVals)/sizeof(jetPtVals[0]);
+
+    double jetEtaVals[] = {-3.6, -2.4, -1.6, 1.6, 2.4, 3.6};
+    int sizeOfJetEtaVals = sizeof(jetEtaVals)/sizeof(jetEtaVals[0]);
+
+
+    TH1D *hRecoDataEta{nullptr};
+    TH1D *hRecoMcEta{nullptr};
+    TH1D *hGenMcEta{nullptr};
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
 
     // Jet pT binning
-    int jetPtStart = 5;
-    int jetPtStep = 10; // Starting from 5 GeV: jetPtStart + (jetPtBinsLow(i) - 1) * jetPtStep
-    int jetPtBinsMax = 150;
-    std::vector<int> jetPtBinsLow {4,  5,  6,  7,  8,  9,  12,   4,   5,   7,   9}; 
-    std::vector<int> jetPtBinsHigh{5,  6,  7,  8,  9, 12,  50, 150, 150, 150, 150};
-
-    // Eta binning
-    // 52 bins from (-5.2, 5.2)
-    int nEtaBins = 52;
-    double etaStep = 0.2;
-    std::vector<int> jetEtaBinsLow{19, 12, 38};
-    std::vector<int> jetEtaBinsHigh{35, 16, 42};
-
-    TH1D *hRecoDataEta[jetPtBinsLow.size()];
-    TH1D *hRecoMcEta[jetPtBinsLow.size()];
-    TH1D *hGenMcEta[jetPtBinsLow.size()];
-
-    TCanvas *cClosureEtaReco2Reco[jetPtBinsLow.size()];
-    TCanvas *cClosureEtaReco2Gen[jetPtBinsLow.size()];
-
-    // Jet pT binning
-    for (unsigned int i = 0; i < jetPtBinsLow.size(); i++) {
+    for ( int i = 0; i < sizeOfJetPtVals-1; i++) {
 
         //
         // Reco data 2 Reco MC comparison
         //
-
-        // Create canvas
-        cClosureEtaReco2Reco[i] = new TCanvas(Form("cClosureEtaReco2Reco_%d", i), Form("cClosureEtaReco2Reco_%d", i), 700, 800);
-
         // Make projection of the 3D histograms
-        hRecoDataEta[i] = dynamic_cast<TH1D *>(hRecoDataPtEtaPtHat->ProjectionX(Form("hRecoDataEta_%d", i),
-                                                                                 jetPtBinsLow[i], jetPtBinsHigh[i],
-                                                                                 1, -1));
-        set1DStyle(hRecoDataEta[i], 0, kTRUE);
+        hRecoDataEta = dynamic_cast<TH1D *>(hRecoDataPtEtaPtHat->ProjectionX(Form("hRecoDataEta_%d", i),
+                                            hRecoDataPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i]), 
+                                            hRecoDataPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i+1]),
+                                            hRecoDataPtEtaPtHat->GetZaxis()->FindBin(ptHatVals[0]), 
+                                            hRecoDataPtEtaPtHat->GetNbinsZ()));
+        set1DStyle(hRecoDataEta, 0, kTRUE);
 
-        hRecoMcEta[i] = dynamic_cast<TH1D *>(hRecoMcPtEtaPtHat->ProjectionX(Form("hRecoMcEta_%d", i),
-                                                                              jetPtBinsLow[i], jetPtBinsHigh[i],
-                                                                              ptHatBins[0], hRecoMcPtEtaPtHat->GetNbinsZ()));
-        set1DStyle(hRecoMcEta[i], 1, kTRUE);
+        hRecoMcEta = dynamic_cast<TH1D *>(hRecoMcPtEtaPtHat->ProjectionX(Form("hRecoMcEta_%d", i),
+                                                                              hRecoMcPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i]),
+                                                                              hRecoMcPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i+1]),
+                                                                              hRecoMcPtEtaPtHat->GetZaxis()->FindBin(ptHatVals[0]),
+                                                                              hRecoMcPtEtaPtHat->GetNbinsZ()));
+        set1DStyle(hRecoMcEta, 1, kTRUE);
 
         // Plot distributions
-        drawJecComparison(cClosureEtaReco2Reco[i], hRecoDataEta[i], hRecoMcEta[i],
-            hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[i]),
-            hRecoDataPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[i]),
-            ptHatStart + (ptHatBins[0] - 1) * ptHatStep,
+        drawJecComparison(c, hRecoDataEta, hRecoMcEta,
+            hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(hRecoDataPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i])),
+            hRecoDataPtEtaPtHat->GetYaxis()->GetBinUpEdge(hRecoDataPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i+1])),
+            ptHatVals[0],
             "Data", "Reco MC", collSystem, energy, false, true,
             hRecoDataPtEtaPtHat->GetXaxis()->GetBinLowEdge(1),
             hRecoDataPtEtaPtHat->GetXaxis()->GetBinUpEdge(hRecoDataPtEtaPtHat->GetXaxis()->GetNbins()));
-        cClosureEtaReco2Reco[i]->SaveAs( Form("%s/%s_closureEta_Reco2Reco_pt_%d__%d.pdf", 
-                                              date.Data(), collSystemStr.Data(), 
-                                              int(hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[i])),
-                                              int(hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsHigh[i])) ) );
+
+        c->SaveAs( Form("%s/%s_closureEta_Reco2Reco_pt_%d_%d.pdf", 
+            date.Data(), collSystemStr.Data(), 
+            int(hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(hRecoDataPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i]))),
+            int(hRecoDataPtEtaPtHat->GetYaxis()->GetBinLowEdge(hRecoDataPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i+1]))) ) );
 
 
         //
         // Reco data 2 Gen MC comparison
         //
 
-        // Create canvas
-        cClosureEtaReco2Gen[i] = new TCanvas(Form("cClosureEtaReco2Gen_%d", i), Form("cClosureEtaReco2Gen_%d", i), 700, 800);
+        c->Clear();
+        setPadStyle();
+
         // Make projection of the 3D histograms
-        hGenMcEta[i] = dynamic_cast<TH1D *>(hGenMcPtEtaPtHat->ProjectionX(Form("hGenMcEta_%d", i),
-                                                                            jetPtBinsLow[i], jetPtBinsHigh[i],
-                                                                            ptHatBins[0], hGenMcPtEtaPtHat->GetNbinsZ()));
-        set1DStyle(hGenMcEta[i], 1, kTRUE);
+        hGenMcEta = dynamic_cast<TH1D *>(hGenMcPtEtaPtHat->ProjectionX(Form("hGenMcEta_%d", i),
+            hGenMcPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i]),
+            hGenMcPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i+1]),
+            hGenMcPtEtaPtHat->GetZaxis()->FindBin( hGenMcPtEtaPtHat->GetZaxis()->FindBin(ptHatVals[0])),
+            hGenMcPtEtaPtHat->GetNbinsZ()));
+
+        set1DStyle(hGenMcEta, 5, kTRUE);
 
         // Plot distributions
-        drawJecComparison(cClosureEtaReco2Gen[i], hRecoDataEta[i], hGenMcEta[i],
-                          hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[i]),
-                          hGenMcPtEtaPtHat->GetYaxis()->GetBinUpEdge(jetPtBinsHigh[i]),
-                          ptHatStart + (ptHatBins[0] - 1) * ptHatStep,
+        drawJecComparison(c, hRecoDataEta, hGenMcEta,
+                          hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge( hGenMcPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i])),
+                          hGenMcPtEtaPtHat->GetYaxis()->GetBinUpEdge( hGenMcPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i])),
+                          hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge( hGenMcPtEtaPtHat->GetZaxis()->FindBin(ptHatVals[0])),
                           "Data", "Gen MC", collSystem, energy, false, true,
                           hGenMcPtEtaPtHat->GetXaxis()->GetBinLowEdge(1),
                           hGenMcPtEtaPtHat->GetXaxis()->GetBinUpEdge(hGenMcPtEtaPtHat->GetXaxis()->GetNbins())
                         );
 
         // Save canvas
-        cClosureEtaReco2Gen[i]->SaveAs( Form("%s/%s_closureEta_Reco2Gen_pt_%d_%d.pdf", 
-                                             date.Data(), collSystemStr.Data(), 
-                                             int(hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsLow[i])) ,
-                                             int(hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge(jetPtBinsHigh[i])) )
-                                            );
-
+        c->SaveAs( Form("%s/%s_closureEta_Reco2Gen_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), 
+                    int(hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge(hGenMcPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i]))),
+                    int(hGenMcPtEtaPtHat->GetYaxis()->GetBinLowEdge(hGenMcPtEtaPtHat->GetYaxis()->FindBin(jetPtVals[i+1]))) ) );
     } // for (unsigned int i = 0; i < jetPtBinsLow.size(); i++)
+
+    delete c; c = nullptr;
 }
 
 //________________
@@ -1919,7 +2104,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         }
         hRecoDataDijetEta[i]->SetName( Form("hRecoDataDijetEta_%d", i) );
         set1DStyle( hRecoDataDijetEta[i], 2 );
-        rescaleEta( hRecoDataDijetEta[i] );
+        rescaleHisto1D( hRecoDataDijetEta[i] );
 
         // Eta full (CM frame)
         hRecoDataDijetEtaCM[i] = dynamic_cast<TH1D*>( fData->Get( Form("hRecoDijetEta1DCMWeighted_%d", i) ) );
@@ -1928,7 +2113,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         }
         hRecoDataDijetEtaCM[i]->SetName( Form("hRecoDataDijetEtaCM_%d", i) );
         set1DStyle( hRecoDataDijetEtaCM[i], 2 );
-        rescaleEta( hRecoDataDijetEtaCM[i] );
+        rescaleHisto1D( hRecoDataDijetEtaCM[i] );
 
         // Eta forward (CM frame)
         hRecoDataDijetEtaForward[i] = dynamic_cast<TH1D*>( fData->Get( Form("hRecoDijetEtaCMForward1DWeighted_%d", i) ) );
@@ -1968,7 +2153,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         }
         hRecoMcDijetEta[i]->SetName( Form("hRecoMcDijetEta_%d", i) );
         set1DStyle( hRecoMcDijetEta[i], 0 );
-        rescaleEta( hRecoMcDijetEta[i] );
+        rescaleHisto1D( hRecoMcDijetEta[i] );
 
         // Eta full (CM frame)
         hRecoMcDijetEtaCM[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRecoDijetEta1DCMWeighted_%d", i) ) );
@@ -1977,7 +2162,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         }
         hRecoMcDijetEtaCM[i]->SetName( Form("hRecoMcDijetEtaCM_%d", i) );
         set1DStyle( hRecoMcDijetEtaCM[i], 0 );
-        rescaleEta( hRecoMcDijetEtaCM[i] );
+        rescaleHisto1D( hRecoMcDijetEtaCM[i] );
 
         // Eta forward (CM frame)
         hRecoMcDijetEtaForward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRecoDijetEtaCMForward1DWeighted_%d", i) ) );
@@ -2017,7 +2202,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         }
         hGenMcDijetEta[i]->SetName( Form("hGenMcDijetEta_%d", i) );
         set1DStyle( hGenMcDijetEta[i], 5 );
-        rescaleEta( hGenMcDijetEta[i] );
+        rescaleHisto1D( hGenMcDijetEta[i] );
 
         // Eta full (CM frame)
         hGenMcDijetEtaCM[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hGenDijetEta1DCMWeighted_%d", i) ) );
@@ -2026,7 +2211,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         }
         hGenMcDijetEtaCM[i]->SetName( Form("hGenMcDijetEtaCM_%d", i) );
         set1DStyle( hGenMcDijetEtaCM[i], 5 );
-        rescaleEta( hGenMcDijetEtaCM[i] );
+        rescaleHisto1D( hGenMcDijetEtaCM[i] );
 
         // Eta forward (CM frame)
         hGenMcDijetEtaForward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hGenDijetEtaCMForward1DWeighted_%d", i) ) );
@@ -2066,7 +2251,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         }
         hRefMcDijetEta[i]->SetName( Form("hRefMcDijetEta_%d", i) );
         set1DStyle( hRefMcDijetEta[i], 1 );
-        rescaleEta( hRefMcDijetEta[i] );
+        rescaleHisto1D( hRefMcDijetEta[i] );
 
         // Eta full (CM frame)
         hRefMcDijetEtaCM[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRefDijetEta1DCMWeighted_%d", i) ) );
@@ -2075,7 +2260,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         }
         hRefMcDijetEtaCM[i]->SetName( Form("hRefMcDijetEtaCM_%d", i) );
         set1DStyle( hRefMcDijetEtaCM[i], 1 );
-        rescaleEta( hRefMcDijetEtaCM[i] );
+        rescaleHisto1D( hRefMcDijetEtaCM[i] );
 
         // Eta forward (CM frame)
         hRefMcDijetEtaForward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRefDijetEtaCMForward1DWeighted_%d", i) ) );
@@ -2213,8 +2398,7 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
 //________________
 // Plot eta and pT distributions of inclusive jets from Pythia and embedding.
 // Compare dijet distributions.
-//
-void pythia2embeddingComparison(TFile *fEmbedding, TFile *fPythia, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250305") {
+void pythia2embeddingSingleJet(TFile *fEmbedding, TFile *fPythia, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250305") {
     // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
 
@@ -2296,21 +2480,21 @@ void pythia2embeddingComparison(TFile *fEmbedding, TFile *fPythia, int collision
             // Embedding
             hRecoEtaEmb[iPtHat][iJetPt] = dynamic_cast<TH1D *>(hRecoPtEtaPtHatEmb->ProjectionX(Form("hRecoEtaEmb_%zu_%zu", iPtHat, iJetPt), 
                                                                                                jetPtBinsLow[iJetPt], jetPtBinsHigh[iJetPt], ptHatBins[iPtHat], ptHatBinsMax));
-            rescaleEta(hRecoEtaEmb[iPtHat][iJetPt]);
+            rescaleHisto1D(hRecoEtaEmb[iPtHat][iJetPt]);
             set1DStyle(hRecoEtaEmb[iPtHat][iJetPt], 0);
             hGenEtaEmb[iPtHat][iJetPt] = dynamic_cast<TH1D *>(hGenPtEtaPtHatEmb->ProjectionX(Form("hGenEtaEmb_%zu_%zu", iPtHat, iJetPt), 
                                                                                              jetPtBinsLow[iJetPt], jetPtBinsHigh[iJetPt], ptHatBins[iPtHat], ptHatBinsMax));
-            rescaleEta(hGenEtaEmb[iPtHat][iJetPt]);
+            rescaleHisto1D(hGenEtaEmb[iPtHat][iJetPt]);
             set1DStyle(hGenEtaEmb[iPtHat][iJetPt], 0);
 
             // Pythia
             hRecoEtaPythia[iPtHat][iJetPt] = dynamic_cast<TH1D *>(hRecoPtEtaPtHatPythia->ProjectionX(Form("hRecoEtaPythia_%zu_%zu", iPtHat, iJetPt), 
                                                                                                    jetPtBinsLow[iJetPt], jetPtBinsHigh[iJetPt], ptHatBins[iPtHat], ptHatBinsMax));
-            rescaleEta(hRecoEtaPythia[iPtHat][iJetPt]);
+            rescaleHisto1D(hRecoEtaPythia[iPtHat][iJetPt]);
             set1DStyle(hRecoEtaPythia[iPtHat][iJetPt], 1);
             hGenEtaPythia[iPtHat][iJetPt] = dynamic_cast<TH1D *>(hGenPtEtaPtHatPythia->ProjectionX(Form("hGenEtaPythia_%zu_%zu", iPtHat, iJetPt), 
                                                                                                  jetPtBinsLow[iJetPt], jetPtBinsHigh[iJetPt], ptHatBins[iPtHat], ptHatBinsMax));
-            rescaleEta(hGenEtaPythia[iPtHat][iJetPt]);
+            rescaleHisto1D(hGenEtaPythia[iPtHat][iJetPt]);
             set1DStyle(hGenEtaPythia[iPtHat][iJetPt], 1);
 
             // Plot comparisons
@@ -2356,6 +2540,242 @@ void pythia2embeddingComparison(TFile *fEmbedding, TFile *fPythia, int collision
 }
 
 //________________
+// Compare dijet distributions from embedding and Pythia.
+// Compare reco, ref, and gen dijet eta distributions.
+void pythia2embeddingDijetComparison(TFile *fEmbedding, TFile *fPythia, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250305") {
+    // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
+    // energy in TeV
+
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", (int)(1000 * collisionEnergy));
+    collSystemStr += Form("_emb2pythia");
+
+    double xTextPosition = 0.35;
+    double yTextPosition = 0.8;
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    // Determine the direction based on the filename
+    TString directionStr;
+    TString fileName = fEmbedding->GetName();
+    if (fileName.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } else if (fileName.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } else {
+        directionStr = "combined";
+    }
+
+    // Dijet ptAve binning
+    int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
+                             100, 110,  120, 130, 140,
+                             150, 160,  180, 200, 250, 
+                             300, 500 };
+    int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
+
+    // Dijet dijstributions for embedding
+    TH3D *hRecoDijetPtEtaPhiCMEmb = dynamic_cast<TH3D *>(fEmbedding->Get("hRecoDijetPtEtaPhiCMWeighted"));
+    if (!hRecoDijetPtEtaPhiCMEmb) {
+        std::cerr << "Error: hRecoDijetPtEtaPhiCMWeighted for embedding not found in file." << std::endl;
+        return;
+    }
+    TH3D *hGenDijetPtEtaPhiCMEmb = dynamic_cast<TH3D *>(fEmbedding->Get("hGenDijetPtEtaPhiCMWeighted"));
+    if (!hGenDijetPtEtaPhiCMEmb) {
+        std::cerr << "Error: hGenDijetPtEtaPhiCMWeighted for embedding not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefDijetPtEtaPhiCMEmb = dynamic_cast<TH3D *>(fEmbedding->Get("hRefDijetPtEtaPhiCMWeighted"));
+    if (!hRefDijetPtEtaPhiCMEmb) {
+        std::cerr << "Error: hRefDijetPtEtaPhiCMWeighted for embedding not found in file." << std::endl;
+        return;
+    }
+
+    // Dijet dijstributions for pythia
+    TH3D *hRecoDijetPtEtaPhiCMPythia = dynamic_cast<TH3D *>(fPythia->Get("hRecoDijetPtEtaPhiCMWeighted"));
+    if (!hRecoDijetPtEtaPhiCMPythia) {
+        std::cerr << "Error: hRecoDijetPtEtaPhiCMWeighted for pythia not found in file." << std::endl;
+        return;
+    }
+    TH3D *hGenDijetPtEtaPhiCMPythia = dynamic_cast<TH3D *>(fPythia->Get("hGenDijetPtEtaPhiCMWeighted"));
+    if (!hGenDijetPtEtaPhiCMPythia) {
+        std::cerr << "Error: hGenDijetPtEtaPhiCMWeighted for pythia not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefDijetPtEtaPhiCMPythia = dynamic_cast<TH3D *>(fPythia->Get("hRefDijetPtEtaPhiCMWeighted"));
+    if (!hRefDijetPtEtaPhiCMPythia) {
+        std::cerr << "Error: hRefDijetPtEtaPhiCMWeighted for pythia not found in file." << std::endl;
+        return;
+    }
+
+    // Rescaling of 3D histograms
+    rescaleHisto3D(hRecoDijetPtEtaPhiCMEmb);
+    rescaleHisto3D(hGenDijetPtEtaPhiCMEmb);
+    rescaleHisto3D(hRefDijetPtEtaPhiCMEmb);
+    rescaleHisto3D(hRecoDijetPtEtaPhiCMPythia);
+    rescaleHisto3D(hGenDijetPtEtaPhiCMPythia);
+    rescaleHisto3D(hRefDijetPtEtaPhiCMPythia);
+
+    // Create 1D histograms for dijet eta distributions
+    TH1D *hRecoDijetEtaCMEmb{nullptr};
+    TH1D *hGenDijetEtaCMEmb{nullptr};
+    TH1D *hRefDijetEtaCMEmb{nullptr};
+
+    TH1D *hRecoDijetEtaCMPythia{nullptr};
+    TH1D *hGenDijetEtaCMPythia{nullptr};
+    TH1D *hRefDijetEtaCMPythia{nullptr};
+
+    TH1D *hRecoDijetEtaCM_emb2pythia{nullptr};
+    TH1D *hGenDijetEtaCM_emb2pythia{nullptr};
+    TH1D *hRefDijetEtaCM_emb2pythia{nullptr};
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+    setPadStyle();
+    TLegend *leg{nullptr};
+
+    // Loop over dijet ptAve bins
+    for (int i = 0; i < sizeOfPtVals - 1; ++i) {
+        int ptLow = dijetPtNewVals[i];
+        int ptHi = dijetPtNewVals[i + 1];
+
+        // Create 1D histograms for embedding
+        hRecoDijetEtaCMEmb = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiCMEmb->ProjectionY(Form("hRecoDijetEtaCMEmb_%d", i), 
+                                                  hRecoDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptLow), 
+                                                  hRecoDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptHi)-1));
+        if (!hRecoDijetEtaCMEmb) {
+            std::cerr << "Error: hRecoDijetEtaCMEmb_" << i << " not found." << std::endl;
+            return;
+        }
+        hGenDijetEtaCMEmb = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiCMEmb->ProjectionY(Form("hGenDijetEtaCMEmb_%d", i), 
+                                                  hGenDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptLow), 
+                                                  hGenDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptHi)-1));
+        if (!hGenDijetEtaCMEmb) {
+            std::cerr << "Error: hGenDijetEtaCMEmb_" << i << " not found." << std::endl;
+            return;
+        }
+        hRefDijetEtaCMEmb = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiCMEmb->ProjectionY(Form("hRefDijetEtaCMEmb_%d", i),
+                                                  hRefDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptLow), 
+                                                  hRefDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptHi)-1));
+        if (!hRefDijetEtaCMEmb) {
+            std::cerr << "Error: hRefDijetEtaCMEmb_" << i << " not found." << std::endl;
+            return;
+        }
+
+        set1DStyle(hRecoDijetEtaCMEmb, 0, true);
+        set1DStyle(hGenDijetEtaCMEmb, 0, true);
+        set1DStyle(hRefDijetEtaCMEmb, 0, true);
+
+        // Create 1D histograms for pythia
+        hRecoDijetEtaCMPythia = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiCMPythia->ProjectionY(Form("hRecoDijetEtaCMPythia_%d", i), 
+                                                  hRecoDijetPtEtaPhiCMPythia->GetXaxis()->FindBin(ptLow), 
+                                                  hRecoDijetPtEtaPhiCMPythia->GetXaxis()->FindBin(ptHi)-1));
+        if (!hRecoDijetEtaCMPythia) {
+            std::cerr << "Error: hRecoDijetEtaCMPythia_" << i << " not found." << std::endl;
+            return;
+        }
+        hGenDijetEtaCMPythia = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiCMPythia->ProjectionY(Form("hGenDijetEtaCMPythia_%d", i), 
+                                                  hGenDijetPtEtaPhiCMPythia->GetXaxis()->FindBin(ptLow), 
+                                                  hGenDijetPtEtaPhiCMPythia->GetXaxis()->FindBin(ptHi)-1));
+        if (!hGenDijetEtaCMPythia) {
+            std::cerr << "Error: hGenDijetEtaCMPythia_" << i << " not found." << std::endl;
+            return;
+        }
+        hRefDijetEtaCMPythia = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiCMPythia->ProjectionY(Form("hRefDijetEtaCMPythia_%d", i), 
+                                                  hRefDijetPtEtaPhiCMPythia->GetXaxis()->FindBin(ptLow), 
+                                                  hRefDijetPtEtaPhiCMPythia->GetXaxis()->FindBin(ptHi)-1));
+        if (!hRefDijetEtaCMPythia) {
+            std::cerr << "Error: hRefDijetEtaCMPythia_" << i << " not found." << std::endl;
+            return;
+        }
+
+        set1DStyle(hRecoDijetEtaCMPythia, 1, true);
+        set1DStyle(hGenDijetEtaCMPythia, 1, true);
+        set1DStyle(hRefDijetEtaCMPythia, 1, true);
+
+        // Draw and save the comparisons
+        c->Clear();
+        setPadStyle();
+        drawDijetToGenComparison(c, hRecoDijetEtaCMEmb, hRecoDijetEtaCMPythia, nullptr, nullptr, nullptr,
+                                 (int)hRecoDijetPtEtaPhiCMEmb->GetXaxis()->GetBinLowEdge(hRecoDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptLow)), 
+                                 (int)hRecoDijetPtEtaPhiCMEmb->GetXaxis()->GetBinUpEdge(hRecoDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptHi)-1), 
+                                 true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_recoComp_ptAve_%d_%d.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+    
+        c->Clear();
+        setPadStyle();
+        drawDijetToGenComparison(c, hGenDijetEtaCMEmb, hGenDijetEtaCMPythia, nullptr, nullptr, nullptr,
+                                 (int)hGenDijetPtEtaPhiCMEmb->GetXaxis()->GetBinLowEdge(hGenDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptLow)), 
+                                 (int)hGenDijetPtEtaPhiCMEmb->GetXaxis()->GetBinUpEdge(hGenDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptHi)-1), 
+                                 true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_genComp_ptAve_%d_%d.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        c->Clear();
+        setPadStyle();
+        drawDijetToGenComparison(c, hRefDijetEtaCMEmb, hRefDijetEtaCMPythia, nullptr, nullptr, nullptr,
+                                 (int)hRefDijetPtEtaPhiCMEmb->GetXaxis()->GetBinLowEdge(hRefDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptLow)), 
+                                 (int)hRefDijetPtEtaPhiCMEmb->GetXaxis()->GetBinUpEdge(hRefDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptHi)-1), 
+                                 true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_refComp_ptAve_%d_%d.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        // Create 1D histograms for embedding to pythia ratios
+        hRecoDijetEtaCM_emb2pythia = dynamic_cast<TH1D *>(hRecoDijetEtaCMEmb->Clone(Form("hRecoDijetEtaCM_emb2pythia_%d", i)));
+        if (!hRecoDijetEtaCM_emb2pythia) {
+            std::cerr << "Error: hRecoDijetEtaCM_emb2pythia_" << i << " not found." << std::endl;
+            return;
+        }
+        hRecoDijetEtaCM_emb2pythia->Divide(hRecoDijetEtaCMEmb, hRecoDijetEtaCMPythia, 1., 1., "b");
+        set1DStyle(hRecoDijetEtaCM_emb2pythia, 0);
+        
+        hGenDijetEtaCM_emb2pythia = dynamic_cast<TH1D *>(hGenDijetEtaCMEmb->Clone(Form("hGenDijetEtaCM_emb2pythia_%d", i)));
+        if (!hGenDijetEtaCM_emb2pythia) {
+            std::cerr << "Error: hGenDijetEtaCM_emb2pythia_" << i << " not found." << std::endl;
+            return;
+        }
+        hGenDijetEtaCM_emb2pythia->Divide(hGenDijetEtaCMEmb, hGenDijetEtaCMPythia, 1., 1., "b");
+        set1DStyle(hGenDijetEtaCM_emb2pythia, 4);
+        
+        hRefDijetEtaCM_emb2pythia = dynamic_cast<TH1D *>(hRefDijetEtaCMEmb->Clone(Form("hRefDijetEtaCM_emb2pythia_%d", i)));
+        if (!hRefDijetEtaCM_emb2pythia) {
+            std::cerr << "Error: hRefDijetEtaCM_emb2pythia_" << i << " not found." << std::endl;
+            return;
+
+
+    } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
+        hRefDijetEtaCM_emb2pythia->Divide(hRefDijetEtaCMEmb, hRefDijetEtaCMPythia, 1., 1., "b");
+        set1DStyle(hRefDijetEtaCM_emb2pythia, 2);
+
+        // Draw and save the ratios
+        c->Clear();
+        setPadStyle();
+        hRecoDijetEtaCM_emb2pythia->Draw();
+        hGenDijetEtaCM_emb2pythia->Draw("same");
+        hRefDijetEtaCM_emb2pythia->Draw("same");
+        hRecoDijetEtaCM_emb2pythia->GetXaxis()->SetRangeUser(-2.4, 2.4);
+        hRecoDijetEtaCM_emb2pythia->GetYaxis()->SetRangeUser(0.8, 1.2);
+        hRecoDijetEtaCM_emb2pythia->GetYaxis()->SetTitle("Embedding/Pythia");
+        t.DrawLatexNDC(xTextPosition, yTextPosition, Form("%d < p_{T}^{ave} < %d GeV", 
+                       (int)hRecoDijetPtEtaPhiCMEmb->GetXaxis()->GetBinLowEdge(hRecoDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptLow)), 
+                       (int)hRecoDijetPtEtaPhiCMEmb->GetXaxis()->GetBinUpEdge(hRecoDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptHi)-1)) );
+        leg = new TLegend(0.35, 0.25, 0.65, 0.4);
+        leg->SetTextSize(0.04);
+        leg->SetFillColor(0);
+        leg->SetBorderSize(0);
+        leg->AddEntry(hRecoDijetEtaCM_emb2pythia, "Reco", "p");
+        leg->AddEntry(hGenDijetEtaCM_emb2pythia, "Gen", "p");
+        leg->AddEntry(hRefDijetEtaCM_emb2pythia, "Ref", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_ratio_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(),
+                       (int)hRecoDijetPtEtaPhiCMEmb->GetXaxis()->GetBinLowEdge(hRecoDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptLow)), 
+                       (int)hRecoDijetPtEtaPhiCMEmb->GetXaxis()->GetBinUpEdge(hRecoDijetPtEtaPhiCMEmb->GetXaxis()->FindBin(ptHi)-1)));
+    } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
+}
+
+
+//________________
 void plotMcClosures() {
 
     // Base style
@@ -2387,22 +2807,24 @@ void plotMcClosures() {
     TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
     int jetType = 0; // 0 - inclusive, 1 - lead, 2 - sublead
     int matchType = 0; // 0 - inclusive, 1 - matched, 2 - unmatched
+    int cutType = 1; // 0 - no cuts, 1 - trkMax, 2 - jetId
+    TString cutTypeStr = (cutType == 0) ? "noCut_" : ((cutType == 1) ? "" : ((cutType == 2) ? "jetId_" : "unknownCut"));
 
     //
     // Embedding
     //
     TFile *pPb8160EmbedFile = nullptr;
     if ( direction < 2 ) {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta20.root", uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data()) );
         if ( !pPb8160EmbedFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta20.root", uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
     else {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) );
         if ( !pPb8160EmbedFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
@@ -2421,9 +2843,9 @@ void plotMcClosures() {
         }
     }
     else {
-        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20.root", uname.Data()) );
         if ( !pPb8160PythiaFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
             return;
         }
     }
@@ -2482,6 +2904,11 @@ void plotMcClosures() {
     //
     // Plot comparison of inclusive jets and dijets for embedding and PYTHIA
     //
-    // pythia2embeddingComparison(pPb8160EmbedFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
+    // pythia2embeddingSingleJet(pPb8160EmbedFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
+
+    //
+    // Plot comparison of dijet distributions from embedding and Pythia
+    //
+    // pythia2embeddingDijetComparison(pPb8160EmbedFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
 
 }

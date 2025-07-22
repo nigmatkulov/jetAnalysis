@@ -288,6 +288,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoDijetPtEtaPhiWeighted;
     TH3D *hRecoDijetPtEtaPhiCM;
     TH3D *hRecoDijetPtEtaPhiCMWeighted;
+    TH3D *hRecoDijetPtEtaPhiMatched;
+    TH3D *hRecoDijetPtEtaPhiCMMatched;
 
     // Lead and SubLead jet acceptance
     TH2D *hRecoLeadAllJetPtEta;

@@ -1687,6 +1687,8 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             correl[4] = etaRefSubLeadLab;
             fHM->hRecoSubLeadJetPtCorrPtRawPtRefEtaCorrEtaGen->Fill(correl, weight);
 
+            fHM->hRecoDijetPtEtaPhiMatched->Fill( dijetRecoPtAve, dijetRecoEtaLab, dijetRecoPhi, weight );
+
             fHM->hRefPtLeadPtSublead->Fill( ptRefLead, ptRefSubLead, weight );
             fHM->hRefEtaLeadEtaSublead->Fill( etaRefLeadLab, etaRefSubLeadLab, weight );
             fHM->hRefPtLeadPtSubleadMcReweight->Fill( ptRefLead, ptRefSubLead, weight * fMcReweight );
@@ -1833,6 +1835,8 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             }
 
             fHM->hRefEtaCMLeadEtaCMSublead->Fill( etaRefLeadCM, etaRefSubLeadCM, weight );
+
+            fHM->hRecoDijetPtEtaPhiCMMatched->Fill( dijetRecoPtAve, dijetRecoEtaCM, dijetRecoPhi, weight );
 
             fHM->hRefDijetEtaCM->Fill( dijetRefEtaCM, weight );
             fHM->hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCM->Fill( dijetRecoEtaCM, dijetRefEtaCM, dijetRecoPtAve, 1.);

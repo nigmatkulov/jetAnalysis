@@ -418,7 +418,7 @@ int main(int argc, char const *argv[]) {
     //
     HistoManagerDiJet *hm = new HistoManagerDiJet{};
     hm->setIsMc( isMc );
-    hm->setUseVariableBinning( true ); // Use variable binning for eta (mainly dijet)
+    hm->setUseVariableBinning( false ); // Use variable binning for eta (mainly dijet)
     hm->init();
 
     //
