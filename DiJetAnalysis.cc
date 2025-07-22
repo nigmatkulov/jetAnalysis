@@ -1181,6 +1181,10 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     float dijetGenDetaCM = fGenDijet->dEtaCM();
     float dijetGenPhi = fGenDijet->phi();
 
+    // Find exact ptAve bin
+    int ptAveBin = findDijetPtAveBin( dijetGenPtAve );
+    int ptAveOldBin = findDijetPtAveOldBin( dijetGenPtAve );
+
     if ( fabs(ptGenLead - fGenDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
          fabs(ptGenSubLead - fGenDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
          fabs(etaGenLeadLab - fGenDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
@@ -1282,10 +1286,6 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         (dijetGenEtaLab >= 0) ? fHM->hGenDijetPtEtaForward->Fill(dijetGenPtAve, dijetGenEtaLab) : fHM->hGenDijetPtEtaBackward->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaLab));
         (dijetGenEtaLab >= 0) ? fHM->hGenDijetPtEtaForwardWeighted->Fill(dijetGenPtAve, dijetGenEtaLab, weight * fMcReweight) : fHM->hGenDijetPtEtaBackwardWeighted->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaLab), weight * fMcReweight);
 
-        // Find exact ptAve bin
-        int ptAveBin = findDijetPtAveBin( dijetGenPtAve );
-        int ptAveOldBin = findDijetPtAveOldBin( dijetGenPtAve );
-
         // New ptAve and eta binning
         if ( ptAveBin >= 0 ) {
             fHM->hGenDijetEta1D[ptAveBin]->Fill( dijetGenEtaLab, weight * fMcReweight );
@@ -1345,10 +1345,6 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         fHM->hGenDijetPtEtaPhiCMWeighted->Fill(dijetGenPtAve, dijetGenEtaCM, dijetGenPhi, weight * fMcReweight );
         (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward->Fill(dijetGenPtAve, dijetGenEtaCM) : fHM->hGenDijetPtEtaCMBackward->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaCM));
         (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForwardWeighted->Fill(dijetGenPtAve, dijetGenEtaCM, weight * fMcReweight) : fHM->hGenDijetPtEtaCMBackwardWeighted->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaCM), weight * fMcReweight);
-
-        // Find exact ptAve bin
-        int ptAveBin = findDijetPtAveBin( dijetGenPtAve );
-        int ptAveOldBin = findDijetPtAveOldBin( dijetGenPtAve );
 
         // New ptAve and eta binning
         if ( ptAveBin >= 0 ) {
@@ -1463,6 +1459,10 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     float dijetRecoEtaCM = fRecoDijet->etaCM();
     // float dijetRecoDetaCM = fRecoDijet->dEtaCM();
     float dijetRecoPhi = fRecoDijet->phi();
+
+    // Find dijet exact dijet pT bins
+    int recoPtAveBin = findDijetPtAveBin( dijetRecoPtAve );
+    int recoPtAveOldBin = findDijetPtAveOldBin( dijetRecoPtAve );
 
     // Reference Lead jet
     GenJet* refLeadJet = {nullptr};
@@ -1634,10 +1634,6 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             fHM->hRecoDijetPtEtaBackwardWeighted->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaLab), weight * fMcReweight);
         }
 
-        // Find dijet exact dijet pT bins
-        int recoPtAveBin = findDijetPtAveBin( dijetRecoPtAve );
-        int recoPtAveOldBin = findDijetPtAveOldBin( dijetRecoPtAve );
-
         // New ptAve and eta binning
         if ( recoPtAveBin >=0 ) {
             fHM->hRecoDijetEta1D[recoPtAveBin]->Fill( dijetRecoEtaLab, weight * fMcReweight );
@@ -1717,8 +1713,11 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             (dijetRefEtaLab >= 0) ? fHM->hRefDijetPtEtaForwardWeighted->Fill(dijetRefPtAve, dijetRefEtaLab, weight * fMcReweight) : fHM->hRefDijetPtEtaBackwardWeighted->Fill(dijetRefPtAve, TMath::Abs(dijetRefEtaLab), weight * fMcReweight);
 
             // Find exact dijet pT bins
-            int refPtAveBin = findDijetPtAveBin( dijetRefPtAve );
-            int refPtAveOldBin = findDijetPtAveOldBin( dijetRefPtAve );
+            // int refPtAveBin = findDijetPtAveBin( dijetRefPtAve );
+            // int refPtAveOldBin = findDijetPtAveOldBin( dijetRefPtAve );
+
+            int refPtAveBin = recoPtAveBin; // Use the same binning as for reco dijet
+            int refPtAveOldBin = recoPtAveOldBin; // Use the same binning as for reco dijet
 
             // New ptAve and eta binning
             if ( refPtAveBin >=0 ) {
@@ -1794,10 +1793,6 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward->Fill(dijetRecoPtAve, dijetRecoEtaCM, 1.) : fHM->hRecoDijetPtEtaCMBackward->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaCM), 1.);
         (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForwardWeighted->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
 
-        // Find exact dijet pT bin
-        int recoPtAveBin = findDijetPtAveBin( dijetRecoPtAve );
-        int recoPtAveOldBin = findDijetPtAveOldBin( dijetRecoPtAve );
-
         // New ptAve and eta binning
         if ( recoPtAveBin >=0 ) {
             fHM->hRecoDijetEta1DCM[recoPtAveBin]->Fill( dijetRecoEtaCM, weight * fMcReweight );
@@ -1848,8 +1843,11 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForwardWeighted->Fill(dijetRefPtAve, dijetRefEtaCM, weight * fMcReweight) : fHM->hRefDijetPtEtaCMBackwardWeighted->Fill(dijetRefPtAve, TMath::Abs(dijetRefEtaCM), weight * fMcReweight);
 
             // Find exact dijet ptAve bin
-            int refPtAveBin = findDijetPtAveBin( dijetRefPtAve );
-            int refPtAveOldBin = findDijetPtAveOldBin( dijetRefPtAve );
+            // int refPtAveBin = findDijetPtAveBin( dijetRefPtAve );
+            // int refPtAveOldBin = findDijetPtAveOldBin( dijetRefPtAve );
+
+            int refPtAveBin = recoPtAveBin; // Use the same binning as for reco dijet
+            int refPtAveOldBin = recoPtAveOldBin; // Use the same binning as for reco dijet
 
             // New ptAve and eta binning
             if ( refPtAveBin >=0 ) {
@@ -2016,6 +2014,9 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
     // float dijetRecoDphi = fRecoDijet->dPhi();
     float dijetRecoPhi = fRecoDijet->phi();
 
+    int refPtAveBin = findDijetPtAveBin( dijetRefPtAve );
+    int refPtAveOldBin = findDijetPtAveOldBin( dijetRefPtAve );
+
     if ( fabs(ptRecoLead - fRecoDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
          fabs(ptRecoSubLead - fRecoDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
          fabs(etaRecoLeadLab - fRecoDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
@@ -2078,10 +2079,6 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
         fHM->hRefSelDijetEta->Fill(dijetRefEtaLab, weight * fMcReweight );
         fHM->hRefSelDijetPtEtaPhi->Fill(dijetRefPtAve, dijetRefEtaLab, dijetRefPhi, 1.);
         fHM->hRefSelDijetPtEtaPhiWeighted->Fill(dijetRefPtAve, dijetRefEtaLab, dijetRefPhi, weight * fMcReweight );
-
-        // Find exact dijet pT bins
-        int refPtAveBin = findDijetPtAveBin( dijetRefPtAve );
-        int refPtAveOldBin = findDijetPtAveOldBin( dijetRefPtAve );
 
         // New ptAve and eta binning
         if ( refPtAveBin >= 0 ) {
@@ -2146,10 +2143,6 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
         fHM->hRefSelDijetEtaCM->Fill(dijetRefEtaCM, weight * fMcReweight );
         fHM->hRefSelDijetPtEtaPhiCM->Fill(dijetRefPtAve, dijetRefEtaCM, dijetRefPhi, 1.);
         fHM->hRefSelDijetPtEtaPhiCMWeighted->Fill(dijetRefPtAve, dijetRefEtaCM, dijetRefPhi, weight * fMcReweight );
-
-        // Find exact dijet pT bin
-        int refPtAveBin = findDijetPtAveBin( dijetRefPtAve );
-        int refPtAveOldBin = findDijetPtAveOldBin( dijetRefPtAve );
 
         // New ptAve and eta binning
         if ( refPtAveBin >= 0 ) {
