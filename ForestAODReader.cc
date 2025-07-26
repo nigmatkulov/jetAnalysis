@@ -1318,7 +1318,7 @@ void ForestAODReader::fixIndices() {
                     count++;
                 }
             }
-            if (count > 1) {
+            if (count > 1 && fVerbose) {
                 std::cout << "Warning: Gen jet #" << iGenJet << " matched to multiple reco jets: " << count << std::endl;
             }
         }
