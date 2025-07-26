@@ -236,7 +236,7 @@ DiJetAnalysis *createDiJetAnalysis(const int &collisionSystem, const int &collEn
         analysis->setUseMcReweighting(0); // 0 - no reweighting, 1 - reweight to MB, 2 - reweight to Jet60, 3 - reweight to Jet80, 4 - reweight to Jet100
     }
 
-    //analysis->setVerbose();
+    // analysis->setVerbose();
 
     return analysis;
 }
