@@ -1583,7 +1583,7 @@ void HistoManagerDiJet::init() {
         hRecoDijetPtEtaCMBackward->SetBinsLength(-1);
     }
     hRecoDijetPtEtaCMBackward->Sumw2();
-    hRecoDijetPtEtaBackwardLabInCM = new TH2D("hRecoDijetPtEtaBackwardLabInCM", "Reco dijet info in lab frame with CM selection (backward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+    hRecoDijetPtEtaBackwardLabInCM = new TH2D("hRecoDijetPtEtaBackwardLabInCM", "Reco dijet info in lab frame with CM selection (backward);p_{T}^{ave} (GeV);#eta^{dijet}",
                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                         fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
     if ( fUseVariableBinning ) {
@@ -1955,26 +1955,26 @@ void HistoManagerDiJet::init() {
                                          fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                          fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hGenDijetPtEtaCMForward->Sumw2();
-        hGenDijetPtEtaForwardCMInLab = new TH2D("hGenDijetPtEtaForwardCMInLab", "Gen dijet info in CM frame in lab (forward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+        hGenDijetPtEtaForwardLabInCM = new TH2D("hGenDijetPtEtaForwardLabInCM", "Gen dijet info in lab frame in CM (forward);p_{T}^{ave} (GeV);#eta^{dijet}",
                                          fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                          fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         if (fUseVariableBinning) {
-            hGenDijetPtEtaForwardCMInLab->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
-            hGenDijetPtEtaForwardCMInLab->SetBinsLength(-1);
+            hGenDijetPtEtaForwardLabInCM->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetPtEtaForwardLabInCM->SetBinsLength(-1);
         }
-        hGenDijetPtEtaForwardCMInLab->Sumw2();
+        hGenDijetPtEtaForwardLabInCM->Sumw2();
         hGenDijetPtEtaCMBackward = new TH2D("hGenDijetPtEtaCMBackward", "Gen dijet info in CM frame (backward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
                                             fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         hGenDijetPtEtaCMBackward->Sumw2();
-        hGenDijetPtEtaBackwardCMInLab = new TH2D("hGenDijetPtEtaBackwardCMInLab", "Gen dijet info in CM frame in lab (backward);p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+        hGenDijetPtEtaBackwardLabInCM = new TH2D("hGenDijetPtEtaBackwardLabInCM", "Gen dijet info in lab frame in CM (backward);p_{T}^{ave} (GeV);#eta^{dijet}",
                                             fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                             fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         if (fUseVariableBinning) {
-            hGenDijetPtEtaBackwardCMInLab->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
-            hGenDijetPtEtaBackwardCMInLab->SetBinsLength(-1);
+            hGenDijetPtEtaBackwardLabInCM->GetYaxis()->Set(dijetEtaFBBins, dijetEtaFBVals);
+            hGenDijetPtEtaBackwardLabInCM->SetBinsLength(-1);
         }
-        hGenDijetPtEtaBackwardCMInLab->Sumw2();
+        hGenDijetPtEtaBackwardLabInCM->Sumw2();
 
         hGenDijetPtEtaForwardWeighted = new TH2D("hGenDijetPtEtaForwardWeighted", "Gen dijet info in lab frame (forward) weighted;p_{T}^{ave} (GeV);#eta^{dijet}",
                                          fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
@@ -2985,7 +2985,7 @@ void HistoManagerDiJet::init() {
             hRefDijetPtEtaCMBackward->SetBinsLength(-1);
         }
         hRefDijetPtEtaCMBackward->Sumw2();
-        hRefDijetPtEtaBackwardLabInCM = new TH2D("hRefDijetPtEtaBackwardLabInCM", "Ref dijet info in lab frame (backward) in CM;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}",
+        hRefDijetPtEtaBackwardLabInCM = new TH2D("hRefDijetPtEtaBackwardLabInCM", "Ref dijet info in lab frame (backward) in CM;p_{T}^{ave} (GeV);#eta^{dijet}",
                                          fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                          fDijetEtaBins, fDijetEtaRange[0], fDijetEtaRange[1]);
         if (fUseVariableBinning) {
