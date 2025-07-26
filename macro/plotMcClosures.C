@@ -3,6 +3,7 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
+#include "THnSparse.h"
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TString.h"
@@ -751,12 +752,12 @@ void drawDijetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
     TLegend *leg;
 
     double xRange[2] = {-3.0, 3.0};
-    double yRange[2] = {0.7, 1.3};
+    double yRange[2] = {0.85, 1.15};
 
     if (isCM) {
         if (!isFB) {
             xRange[0] = -2.5; xRange[1] = 2.5;
-            yRange[0] =0.85; yRange[1] = 1.15;
+            yRange[0] = 0.85; yRange[1] = 1.15;
         }
         else {
             xRange[0] = 0; xRange[1] = 2.5;
@@ -780,7 +781,7 @@ void drawDijetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
     hReco2Gen->GetYaxis()->SetRangeUser(yRange[0], yRange[1]);
     gPad->SetGrid();
     plotCMSHeader(collisionSystem, energy);
-    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} GeV < %d", ptLow, ptHi));
+    t.DrawLatexNDC(0.35, 0.84, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
     leg = new TLegend(0.2, 0.25, 0.4, 0.4);
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
@@ -985,7 +986,13 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         hRefSelDijetEta1DLab->SetName( Form("hRefSelDijetEta1DLab_%d", i) );
         rescaleHisto1D( hRefSelDijetEta1DLab );
         set1DStyle( hRefSelDijetEta1DLab, 2 );
-        
+
+        int rebinFactor = 2;
+        hRecoDijetEta1DLab->Rebin( rebinFactor );
+        hGenDijetEta1DLab->Rebin( rebinFactor );
+        hRefDijetEta1DLab->Rebin( rebinFactor );
+        hRefSelDijetEta1DLab->Rebin( rebinFactor );
+
 
         hReco2GenDijetEta1DLab = dynamic_cast<TH1D*>( hRecoDijetEta1DLab->Clone( Form("hReco2GenDijetEta1DLab_%d", i) ) );
         hReco2GenDijetEta1DLab->Divide( hReco2GenDijetEta1DLab, hGenDijetEta1DLab, 1., 1., "b" );
@@ -1013,6 +1020,11 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         hRefSelDijetEta1DCM->SetName( Form("hRefSelDijetEta1DCM_%d", i) );
         set1DStyle( hRefSelDijetEta1DCM, 2 );
         rescaleHisto1D( hRefSelDijetEta1DCM );
+
+        hRecoDijetEta1DCM->Rebin( rebinFactor );
+        hGenDijetEta1DCM->Rebin( rebinFactor );
+        hRefDijetEta1DCM->Rebin( rebinFactor );
+        hRefSelDijetEta1DCM->Rebin( rebinFactor );
 
         hReco2GenDijetEta1DCM = dynamic_cast<TH1D*>( hRecoDijetEta1DCM->Clone( Form("hReco2GenDijetEta1DCM_%d", i) ) );
         hReco2GenDijetEta1DCM->Divide( hReco2GenDijetEta1DCM, hGenDijetEta1DCM, 1., 1., "b" );
@@ -1133,11 +1145,12 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
     //                          100, 110,  120, 130, 140,
     //                          150, 160,  180, 200, 250, 
     //                          300, 500 };
-    int dijetPtNewVals[9] {  50,  90,   120,  180, 200, 250, 300, 350, 500 };
+    int dijetPtNewVals[9] { 50,  90,   120,  180, 200, 250, 300, 350, 500 };
     int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
 
     // Laboratory frame
     TH3D *hRecoDijetPtEtaPhiLab = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiWeighted"));
+    // TH3D *hRecoDijetPtEtaPhiLab = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiMatched"));
     if (!hRecoDijetPtEtaPhiLab) {
         std::cerr << "Error: hRecoDijetPtEtaPhiWeighted not found in file." << std::endl;
         return;
@@ -1166,6 +1179,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
 
     // Center of mass frame
     TH3D *hRecoDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiCMWeighted"));
+    // TH3D *hRecoDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiCMMatched"));
     if (!hRecoDijetPtEtaPhiCM) {
         std::cerr << "Error: hRecoDijetPtEtaPhiCMWeighted not found in file." << std::endl;
         return;
@@ -2774,6 +2788,274 @@ void pythia2embeddingDijetComparison(TFile *fEmbedding, TFile *fPythia, int coll
     } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
 }
 
+//________________
+void recoDijetDistributions(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129", bool isMc = false) {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    // Determine the direction based on the filename
+    TString directionStr;
+    TString filename = f->GetName();
+    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } else {
+        directionStr = "combined";
+    }
+
+    // Dijet ptAve binning
+    // int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
+    //                          100, 110,  120, 130, 140,
+    //                          150, 160,  180, 200, 250, 
+    //                          300, 500 };
+    int dijetPtNewVals[9] {  50,  90,   120,  180, 200, 250, 300, 350, 500 };
+    int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
+
+    // Reco dijet info [9 dimensions]
+    // 0 - dijet pt ave, 1 - dijet eta, 2 - dijet phi,
+    // 3 - lead pt, 4 - lead eta, 5 - lead phi,
+    // 6 - sublead pt, 7 - sublead eta, 8 - sublead phi
+    THnSparseD *hRecoDijetInfo = dynamic_cast<THnSparseD *>(f->Get("hRecoDijetInfo"));
+    if (!hRecoDijetInfo) {
+        std::cerr << "Error: hRecoDijetInfo not found in file." << std::endl;
+        return;
+    }
+
+    // Plot dijet ptAve distribution
+    TH1D *hDijetPtAve = dynamic_cast<TH1D *>(hRecoDijetInfo->Projection(0));
+    set1DStyle(hDijetPtAve, 0, true);
+
+    // Next distributions will be plotted for the given dijet ptAve binning
+    TH1D *hDijetEta{nullptr};
+    TH2D *hLeadPtVsSubLeadPt{nullptr};
+    TH2D *hLeadEtaVsSubLeadEta{nullptr};
+
+    TH3D *hRecoDijetPtEtaPhiLab{nullptr};
+    TH3D *hRecoDijetPtEtaPhiLabMatched{nullptr};
+    TH3D *hRecoDijetPtEtaPhiCM{nullptr};
+    TH3D *hRecoDijetPtEtaPhiCMMatched{nullptr};
+    TH2D *hDijetPtAveVsEtaLabInclusive{nullptr};
+    TH2D *hDijetPtAveVsEtaLabMatched{nullptr};
+    TH2D *hDijetPtAveVsEtaCMInclusive{nullptr};
+    TH2D *hDijetPtAveVsEtaCMMatched{nullptr};
+
+    if ( isMc ) {
+        hRecoDijetPtEtaPhiLab = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiWeighted"));
+        if (!hRecoDijetPtEtaPhiLab) {
+            std::cerr << "Error: hRecoDijetPtEtaPhiWeighted not found in file." << std::endl;
+            return;
+        }
+        hRecoDijetPtEtaPhiLab->SetName("hRecoDijetPtEtaPhiLab");
+
+        hRecoDijetPtEtaPhiLabMatched = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiMatched"));
+        if (!hRecoDijetPtEtaPhiLabMatched) {
+            std::cerr << "Error: hRecoDijetPtEtaPhiMatched not found in file." << std::endl;
+            return;
+        }
+        hRecoDijetPtEtaPhiLabMatched->SetName("hRecoDijetPtEtaPhiLabMatched");
+
+        hRecoDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiCMWeighted"));
+        if (!hRecoDijetPtEtaPhiCM) {
+            std::cerr << "Error: hRecoDijetPtEtaPhiCMWeighted not found in file." << std::endl;
+            return;
+        }
+        hRecoDijetPtEtaPhiCM->SetName("hRecoDijetPtEtaPhiCM");
+
+        hRecoDijetPtEtaPhiCMMatched = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiCMMatched"));
+        if (!hRecoDijetPtEtaPhiCMMatched) {
+            std::cerr << "Error: hRecoDijetPtEtaPhiCMMatched not found in file." << std::endl;
+            return;
+        }
+        hRecoDijetPtEtaPhiCMMatched->SetName("hRecoDijetPtEtaPhiCMMatched");
+
+        hDijetPtAveVsEtaLabInclusive = dynamic_cast<TH2D *>( hRecoDijetPtEtaPhiLab->Project3D("xy") );
+        hDijetPtAveVsEtaLabInclusive->SetName("hDijetPtAveVsEtaLabInclusive");
+        set2DStyle(hDijetPtAveVsEtaLabInclusive);
+
+        hDijetPtAveVsEtaLabMatched = dynamic_cast<TH2D *>( hRecoDijetPtEtaPhiLabMatched->Project3D("xy") );
+        hDijetPtAveVsEtaLabMatched->SetName("hDijetPtAveVsEtaLabMatched");
+        set2DStyle(hDijetPtAveVsEtaLabMatched);
+
+        hDijetPtAveVsEtaCMInclusive = dynamic_cast<TH2D *>( hRecoDijetPtEtaPhiCM->Project3D("xy") );
+        hDijetPtAveVsEtaCMInclusive->SetName("hDijetPtAveVsEtaCMInclusive");
+        set2DStyle(hDijetPtAveVsEtaCMInclusive);
+
+        hDijetPtAveVsEtaCMMatched = dynamic_cast<TH2D *>( hRecoDijetPtEtaPhiCMMatched->Project3D("xy") );
+        hDijetPtAveVsEtaCMMatched->SetName("hDijetPtAveVsEtaCMMatched");
+        set2DStyle(hDijetPtAveVsEtaCMMatched);
+    } // if ( isMc )
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+    setPadStyle();
+    TLegend *leg{nullptr};
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+
+    hDijetPtAve->Draw();
+    hDijetPtAve->GetYaxis()->SetTitle("1/N dN/dp_{T}^{ave}");
+    hDijetPtAve->GetXaxis()->SetRangeUser(40, hDijetPtAve->GetXaxis()->GetBinUpEdge(hDijetPtAve->GetXaxis()->GetNbins()));
+    c->SetLogy(1);
+    c->SetLogx(1);
+    c->SetGrid(1, 1);
+    c->SaveAs(Form("%s/%s_%s_recoDijet_ptAve.pdf", date.Data(), collSystemStr.Data(), directionStr.Data()));
+    c->SetLogy(0);
+    c->SetLogx(0);
+    c->SetGrid(0, 0);
+
+    if ( isMc ) {
+        c->Clear();
+        setPadStyle();
+        hDijetPtAveVsEtaLabInclusive->Draw("colz");
+        hDijetPtAveVsEtaLabInclusive->GetXaxis()->SetRangeUser(-3.0, 3.0);
+        hDijetPtAveVsEtaLabInclusive->GetYaxis()->SetRangeUser(35, 505);
+        t.DrawLatexNDC(0.3, 0.8, "Inclusive dijets (lab)");
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaLabInclusive.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data()));
+
+        c->Clear();
+        setPadStyle();
+        hDijetPtAveVsEtaLabMatched->Draw("colz");
+        hDijetPtAveVsEtaLabMatched->GetXaxis()->SetRangeUser(-3.0, 3.0);
+        hDijetPtAveVsEtaLabMatched->GetYaxis()->SetRangeUser(35, 505);
+        t.DrawLatexNDC(0.3, 0.8, "Matched dijets (lab)");
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaLabMatched.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data()));
+
+        c->Clear();
+        setPadStyle();
+        hDijetPtAveVsEtaCMInclusive->Draw("colz");
+        hDijetPtAveVsEtaCMInclusive->GetXaxis()->SetRangeUser(-3.0, 3.0);
+        hDijetPtAveVsEtaCMInclusive->GetYaxis()->SetRangeUser(35, 505);
+        t.DrawLatexNDC  (0.3, 0.8, "Inclusive dijets (CM)");
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaCMInclusive.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data()));
+
+        c->Clear();
+        setPadStyle();
+        hDijetPtAveVsEtaCMMatched->Draw("colz");
+        hDijetPtAveVsEtaCMMatched->GetXaxis()->SetRangeUser(-3.0, 3.0);
+        hDijetPtAveVsEtaCMMatched->GetYaxis()->SetRangeUser(35, 505);
+        t.DrawLatexNDC(0.3, 0.8, "Matched dijets (CM)");
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaCMMatched.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data()));
+
+        
+        c->Clear();
+        setPadStyle();
+        hDijetPtAveVsEtaLabMatched->Divide(hDijetPtAveVsEtaLabMatched, hDijetPtAveVsEtaLabInclusive, 1., 1., "b");
+        hDijetPtAveVsEtaLabMatched->Draw("colz");
+        hDijetPtAveVsEtaLabMatched->GetXaxis()->SetRangeUser(-3.0, 3.0);
+        hDijetPtAveVsEtaLabMatched->GetYaxis()->SetRangeUser(35, 505);
+        hDijetPtAveVsEtaLabMatched->GetZaxis()->SetRangeUser(0.01, 1.05);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaLabMatched_fraction.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data()));
+
+        c->Clear();
+        setPadStyle();
+        hDijetPtAveVsEtaCMMatched->Divide(hDijetPtAveVsEtaCMMatched, hDijetPtAveVsEtaCMInclusive, 1., 1., "b");
+        hDijetPtAveVsEtaCMMatched->Draw("colz");
+        hDijetPtAveVsEtaCMMatched->GetXaxis()->SetRangeUser(-3.0, 3.0);
+        hDijetPtAveVsEtaCMMatched->GetYaxis()->SetRangeUser(35, 505);
+        hDijetPtAveVsEtaCMMatched->GetZaxis()->SetRangeUser(0.01, 1.05);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaCMMatched_fraction.pdf", date.Data(),
+                       collSystemStr.Data(), directionStr.Data()));
+    }
+
+    // Loop over dijet ptAve bins
+    for (int i = 0; i < sizeOfPtVals - 1; ++i) {
+        int ptLow = dijetPtNewVals[i];
+        int ptHi = dijetPtNewVals[i + 1];
+        int ptBinLow = hRecoDijetInfo->GetAxis(0)->FindBin(ptLow);
+        int ptBinHi = hRecoDijetInfo->GetAxis(0)->FindBin(ptHi) - 1;
+
+        // Set dijet ptAve range
+        hRecoDijetInfo->GetAxis(0)->SetRange(ptBinLow, ptBinHi);
+
+        // Dijet eta distribution
+        c->Clear();
+        setPadStyle();
+        hDijetEta = dynamic_cast<TH1D *>( hRecoDijetInfo->Projection(1) );
+        hDijetEta->SetName(Form("hDijetEta_%d_%d", ptLow, ptHi));
+        set1DStyle(hDijetEta, 0, true);
+        hDijetEta->GetXaxis()->SetRangeUser(-3.0, 3.0);
+        hDijetEta->GetYaxis()->SetRangeUser(0.000001, 0.12);
+        hDijetEta->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
+        hDijetEta->Draw();
+        t.DrawLatexNDC(0.35, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_eta_ptAve_%d_%d.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        // Dijet lead vs sublead pt distribution
+        c->Clear();
+        setPadStyle();
+        hLeadPtVsSubLeadPt = dynamic_cast<TH2D *>( hRecoDijetInfo->Projection(3, 6) );
+        hLeadPtVsSubLeadPt->SetName(Form("hLeadPtVsSubLeadPt_%d_%d", ptLow, ptHi));
+        set2DStyle(hLeadPtVsSubLeadPt);
+        hLeadPtVsSubLeadPt->GetXaxis()->SetRangeUser(30, 530);
+        hLeadPtVsSubLeadPt->GetYaxis()->SetRangeUser(30, 530);
+        //hLeadPtVsSubLeadPt->SetRange(0., 0.12);
+        hLeadPtVsSubLeadPt->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_leadVsSubLeadPt_ptAve_%d_%d.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        // Dijet lead vs sublead eta distribution
+        c->Clear();
+        setPadStyle();
+        hLeadEtaVsSubLeadEta = dynamic_cast<TH2D *>( hRecoDijetInfo->Projection(4, 7) );
+        hLeadEtaVsSubLeadEta->SetName(Form("hLeadEtaVsSubLeadEta_%d_%d", ptLow, ptHi));
+        set2DStyle(hLeadEtaVsSubLeadEta);
+        hLeadEtaVsSubLeadEta->GetXaxis()->SetRangeUser(-3.0, 3.0);
+        hLeadEtaVsSubLeadEta->GetYaxis()->SetRangeUser(-3.0, 3.0);
+        //hLeadEtaVsSubLeadEta->SetRange(0., 0.12);
+        hLeadEtaVsSubLeadEta->Draw("colz");
+        t.DrawLatexNDC(0.35, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoDijet_leadVsSubLeadEta_ptAve_%d_%d.pdf", date.Data(), 
+                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+    } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
+
+    c->Clear();
+    delete c;
+}
+
+//________________
+void usefullDistributions(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    // Determine the direction based on the filename
+    TString directionStr;
+    TString filename = f->GetName();
+    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } else {
+        directionStr = "combined";
+    }
+
+    // Dijet ptAve binning
+    // int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
+    //                          100, 110,  120, 130, 140,
+    //                          150, 160,  180, 200, 250, 
+    //                          300, 500 };
+    int dijetPtNewVals[9] {  50,  90,   120,  180, 200, 250, 300, 350, 500 };
+    int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
+
+
+}
+
 
 //________________
 void plotMcClosures() {
@@ -2822,9 +3104,9 @@ void plotMcClosures() {
         }
     }
     else {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) );
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20_new.root", uname.Data(), cutTypeStr.Data()) );
         if ( !pPb8160EmbedFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20_new.root", uname.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
@@ -2843,9 +3125,9 @@ void plotMcClosures() {
         }
     }
     else {
-        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20_new.root", uname.Data()) );
         if ( !pPb8160PythiaFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20_new.root", uname.Data()) << std::endl;
             return;
         }
     }
@@ -2888,8 +3170,8 @@ void plotMcClosures() {
     //
     // Comparison of dijet reco and ref to gen distributions from 3D histograms
     //
-    dijetClosuresFrom3D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
-
+    // dijetClosuresFrom3D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    // dijetClosuresFrom3D( pPb8160PythiaFile, collisionSystem, collisionEnergy, date );
 
     //
     // Plot comparison of inclusive jet eta distributions to check/validate the JEC
@@ -2911,4 +3193,9 @@ void plotMcClosures() {
     //
     // pythia2embeddingDijetComparison(pPb8160EmbedFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
 
+
+    //
+    // Plot distributions for the reco dijets
+    //
+    recoDijetDistributions(pPb8160EmbedFile, collisionSystem, collisionEnergy, date, true);
 }

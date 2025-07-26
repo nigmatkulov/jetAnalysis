@@ -157,13 +157,19 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hGenDijetEta;
     TH3D *hGenDijetPtEtaPhi;
     TH3D *hGenDijetPtEtaPhiWeighted;
+    TH3D *hGenDijetPtEtaPhiCMInLab;
     TH1D *hGenDijetEtaCM;
     TH3D *hGenDijetPtEtaPhiCM;
     TH3D *hGenDijetPtEtaPhiCMWeighted;
+    TH3D *hGenDijetPtEtaPhiLabInCM;
     TH2D *hGenDijetPtEtaForward;
     TH2D *hGenDijetPtEtaBackward;
+    TH2D *hGenDijetPtEtaForwardCMInLab;
+    TH2D *hGenDijetPtEtaBackwardCMInLab;
     TH2D *hGenDijetPtEtaCMForward;
     TH2D *hGenDijetPtEtaCMBackward;
+    TH2D *hGenDijetPtEtaForwardLabInCM;
+    TH2D *hGenDijetPtEtaBackwardLabInCM;
     TH2D *hGenDijetPtEtaForwardWeighted;
     TH2D *hGenDijetPtEtaBackwardWeighted;
     TH2D *hGenDijetPtEtaCMForwardWeighted;
@@ -277,8 +283,12 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoDijetPtEta;
     TH2D *hRecoDijetPtEtaForward;
     TH2D *hRecoDijetPtEtaBackward;
+    TH2D *hRecoDijetPtEtaForwardCMInLab;
+    TH2D *hRecoDijetPtEtaBackwardCMInLab;
     TH2D *hRecoDijetPtEtaCMForward;
     TH2D *hRecoDijetPtEtaCMBackward;
+    TH2D *hRecoDijetPtEtaForwardLabInCM;
+    TH2D *hRecoDijetPtEtaBackwardLabInCM;
     TH2D *hRecoDijetPtEtaForwardWeighted;
     TH2D *hRecoDijetPtEtaBackwardWeighted;
     TH2D *hRecoDijetPtEtaCMForwardWeighted;
@@ -286,8 +296,10 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     TH3D *hRecoDijetPtEtaPhi;
     TH3D *hRecoDijetPtEtaPhiWeighted;
+    TH3D *hRecoDijetPtEtaPhiCMInLab;
     TH3D *hRecoDijetPtEtaPhiCM;
     TH3D *hRecoDijetPtEtaPhiCMWeighted;
+    TH3D *hRecoDijetPtEtaPhiLabInCM;
     TH3D *hRecoDijetPtEtaPhiMatched;
     TH3D *hRecoDijetPtEtaPhiCMMatched;
 
@@ -441,11 +453,16 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtWeighted;
     TH3D *hRefDijetPtEtaPhi;
     TH3D *hRefDijetPtEtaPhiWeighted;
+    TH3D *hRefDijetPtEtaPhiCMInLab;
 
     TH2D *hRefDijetPtEtaForward;
     TH2D *hRefDijetPtEtaBackward;
+    TH2D *hRefDijetPtEtaForwardCMInLab;
+    TH2D *hRefDijetPtEtaBackwardCMInLab;
     TH2D *hRefDijetPtEtaCMForward;
     TH2D *hRefDijetPtEtaCMBackward;
+    TH2D *hRefDijetPtEtaForwardLabInCM;
+    TH2D *hRefDijetPtEtaBackwardLabInCM;
     TH2D *hRefDijetPtEtaForwardWeighted;
     TH2D *hRefDijetPtEtaBackwardWeighted;
     TH2D *hRefDijetPtEtaCMForwardWeighted;
@@ -454,6 +471,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRefDijetEtaCM;
     TH3D *hRefDijetPtEtaPhiCM;
     TH3D *hRefDijetPtEtaPhiCMWeighted;
+    TH3D *hRefDijetPtEtaPhiLabInCM;
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCM;
     TH3D *hRefDijetEtaVsRecoDijetEtaVsRecoDijetPtCMWeighted;
 
@@ -531,9 +549,11 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRefSelDijetEta;
     TH3D *hRefSelDijetPtEtaPhi;
     TH3D *hRefSelDijetPtEtaPhiWeighted;
+    TH3D *hRefSelDijetPtEtaPhiCMInLab;
     TH1D *hRefSelDijetEtaCM;
     TH3D *hRefSelDijetPtEtaPhiCM;
     TH3D *hRefSelDijetPtEtaPhiCMWeighted;
+    TH3D *hRefSelDijetPtEtaPhiLabInCM;
 
     // New ptAve and eta binning
     TH1D *hRefSelDijetEta1D[16];

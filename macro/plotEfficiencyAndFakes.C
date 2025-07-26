@@ -845,12 +845,12 @@ void plotEfficiencyAndFakes() {
     // Collision system: 0 = pp, 1 = pPb, 2 = PbPb
     int collisionSystem = 1;         // 0 - pp, 1 - pPb, 2 - pPb5020, 3 - pPb8160
     double collisionEnergy = 8.16;   // 8.16 TeV
-    int direction = 1;               // 0-p-going, 1-Pb-going, 2 - combined
+    int direction = 2;               // 0-p-going, 1-Pb-going, 2 - combined
     TString directionStr = (direction == 0) ? "pgoing" : ((direction == 1) ? "Pbgoing" : "");
     int dataTrigger = 0;               // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
     TString dataStr = (dataTrigger == 0) ? "MB" : ((dataTrigger == 1) ? "Jet60" : ((dataTrigger == 2) ? "Jet80" : ((dataTrigger == 3) ? "Jet100" : "unknownData")));
     TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
-    int jetType = 2; // 0 - inclusive, 1 - lead, 2 - sublead
+    int jetType = 0; // 0 - inclusive, 1 - lead, 2 - sublead
     int matchType = 0; // 0 - inclusive, 1 - matched, 2 - unmatched
 
     // Monte Carlo file
@@ -863,16 +863,16 @@ void plotEfficiencyAndFakes() {
         }
     }
     else {
-        f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20_new.root", uname.Data()) );
         if ( !f ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20_new.root", uname.Data()) << std::endl;
             return;
         }
     }
 
     // Plot efficiency
-    plotEfficiency(f, collisionSystem, collisionEnergy, jetType, date);
+    // plotEfficiency(f, collisionSystem, collisionEnergy, jetType, date);
 
     // Plot fakes
-    // plotFakes(f, collisionSystem, collisionEnergy, jetType, date);
+    plotFakes(f, collisionSystem, collisionEnergy, jetType, date);
 }
