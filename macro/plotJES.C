@@ -30,7 +30,6 @@ void createDirectory(const char* directoryPath) {
     }
 }
 
-
 //________________
 void plotCMSHeader(int collSystem = 1, double energy = 8.16) {
     // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
@@ -225,83 +224,79 @@ void plotJESandJER(TFile *f, int collSystem = 0, double energy = 5.02, TString d
     int ptHatBinsMax = 100;
     std::vector<int> ptHatBins { 3 };
 
-    int etaBinsProj[2] = {20, 32};   
+    // Event ptHat binning
+    double ptHatVals[] = { 15. };
+    int sizeOfPtHatBins = sizeof(ptHatVals) / sizeof(ptHatVals[0]);
 
-    // 52 bins from -5.2, 5.2
-    double etaStart = -5.2;
-    double etaStep = 0.2;
-    // Eta binning start: etaStart + (jetEtaBinsLow[j] - 1) * etaStep
-    // Eta binning end: etaStart + jetEtaBinsHi[j] * etaStep
-    // -5.2, -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6
-    std::vector<int> jetEtaBinsLow {1,  9, 12, 13, 14, 15, 16, 17, 19, 27, 35, 37, 39, 40, 41, 42, 45};
-    // -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 5.2
-    std::vector<int> jetEtaBinsHi  {8, 11, 12, 13, 14, 15, 16, 18, 26, 34, 36, 38, 39, 40, 41, 44, 52};
+    // Jet eta binning
+    double etaVals[] = { -5.2, -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 5.2 };
+    int sizeOfEtaBins = sizeof(etaVals) / sizeof(etaVals[0]);
 
+    // Jet pT binning
+    double ptVals[] = { 25., 55., 95., 125., 200., 1000. };
+    int sizeOfPtBins = sizeof(ptVals) / sizeof(ptVals[0]);
 
-    std::vector<int> jetPtBinsLow { 5, 10, 15,  20, 25, 50 };
-    std::vector<int> jetPtBinsHi  { 9, 14, 19,  24, 49, 100 };
-
-    TH2D *hJESvsPt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
-    TH2D *hJESvsEta[ ptHatBins.size() ][ jetPtBinsLow.size() ];
-    TCanvas *cJESvsPt[ ptHatBins.size() ][ jetEtaBinsLow.size() ];
-    TCanvas *cJESvsEta[ ptHatBins.size() ][ jetPtBinsLow.size() ];
+    TH2D *h2D {nullptr};
+    TCanvas *c = new TCanvas( "c", "cJESandJER", 1500, 500 );
+    c->Divide(3, 1);
 
     // Loop over ptHat bins
-    for (unsigned int i{0}; i<ptHatBins.size(); i++) {
+    for (unsigned int i{0}; i<sizeOfPtHatBins; i++) {
 
-        hJESPars->GetAxis(3)->SetRange( ptHatBins[i], ptHatBinsMax );
+        double ptHatLow = ptHatVals[i];
+
+        // Set ptHat binning
+        hJESPars->GetAxis(3)->SetRange( hJESPars->GetAxis(3)->GetBinLowEdge(ptHatLow), 
+                                        hJESPars->GetAxis(3)->GetNbins() );
 
         //
         // JES vs. jet pT for different eta bins
         //
-        for (unsigned int j{0}; j<jetEtaBinsLow.size(); j++) {
+        for (unsigned int j{0}; j<(sizeOfEtaBins-1); j++) {
+
+            double etaLow = etaVals[j];
+            double etaHi = etaVals[j+1];
 
             // Set axis limits for THnSparse
-            hJESPars->GetAxis(2)->SetRange( jetEtaBinsLow[j], jetEtaBinsHi[j] );
+            hJESPars->GetAxis(2)->SetRange( hJESPars->GetAxis(2)->GetBinLowEdge( etaLow ), 
+                                            hJESPars->GetAxis(2)->GetBinUpEdge( etaHi ) - 1 );
 
             // Create 2D histogram
-            hJESvsPt[i][j] = dynamic_cast<TH2D*>( hJESPars->Projection(0, 1) );
-            hJESvsPt[i][j]->SetName( Form("hJES_pt_%d_%d", i, j) );
-            set2DStyle(hJESvsPt[i][j]);
+            h2D = dynamic_cast<TH2D*>( hJESPars->Projection(0, 1) );
+            h2D->SetName( Form("hJES_pt_%d_%d", i, j) );
+            set2DStyle(h2D);
 
-            // Create canvas
-            cJESvsPt[i][j] = new TCanvas( Form("cJES_pt_%d_%d", i, j), Form("cJES_pt_%d_%d", i, j), 1500, 500 );
-            cJESvsPt[i][j]->Divide(3, 1);
 
-            double lowVal = hJESPars->GetAxis(2)->GetBinLowEdge(jetEtaBinsLow[j]);
-            double hiVal = hJESPars->GetAxis(2)->GetBinUpEdge(jetEtaBinsHi[j]);
-            plotJESandJER(cJESvsPt[i][j], hJESvsPt[i][j], lowVal, hiVal, collSystem, energy, true, true);
+            plotJESandJER(c, h2D, etaLow, etaHi, collSystem, energy, true, true);
 
-            cJESvsPt[i][j]->SaveAs( Form("%s/JES_vs_pt_%d_%d.pdf", date.Data(), i, j) );
+            c->SaveAs( Form("%s/JES_vs_pt_%d_%d.pdf", date.Data(), i, j) );
 
-        } // for (unsigned int j{0}; j<jetEtaBinsLow.size(); j++)
+        } // for (unsigned int j{0}; j<(sizeOfEtaBins-1); j++)
 
-        hJESPars->GetAxis(2)->SetRange( 1, 52 ); // Restore eta binning
+        hJESPars->GetAxis(2)->SetRange( 1, hJESPars->GetAxis(2)->GetNbins() ); // Restore eta binning
 
         //
         // JES vs. jet eta for different pt bins
         //
-        for (unsigned int j{0}; j<jetPtBinsLow.size(); j++) {
+        for (unsigned int j{0}; j<(sizeOfPtBins-1); j++) {
+
+            double ptLow = ptVals[j];
+            double ptHi = ptVals[j+1];
 
             // Set axis limits for THnSparse
-            hJESPars->GetAxis(1)->SetRange( jetPtBinsLow[j], jetPtBinsHi[j] );
+            hJESPars->GetAxis(1)->SetRange( hJESPars->GetAxis(1)->GetBinLowEdge( ptLow ), 
+                                            hJESPars->GetAxis(1)->GetBinUpEdge( ptHi ) - 1 );
 
             // Create 2D histogram
-            hJESvsEta[i][j] = dynamic_cast<TH2D*>( hJESPars->Projection(0, 2) );
-            hJESvsEta[i][j]->SetName( Form("hJES_eta_%d_%d", i, j) );
-            set2DStyle(hJESvsEta[i][j]);
+            h2D = dynamic_cast<TH2D*>( hJESPars->Projection(0, 2) );
+            h2D->SetName( Form("hJES_eta_%d_%d", i, j) );
+            set2DStyle(h2D);
 
-            // Create canvas
-            cJESvsEta[i][j] = new TCanvas( Form("cJES_eta_%d_%d", i, j), Form("cJES_eta_%d_%d", i, j), 1500, 500 );
-            cJESvsEta[i][j]->Divide(3, 1);
+            plotJESandJER(c, h2D, lowVal, hiVal, collSystem, energy, false, false);
+            c->SaveAs( Form("%s/JES_vs_eta_%d_%d.pdf", date.Data(), i, j) );
+        } // for (unsigned int j{0}; j<(sizeOfPtBins-1); j++)
 
-            double lowVal = hJESPars->GetAxis(1)->GetBinLowEdge(jetPtBinsLow[j]);
-            double hiVal = hJESPars->GetAxis(1)->GetBinUpEdge(jetPtBinsHi[j]);
-            plotJESandJER(cJESvsEta[i][j], hJESvsEta[i][j], lowVal, hiVal, collSystem, energy, false, false);
-            cJESvsEta[i][j]->SaveAs( Form("%s/JES_vs_eta_%d_%d.pdf", date.Data(), i, j) );
-        } // for (unsigned int j{0}; j<jetPtBinsLow.size(); j++)
-
-    } // for (unsigned int i{0}; i<ptHatBins.size(); i++)
+    } // for (unsigned int i{0}; i<sizeOfPtHatBins; i++)
 
 }
 
