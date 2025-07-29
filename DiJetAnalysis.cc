@@ -776,12 +776,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 float genPhi = matchedJet->phi();
 
                 float JES = pt/genPt;
-                double res[4] { JES, genPt, genEta, genPhi };
-                res[0] = JES;
-                res[1] = genPt; 
-                res[2] = genEta;
-                res[3] = genPhi;
 
+                double res[4]  = { JES, genPt, genEta, genPhi };
                 double res1[4] = { JES, genPt, genEta, ptHat };
                 double res2[4] = { JES, pt, eta, ptHat };
 

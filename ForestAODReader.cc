@@ -1284,22 +1284,23 @@ void ForestAODReader::fixIndices() {
 
                 float dR = sqrt( (recoEta - fGenJetEta[iGenJet]) * (recoEta - fGenJetEta[iGenJet]) +
                                  dphi * dphi );
-                bool matched = ( ( dR < 0.4 ) ||
-                                 ( fabs(refEta - fGenJetEta[iGenJet]) < 1e-5 &&
-                                   fabs(refPhi - fGenJetPhi[iGenJet]) < 1e-5 ) );
+                // bool matched = ( ( dR < 0.2 ) ||
+                //                  ( fabs(refEta - fGenJetEta[iGenJet]) < 1e-5 &&
+                //                    fabs(refPhi - fGenJetPhi[iGenJet]) < 1e-5 ) );
 
-                // bool matched = (fabs(refEta - fGenJetEta[iGenJet]) < std::numeric_limits<float>::epsilon() &&
-                //                 fabs(refPhi - fGenJetPhi[iGenJet]) < std::numeric_limits<float>::epsilon());
+                bool matched = (fabs(refEta - fGenJetEta[iGenJet]) < 1e-5 &&
+                                fabs(refPhi - fGenJetPhi[iGenJet]) < 1e-5);
                 // if ( dR < 0.4 ) matched = true;
 
                 if (fVerbose) {
-                    std::cout << Form("Comparing RecoJet #%d to GenJet #%d (dR): %4.3f (refEta - genEta): %4.3f (refPhi - genPhi): %4.3f [%s]\n",
+                    std::cout << Form("Comparing reco #%d to gen #%d dR: %4.3f deta: %4.3f dphi: %4.3f [%s]\n",
                                     iRecoJet, iGenJet, dR, 
                                     refEta - fGenJetEta[iGenJet],
                                     refPhi - fGenJetPhi[iGenJet],
                                     (matched ? "true" : "false"));
                 }
-                // Use floating point epsilons to compare the values
+
+
                 if (matched) {
                     fRecoJet2GenJetId[iRecoJet] = iGenJet;
                     fGenJet2RecoJet[iGenJet] = iRecoJet;
