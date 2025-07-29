@@ -315,7 +315,7 @@ void plotJESandJER(TCanvas *c, TH2 *h2D_trkMax, TH2 *h2D_noCut = nullptr, TH2 *h
 }
 
 //________________
-void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = nullptr,
+void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = nullptr,
                    int collSystem = 1, double energy = 8.16, TString date = "20250129") {
     // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
@@ -350,7 +350,7 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
     }
 
     // Event ptHat binning
-    double ptHatVals[] = { 15. };
+    double ptHatVals[] = { 15.};
     int sizeOfPtHatBins = sizeof(ptHatVals) / sizeof(ptHatVals[0]);
 
     // Jet eta binning
@@ -358,8 +358,11 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
     int sizeOfEtaBins = sizeof(etaVals) / sizeof(etaVals[0]);
 
     // Jet pT binning
-    double ptVals[] = { 25., 55., 95., 125., 200., 1000. };
+    double ptVals[] = { 25., 55., 95., 125., 200., 800. };
     int sizeOfPtBins = sizeof(ptVals) / sizeof(ptVals[0]);
+
+    std::cout << Form("Number of ptHat bins: %d, Number of eta bins: %d, Number of pT bins: %d", 
+                      sizeOfPtHatBins, sizeOfEtaBins, sizeOfPtBins) << std::endl;
 
     // Create 2D and 1D histograms
     TH2D *h2D_trkMax{nullptr}, *h2D_noCut{nullptr}, *h2D_jetId{nullptr};
@@ -372,18 +375,19 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
     for (unsigned int i{0}; i<sizeOfPtHatBins; i++) {
 
         double ptHatLow = ptHatVals[i];
+        int ptHatBinLow = hJESPars_trkMax->GetAxis(3)->FindBin(ptHatLow);
 
         // Set ptHat binning
-        hJESPars_trkMax->GetAxis(3)->SetRange( hJESPars_trkMax->GetAxis(3)->GetBinLowEdge(ptHatLow), 
+        hJESPars_trkMax->GetAxis(3)->SetRange( hJESPars_trkMax->GetAxis(3)->GetBinLowEdge(ptHatBinLow), 
                                                hJESPars_trkMax->GetAxis(3)->GetNbins() );
 
         if ( hJESPars_noCut ) {
-            hJESPars_noCut->GetAxis(3)->SetRange( hJESPars_noCut->GetAxis(3)->GetBinLowEdge(ptHatLow), 
+            hJESPars_noCut->GetAxis(3)->SetRange( hJESPars_noCut->GetAxis(3)->GetBinLowEdge(ptHatBinLow), 
                                                   hJESPars_noCut->GetAxis(3)->GetNbins() );
         }
 
         if ( hJESPars_jetId ) {
-            hJESPars_jetId->GetAxis(3)->SetRange( hJESPars_jetId->GetAxis(3)->GetBinLowEdge(ptHatLow), 
+            hJESPars_jetId->GetAxis(3)->SetRange( hJESPars_jetId->GetAxis(3)->GetBinLowEdge(ptHatBinLow), 
                                                   hJESPars_jetId->GetAxis(3)->GetNbins() );
         }
 
@@ -394,10 +398,15 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
 
             double etaLow = etaVals[j];
             double etaHi = etaVals[j+1];
+            int etaBinLow = hJESPars_trkMax->GetAxis(2)->FindBin(etaLow);
+            int etaBinHigh = hJESPars_trkMax->GetAxis(2)->FindBin(etaHi) - 1;
+
+            std::cout << Form("Processing ptHat bin %d (%4.0f) corresponding to ptHatBin %d and eta bin %d (%2.1f, %2.1f) corresponding to eta bins (%d, %d) in JESPars_trkMax", 
+                              i, ptHatLow, ptHatBinLow, j, etaLow, etaHi, etaBinLow, etaBinHigh) << std::endl;
 
             // Set axis limits for THnSparse
-            hJESPars_trkMax->GetAxis(2)->SetRange( hJESPars_trkMax->GetAxis(2)->GetBinLowEdge( etaLow ), 
-                                                   hJESPars_trkMax->GetAxis(2)->GetBinUpEdge( etaHi ) - 1 );
+            hJESPars_trkMax->GetAxis(2)->SetRange( hJESPars_trkMax->GetAxis(2)->GetBinLowEdge( etaBinLow ), 
+                                                   hJESPars_trkMax->GetAxis(2)->GetBinUpEdge( etaBinHigh ) );
 
             // Create 2D histogram
             h2D_trkMax = dynamic_cast<TH2D*>( hJESPars_trkMax->Projection(0, 1) );
@@ -409,13 +418,13 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
 
             if ( h1JES_trkMax == nullptr || h1JER_trkMax == nullptr ) {
                 std::cerr << Form( "[ERROR] Could not retrieve JES or JER for ptHat bin %d and eta bin %d. Skipping this bin.", i, j ) << std::endl;
-                return; 
+                continue;
             }
 
             if ( fNoCut ) {
                 // Set axis limits for THnSparse
-                hJESPars_noCut->GetAxis(2)->SetRange( hJESPars_noCut->GetAxis(2)->GetBinLowEdge( etaLow ), 
-                                                      hJESPars_noCut->GetAxis(2)->GetBinUpEdge( etaHi ) - 1 );
+                hJESPars_noCut->GetAxis(2)->SetRange( hJESPars_noCut->GetAxis(2)->GetBinLowEdge( etaBinLow ), 
+                                                      hJESPars_noCut->GetAxis(2)->GetBinUpEdge( etaBinHigh ) );
 
                 // Create 2D histogram
                 h2D_noCut = dynamic_cast<TH2D*>( hJESPars_noCut->Projection(0, 1) );
@@ -428,8 +437,8 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
 
             if ( fJetId ) {
                 // Set axis limits for THnSparse
-                hJESPars_jetId->GetAxis(2)->SetRange( hJESPars_jetId->GetAxis(2)->GetBinLowEdge( etaLow ), 
-                                                      hJESPars_jetId->GetAxis(2)->GetBinUpEdge( etaHi ) - 1 );
+                hJESPars_jetId->GetAxis(2)->SetRange( hJESPars_jetId->GetAxis(2)->GetBinLowEdge( etaBinLow ), 
+                                                      hJESPars_jetId->GetAxis(2)->GetBinUpEdge( etaBinHigh ) );
 
                 // Create 2D histogram
                 h2D_jetId = dynamic_cast<TH2D*>( hJESPars_jetId->Projection(0, 1) );
@@ -445,7 +454,9 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
                           h1JER_trkMax, h1JER_noCut, h1JER_jetId,
                           etaLow, etaHi, collSystem, energy, true);
 
-            c->SaveAs( Form("%s/JES_vs_pt_%d_%d.pdf", date.Data(), i, j) );
+            c->SaveAs( Form("%s/JES_vs_pt_ptHat_%d_eta_%s_%s.pdf", date.Data(), (int)ptHatLow, 
+                        ((etaLow>=0) ? Form("%.1f", etaLow) : Form("m%.1f", -etaLow)), 
+                        ((etaHi>=0) ? Form("%.1f", etaHi) : Form("m%.1f", -etaHi)) ) );
 
         } // for (unsigned int j{0}; j<(sizeOfEtaBins-1); j++)
 
@@ -465,10 +476,12 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
 
             double ptLow = ptVals[j];
             double ptHi = ptVals[j+1];
+            int ptBinLow = hJESPars_trkMax->GetAxis(1)->FindBin(ptLow);
+            int ptBinHigh = hJESPars_trkMax->GetAxis(1)->FindBin(ptHi) - 1;
 
             // Set axis limits for THnSparse
-            hJESPars_trkMax->GetAxis(1)->SetRange( hJESPars_trkMax->GetAxis(1)->GetBinLowEdge( ptLow ), 
-                                                   hJESPars_trkMax->GetAxis(1)->GetBinUpEdge( ptHi ) - 1 );
+            hJESPars_trkMax->GetAxis(1)->SetRange( hJESPars_trkMax->GetAxis(1)->GetBinLowEdge( ptBinLow ), 
+                                                   hJESPars_trkMax->GetAxis(1)->GetBinUpEdge( ptBinHigh ) );
 
             // Create 2D histogram
             h2D_trkMax = dynamic_cast<TH2D*>( hJESPars_trkMax->Projection(0, 2) );
@@ -480,8 +493,8 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
 
             if ( fNoCut ) {
                 // Set axis limits for THnSparse
-                hJESPars_noCut->GetAxis(1)->SetRange( hJESPars_noCut->GetAxis(1)->GetBinLowEdge( ptLow ), 
-                                                      hJESPars_noCut->GetAxis(1)->GetBinUpEdge( ptHi ) - 1 );
+                hJESPars_noCut->GetAxis(1)->SetRange( hJESPars_noCut->GetAxis(1)->GetBinLowEdge( ptBinLow ), 
+                                                      hJESPars_noCut->GetAxis(1)->GetBinUpEdge( ptBinHigh ) );
 
                 // Create 2D histogram
                 h2D_noCut = dynamic_cast<TH2D*>( hJESPars_noCut->Projection(0, 2) );
@@ -494,8 +507,8 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
 
             if ( fJetId ) {
                 // Set axis limits for THnSparse
-                hJESPars_jetId->GetAxis(1)->SetRange( hJESPars_jetId->GetAxis(1)->GetBinLowEdge( ptLow ), 
-                                                      hJESPars_jetId->GetAxis(1)->GetBinUpEdge( ptHi ) - 1 );
+                hJESPars_jetId->GetAxis(1)->SetRange( hJESPars_jetId->GetAxis(1)->GetBinLowEdge( ptBinLow ), 
+                                                      hJESPars_jetId->GetAxis(1)->GetBinUpEdge( ptBinHigh ) );
 
                 // Create 2D histogram
                 h2D_jetId = dynamic_cast<TH2D*>( hJESPars_jetId->Projection(0, 2) );
@@ -510,7 +523,7 @@ void plotJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = null
                           h1JES_trkMax, h1JES_noCut, h1JES_jetId,
                           h1JER_trkMax, h1JER_noCut, h1JER_jetId,
                           ptLow, ptHi, collSystem, energy, false);
-            c->SaveAs( Form("%s/JES_vs_eta_%d_%d.pdf", date.Data(), i, j) );
+            c->SaveAs( Form("%s/JES_vs_eta_ptHat_%d_pt_%d_%d.pdf", date.Data(), (int)ptHatLow, (int)ptLow, (int)ptHi) );
         } // for (unsigned int j{0}; j<(sizeOfPtBins-1); j++)
 
     } // for (unsigned int i{0}; i<sizeOfPtHatBins; i++)
@@ -671,13 +684,13 @@ void plotJES() {
     }
 
     //
-    // Plot simple JESsss
+    // Plot simple JES
     //
-    // plotSimpleJES( inputFile, collisionSystem, collisionEnergy );
+    // plotSimpleJES( embTrkMaxFile, collisionSystem, collisionEnergy );
 
     //
     // Plot JES and JER for different ptHat, eta, and pT selections
     //
-    // plotJESandJER( embTrkMaxFile, embNoCutFile, embJetIdFile, collisionSystem, collisionEnergy, date );
-    plotJESandJER( embTrkMaxFile, nullptr, nullptr, collisionSystem, collisionEnergy, date );
+    // processJESandJER( embTrkMaxFile, embNoCutFile, embJetIdFile, collisionSystem, collisionEnergy, date );
+    processJESandJER( embTrkMaxFile, nullptr, nullptr, collisionSystem, collisionEnergy, date );
 }

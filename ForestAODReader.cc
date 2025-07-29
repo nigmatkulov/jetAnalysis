@@ -1263,11 +1263,9 @@ void ForestAODReader::fixIndices() {
 
         // Loop over reconstructed jets
         for (int iRecoJet{0}; iRecoJet<fNRecoJets; iRecoJet++) {
-            // Skip if no matched gen jet in ref info
-            // TODO: check why next line generates error (occasionally skips the first reco jet with matching gen jet)
-            // if (fRefJetPt[iRecoJet] < 0) continue;
 
-            if ( fRecoJetPt[iRecoJet] < 15 ) continue; // Skip low pt jets. Assume they are all unmatched
+            // Skip low pt jets. Assume they are all unmatched
+            // if ( fRecoJetPt[iRecoJet] < 5 ) continue; 
 
             float refEta = fRefJetEta[iRecoJet];
             float refPhi = fRefJetPhi[iRecoJet];
@@ -1286,9 +1284,9 @@ void ForestAODReader::fixIndices() {
 
                 float dR = sqrt( (recoEta - fGenJetEta[iGenJet]) * (recoEta - fGenJetEta[iGenJet]) +
                                  dphi * dphi );
-                bool matched = ( dR < 0.4 ); /* &&
-                                 fabs(refEta - fGenJetEta[iGenJet]) < 1e-6 &&
-                                 fabs(refPhi - fGenJetPhi[iGenJet]) < 1e-6 ); */
+                bool matched = ( ( dR < 0.4 ) ||
+                                 ( fabs(refEta - fGenJetEta[iGenJet]) < 1e-5 &&
+                                   fabs(refPhi - fGenJetPhi[iGenJet]) < 1e-5 ) );
 
                 // bool matched = (fabs(refEta - fGenJetEta[iGenJet]) < std::numeric_limits<float>::epsilon() &&
                 //                 fabs(refPhi - fGenJetPhi[iGenJet]) < std::numeric_limits<float>::epsilon());
