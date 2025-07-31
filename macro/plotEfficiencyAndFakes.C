@@ -863,9 +863,9 @@ void plotEfficiencyAndFakes() {
         }
     }
     else {
-        f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20_new.root", uname.Data()) );
+        f = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) );
         if ( !f ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20_new.root", uname.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
             return;
         }
     }

@@ -786,7 +786,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 fHM->hRefInclusiveJetEta->Fill( genEta, weight );
                 fHM->hRefInclusiveJetEtaUnweighted->Fill( genEta, 1. );
                 fHM->hRefInclusiveJetPtEta->Fill( genEta, genPt, weight );
-                fHM->hRefInclusiveJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+                // Must use reco jet pt to see the effect of JEC
+                fHM->hRefInclusiveJetPtEtaPtHat->Fill( genEta, pt, ptHat, weight );
 
                 // Jet energy scale
                 fHM->hJESInclusiveJetPtEtaPhi->Fill(res, weight);
@@ -819,11 +820,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     fHM->hRecoLeadMatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
                     // Lead ref jet
                     fHM->hRefLeadJetPtEta->Fill( genEta, genPt, weight );
-                    fHM->hRefLeadJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+                    fHM->hRefLeadJetPtEtaPtHat->Fill( genEta, pt, ptHat, weight );
 
                     if ( (*recoJetIter)->genJetId() == fGenIdLead ) {
                         fHM->hRefLeadUnswappedJetPtEta->Fill( genEta, genPt, weight );
-                        fHM->hRefLeadUnswappedJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+                        fHM->hRefLeadUnswappedJetPtEtaPtHat->Fill( genEta, pt, ptHat, weight );
                     }
 
                 }
@@ -836,11 +837,11 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     fHM->hRecoSubLeadMatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
                     // SubLead ref jet
                     fHM->hRefSubLeadJetPtEta->Fill( genEta, genPt, weight );
-                    fHM->hRefSubLeadJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+                    fHM->hRefSubLeadJetPtEtaPtHat->Fill( genEta, pt, ptHat, weight );
 
                     if ( (*recoJetIter)->genJetId() == fGenIdSubLead ) {
                         fHM->hRefSubLeadUnswappedJetPtEta->Fill( genEta, genPt, weight );
-                        fHM->hRefSubLeadUnswappedJetPtEtaPtHat->Fill( genEta, genPt, ptHat, weight );
+                        fHM->hRefSubLeadUnswappedJetPtEtaPtHat->Fill( genEta, pt, ptHat, weight );
                     }
                 }
 

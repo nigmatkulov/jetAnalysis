@@ -59,7 +59,7 @@ void setPadStyle() {
 //________________
 void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Int_t markerStyle = 20; // Full circle
-    Double_t markerSize = 0.9;
+    Double_t markerSize = 1.2;
     Int_t lineWidth = 2;
     Int_t color = 2;
     if (type == 0) {
@@ -121,8 +121,8 @@ void set2DStyle(TH2* h) {
 //________________
 void retrieveJESandJER(TH2D *h2D, TH1D*& hJES, TH1D*& hJER, int type = 0, bool performFit = false) {
     // Initialize pointers to nullptr
-    hJES = nullptr;
-    hJER = nullptr;
+    // hJES = nullptr;
+    // hJER = nullptr;
     
     // Check if input histogram is valid
     if (!h2D) {
@@ -131,17 +131,18 @@ void retrieveJESandJER(TH2D *h2D, TH1D*& hJES, TH1D*& hJER, int type = 0, bool p
     }
     
     // Check if histogram has sufficient entries for fitting
-    if (h2D->GetEntries() < 10) {
+    if (h2D->GetEntries() == 0) {
         std::cerr << "[WARNING] Histogram " << h2D->GetName() << " has insufficient entries (" 
                   << h2D->GetEntries() << ") for fitting" << std::endl;
         return;
     }
     
     // Retrieve JES and JER
+    h2D->RebinX(2); // Rebin for better statistics
     h2D->FitSlicesY();
 
     // Jet energy scale
-    hJES = (TH1D*)gDirectory->Get( Form("%s_1", h2D->GetName()) );
+    hJES = dynamic_cast<TH1D*>(gDirectory->Get( Form("%s_1", h2D->GetName()) ));
     if (!hJES) {
         std::cerr << "[ERROR] Could not retrieve JES histogram " << Form("%s_1", h2D->GetName()) << std::endl;
         return;
@@ -151,7 +152,7 @@ void retrieveJESandJER(TH2D *h2D, TH1D*& hJES, TH1D*& hJER, int type = 0, bool p
     set1DStyle(hJES, type);
 
     // Jet energy resolution
-    hJER = (TH1D*)gDirectory->Get( Form("%s_2", h2D->GetName()) );
+    hJER = dynamic_cast<TH1D*>(gDirectory->Get( Form("%s_2", h2D->GetName()) ));
     if (!hJER) {
         std::cerr << "[ERROR] Could not retrieve JER histogram " << Form("%s_2", h2D->GetName()) << std::endl;
         hJES = nullptr; // Reset JES pointer since we failed to get JER
@@ -194,17 +195,17 @@ void plotJESandJER(TCanvas *c, TH2 *h2D_trkMax, TH2 *h2D_noCut = nullptr, TH2 *h
     double ySigmaRange[2] = {0., 0.25};
     
     if ( !isPt ) {
-        xRange[0] = -3.5;
-        xRange[1] = 3.5;
+        xRange[0] = -4.0;
+        xRange[1] = 4.0;
     }
     else {
-        h2D_trkMax->RebinX(2);
-        if ( h2D_noCut ) {
-            h2D_noCut->RebinX(2);
-        }
-        if ( h2D_jetId ) {
-            h2D_jetId->RebinX(2);
-        }
+        // h2D_trkMax->RebinX(2);
+        // if ( h2D_noCut ) {
+        //     h2D_noCut->RebinX(2);
+        // }
+        // if ( h2D_jetId ) {
+        //     h2D_jetId->RebinX(2);
+        // }
     }
 
     c->Clear();
@@ -224,8 +225,9 @@ void plotJESandJER(TCanvas *c, TH2 *h2D_trkMax, TH2 *h2D_noCut = nullptr, TH2 *h
     h2D_trkMax->Draw("colz");
     h2D_trkMax->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
     h2D_trkMax->GetYaxis()->SetRangeUser(0., 2.);
-    gPad->SetLogz();
+    // gPad->SetLogz();
     plotCMSHeader(collSystem, energy);
+    t.DrawLatexNDC(xTextPosition, yTextPosition, Form("TrkMax"));
 
     if ( use2rows ) {
 
@@ -236,8 +238,9 @@ void plotJESandJER(TCanvas *c, TH2 *h2D_trkMax, TH2 *h2D_noCut = nullptr, TH2 *h
             h2D_noCut->Draw("colz");
             h2D_noCut->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
             h2D_noCut->GetYaxis()->SetRangeUser(0., 2.);
-            gPad->SetLogz();
+            // gPad->SetLogz();
             plotCMSHeader(collSystem, energy);
+            t.DrawLatexNDC(xTextPosition, yTextPosition, Form("No Cuts"));
         }
 
         if ( h2D_jetId ) {
@@ -246,8 +249,9 @@ void plotJESandJER(TCanvas *c, TH2 *h2D_trkMax, TH2 *h2D_noCut = nullptr, TH2 *h
             h2D_jetId->Draw("colz");
             h2D_jetId->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
             h2D_jetId->GetYaxis()->SetRangeUser(0., 2.);
-            gPad->SetLogz();
+            // gPad->SetLogz();
             plotCMSHeader(collSystem, energy);
+            t.DrawLatexNDC(xTextPosition, yTextPosition, Form("JetId"));
         }
     } // if ( use2rows)
 
@@ -259,11 +263,12 @@ void plotJESandJER(TCanvas *c, TH2 *h2D_trkMax, TH2 *h2D_noCut = nullptr, TH2 *h
         c->cd(4);
     }
     setPadStyle();
+    gPad->SetGrid(1, 1);
     h1JES_trkMax->Draw();
-    if ( h1JES_noCut ) {
+    if ( h1JES_noCut && h1JES_noCut->GetEntries() > 0 ) {
         h1JES_noCut->Draw("same");
     }
-    if ( h1JES_jetId ) {
+    if ( h1JES_jetId && h1JES_jetId->GetEntries() > 0 ) {
         h1JES_jetId->Draw("same");
     }
     h1JES_trkMax->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
@@ -284,11 +289,12 @@ void plotJESandJER(TCanvas *c, TH2 *h2D_trkMax, TH2 *h2D_noCut = nullptr, TH2 *h
         c->cd(5);
     }
     setPadStyle();
+    gPad->SetGrid(1, 1);
     h1JER_trkMax->Draw();
-    if ( h1JER_noCut ) {
+    if ( h1JER_noCut && h1JER_noCut->GetEntries() > 0 ) {
         h1JER_noCut->Draw("same");
     }
-    if ( h1JER_jetId ) {
+    if ( h1JER_jetId && h1JER_jetId->GetEntries() > 0 ) {
         h1JER_jetId->Draw("same");
     }
     h1JER_trkMax->GetXaxis()->SetRangeUser(xRange[0], xRange[1]);
@@ -303,11 +309,17 @@ void plotJESandJER(TCanvas *c, TH2 *h2D_trkMax, TH2 *h2D_noCut = nullptr, TH2 *h
         leg->SetTextSize(0.05);
         leg->SetBorderSize(0);
         leg->SetFillStyle(0);
+        if ( isPt ) {
+            leg->SetHeader(Form("%2.1f < #eta^{jet} < %2.1f ", lowVal, hiVal));
+        }
+        else {
+            leg->SetHeader(Form("%4.0f < p_{T}^{jet} (GeV) < %4.0f ", lowVal, hiVal));
+        }
         leg->AddEntry(h1JER_trkMax, "trkMax", "p");
-        if ( h1JER_noCut ) {
+        if ( h1JER_noCut && h1JER_noCut->GetEntries() > 0 ) {
             leg->AddEntry(h1JER_noCut, "noCut", "p");
         }
-        if ( h1JER_jetId ) {
+        if ( h1JER_jetId && h1JER_jetId->GetEntries() > 0 ) {
             leg->AddEntry(h1JER_jetId, "jetId", "p");
         }
         leg->Draw();
@@ -320,6 +332,9 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
     // collSystem: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
     bool performFit = true;
+
+    // fNoCut = nullptr; // Disable noCut for now
+    // fJetId = nullptr; // Disable jetId for now
 
     // Retrieve JES hInclusiveJetJESGenPtGenEtaPtHatWeighted hInclusiveJetJESRecoPtRecoEtaPtHatWeighted
     THnSparseD *hJESPars_trkMax = (THnSparseD*)fTrkMax->Get("hInclusiveJetJESGenPtGenEtaPtHatWeighted");
@@ -354,6 +369,7 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
     int sizeOfPtHatBins = sizeof(ptHatVals) / sizeof(ptHatVals[0]);
 
     // Jet eta binning
+    // double etaVals[] = { -1.6, 1.6 }; // Simplified for this example
     double etaVals[] = { -5.2, -3.6, -3.0, -2.8, -2.6, -2.4, -2.0, -1.6, 0., 1.6, 2.0, 2.4, 2.6, 2.8, 3.0, 3.6, 5.2 };
     int sizeOfEtaBins = sizeof(etaVals) / sizeof(etaVals[0]);
 
@@ -369,7 +385,13 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
     TH1D *h1JES_trkMax{nullptr}, *h1JES_noCut{nullptr}, *h1JES_jetId{nullptr};
     TH1D *h1JER_trkMax{nullptr}, *h1JER_noCut{nullptr}, *h1JER_jetId{nullptr};
 
-    TCanvas *c = new TCanvas( "c", "cJESandJER", 1500, 500 );
+    TCanvas *c = nullptr;
+    if ( !fNoCut && !fJetId ) {
+        c = new TCanvas( "c", "cJESandJER", 1500, 500 );
+    }
+    else {
+        c = new TCanvas( "c", "cJESandJER", 1500, 1000 );
+    }
 
     // Loop over ptHat bins
     for (unsigned int i{0}; i<sizeOfPtHatBins; i++) {
@@ -377,18 +399,19 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
         double ptHatLow = ptHatVals[i];
         int ptHatBinLow = hJESPars_trkMax->GetAxis(3)->FindBin(ptHatLow);
 
+        std::cout << Form("ptHat low: %4f hi: %4f\n", 
+                          hJESPars_trkMax->GetAxis(3)->GetBinLowEdge(ptHatBinLow),
+                          hJESPars_trkMax->GetAxis(3)->GetBinUpEdge( hJESPars_trkMax->GetAxis(3)->GetNbins() )  );
+
         // Set ptHat binning
-        hJESPars_trkMax->GetAxis(3)->SetRange( hJESPars_trkMax->GetAxis(3)->GetBinLowEdge(ptHatBinLow), 
-                                               hJESPars_trkMax->GetAxis(3)->GetNbins() );
+        hJESPars_trkMax->GetAxis(3)->SetRange( ptHatBinLow, hJESPars_trkMax->GetAxis(3)->GetNbins() );
 
         if ( hJESPars_noCut ) {
-            hJESPars_noCut->GetAxis(3)->SetRange( hJESPars_noCut->GetAxis(3)->GetBinLowEdge(ptHatBinLow), 
-                                                  hJESPars_noCut->GetAxis(3)->GetNbins() );
+            hJESPars_noCut->GetAxis(3)->SetRange( ptHatBinLow, hJESPars_noCut->GetAxis(3)->GetNbins() );
         }
 
         if ( hJESPars_jetId ) {
-            hJESPars_jetId->GetAxis(3)->SetRange( hJESPars_jetId->GetAxis(3)->GetBinLowEdge(ptHatBinLow), 
-                                                  hJESPars_jetId->GetAxis(3)->GetNbins() );
+            hJESPars_jetId->GetAxis(3)->SetRange( ptHatBinLow, hJESPars_jetId->GetAxis(3)->GetNbins() );
         }
 
         //
@@ -396,19 +419,25 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
         //
         for (unsigned int j{0}; j<(sizeOfEtaBins-1); j++) {
 
+            h2D_trkMax = nullptr; h2D_noCut = nullptr; h2D_jetId = nullptr;
+            h1JES_trkMax = nullptr; h1JES_noCut = nullptr; h1JES_jetId = nullptr;
+            h1JER_trkMax = nullptr; h1JER_noCut = nullptr; h1JER_jetId = nullptr;
+
             double etaLow = etaVals[j];
             double etaHi = etaVals[j+1];
             int etaBinLow = hJESPars_trkMax->GetAxis(2)->FindBin(etaLow);
             int etaBinHigh = hJESPars_trkMax->GetAxis(2)->FindBin(etaHi) - 1;
 
-            std::cout << Form("Processing ptHat bin %d (%4.0f) corresponding to ptHatBin %d and eta bin %d (%2.1f, %2.1f) corresponding to eta bins (%d, %d) in JESPars_trkMax", 
-                              i, ptHatLow, ptHatBinLow, j, etaLow, etaHi, etaBinLow, etaBinHigh) << std::endl;
+            // std::cout << Form("eta low: %.2f hi: %.2f for bins (%d, %d)", 
+            //               hJESPars_trkMax->GetAxis(2)->GetBinLowEdge(etaBinLow),
+            //               hJESPars_trkMax->GetAxis(2)->GetBinUpEdge( etaBinHigh ),
+            //               etaBinLow, etaBinHigh ) << std::endl;
 
             // Set axis limits for THnSparse
-            hJESPars_trkMax->GetAxis(2)->SetRange( hJESPars_trkMax->GetAxis(2)->GetBinLowEdge( etaBinLow ), 
-                                                   hJESPars_trkMax->GetAxis(2)->GetBinUpEdge( etaBinHigh ) );
+            hJESPars_trkMax->GetAxis(2)->SetRange( etaBinLow, etaBinHigh );
 
             // Create 2D histogram
+            // if ( h2D_trkMax ) { h2D_trkMax->Clear(); }
             h2D_trkMax = dynamic_cast<TH2D*>( hJESPars_trkMax->Projection(0, 1) );
             h2D_trkMax->SetName( Form("hJES_trkMax_pt_%d_%d", i, j) );
             set2DStyle(h2D_trkMax);
@@ -416,15 +445,9 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
             // Retrieve JES and JER
             retrieveJESandJER(h2D_trkMax, h1JES_trkMax, h1JER_trkMax, 0, performFit);
 
-            if ( h1JES_trkMax == nullptr || h1JER_trkMax == nullptr ) {
-                std::cerr << Form( "[ERROR] Could not retrieve JES or JER for ptHat bin %d and eta bin %d. Skipping this bin.", i, j ) << std::endl;
-                continue;
-            }
-
             if ( fNoCut ) {
                 // Set axis limits for THnSparse
-                hJESPars_noCut->GetAxis(2)->SetRange( hJESPars_noCut->GetAxis(2)->GetBinLowEdge( etaBinLow ), 
-                                                      hJESPars_noCut->GetAxis(2)->GetBinUpEdge( etaBinHigh ) );
+                hJESPars_noCut->GetAxis(2)->SetRange( etaBinLow, etaBinHigh );
 
                 // Create 2D histogram
                 h2D_noCut = dynamic_cast<TH2D*>( hJESPars_noCut->Projection(0, 1) );
@@ -433,12 +456,25 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
 
                 // Retrieve JES and JER
                 retrieveJESandJER(h2D_noCut, h1JES_noCut, h1JER_noCut, 1, performFit);
+
+                // Protect against empty histograms
+                if ( h2D_noCut == nullptr || h2D_noCut->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h2D_noCut = nullptr;
+                }
+                if ( h1JES_noCut == nullptr || h1JES_noCut->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h1JES_noCut = nullptr;
+                }
+                if ( h1JER_noCut == nullptr || h1JER_noCut->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h1JER_noCut = nullptr;
+                }
             } // if ( fNoCut ) 
 
             if ( fJetId ) {
                 // Set axis limits for THnSparse
-                hJESPars_jetId->GetAxis(2)->SetRange( hJESPars_jetId->GetAxis(2)->GetBinLowEdge( etaBinLow ), 
-                                                      hJESPars_jetId->GetAxis(2)->GetBinUpEdge( etaBinHigh ) );
+                hJESPars_jetId->GetAxis(2)->SetRange( etaBinLow, etaBinHigh );
 
                 // Create 2D histogram
                 h2D_jetId = dynamic_cast<TH2D*>( hJESPars_jetId->Projection(0, 1) );
@@ -447,7 +483,21 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
 
                 // Retrieve JES and JER
                 retrieveJESandJER(h2D_jetId, h1JES_jetId, h1JER_jetId, 2, performFit);
-            } // if ( fJetId )
+
+                // Protect against empty histograms
+                if ( h2D_jetId == nullptr || h2D_jetId->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h2D_jetId = nullptr;
+                }
+                if ( h1JES_jetId == nullptr || h1JES_jetId->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h1JES_jetId = nullptr;
+                }
+                if ( h1JER_jetId == nullptr || h1JER_jetId->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h1JER_jetId = nullptr;
+                }
+            } // if ( fJetId ) 
 
             plotJESandJER(c, h2D_trkMax, h2D_noCut, h2D_jetId,
                           h1JES_trkMax, h1JES_noCut, h1JES_jetId,
@@ -474,18 +524,26 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
         //
         for (unsigned int j{0}; j<(sizeOfPtBins-1); j++) {
 
+            h2D_trkMax = nullptr; h2D_noCut = nullptr; h2D_jetId = nullptr;
+            h1JES_trkMax = nullptr; h1JES_noCut = nullptr; h1JES_jetId = nullptr;
+            h1JER_trkMax = nullptr; h1JER_noCut = nullptr; h1JER_jetId = nullptr;
+
             double ptLow = ptVals[j];
             double ptHi = ptVals[j+1];
             int ptBinLow = hJESPars_trkMax->GetAxis(1)->FindBin(ptLow);
             int ptBinHigh = hJESPars_trkMax->GetAxis(1)->FindBin(ptHi) - 1;
 
+            // std::cout << Form("pt low: %.2f hi: %.2f for bins (%d, %d)", 
+            //               hJESPars_trkMax->GetAxis(1)->GetBinLowEdge(ptBinLow),
+            //               hJESPars_trkMax->GetAxis(1)->GetBinUpEdge( ptBinHigh ),
+            //               ptBinLow, ptBinHigh ) << std::endl;
+
             // Set axis limits for THnSparse
-            hJESPars_trkMax->GetAxis(1)->SetRange( hJESPars_trkMax->GetAxis(1)->GetBinLowEdge( ptBinLow ), 
-                                                   hJESPars_trkMax->GetAxis(1)->GetBinUpEdge( ptBinHigh ) );
+            hJESPars_trkMax->GetAxis(1)->SetRange( ptBinLow, ptBinHigh );
 
             // Create 2D histogram
             h2D_trkMax = dynamic_cast<TH2D*>( hJESPars_trkMax->Projection(0, 2) );
-            h2D_trkMax->SetName( Form("hJES_eta_%d_%d", i, j) );
+            h2D_trkMax->SetName( Form("hJES_trkMax_eta_%d_%d", i, j) );
             set2DStyle(h2D_trkMax);
 
             // Retrieve JES and JER
@@ -493,30 +551,56 @@ void processJESandJER(TFile *fTrkMax, TFile* fNoCut = nullptr, TFile *fJetId = n
 
             if ( fNoCut ) {
                 // Set axis limits for THnSparse
-                hJESPars_noCut->GetAxis(1)->SetRange( hJESPars_noCut->GetAxis(1)->GetBinLowEdge( ptBinLow ), 
-                                                      hJESPars_noCut->GetAxis(1)->GetBinUpEdge( ptBinHigh ) );
+                hJESPars_noCut->GetAxis(1)->SetRange( ptBinLow, ptBinHigh );
 
                 // Create 2D histogram
                 h2D_noCut = dynamic_cast<TH2D*>( hJESPars_noCut->Projection(0, 2) );
-                h2D_noCut->SetName( Form("hJES_eta_%d_%d", i, j) );
+                h2D_noCut->SetName( Form("hJES_noCut_eta_%d_%d", i, j) );
                 set2DStyle(h2D_noCut);
 
                 // Retrieve JES and JER
                 retrieveJESandJER(h2D_noCut, h1JES_noCut, h1JER_noCut, 1, false);
+                
+                // Protection from empty histograms
+                if ( h2D_noCut == nullptr || h2D_noCut->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h2D_noCut = nullptr;
+                }
+                if ( h1JES_noCut == nullptr || h1JES_noCut->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h1JES_noCut = nullptr;
+                }
+                if ( h1JER_noCut == nullptr || h1JER_noCut->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h1JER_noCut = nullptr;
+                }
             } // if ( fNoCut )
 
             if ( fJetId ) {
                 // Set axis limits for THnSparse
-                hJESPars_jetId->GetAxis(1)->SetRange( hJESPars_jetId->GetAxis(1)->GetBinLowEdge( ptBinLow ), 
-                                                      hJESPars_jetId->GetAxis(1)->GetBinUpEdge( ptBinHigh ) );
+                hJESPars_jetId->GetAxis(1)->SetRange( ptBinLow, ptBinHigh );
 
                 // Create 2D histogram
                 h2D_jetId = dynamic_cast<TH2D*>( hJESPars_jetId->Projection(0, 2) );
-                h2D_jetId->SetName( Form("hJES_eta_%d_%d", i, j) );
+                h2D_jetId->SetName( Form("hJES_jetId_eta_%d_%d", i, j) );
                 set2DStyle(h2D_jetId);
 
                 // Retrieve JES and JER
                 retrieveJESandJER(h2D_jetId, h1JES_jetId, h1JER_jetId, 2, false);
+
+                // Protection from empty histograms
+                if ( h2D_jetId == nullptr || h2D_jetId->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h2D_jetId = nullptr;
+                }
+                if ( h1JES_jetId == nullptr || h1JES_jetId->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h1JES_jetId = nullptr;
+                }
+                if ( h1JER_jetId == nullptr || h1JER_jetId->GetEntries() == 0 ) {
+                    // Handle empty histogram case
+                    h1JER_jetId = nullptr;
+                }
             } // if ( fJetId )
 
             plotJESandJER(c, h2D_trkMax, h2D_noCut, h2D_jetId,
@@ -593,7 +677,7 @@ void plotSimpleJES(TFile *f, int collSystem = 0, double energy = 5.02) {
 void plotJES() {
 
     // Base style
-    gStyle->SetOptStat(0);
+    // gStyle->SetOptStat(0);
     gStyle->SetOptTitle(0);
     gStyle->SetPalette(kBird);
 
@@ -616,11 +700,15 @@ void plotJES() {
 
     int collisionSystem = 1;         // 0 - pp, 1 - pPb, 2 - pPb5020, 3 - pPb8160
     double collisionEnergy = 8.16;   // 8.16 TeV
-    int direction = 2;               // 0-p-going, 1-Pb-going, 2 - combined
+    int direction = 1;               // 0-p-going, 1-Pb-going, 2 - combined
     TString directionStr = (direction == 0) ? "pgoing" : ((direction == 1) ? "Pbgoing" : "");
     int dataTrigger = 0;               // 0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100
     TString dataStr = (dataTrigger == 0) ? "MB" : ((dataTrigger == 1) ? "Jet60" : ((dataTrigger == 2) ? "Jet80" : ((dataTrigger == 3) ? "Jet100" : "unknownData")));
     TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
+    int genType = 0; // 0 - embedding, 1 - pythia
+    TString mcTypeStr = (genType == 0) ? "Embedding" : ((genType == 1) ? "Pythia" : "unknownGen");
+    TString mcTypeStrLower = mcTypeStr;
+    mcTypeStrLower.ToLower();
 
     // // pp5020 PYTHIA
     // TFile *inputFile = TFile::Open( Form("/Users/%s/cernbox/ana/pp5020/pythia/pp5020_pythia8_woExtraJEC_3020.root", username.Data()) );
@@ -635,62 +723,86 @@ void plotJES() {
     // pPb8160 embedding
     //
 
-    TFile *embTrkMaxFile = nullptr;
+    TFile *trkMaxFile = nullptr;
     if ( direction < 2 ) {
-        embTrkMaxFile = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", directionStr.Data(), directionStr.Data()) );
-        if ( !embTrkMaxFile || embTrkMaxFile->IsZombie() ) {
-            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_eta20.root", directionStr.Data(), directionStr.Data()) << std::endl;
+        trkMaxFile = TFile::Open( Form("~/cernbox/ana/pPb8160/%s/%s/o%s_%s_def_ak4_eta20.root", 
+                                    mcTypeStrLower.Data(), directionStr.Data(), mcTypeStr.Data(), 
+                                    directionStr.Data()) );
+        if ( !trkMaxFile || trkMaxFile->IsZombie() ) {
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/%s/%s/o%s_%s_def_ak4_eta20.root", 
+                              mcTypeStrLower.Data(), directionStr.Data(), mcTypeStr.Data(), 
+                              directionStr.Data()) << std::endl;
             return;
         }
     }
     else {
-        embTrkMaxFile = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root" ) );
-        if ( !embTrkMaxFile || embTrkMaxFile->IsZombie() ) {
-            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_eta20.root") << std::endl;
+        trkMaxFile = TFile::Open( Form("~/cernbox/ana/pPb8160/%s/o%s_pPb8160_def_ak4_eta20.root", 
+                                     mcTypeStrLower.Data(), mcTypeStr.Data()) );
+        if ( !trkMaxFile || trkMaxFile->IsZombie() ) {
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/%s/o%s_pPb8160_def_ak4_eta20.root", 
+                              mcTypeStrLower.Data(), mcTypeStr.Data()) << std::endl;
             return;
         }
     }
 
-    TFile *embNoCutFile = nullptr;
+    TFile *noCutFile = nullptr;
     if ( direction < 2 ) {
-        embNoCutFile = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_noCut_eta20.root", directionStr.Data(), directionStr.Data()) );
-        if ( !embNoCutFile || embNoCutFile->IsZombie() ) {
-            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_noCut_eta20.root", directionStr.Data(), directionStr.Data()) << std::endl;
+        noCutFile = TFile::Open( Form("~/cernbox/ana/pPb8160/%s/%s/o%s_%s_def_ak4_noCut_eta20.root", 
+            mcTypeStrLower.Data(), directionStr.Data(), mcTypeStr.Data(), directionStr.Data()) );
+        if ( !noCutFile || noCutFile->IsZombie() ) {
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/%s/%s/o%s_%s_def_ak4_noCut_eta20.root", 
+                              mcTypeStrLower.Data(), directionStr.Data(), mcTypeStr.Data(), directionStr.Data()) << std::endl;
             return;
         }
     }
     else {
-        embNoCutFile = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_noCut_eta20.root") );
-        if ( !embNoCutFile || embNoCutFile->IsZombie() ) {
-            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_noCut_eta20.root") << std::endl;
+        noCutFile = TFile::Open( Form("~/cernbox/ana/pPb8160/%s/o%s_pPb8160_def_ak4_noCut_eta20.root",
+                                         mcTypeStrLower.Data(), mcTypeStr.Data()) );
+        if ( !noCutFile || noCutFile->IsZombie() ) {
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/%s/o%s_pPb8160_def_ak4_noCut_eta20.root",
+                              mcTypeStrLower.Data(), mcTypeStr.Data()) << std::endl;
             return;
         }
     }
 
-    TFile *embJetIdFile = nullptr;
+    TFile *jetIdFile = nullptr;
     if ( direction < 2 ) {
-        embJetIdFile = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_jetId_eta20.root", directionStr.Data(), directionStr.Data()) );
-        if ( !embJetIdFile || embJetIdFile->IsZombie() ) {
-            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_jetId_eta20.root", directionStr.Data(), directionStr.Data()) << std::endl;
+        jetIdFile = TFile::Open( Form("~/cernbox/ana/pPb8160/%s/%s/o%s_%s_def_ak4_jetId_eta20.root", 
+                                    mcTypeStrLower.Data(), directionStr.Data(), mcTypeStr.Data(), directionStr.Data()) );
+        if ( !jetIdFile || jetIdFile->IsZombie() ) {
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/%s/%s/o%s_%s_def_ak4_jetId_eta20.root", 
+                              mcTypeStrLower.Data(), directionStr.Data(), mcTypeStr.Data(), directionStr.Data()) << std::endl;
             return;
         }
     }
     else {
-        embJetIdFile = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_jetId_eta20.root") );
-        if ( !embJetIdFile || embJetIdFile->IsZombie() ) {
-            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_jetId_eta20.root") << std::endl;
+        jetIdFile = TFile::Open( Form("~/cernbox/ana/pPb8160/%s/o%s_pPb8160_def_ak4_jetId_eta20.root", 
+                                         mcTypeStrLower.Data(), mcTypeStr.Data()) );
+        if ( !jetIdFile || jetIdFile->IsZombie() ) {
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/%s/o%s_pPb8160_def_ak4_jetId_eta20.root", 
+                              mcTypeStrLower.Data(), mcTypeStr.Data()) << std::endl;
             return;
         }
+    }
+
+    if ( trkMaxFile ) {
+        std::cout << Form("TrkMax file opened: %s", trkMaxFile->GetName()) << std::endl;
+    }
+    if ( noCutFile ) {
+        std::cout << Form("NoCut file opened: %s", noCutFile->GetName()) << std::endl;
+    }
+    if ( jetIdFile ) {
+        std::cout << Form("JetId file opened: %s", jetIdFile->GetName()) << std::endl;
     }
 
     //
     // Plot simple JES
     //
-    // plotSimpleJES( embTrkMaxFile, collisionSystem, collisionEnergy );
+    // plotSimpleJES( trkMaxFile, collisionSystem, collisionEnergy );
 
     //
     // Plot JES and JER for different ptHat, eta, and pT selections
     //
-    // processJESandJER( embTrkMaxFile, embNoCutFile, embJetIdFile, collisionSystem, collisionEnergy, date );
-    processJESandJER( embTrkMaxFile, nullptr, nullptr, collisionSystem, collisionEnergy, date );
+    processJESandJER( trkMaxFile, noCutFile, jetIdFile, collisionSystem, collisionEnergy, date );
+    // processJESandJER( trkMaxFile, noCutFile, nullptr, collisionSystem, collisionEnergy, date );
 }
