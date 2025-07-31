@@ -123,9 +123,17 @@ DiJetCut *createDiJetCut() {
     dijetCut->setLeadJetEtaLab(-2.5f, 2.5f);
     dijetCut->setLeadJetEtaCM(-2.0f, 2.0f);
 
+    // dijetCut->setLeadJetPtMinimum(50.0f);
+    // dijetCut->setLeadJetEtaLab(-1.535f, 2.465f);
+    // dijetCut->setLeadJetEtaCM(-2.965f, 2.035f);
+
     dijetCut->setSubLeadJetPtMinimum(40.0f);
     dijetCut->setSubLeadJetEtaLab(-2.5f, 2.5f);
     dijetCut->setSubLeadJetEtaCM(-2.0f, 2.0f);
+
+    // dijetCut->setSubLeadJetPtMinimum(40.0f);
+    // dijetCut->setSubLeadJetEtaLab(-1.535f, 2.465f);
+    // dijetCut->setSubLeadJetEtaCM(-2.965f, 2.035f);
 
     dijetCut->setDijetDPhi(TMath::TwoPi() / 3); // 120 degrees
 
@@ -443,7 +451,9 @@ int main(int argc, char const *argv[]) {
     manager->finish();
 
     // Create output file and store results of calculations
-    TFile* oFile = new TFile(oFileName, "recreate");
+    // For compression read: https://root.cern.ch/doc/master/Compression_8h_source.html#l00049
+    int compressionSetting = 208; // LZMA compression
+    TFile* oFile = new TFile(oFileName, "recreate", "", compressionSetting);
     hm->writeOutput();
     oFile->Close();
 

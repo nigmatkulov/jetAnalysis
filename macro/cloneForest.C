@@ -28,7 +28,8 @@ void cloneForest(const char* inputFileName, const char *outputDirectory = "./") 
     }
     outputFileName.Append("/").Append(TString(inputFileNameStr.Data()).ReplaceAll(".root", ".root"));
     // Create a new ROOT file
-    TFile* outputFile = new TFile(outputFileName.Data(), "RECREATE");
+    int compressionSetting = 208; // LZMA compression
+    TFile* outputFile = new TFile(outputFileName.Data(), "RECREATE", "", compressionSetting);
     if (!outputFile || outputFile->IsZombie()) {
         std::cerr << "Error: Could not create output file!" << std::endl;
         inputFile->Close();

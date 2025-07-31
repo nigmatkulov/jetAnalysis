@@ -756,7 +756,8 @@ void drawDijetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullptr,
 
     if (isCM) {
         if (!isFB) {
-            xRange[0] = -2.5; xRange[1] = 2.5;
+            xRange[0] = -3.0; xRange[1] = 3.0;
+            // xRange[0] = -2.5; xRange[1] = 2.5;
             yRange[0] = 0.85; yRange[1] = 1.15;
         }
         else {
@@ -1170,12 +1171,36 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         std::cerr << "Error: hRefSelDijetPtEtaPhiWeighted not found in file." << std::endl;
         return;
     }
+    TH3D *hRecoDijetPtEtaPhiCMInLab = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiCMInLab"));
+    if (!hRecoDijetPtEtaPhiCMInLab) {
+        std::cerr << "Error: hRecoDijetPtEtaPhiCMInLab not found in file." << std::endl;
+        return;
+    }
+    TH3D *hGenDijetPtEtaPhiCMInLab = dynamic_cast<TH3D *>(f->Get("hGenDijetPtEtaPhiCMInLab"));
+    if (!hGenDijetPtEtaPhiCMInLab) {
+        std::cerr << "Error: hGenDijetPtEtaPhiCMInLab not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefDijetPtEtaPhiCMInLab = dynamic_cast<TH3D *>(f->Get("hRefDijetPtEtaPhiCMInLab"));
+    if (!hRefDijetPtEtaPhiCMInLab) {
+        std::cerr << "Error: hRefDijetPtEtaPhiCMInLab not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefSelDijetPtEtaPhiCMInLab = dynamic_cast<TH3D *>(f->Get("hRefSelDijetPtEtaPhiCMInLab"));
+    if (!hRefSelDijetPtEtaPhiCMInLab) {
+        std::cerr << "Error: hRefSelDijetPtEtaPhiCMInLab not found in file." << std::endl;
+        return;
+    }
 
     // Rescale the histograms by their volume-weighted integral
     rescaleHisto3D(hRecoDijetPtEtaPhiLab);
     rescaleHisto3D(hGenDijetPtEtaPhiLab);
     rescaleHisto3D(hRefDijetPtEtaPhiLab);
     rescaleHisto3D(hRefSelDijetPtEtaPhiLab);
+    rescaleHisto3D(hRecoDijetPtEtaPhiCMInLab);
+    rescaleHisto3D(hGenDijetPtEtaPhiCMInLab);
+    rescaleHisto3D(hRefDijetPtEtaPhiCMInLab);
+    rescaleHisto3D(hRefSelDijetPtEtaPhiCMInLab);
 
     // Center of mass frame
     TH3D *hRecoDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiCMWeighted"));
@@ -1197,6 +1222,26 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
     TH3D *hRefSelDijetPtEtaPhiCM = dynamic_cast<TH3D *>(f->Get("hRefSelDijetPtEtaPhiCMWeighted"));
     if (!hRefSelDijetPtEtaPhiCM) {
         std::cerr << "Error: hRefSelDijetPtEtaPhiCMWeighted not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRecoDijetPtEtaPhiLabInCM = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaPhiLabInCM"));
+    if (!hRecoDijetPtEtaPhiLabInCM) {
+        std::cerr << "Error: hRecoDijetPtEtaPhiLabInCM not found in file." << std::endl;
+        return;
+    }
+    TH3D *hGenDijetPtEtaPhiLabInCM = dynamic_cast<TH3D *>(f->Get("hGenDijetPtEtaPhiLabInCM"));
+    if (!hGenDijetPtEtaPhiLabInCM) {
+        std::cerr << "Error: hGenDijetPtEtaPhiLabInCM not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefDijetPtEtaPhiLabInCM = dynamic_cast<TH3D *>(f->Get("hRefDijetPtEtaPhiLabInCM"));
+    if (!hRefDijetPtEtaPhiLabInCM) {
+        std::cerr << "Error: hRefDijetPtEtaPhiLabInCM not found in file." << std::endl;
+        return;
+    }
+    TH3D *hRefSelDijetPtEtaPhiLabInCM = dynamic_cast<TH3D *>(f->Get("hRefSelDijetPtEtaPhiLabInCM"));
+    if (!hRefSelDijetPtEtaPhiLabInCM) {
+        std::cerr << "Error: hRefSelDijetPtEtaPhiLabInCM not found in file." << std::endl;
         return;
     }
 
@@ -1247,6 +1292,10 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
     rescaleHisto3D(hGenDijetPtEtaPhiCM);
     rescaleHisto3D(hRefDijetPtEtaPhiCM);
     rescaleHisto3D(hRefSelDijetPtEtaPhiCM);
+    rescaleHisto3D(hRecoDijetPtEtaPhiLabInCM);
+    rescaleHisto3D(hGenDijetPtEtaPhiLabInCM);
+    rescaleHisto3D(hRefDijetPtEtaPhiLabInCM);
+    rescaleHisto3D(hRefSelDijetPtEtaPhiLabInCM);
 
     // Distributions for laboratory frame
     TH1D *hRecoEtaLab{nullptr};
@@ -1256,6 +1305,14 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
     TH1D *hReco2GenEtaLab{nullptr};
     TH1D *hRef2GenEtaLab{nullptr};
     TH1D *hRefSel2GenEtaLab{nullptr};
+
+    TH1D *hRecoEtaCMInLab{nullptr};
+    TH1D *hGenEtaCMInLab{nullptr};
+    TH1D *hRefEtaCMInLab{nullptr};
+    TH1D *hRefSelEtaCMInLab{nullptr};
+    TH1D *hReco2GenEtaCMInLab{nullptr};
+    TH1D *hRef2GenEtaCMInLab{nullptr};
+    TH1D *hRefSel2GenEtaCMInLab{nullptr};
 
     TH1D *hRecoPhiLab{nullptr};
     TH1D *hGenPhiLab{nullptr};
@@ -1273,6 +1330,14 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
     TH1D *hReco2GenEtaCM{nullptr};
     TH1D *hRef2GenEtaCM{nullptr};
     TH1D *hRefSel2GenEtaCM{nullptr};
+
+    TH1D *hRecoEtaLabInCM{nullptr};
+    TH1D *hGenEtaLabInCM{nullptr};
+    TH1D *hRefEtaLabInCM{nullptr};
+    TH1D *hRefSelEtaLabInCM{nullptr};
+    TH1D *hReco2GenEtaLabInCM{nullptr};
+    TH1D *hRef2GenEtaLabInCM{nullptr};
+    TH1D *hRefSel2GenEtaLabInCM{nullptr};
 
     TH1D *hRecoEtaCMForward{nullptr};
     TH1D *hRecoEtaCMBackward{nullptr};
@@ -1325,10 +1390,26 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         hRefSelEtaLab = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiLab->ProjectionY(Form("hRefSelEtaLab_%d", i), 
                                              hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
                                              hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
+        hRecoEtaCMInLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiCMInLab->ProjectionY(Form("hRecoEtaCMInLab_%d", i), 
+                                               hRecoDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptLow), 
+                                               hRecoDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
+        hGenEtaCMInLab = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiCMInLab->ProjectionY(Form("hGenEtaCMInLab_%d", i), 
+                                              hGenDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptLow), 
+                                              hGenDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
+        hRefEtaCMInLab = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiCMInLab->ProjectionY(Form("hRefEtaCMInLab_%d", i), 
+                                              hRefDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptLow), 
+                                              hRefDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
+        hRefSelEtaCMInLab = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiCMInLab->ProjectionY(Form("hRefSelEtaCMInLab_%d", i), 
+                                                 hRefSelDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptLow), 
+                                                 hRefSelDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
         set1DStyle(hRecoEtaLab, 0, true);
         set1DStyle(hGenEtaLab, 5, true);
         set1DStyle(hRefEtaLab, 1, true);
         set1DStyle(hRefSelEtaLab, 2, true);
+        set1DStyle(hRecoEtaCMInLab, 0, true);
+        set1DStyle(hGenEtaCMInLab, 3, true);
+        set1DStyle(hRefEtaCMInLab, 1, true);
+        set1DStyle(hRefSelEtaCMInLab, 2, true);
 
         // Compute ratios for laboratory frame
         hReco2GenEtaLab = dynamic_cast<TH1D *>(hRecoEtaLab->Clone(Form("hReco2GenEtaLab_%d", i)));
@@ -1337,6 +1418,12 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         hRef2GenEtaLab->Divide(hRef2GenEtaLab, hGenEtaLab, 1., 1., "b");
         hRefSel2GenEtaLab = dynamic_cast<TH1D *>(hRefSelEtaLab->Clone(Form("hRefSel2GenEtaLab_%d", i)));
         hRefSel2GenEtaLab->Divide(hRefSel2GenEtaLab, hGenEtaLab, 1., 1., "b");
+        hReco2GenEtaCMInLab = dynamic_cast<TH1D *>(hRecoEtaCMInLab->Clone(Form("hReco2GenEtaCMInLab_%d", i)));
+        hReco2GenEtaCMInLab->Divide(hReco2GenEtaCMInLab, hGenEtaCMInLab, 1., 1., "b");
+        hRef2GenEtaCMInLab = dynamic_cast<TH1D *>(hRefEtaCMInLab->Clone(Form("hRef2GenEtaCMInLab_%d", i)));
+        hRef2GenEtaCMInLab->Divide(hRef2GenEtaCMInLab, hGenEtaCMInLab, 1., 1., "b");
+        hRefSel2GenEtaCMInLab = dynamic_cast<TH1D *>(hRefSelEtaCMInLab->Clone(Form("hRefSel2GenEtaCMInLab_%d", i)));
+        hRefSel2GenEtaCMInLab->Divide(hRefSel2GenEtaCMInLab, hGenEtaCMInLab, 1., 1., "b");
 
         // std::cout << "pAve bin: " << i 
         //           << " ptLowBin: " << hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) 
@@ -1352,6 +1439,13 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         c->SaveAs(Form("%s/%s_%s_dijetEtaLab_RecoRefGenComp_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
 
+        drawDijetToGenComparison(c, hRecoEtaCMInLab, hRefEtaCMInLab, hGenEtaCMInLab, hRefSelEtaCMInLab, nullptr,
+                                 (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
+                                 (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1), 
+                                 false, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCMInLab_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
         // Plot ratios
         drawDijetToGenRatio(c, hReco2GenEtaLab, hRef2GenEtaLab, hRefSel2GenEtaLab, nullptr,
                             (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
@@ -1360,7 +1454,12 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         c->SaveAs(Form("%s/%s_%s_dijetEtaLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
 
-        
+        drawDijetToGenRatio(c, hReco2GenEtaCMInLab, hRef2GenEtaCMInLab, hRefSel2GenEtaCMInLab, nullptr,
+                            (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow) ), 
+                            (int)hRecoDijetPtEtaPhiLab->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1), 
+                            false, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCMInLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
 
         // Dijet azimuthal angle
         hRecoPhiLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiLab->ProjectionZ(Form("hRecoPhiLab_%d", i),
@@ -1421,10 +1520,27 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         hRefSelEtaCM = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiCM->ProjectionY(Form("hRefSelEtaCM_%d", i), 
                                             hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow), 
                                             hRefSelDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1));
+        hRecoEtaLabInCM = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiLabInCM->ProjectionY(Form("hRecoEtaLabInCM_%d", i), 
+                                               hRecoDijetPtEtaPhiLabInCM->GetXaxis()->FindBin(ptLow), 
+                                               hRecoDijetPtEtaPhiLabInCM->GetXaxis()->FindBin(ptHi)-1));
+        hGenEtaLabInCM = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiLabInCM->ProjectionY(Form("hGenEtaLabInCM_%d", i), 
+                                              hGenDijetPtEtaPhiLabInCM->GetXaxis()->FindBin(ptLow), 
+                                              hGenDijetPtEtaPhiLabInCM->GetXaxis()->FindBin(ptHi)-1));
+        hRefEtaLabInCM = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiLabInCM->ProjectionY(Form("hRefEtaLabInCM_%d", i), 
+                                              hRefDijetPtEtaPhiLabInCM->GetXaxis()->FindBin(ptLow), 
+                                              hRefDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
+        hRefSelEtaLabInCM = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiLabInCM->ProjectionY(Form("hRefSelEtaLabInCM_%d", i), 
+                                                 hRefSelDijetPtEtaPhiLabInCM->GetXaxis()->FindBin(ptLow), 
+                                                 hRefSelDijetPtEtaPhiLabInCM->GetXaxis()->FindBin(ptHi)-1));
+                                            
         set1DStyle(hRecoEtaCM, 0, true);
         set1DStyle(hGenEtaCM, 5, true);
         set1DStyle(hRefEtaCM, 1, true);
         set1DStyle(hRefSelEtaCM, 2, true);
+        set1DStyle(hRecoEtaLabInCM, 0, true);
+        set1DStyle(hGenEtaLabInCM, 3, true);
+        set1DStyle(hRefEtaLabInCM, 1, true);
+        set1DStyle(hRefSelEtaLabInCM, 2, true);
 
         // Compute ratios for center of mass frame
         hReco2GenEtaCM = dynamic_cast<TH1D *>(hRecoEtaCM->Clone(Form("hReco2GenEtaCM_%d", i)));
@@ -1433,6 +1549,12 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
         hRef2GenEtaCM->Divide(hRef2GenEtaCM, hGenEtaCM, 1., 1., "b");
         hRefSel2GenEtaCM = dynamic_cast<TH1D *>(hRefSelEtaCM->Clone(Form("hRefSel2GenEtaCM_%d", i)));
         hRefSel2GenEtaCM->Divide(hRefSel2GenEtaCM, hGenEtaCM, 1., 1., "b");
+        hReco2GenEtaLabInCM = dynamic_cast<TH1D *>(hRecoEtaLabInCM->Clone(Form("hReco2GenEtaLabInCM_%d", i)));
+        hReco2GenEtaLabInCM->Divide(hReco2GenEtaLabInCM, hGenEtaLabInCM, 1., 1., "b");
+        hRef2GenEtaLabInCM = dynamic_cast<TH1D *>(hRefEtaLabInCM->Clone(Form("hRef2GenEtaLabInCM_%d", i)));
+        hRef2GenEtaLabInCM->Divide(hRef2GenEtaLabInCM, hGenEtaLabInCM, 1., 1., "b");
+        hRefSel2GenEtaLabInCM = dynamic_cast<TH1D *>(hRefSelEtaLabInCM->Clone(Form("hRefSel2GenEtaLabInCM_%d", i)));
+        hRefSel2GenEtaLabInCM->Divide(hRefSel2GenEtaLabInCM, hGenEtaLabInCM, 1., 1., "b");
 
         // Plot comparisons
         drawDijetToGenComparison(c, hRecoEtaCM, hRefEtaCM, hGenEtaCM, hRefSelEtaCM, nullptr,
@@ -1441,12 +1563,27 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
                                  true, false, collisionSystem, collisionEnergy);
         c->SaveAs(Form("%s/%s_%s_dijetEtaCM_RecoRefGenComp_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        drawDijetToGenComparison(c, hRecoEtaLabInCM, hRefEtaLabInCM, hGenEtaLabInCM, hRefSelEtaLabInCM, nullptr,
+                                 (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
+                                 (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
+                                 true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaLabInCM_RecoRefGenComp_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
         // Plot ratios
         drawDijetToGenRatio(c, hReco2GenEtaCM, hRef2GenEtaCM, hRefSel2GenEtaCM, nullptr,
                             (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
                             (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
                             true, false, collisionSystem, collisionEnergy);
         c->SaveAs(Form("%s/%s_%s_dijetEtaCM_RecoRefGenRatio_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+
+        drawDijetToGenRatio(c, hReco2GenEtaLabInCM, hRef2GenEtaLabInCM, hRefSel2GenEtaLabInCM, nullptr,
+                            (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinLowEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptLow) ), 
+                            (int)hRecoDijetPtEtaPhiCM->GetXaxis()->GetBinUpEdge( hRecoDijetPtEtaPhiCM->GetXaxis()->FindBin(ptHi)-1), 
+                            true, false, collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaLabInCM_RecoRefGenRatio_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
 
         // Dijet azimuthal angle
@@ -1556,6 +1693,7 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
 
     } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
 
+    if (c) { delete c; c = nullptr; }
 }
 
 //_________________
@@ -3104,9 +3242,9 @@ void plotMcClosures() {
         }
     }
     else {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20_new.root", uname.Data(), cutTypeStr.Data()) );
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20_bias.root", uname.Data(), cutTypeStr.Data()) );
         if ( !pPb8160EmbedFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20_new.root", uname.Data(), cutTypeStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
@@ -3125,9 +3263,9 @@ void plotMcClosures() {
         }
     }
     else {
-        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20_new.root", uname.Data()) );
+        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20.root", uname.Data()) );
         if ( !pPb8160PythiaFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20_new.root", uname.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
             return;
         }
     }
@@ -3170,7 +3308,7 @@ void plotMcClosures() {
     //
     // Comparison of dijet reco and ref to gen distributions from 3D histograms
     //
-    // dijetClosuresFrom3D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    dijetClosuresFrom3D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
     // dijetClosuresFrom3D( pPb8160PythiaFile, collisionSystem, collisionEnergy, date );
 
     //
@@ -3197,5 +3335,5 @@ void plotMcClosures() {
     //
     // Plot distributions for the reco dijets
     //
-    recoDijetDistributions(pPb8160EmbedFile, collisionSystem, collisionEnergy, date, true);
+    // recoDijetDistributions(pPb8160EmbedFile, collisionSystem, collisionEnergy, date, true);
 }

@@ -2152,7 +2152,7 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
         fHM->hRefSelDijetEtaCM->Fill(dijetRefEtaCM, weight * fMcReweight );
         fHM->hRefSelDijetPtEtaPhiCM->Fill(dijetRefPtAve, dijetRefEtaCM, dijetRefPhi, 1.);
         fHM->hRefSelDijetPtEtaPhiCMWeighted->Fill(dijetRefPtAve, dijetRefEtaCM, dijetRefPhi, weight * fMcReweight );
-        fHM->hRefSelDijetPtEtaPhiLabInCM->Fill(dijetRecoPtAve, dijetRefEtaLab, dijetRefPhi, weight * fMcReweight );
+        fHM->hRefSelDijetPtEtaPhiLabInCM->Fill(dijetRefPtAve, dijetRefEtaLab, dijetRefPhi, weight * fMcReweight );
 
         // New ptAve and eta binning
         if ( refPtAveBin >= 0 ) {
