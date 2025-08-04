@@ -44,7 +44,8 @@ DiJetAnalysis::DiJetAnalysis() : BaseAnalysis(),
     fRecoPtSortedJetIds{}, fGenPtSortedJetIds{}, fRefSelRecoPtSortedJetIds{},
     fRecoDijet{nullptr}, fGenDijet{nullptr}, fRefDijet{nullptr},
     fRecoJetCut{nullptr}, fGenJetCut{nullptr}, fDiJetCut{nullptr},
-    fPtAveBins{}, fPtAveOldBins{} {
+    fPtAveBins{}, fPtAveOldBins{},
+    fMixBufferSize{10}, fMixBufferOlga{}, fMixBuffer{} {
 
     fPtHatRange[0] = {0};
     fPtHatRange[1] = {100000000};
@@ -328,6 +329,25 @@ int DiJetAnalysis::findDijetPtAveOldBin(const float &ptAve) {
     //     std::cout << "DiJetAnalysis::findDijetPtAveOldBin -- end" << std::endl;
     // }
     return bin;
+}
+
+//________________
+void DiJetAnalysis::addEventToMixBufferOlga(const double &ptAve, const DiJet& dijet) {
+    // float binLow = 50.f;
+    // float binHigh = 500.f;
+    // float step = 50.f;
+    // int bin = int( (ptAve - binLow) / step ) ;
+    // int bin = findDijetPtAveBin(ptAve);
+    // if ( bin < 0 || bin >= fMixBuffer.size() ) {
+    // }
+    // else {
+    //     fMixBuffer[bin].push_back(dijet);
+    // }
+}
+
+//________________
+void DiJetAnalysis::addEventToMixBuffer(const double &vz, const DiJet& dijet) {
+
 }
 
 //________________

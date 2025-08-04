@@ -120,16 +120,16 @@ DiJetCut *createDiJetCut() {
     DiJetCut *dijetCut = new DiJetCut{};
     
     dijetCut->setLeadJetPtMinimum(50.0f);
-    dijetCut->setLeadJetEtaLab(-2.5f, 2.5f);
-    dijetCut->setLeadJetEtaCM(-2.0f, 2.0f);
+    dijetCut->setLeadJetEtaLab(-2.4f, 2.4f); 
+    dijetCut->setLeadJetEtaCM(-1.9f, 1.9f);   // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
 
     // dijetCut->setLeadJetPtMinimum(50.0f);
     // dijetCut->setLeadJetEtaLab(-1.535f, 2.465f);
     // dijetCut->setLeadJetEtaCM(-2.965f, 2.035f);
 
     dijetCut->setSubLeadJetPtMinimum(40.0f);
-    dijetCut->setSubLeadJetEtaLab(-2.5f, 2.5f);
-    dijetCut->setSubLeadJetEtaCM(-2.0f, 2.0f);
+    dijetCut->setSubLeadJetEtaLab(-2.4f, 2.4f);
+    dijetCut->setSubLeadJetEtaCM(-1.9f, 1.9f); // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
 
     // dijetCut->setSubLeadJetPtMinimum(40.0f);
     // dijetCut->setSubLeadJetEtaLab(-1.535f, 2.465f);
@@ -364,7 +364,7 @@ int main(int argc, char const *argv[]) {
             // PYTHIA+EPOS
             JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
             // PYTHIA
-            // JECFileName = "Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF";
+            // JECFileName = "Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF.txt";
         }
     }
     else {

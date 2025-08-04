@@ -603,13 +603,13 @@ void drawSingleJetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullp
     t.SetTextSize(0.04);
     TLegend *leg;
 
-    double xRange[2] = {-3.2, 3.2};
+    double xRange[2] = {0.0, 2.8};
     double yRange[2] = {0.75, 1.25};
 
     if (isCM) {
         if (!isFB) {
-            xRange[0] = -3.2;
-            xRange[1] = 3.2;
+            xRange[0] = 0.0;
+            xRange[1] = 2.8;
             yRange[0] = 0.75;
             yRange[1] = 1.25;
         }
@@ -2017,6 +2017,8 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
 
         // } // for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++)
     } // for (unsigned int i = 0; i < ptHatBins.size(); i++)
+
+    if (c) { delete c; c = nullptr; }
 }
 
 //________________
@@ -3227,7 +3229,7 @@ void plotMcClosures() {
     TString dataDirectionStr = (direction == 0) ? "Pbgoing" : ((direction == 1) ? "pgoing" : "");
     int jetType = 0; // 0 - inclusive, 1 - lead, 2 - sublead
     int matchType = 0; // 0 - inclusive, 1 - matched, 2 - unmatched
-    int cutType = 1; // 0 - no cuts, 1 - trkMax, 2 - jetId
+    int cutType = 2; // 0 - no cuts, 1 - trkMax, 2 - jetId
     TString cutTypeStr = (cutType == 0) ? "noCut_" : ((cutType == 1) ? "" : ((cutType == 2) ? "jetId_" : "unknownCut"));
 
     //
@@ -3242,7 +3244,7 @@ void plotMcClosures() {
         }
     }
     else {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20_bias.root", uname.Data(), cutTypeStr.Data()) );
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) );
         if ( !pPb8160EmbedFile ) {
             std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) << std::endl;
             return;
@@ -3298,7 +3300,7 @@ void plotMcClosures() {
     // collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
     // jetType: 0 = Inclusive, 1 = Lead, 2 = SubLead
     // date: date string for saving the plots (default is "20250129")
-    // inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
+    inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
 
     //
     // Comparison of dijet reco and ref to gen distributions
@@ -3308,7 +3310,7 @@ void plotMcClosures() {
     //
     // Comparison of dijet reco and ref to gen distributions from 3D histograms
     //
-    dijetClosuresFrom3D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    // dijetClosuresFrom3D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
     // dijetClosuresFrom3D( pPb8160PythiaFile, collisionSystem, collisionEnergy, date );
 
     //

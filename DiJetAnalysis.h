@@ -23,14 +23,21 @@
 #include "BaseAnalysis.h"
 #include "HistoManagerDiJet.h"
 #include "Event.h"
+#include "DiJet.h"
 
 // C++ headers
 #include <vector>
+#include <map>
 
 // Forward declarations
 class JetCut;
-class DiJet;
 class DiJetCut;
+
+//_________________
+struct MixEvent {
+    /// @brief Leading and subleading jets in the current event
+    DiJet fGenDijetCM; 
+};
 
 //________________
 class DiJetAnalysis : public BaseAnalysis {
@@ -95,6 +102,9 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Return collision system name 
     TString collisionSystem() const;
 
+    /// @brief Set the size of the mixing buffer
+    void setMixBufferSize(const int& size) { (size > 0) ? fMixBufferSize = size : fMixBufferSize = 10; }
+
   private:
 
     /// @brief Loop over reco, gen and ref-selected reco jets and save jet indices in pT-sorted vectors
@@ -139,6 +149,11 @@ class DiJetAnalysis : public BaseAnalysis {
 
     /// @brief Initialize vz weight function
     void initVzWeightFunction();
+
+    /// @brief Add event to mixing buffer (Olga)
+    void addEventToMixBufferOlga(const double &ptAve, const DiJet& dijet);
+    /// @brief Add event to mixing buffer
+    void addEventToMixBuffer(const double &vz, const DiJet& dijet);
 
     /// @brief Vz weight to match MC to data
     TF1 *fVzWeight;
@@ -213,6 +228,13 @@ class DiJetAnalysis : public BaseAnalysis {
     std::vector<float> fPtAveBins;
     /// @brief Values for old dijet ptAve binning
     std::vector<float> fPtAveOldBins;
+
+    /// @brief Size of the mixing buffer (default: 10)
+    int fMixBufferSize = 10; 
+    /// @brief Map of events for mixing (key: ptAve bin, value: MixEvent)
+    std::map<int, MixEvent> fMixBufferOlga;
+    /// @brief Map of events for mixing (key: vz, value: MixEvent)
+    std::map<int, MixEvent> fMixBuffer;
 
   ClassDef(DiJetAnalysis, 0)
 };
