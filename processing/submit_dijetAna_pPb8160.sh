@@ -11,16 +11,24 @@ cd $EXEC_PATH
 formatted_date=$(date +"%Y%m%d")
 
 # Trigger case
-triggerId=0 # 0 - MB, 1 - jet60, 2 - jet80, 3 - jet100
+trigger_id=0 # 0 - MB, 1 - jet60, 2 - jet80, 3 - jet100
+trigger_name=MB
+if [ $trigger_id -eq 1 ]; then
+    trigger_name=Jet60
+elif [ $trigger_id -eq 2 ]; then
+    trigger_name=Jet80
+elif [ $trigger_id -eq 3 ]; then
+    trigger_name=Jet100
+fi
 
 sample_name=DATA_MB
-if [ $triggerId -ne 0 ]; then
+if [ $trigger_id -ne 0 ]; then
     sample_name=DATA_PAEGJet
 fi
 
 # Beam direction
-is_Pbgoing=1
-if [ "$is_Pbgoing" -eq 1 ]; then
+is_pbgoing=1
+if [ "$is_pbgoing" -eq 1 ]; then
     direction=Pbgoing
 else
     direction=pgoing
@@ -31,11 +39,11 @@ fi
 pd_number=$1
 
 # JEU systematics: 0 - default, -1 - JEU-, 1 - JEU+
-jeuSyst=0 
+jeu_syst=0 
 # JER systematics: 0 - default, -1 - JER-, 1 - JER+, other - no extra smearing is applied (pure JEC)
-jerSyst=-99
+jer_syst=-99
 # RecoJet selection method: 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
-recoJetSelMethod=1
+reco_jet_sel_method=1
 
 # Generate path to the inputfile list
 if [ "$sample_name" == "DATA_MB" ]; then
@@ -84,7 +92,7 @@ if [ ! -d "condor/log/pPb8160/${formatted_date}" ]; then
     fi
 fi
 
-cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${sample_prefix}.sub
+cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${trigger_name}_${is_pbgoing}.sub
 universe = vanilla
 executable = ${EXEC_PATH}/run_dijetAna_pPb8160.sh
 +JobFlavour           = "longlunch"
@@ -96,18 +104,18 @@ environment = "X509_USER_PROXY=voms_proxy.txt"
 EOF
 
 
-for ((jobId = 1; jobId <= $n_sublists; jobId++)); do
-    cat <<EOF >>condor/sub/pPb8160/${formatted_date}/pPb8160_${sample_prefix}.sub
-arguments             = input/pPb8160/${formatted_date}/${sample_prefix}_$jobId.list ${sample_prefix}_pPb8160_$jobId.root 0 ${is_Pbgoing} 0 15000 ${jeuSyst} ${jerSyst} ${triggerId} ${recoJetSelMethod}
-output                = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.out
-error                 = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.err
-log                   = condor/log/pPb8160/${formatted_date}/${sample_prefix}_$jobId.log
-queue 
+for ((job_id = 1; job_id <= $n_sublists; job_id++)); do
+    cat <<EOF >>condor/sub/pPb8160/${formatted_date}/pPb8160_${trigger_name}_${direction}.sub
+arguments             = input/pPb8160/${formatted_date}/${trigger_name}_${direction}_${job_id}.list ${trigger_name}_pPb8160_${job_id}.root 0 ${is_pbgoing} 0 15000 ${jeu_syst} ${jer_syst} ${trigger_id} ${reco_jet_sel_method}
+output                = condor/log/pPb8160/${formatted_date}/${trigger_name}_${direction}_${job_id}.out
+error                 = condor/log/pPb8160/${formatted_date}/${trigger_name}_${direction}_${job_id}.err
+log                   = condor/log/pPb8160/${formatted_date}/${trigger_name}_${direction}_${job_id}.log
+queue
 
 EOF
 
 done
 
-condor_submit condor/sub/pPb8160/${formatted_date}/pPb8160_${sample_prefix}.sub
+condor_submit condor/sub/pPb8160/${formatted_date}/pPb8160_${trigger_name}_${direction}.sub
 
 

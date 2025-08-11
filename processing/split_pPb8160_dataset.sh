@@ -20,6 +20,15 @@ direction="$4"
 # PD number
 pd_number="$5"
 
+trigger_name="MB"
+if [ "$trigger_id" -eq 1 ]; then
+    trigger_name="Jet60"
+elif [ "$trigger_id" -eq 2 ]; then
+    trigger_name="Jet80"
+elif [ "$trigger_id" -eq 3 ]; then
+    trigger_name="Jet100"
+fi
+
 # Prefix
 if [ "$sample_name" == "DATA_MB" ]; then
     sample_prefix="MB_PD${pd_number}_${direction}"
@@ -55,7 +64,7 @@ fi
 for ((i = 0; i < num_sublists; i++)); do
     start=$((i * N + 1))  # Calculate start line number for current sublist
     end=$((start + N - 1))  # Calculate end line number for current sublist
-    sublist_file="${sample_prefix}_$((i+1)).list"  # Name of sublist file
+    sublist_file="${trigger_name}_${direction}_$((i+1)).list"  # Name of sublist file
     # Extract sublist
     sed -n "${start},${end}p" "$input_file" > "$PWD/input/pPb8160/${formatted_date}/$sublist_file"  
 done

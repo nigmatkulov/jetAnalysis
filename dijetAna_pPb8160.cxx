@@ -18,7 +18,7 @@
 //________________
 void usage() {
     std::cout << "./programName inputFileList oFileName isMc isPbGoingDir ptHatLow ptHatHi jeuSyst jerSyst triggerId recoJetSelMethod" << std::endl;
-    std::cout << "isMc: 1 (embedding), 0 (data)" << std::endl;
+    std::cout << "isMc: 0 (data), 1 (embedding), 2 (pythia)" << std::endl;
     std::cout << "isPbGoingDir: 1 (Pb-going), 0 (p-going)" << std::endl;
     std::cout << "ptHatLow: Low ptHat cut (for embedding)" << std::endl;
     std::cout << "ptHatHi: High ptHat cut (for embedding)" << std::endl;
@@ -120,16 +120,16 @@ DiJetCut *createDiJetCut() {
     DiJetCut *dijetCut = new DiJetCut{};
     
     dijetCut->setLeadJetPtMinimum(50.0f);
-    dijetCut->setLeadJetEtaLab(-2.4f, 2.4f); 
-    dijetCut->setLeadJetEtaCM(-1.9f, 1.9f);   // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
+    dijetCut->setLeadJetEtaLab(-2.0f, 2.0f); 
+    dijetCut->setLeadJetEtaCM(-1.5f, 1.5f);   // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
 
     // dijetCut->setLeadJetPtMinimum(50.0f);
     // dijetCut->setLeadJetEtaLab(-1.535f, 2.465f);
     // dijetCut->setLeadJetEtaCM(-2.965f, 2.035f);
 
     dijetCut->setSubLeadJetPtMinimum(40.0f);
-    dijetCut->setSubLeadJetEtaLab(-2.4f, 2.4f);
-    dijetCut->setSubLeadJetEtaCM(-1.9f, 1.9f); // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
+    dijetCut->setSubLeadJetEtaLab(-2.0f, 2.0f);
+    dijetCut->setSubLeadJetEtaCM(-1.5f, 1.5f); // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
 
     // dijetCut->setSubLeadJetPtMinimum(40.0f);
     // dijetCut->setSubLeadJetEtaLab(-1.535f, 2.465f);
@@ -259,7 +259,9 @@ int main(int argc, char const *argv[]) {
     std::cout << "Starting dijetAna_pPb8160 program" << std::endl;
 
     // Set default values for arguments
+    int  mcType{0}; // 0 - data, 1 - embedding, 2 - pythia
     bool isMc{true};
+    bool isEmbedding{true};
     bool isCentWeightCalc{false};
     bool isPbGoingDir{};
     TString inFileName{};
@@ -318,7 +320,15 @@ int main(int argc, char const *argv[]) {
         std::cout << "Number of arguments passed: " << argc << std::endl;
         inFileName   = argv[1];
         oFileName    = argv[2];
-        isMc         = atoi( argv[3] );
+        mcType       = atoi( argv[3] );
+        if (mcType == 0) {
+            isMc = false;
+        }
+        else {
+            isMc = {true};
+            isEmbedding = (mcType == 1) ? true : false;
+        }
+
         isPbGoingDir = atoi( argv[4] );
         ptHatCut[0]  = atoi( argv[5] );
         ptHatCut[1]  = atoi( argv[6] );
@@ -355,17 +365,23 @@ int main(int argc, char const *argv[]) {
 
     if (isMc) {
         if (isPbGoingDir) {
-            // PYTHIA+EPOS
-            JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
-            // PYTHIA
-            // JECFileName = "Autumn16_HI_pPb_Pbgoing_Unembedded_MC_L2Relative_AK4PF.txt";
+            if (isEmbedding) {
+                // PYTHIA+EPOS
+                JECFileName = "Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt";
+            }
+            else {
+                // PYTHIA
+                JECFileName = "Autumn16_HI_pPb_Pbgoing_Unembedded_MC_L2Relative_AK4PF.txt";
         }
         else {
-            // PYTHIA+EPOS
-            JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
-            // PYTHIA
-            // JECFileName = "Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF.txt";
-        }
+            if (isEmbedding) {
+                // PYTHIA+EPOS
+                JECFileName = "Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt";
+            }
+            else {
+                // PYTHIA
+                JECFileName = "Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF.txt";
+            }
     }
     else {
         if (isPbGoingDir) { // Remember to flip to p-going for data
