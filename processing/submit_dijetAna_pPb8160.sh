@@ -73,7 +73,13 @@ if [ ! -d "condor/log/pPb8160/${formatted_date}" ]; then
     fi
 fi
 
-cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${trigger_name}_${direction}.sub
+if [ "$trigger_id" -eq 0 ]; then
+    prefix_name=${trigger_name}_PD${pd_number}_${direction}
+else
+    prefix_name=${trigger_name}_${direction}
+fi
+
+cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name}.sub
 universe = vanilla
 executable = ${EXEC_PATH}/run_dijetAna_pPb8160.sh
 +JobFlavour           = "longlunch"
@@ -86,17 +92,18 @@ EOF
 
 
 for ((job_id = 1; job_id <= $n_sublists; job_id++)); do
-    cat <<EOF >>condor/sub/pPb8160/${formatted_date}/pPb8160_${trigger_name}_${direction}.sub
-arguments             = input/pPb8160/${formatted_date}/${trigger_name}_${direction}_${job_id}.list ${trigger_name}_pPb8160_${job_id}.root 0 ${is_pbgoing} 0 15000 ${jeu_syst} ${jer_syst} ${trigger_id} ${reco_jet_sel_method}
-output                = condor/log/pPb8160/${formatted_date}/${trigger_name}_${direction}_${job_id}.out
-error                 = condor/log/pPb8160/${formatted_date}/${trigger_name}_${direction}_${job_id}.err
-log                   = condor/log/pPb8160/${formatted_date}/${trigger_name}_${direction}_${job_id}.log
+    prefix_name_with_job_id=${prefix_name}_${job_id}
+    cat <<EOF >>condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name}.sub
+arguments             = input/pPb8160/${formatted_date}/${prefix_name_with_job_id} ${trigger_name}_pPb8160_${job_id}.root 0 ${is_pbgoing} 0 15000 ${jeu_syst} ${jer_syst} ${trigger_id} ${reco_jet_sel_method}
+output                = condor/log/pPb8160/${formatted_date}/${prefix_name_with_job_id}.out
+error                 = condor/log/pPb8160/${formatted_date}/${prefix_name_with_job_id}.err
+log                   = condor/log/pPb8160/${formatted_date}/${prefix_name_with_job_id}.log
 queue
 
 EOF
 
 done
 
-condor_submit condor/sub/pPb8160/${formatted_date}/pPb8160_${trigger_name}_${direction}.sub
+condor_submit condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name}.sub
 
 
