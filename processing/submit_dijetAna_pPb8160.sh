@@ -94,7 +94,7 @@ EOF
 for ((job_id = 1; job_id <= $n_sublists; job_id++)); do
     prefix_name_with_job_id=${prefix_name}_${job_id}
     cat <<EOF >>condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name}.sub
-arguments             = input/pPb8160/${formatted_date}/${prefix_name_with_job_id} ${trigger_name}_pPb8160_${job_id}.root 0 ${is_pbgoing} 0 15000 ${jeu_syst} ${jer_syst} ${trigger_id} ${reco_jet_sel_method}
+arguments             = input/pPb8160/${formatted_date}/${prefix_name_with_job_id}.list ${prefix_name_with_job_id}.root 0 ${is_pbgoing} 0 15000 ${jeu_syst} ${jer_syst} ${trigger_id} ${reco_jet_sel_method}
 output                = condor/log/pPb8160/${formatted_date}/${prefix_name_with_job_id}.out
 error                 = condor/log/pPb8160/${formatted_date}/${prefix_name_with_job_id}.err
 log                   = condor/log/pPb8160/${formatted_date}/${prefix_name_with_job_id}.log
