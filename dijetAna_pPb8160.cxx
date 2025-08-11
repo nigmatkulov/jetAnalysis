@@ -383,6 +383,7 @@ int main(int argc, char const *argv[]) {
                 // PYTHIA
                 JECFileName = "Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF.txt";
             }
+        }
     }
     else {
         if (isPbGoingDir) { // Remember to flip to p-going for data
