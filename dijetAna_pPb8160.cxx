@@ -372,6 +372,7 @@ int main(int argc, char const *argv[]) {
             else {
                 // PYTHIA
                 JECFileName = "Autumn16_HI_pPb_Pbgoing_Unembedded_MC_L2Relative_AK4PF.txt";
+            }
         }
         else {
             if (isEmbedding) {
