@@ -21,11 +21,11 @@ while getopts "n:t:d:p:" opt; do
     esac
 done
 
-echo "Arguments passed to the script: $@"
-echo "n_files_per_sublist: $n_files_per_sublist"
-echo "trigger_id: $trigger_id"
-echo "direction: $direction"
-echo "pd_number: $pd_number"
+# echo "Arguments passed to the script: $@"
+# echo "n_files_per_sublist: $n_files_per_sublist"
+# echo "trigger_id: $trigger_id"
+# echo "direction: $direction"
+# echo "pd_number: $pd_number"
 
 if [[ "$trigger_id" -eq 0 && "$pd_number" -eq -1 ]]; then
     echo "Error: PD number must be specified for MB trigger."
