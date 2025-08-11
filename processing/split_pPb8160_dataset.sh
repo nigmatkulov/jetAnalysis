@@ -46,18 +46,17 @@ fi
 # Generate path to the inputfile list (IMPORTANT:HM triggers omitted)
 if [ "$sample_name" == "DATA_MB" ]; then
     sample_prefix="MB_PD${pd_number}_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_MB/${direction}/${sample_prefix}.txt"
-    
+    input_file="${EXEC_PATH}/filelists/pPb8160/DATA_MB/${direction}/${sample_prefix}.txt"
 elif [ "$sample_name" == "DATA_HM185" ]; then
     sample_prefix="HM185_PD${pd_number}_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_HM185/${direction}/${sample_prefix}.txt"
+    input_file="${EXEC_PATH}/filelists/pPb8160/DATA_HM185/${direction}/${sample_prefix}.txt"
     
 elif [ "$sample_name" == "DATA_HM250" ]; then
     sample_prefix="HM250_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_HM250/${direction}/${sample_prefix}.txt"
+    input_file="${EXEC_PATH}/filelists/pPb8160/DATA_HM250/${direction}/${sample_prefix}.txt"
 else
     sample_prefix="PAEGJet_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_PAEGJet/${direction}/${sample_prefix}.txt"
+    input_file="${EXEC_PATH}/filelists/pPb8160/DATA_PAEGJet/${direction}/${sample_prefix}.txt"
 fi
 
 
