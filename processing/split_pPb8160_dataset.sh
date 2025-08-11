@@ -1,5 +1,8 @@
 #!/bin/bash
 
+EXEC_PATH=${HOME}/soft/jetAnalysis/processing
+cd $EXEC_PATH
+
 n_files_per_sublist=50 # Number of files per sublist
 trigger_id=0           # 0 - MB, 1 - jet60, 2 - jet80, 3 - jet100
 direction="Pbgoing"    # Pbgoing or pgoing
