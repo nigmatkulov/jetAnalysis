@@ -92,7 +92,7 @@ if [ ! -d "condor/log/pPb8160/${formatted_date}" ]; then
     fi
 fi
 
-cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${trigger_name}_${is_pbgoing}.sub
+cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${trigger_name}_${direction}.sub
 universe = vanilla
 executable = ${EXEC_PATH}/run_dijetAna_pPb8160.sh
 +JobFlavour           = "longlunch"
