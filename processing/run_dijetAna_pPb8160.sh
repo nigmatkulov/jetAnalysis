@@ -35,8 +35,14 @@ echo -e "RecoJet selMethod: ${recoJetSelMethod}"
 if [ "$is_mc" -eq 1 ]; then
     if [ "$is_Pbgoing" -eq 1 ]; then
         ../build/dijetAna_pPb8160 ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/embedding/Pbgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst} ${triggerId} ${recoJetSelMethod}
-		else
+	else
         ../build/dijetAna_pPb8160 ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/embedding/pgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst} ${triggerId} ${recoJetSelMethod}
+    fi
+elif [ "$is_mc" -eq 2 ]; then
+    if [ "$is_Pbgoing" -eq 1 ]; then
+        ../build/dijetAna_pPb8160 ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/pythia/Pbgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst} ${triggerId} ${recoJetSelMethod}
+    else
+        ../build/dijetAna_pPb8160 ${input_file_list} /eos/user/g/gnigmatk/ana/pPb8160/pythia/pgoing/${output_file_name} ${is_mc} ${is_Pbgoing} ${pt_hat_low} ${pt_hat_hi} ${jeuSyst} ${jerSyst} ${triggerId} ${recoJetSelMethod}
     fi
 else
     if [ "$is_Pbgoing" -eq 1 ]; then

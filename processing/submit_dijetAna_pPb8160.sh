@@ -21,11 +21,6 @@ elif [ $trigger_id -eq 3 ]; then
     trigger_name=Jet100
 fi
 
-sample_name=DATA_MB
-if [ $trigger_id -ne 0 ]; then
-    sample_name=DATA_PAEGJet
-fi
-
 # Beam direction
 is_pbgoing=1
 if [ "$is_pbgoing" -eq 1 ]; then
@@ -34,9 +29,12 @@ else
     direction=pgoing
 fi
 
-
 # Dataset number
-pd_number=$1
+if [ $# -eq 2]
+    pd_number=$1 # PD number is defined for MB only. Pb-going 1-20, p-going 1-8
+else
+    pd_number=-1 
+fi
 
 # JEU systematics: 0 - default, -1 - JEU-, 1 - JEU+
 jeu_syst=0 
@@ -45,29 +43,12 @@ jer_syst=-99
 # RecoJet selection method: 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
 reco_jet_sel_method=1
 
-# Generate path to the inputfile list
-if [ "$sample_name" == "DATA_MB" ]; then
-    sample_prefix="MB_PD${pd_number}_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_MB/${direction}/${sample_prefix}.txt"
-    
-elif [ "$sample_name" == "DATA_HM185" ]; then
-    sample_prefix="HM185_PD${pd_number}_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_HM185/${direction}/${sample_prefix}.txt"
-    
-elif [ "$sample_name" == "DATA_HM250" ]; then
-    sample_prefix="HM250_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_HM250/${direction}/${sample_prefix}.txt"
-else
-    sample_prefix="PAEGJet_${direction}"
-    input_file_list="${EXEC_PATH}/filelists/pPb8160/DATA_PAEGJet/${direction}/${sample_prefix}.txt"
-fi
-
 # Specify number of files per list to split
 files_per_job=50
 #input_file_list=$HOME/filelists/test_list.txt
 
 echo -e "Splitting input file list: ${input_file_list}"
-n_sublists=$(./split_pPb8160_dataset.sh ${input_file_list} ${files_per_job} ${sample_name} ${direction} ${pd_number})
+n_sublists=$(./split_pPb8160_dataset.sh -n ${files_per_job} -t ${trigger_id} -d ${direction} -p ${pd_number})
 echo -e "Input file list is splitted into ${n_sublists}"
 
 if [ ! -d "condor/sub/pPb8160/${formatted_date}" ]; then
