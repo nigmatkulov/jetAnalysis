@@ -8,16 +8,24 @@ trigger_id=0           # 0 - MB, 1 - jet60, 2 - jet80, 3 - jet100
 direction="Pbgoing"    # Pbgoing or pgoing
 pd_number=-1            # PD number is defined for MB only. Pb-going 1-20, p-going 1-8          
 
-while getopts "n:t:d:p" opt; do
-  case $opt in
-    n) n_files_per_sublist="$OPTARG" ;;  # -n <name>
-    t) trigger_id="$OPTARG" ;;           # -t <trigger_id>
-    d) direction="$OPTARG" ;;            # -d <direction>
-    p) pd_number="$OPTARG" ;;            # -p <pd_number>
-    \?) echo "Usage: $0 [-n name] [-t trigger_id] [-d direction] [-p pd_number]" >&2
-        exit 1 ;;
-  esac
+while getopts "n:t:d:p:" opt; do
+    case $opt in
+        n) n_files_per_sublist="$OPTARG" ;;  # -n <n_files_per_sublist>
+        t) trigger_id="$OPTARG" ;;           # -t <trigger_id>
+        d) direction="$OPTARG" ;;            # -d <direction>
+        p) pd_number="$OPTARG" ;;            # -p <pd_number>
+        # Add more options below as needed, e.g.:
+        # x) new_var="$OPTARG" ;;             # -x <new_var>
+        \?) echo "Usage: $0 [-n n_files_per_sublist] [-t trigger_id] [-d direction] [-p pd_number] [not supported other options]" >&2
+                exit 1 ;;
+    esac
 done
+
+echo "Arguments passed to the script: $@"
+echo "n_files_per_sublist: $n_files_per_sublist"
+echo "trigger_id: $trigger_id"
+echo "direction: $direction"
+echo "pd_number: $pd_number"
 
 if [[ "$trigger_id" -eq 0 && "$pd_number" -eq -1 ]]; then
     echo "Error: PD number must be specified for MB trigger."
