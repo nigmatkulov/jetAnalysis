@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Check if the correct number of arguments is provided
-if [ $# -ne 5 ]; then
-    echo "Usage: $0 <n_files_per_sublist> <trigger_id> <direction> <pd_number>"
-    exit 1
-fi
-
 n_files_per_sublist=50 # Number of files per sublist
 trigger_id=0           # 0 - MB, 1 - jet60, 2 - jet80, 3 - jet100
 direction="Pbgoing"    # Pbgoing or pgoing
