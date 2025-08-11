@@ -11,7 +11,7 @@ cd $EXEC_PATH
 formatted_date=$(date +"%Y%m%d")
 
 # Trigger case
-trigger_id=0 # 0 - MB, 1 - jet60, 2 - jet80, 3 - jet100
+trigger_id=1 # 0 - MB, 1 - jet60, 2 - jet80, 3 - jet100
 trigger_name=MB
 if [ $trigger_id -eq 1 ]; then
     trigger_name=Jet60

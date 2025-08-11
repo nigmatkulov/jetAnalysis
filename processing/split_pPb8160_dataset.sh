@@ -19,7 +19,7 @@ while getopts "n:t:d:p" opt; do
   esac
 done
 
-if [ "$trigger_id" -eq 0 ] && [ "$pd_number" -eq -1 ]; then
+if [[ "$trigger_id" -eq 0 && "$pd_number" -eq -1 ]]; then
     echo "Error: PD number must be specified for MB trigger."
     exit 1
 fi
