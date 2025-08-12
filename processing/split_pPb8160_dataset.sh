@@ -95,7 +95,7 @@ for ((i = 0; i < num_sublists; i++)); do
     if [ "$trigger_id" -eq 0 ]; then
         sublist_file="${trigger_name}_PD${pd_number}_${direction}_$((i+1)).list"  # Name of sublist file for PAEGJet
     else
-        sublist_file="${trigger_name}_${direction}_$((i+1)).list"  # Name of sublist file
+        sublist_file="${trigger_name}_PAEG_${direction}_$((i+1)).list"  # Name of sublist file
     fi
     # Extract sublist
     sed -n "${start},${end}p" "$input_file" > "$PWD/input/pPb8160/${formatted_date}/$sublist_file"  
