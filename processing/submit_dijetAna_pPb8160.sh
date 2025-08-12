@@ -82,7 +82,12 @@ else
     prefix_name=${trigger_name}_PAEG_${direction}
 fi
 
-cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name}.sub
+# Loop over the sublists
+for ((job_id = 1; job_id <= $n_sublists; job_id++)); do
+    # Get filename with jobId attached
+    prefix_name_with_job_id=${prefix_name}_${job_id}
+    # Create the submission file
+    cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name_with_job_id}.sub
 universe = vanilla
 executable = ${EXEC_PATH}/run_dijetAna_pPb8160.sh
 +JobFlavour           = "longlunch"
@@ -91,12 +96,7 @@ requirements =((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
 RequestCpus = 1
 transfer_input_files  = voms_proxy.txt
 environment = "X509_USER_PROXY=voms_proxy.txt"
-EOF
 
-
-for ((job_id = 1; job_id <= $n_sublists; job_id++)); do
-    prefix_name_with_job_id=${prefix_name}_${job_id}
-    cat <<EOF >>condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name}.sub
 arguments             = input/pPb8160/${formatted_date}/${prefix_name_with_job_id}.list ${prefix_name_with_job_id}.root 0 ${is_pbgoing} 0 15000 ${jeu_syst} ${jer_syst} ${trigger_id} ${reco_jet_sel_method}
 output                = condor/log/pPb8160/${formatted_date}/${prefix_name_with_job_id}.out
 error                 = condor/log/pPb8160/${formatted_date}/${prefix_name_with_job_id}.err
@@ -104,9 +104,9 @@ log                   = condor/log/pPb8160/${formatted_date}/${prefix_name_with_
 queue
 
 EOF
-
+    
+    # Submit the job
+    condor_submit condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name_with_job_id}.sub
 done
 
-condor_submit condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name}.sub
-
-
+echo "All jobs for ${prefix_name} submitted."

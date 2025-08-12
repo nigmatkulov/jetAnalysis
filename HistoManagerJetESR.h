@@ -257,7 +257,7 @@ class HistoManagerJetESR : public BaseHistoManager {
     /// @brief Is this a Monte Carlo sample
     bool   fIsMc;
 
-    ClassDef(HistoManagerJetESR, 0)
+    // ClassDef(HistoManagerJetESR, 0)
 };
 
 #endif // #define HistoManagerJetESR_h

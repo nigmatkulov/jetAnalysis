@@ -646,7 +646,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     /// @brief Values for old dijet ptAve binning
     std::vector<double> fPtAveOldBins;
 
-    ClassDef(HistoManagerDiJet, 0)
+    // ClassDef(HistoManagerDiJet, 0)
 };
 
 #endif // #define HistoManagerDiJet_h

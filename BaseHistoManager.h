@@ -26,7 +26,7 @@ class BaseHistoManager {
     // // @brief Return list of objects (histograms, profiles, graphs, etc...)
     // virtual TList *getOutputList() = 0;
 
-  ClassDef(BaseHistoManager, 0)
+  // ClassDef(BaseHistoManager, 0)
 };
 
 #endif // #define BaseHistoManager_h
