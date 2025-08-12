@@ -33,7 +33,7 @@ else
 fi
 
 # Dataset number
-if [ $# -eq 2 ]; then
+if [ $# -eq 1 ]; then
     pd_number=$1 # PD number is defined for MB only. Pb-going 1-20, p-going 1-8
 else
     pd_number=-1 
