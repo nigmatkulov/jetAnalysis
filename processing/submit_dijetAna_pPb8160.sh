@@ -3,6 +3,9 @@
 # Set path to CMSSW
 source $HOME/setup_cmsenv.sh
 
+echo "Number of arguments passed: $#"
+echo "Arguments: $@"
+
 # Initial parameters to run
 EXEC_PATH=${HOME}/soft/jetAnalysis/processing
 cd $EXEC_PATH
