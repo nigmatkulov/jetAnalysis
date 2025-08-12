@@ -120,16 +120,16 @@ DiJetCut *createDiJetCut() {
     DiJetCut *dijetCut = new DiJetCut{};
     
     dijetCut->setLeadJetPtMinimum(50.0f);
-    dijetCut->setLeadJetEtaLab(-2.0f, 2.0f); 
-    dijetCut->setLeadJetEtaCM(-1.5f, 1.5f);   // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
+    dijetCut->setLeadJetEtaLab(-2.4f, 2.4f); 
+    dijetCut->setLeadJetEtaCM(-1.9f, 1.9f);   // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
 
     // dijetCut->setLeadJetPtMinimum(50.0f);
     // dijetCut->setLeadJetEtaLab(-1.535f, 2.465f);
     // dijetCut->setLeadJetEtaCM(-2.965f, 2.035f);
 
     dijetCut->setSubLeadJetPtMinimum(40.0f);
-    dijetCut->setSubLeadJetEtaLab(-2.0f, 2.0f);
-    dijetCut->setSubLeadJetEtaCM(-1.5f, 1.5f); // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
+    dijetCut->setSubLeadJetEtaLab(-2.4f, 2.4f);
+    dijetCut->setSubLeadJetEtaCM(-1.9f, 1.9f); // For JetId: 2.4 - 0.465 = 1.935, -2.4 + 0.465 = -1.935
 
     // dijetCut->setSubLeadJetPtMinimum(40.0f);
     // dijetCut->setSubLeadJetEtaLab(-1.535f, 2.465f);
