@@ -1372,36 +1372,22 @@ void dijetClosuresFrom3D(TFile *f, int collisionSystem = 1, double collisionEner
     for (int i = 0; i < sizeOfPtVals - 1; ++i) {
         int ptLow = dijetPtNewVals[i];
         int ptHi = dijetPtNewVals[i + 1];
+        int ptBinLow = hRecoDijetPtEtaPhiLab->GetYaxis()->FindBin(ptLow);
+        int ptBinHigh = hRecoDijetPtEtaPhiLab->GetYaxis()->FindBin(ptHi) - 1;
 
         //
         // Laboratory frame
         //
 
         // Dijet pseudorapidity
-        hRecoEtaLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiLab->ProjectionY(Form("hRecoEtaLab_%d", i), 
-                                           hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
-                                           hRecoDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
-        hGenEtaLab = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiLab->ProjectionY(Form("hGenEtaLab_%d", i), 
-                                          hGenDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
-                                          hGenDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
-        hRefEtaLab = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiLab->ProjectionY(Form("hRefEtaLab_%d", i), 
-                                          hRefDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
-                                          hRefDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
-        hRefSelEtaLab = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiLab->ProjectionY(Form("hRefSelEtaLab_%d", i), 
-                                             hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptLow), 
-                                             hRefSelDijetPtEtaPhiLab->GetXaxis()->FindBin(ptHi)-1));
-        hRecoEtaCMInLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiCMInLab->ProjectionY(Form("hRecoEtaCMInLab_%d", i), 
-                                               hRecoDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptLow), 
-                                               hRecoDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
-        hGenEtaCMInLab = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiCMInLab->ProjectionY(Form("hGenEtaCMInLab_%d", i), 
-                                              hGenDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptLow), 
-                                              hGenDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
-        hRefEtaCMInLab = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiCMInLab->ProjectionY(Form("hRefEtaCMInLab_%d", i), 
-                                              hRefDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptLow), 
-                                              hRefDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
-        hRefSelEtaCMInLab = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiCMInLab->ProjectionY(Form("hRefSelEtaCMInLab_%d", i), 
-                                                 hRefSelDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptLow), 
-                                                 hRefSelDijetPtEtaPhiCMInLab->GetXaxis()->FindBin(ptHi)-1));
+        hRecoEtaLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiLab->ProjectionY(Form("hRecoEtaLab_%d", i), ptBinLow, ptBinHigh));
+        hGenEtaLab = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiLab->ProjectionY(Form("hGenEtaLab_%d", i), ptBinLow, ptBinHigh));
+        hRefEtaLab = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiLab->ProjectionY(Form("hRefEtaLab_%d", i), ptBinLow, ptBinHigh));
+        hRefSelEtaLab = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiLab->ProjectionY(Form("hRefSelEtaLab_%d", i), ptBinLow, ptBinHigh));
+        hRecoEtaCMInLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaPhiCMInLab->ProjectionY(Form("hRecoEtaCMInLab_%d", i), ptBinLow, ptBinHigh));
+        hGenEtaCMInLab = dynamic_cast<TH1D *>(hGenDijetPtEtaPhiCMInLab->ProjectionY(Form("hGenEtaCMInLab_%d", i), ptBinLow, ptBinHigh));
+        hRefEtaCMInLab = dynamic_cast<TH1D *>(hRefDijetPtEtaPhiCMInLab->ProjectionY(Form("hRefEtaCMInLab_%d", i), ptBinLow, ptBinHigh));
+        hRefSelEtaCMInLab = dynamic_cast<TH1D *>(hRefSelDijetPtEtaPhiCMInLab->ProjectionY(Form("hRefSelEtaCMInLab_%d", i), ptBinLow, ptBinHigh));
         set1DStyle(hRecoEtaLab, 0, true);
         set1DStyle(hGenEtaLab, 5, true);
         set1DStyle(hRefEtaLab, 1, true);
@@ -1746,7 +1732,7 @@ void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collision
     int sizeOfPtHatVals = sizeof(ptHatVals)/sizeof(ptHatVals[0]);
 
     // jet pT and eta binning
-    int jetPtVals[] = {30, 50, 90, 120, 200};
+    int jetPtVals[] = {30, 50, 90, 120, 200, 500, 1500};
     int sizeOfJetPtVals = sizeof(jetPtVals)/sizeof(jetPtVals[0]);
 
     double jetEtaVals[] = {-3.6, -2.4, -1.6, 1.6, 2.4, 3.6};
@@ -2166,6 +2152,9 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
 
     // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
     // energy in TeV
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
     TString prefix = "mb";
     TString dataFName = fData->GetName();
     if ( dataFName.Contains("jet60", TString::kIgnoreCase) ) {
@@ -2189,364 +2178,454 @@ void data2mcDijetComparison(TFile *fData, TFile *fMc, int collisionSystem = 1, d
         directionStr = "combined";
     }
 
-    // Collision system string
-    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
-    collSystemStr += Form("%d", (int)(1000 * collisionEnergy));
-    collSystemStr += Form("_%s", prefix.Data());
-
-    const int dijetPtBins{16};
-    double dijetPtVals[dijetPtBins+1] {  50.,  60.,   70.,  80.,  90.,
-                                         100., 110.,  120., 130., 140.,
-                                         150., 160.,  180., 200., 250., 
-                                         300., 500.};
+    // double dijetPtVals[] {  50.,  60.,   70.,  80.,  90.,
+    //                         100., 110.,  120., 130., 140.,
+    //                         150., 160.,  180., 200., 250., 
+    //                         300., 500.};
+    double dijetPtVals[] {  50., 90., 120., 180., 200., 250., 300., 350., 500.};
+    int sizeOfDijetPtVals = sizeof(dijetPtVals)/sizeof(dijetPtVals[0]);
 
     //
     // Declare histograms
     //
 
     // Data
-    TH1D *hRecoDataDijetEta[dijetPtBins];
-    TH1D *hRecoDataDijetEtaCM[dijetPtBins];
-    TH1D *hRecoDataDijetEtaForward[dijetPtBins];
-    TH1D *hRecoDataDijetEtaBackward[dijetPtBins];
-    TH1D *hRecoDataDijetFBRatio[dijetPtBins];
+    TH3D *hRecoDataDijetPtEtaPhiLab = dynamic_cast<TH3D *>(fData->Get("hRecoDijetPtEtaPhiWeighted"));
+    if ( !hRecoDataDijetPtEtaPhiLab ) {
+        std::cerr << "Data histogram hRecoDijetPtEtaPhiWeighted not found in file." << std::endl; return;
+    }
+    hRecoDataDijetPtEtaPhiLab->SetName("hRecoDataDijetPtEtaPhiLab");
+    TH3D *hRecoDataDijetPtEtaPhiCM = dynamic_cast<TH3D *>(fData->Get("hRecoDijetPtEtaPhiCMWeighted"));
+    if ( !hRecoDataDijetPtEtaPhiCM ) {
+        std::cerr << "Data histogram hRecoDijetPtEtaPhiCMWeighted not found in file." << std::endl; return;
+    }
+    hRecoDataDijetPtEtaPhiCM->SetName("hRecoDataDijetPtEtaPhiCM");
+    TH2D *hRecoDataDijetPtEtaCMForward = dynamic_cast<TH2D *>(fData->Get("hRecoDijetPtEtaCMForwardWeighted"));
+    if ( !hRecoDataDijetPtEtaCMForward ) {
+        std::cerr << "Data histogram hRecoDijetPtEtaCMForwardWeighted not found in file." << std::endl; return;
+    }
+    hRecoDataDijetPtEtaCMForward->SetName("hRecoDataDijetPtEtaCMForward");
+    TH2D *hRecoDataDijetPtEtaCMBackward = dynamic_cast<TH2D *>(fData->Get("hRecoDijetPtEtaCMBackwardWeighted"));
+    if ( !hRecoDataDijetPtEtaCMBackward ) {
+        std::cerr << "Data histogram hRecoDijetPtEtaCMBackwardWeighted not found in file." << std::endl; return;
+    }
+    hRecoDataDijetPtEtaCMBackward->SetName("hRecoDataDijetPtEtaCMBackward");
+
+    rescaleHisto3D(hRecoDataDijetPtEtaPhiLab);
+    rescaleHisto3D(hRecoDataDijetPtEtaPhiCM);
+    rescaleHisto2D(hRecoDataDijetPtEtaCMForward);
+    rescaleHisto2D(hRecoDataDijetPtEtaCMBackward);
+
+    TH1D *hRecoDataDijetEtaLab{nullptr};
+    TH1D *hRecoDataDijetEtaCM{nullptr};
+    TH1D *hRecoDataDijetEtaForward{nullptr};
+    TH1D *hRecoDataDijetEtaBackward{nullptr};
+    TH1D *hRecoDataDijetFBRatio{nullptr};
 
     // MC
-    TH1D *hRecoMcDijetEta[dijetPtBins];
-    TH1D *hRecoMcDijetEtaCM[dijetPtBins];
-    TH1D *hRecoMcDijetEtaForward[dijetPtBins];
-    TH1D *hRecoMcDijetEtaBackward[dijetPtBins];
-    TH1D *hRecoMcDijetFBRatio[dijetPtBins];
 
-    TH1D *hGenMcDijetEta[dijetPtBins];
-    TH1D *hGenMcDijetEtaCM[dijetPtBins];
-    TH1D *hGenMcDijetEtaForward[dijetPtBins];
-    TH1D *hGenMcDijetEtaBackward[dijetPtBins];
-    TH1D *hGenMcDijetFBRatio[dijetPtBins];
+    // Reco
+    TH3D *hRecoMcDijetPtEtaPhiLab = dynamic_cast<TH3D *>(fMc->Get("hRecoDijetPtEtaPhiWeighted"));
+    if ( !hRecoMcDijetPtEtaPhiLab ) {
+        std::cerr << "MC histogram hRecoDijetPtEtaPhiWeighted not found in file." << std::endl; return;
+    }
+    hRecoMcDijetPtEtaPhiLab->SetName("hRecoMcDijetPtEtaPhiLab");
+    TH3D *hRecoMcDijetPtEtaPhiCM = dynamic_cast<TH3D *>(fMc->Get("hRecoDijetPtEtaPhiCMWeighted"));
+    if ( !hRecoMcDijetPtEtaPhiCM ) {
+        std::cerr << "MC histogram hRecoDijetPtEtaPhiCMWeighted not found in file." << std::endl; return;
+    }
+    hRecoMcDijetPtEtaPhiCM->SetName("hRecoMcDijetPtEtaPhiCM");
+    TH2D *hRecoMcDijetPtEtaCMForward = dynamic_cast<TH2D *>(fMc->Get("hRecoDijetPtEtaCMForwardWeighted"));
+    if ( !hRecoMcDijetPtEtaCMForward ) {
+        std::cerr << "MC histogram hRecoDijetPtEtaCMForwardWeighted not found in file." << std::endl; return;
+    }
+    hRecoMcDijetPtEtaCMForward->SetName("hRecoMcDijetPtEtaCMForward");
+    TH2D *hRecoMcDijetPtEtaCMBackward = dynamic_cast<TH2D *>(fMc->Get("hRecoDijetPtEtaCMBackwardWeighted"));
+    if ( !hRecoMcDijetPtEtaCMBackward ) {
+        std::cerr << "MC histogram hRecoDijetPtEtaCMBackwardWeighted not found in file." << std::endl; return;
+    }
+    hRecoMcDijetPtEtaCMBackward->SetName("hRecoMcDijetPtEtaCMBackward");
 
-    TH1D *hRefMcDijetEta[dijetPtBins];
-    TH1D *hRefMcDijetEtaCM[dijetPtBins];
-    TH1D *hRefMcDijetEtaForward[dijetPtBins];
-    TH1D *hRefMcDijetEtaBackward[dijetPtBins];
-    TH1D *hRefMcDijetFBRatio[dijetPtBins];
+    rescaleHisto3D(hRecoMcDijetPtEtaPhiLab);
+    rescaleHisto3D(hRecoMcDijetPtEtaPhiCM);
+    rescaleHisto2D(hRecoMcDijetPtEtaCMForward);
+    rescaleHisto2D(hRecoMcDijetPtEtaCMBackward);
+
+    TH1D *hRecoMcDijetEtaLab{nullptr};
+    TH1D *hRecoMcDijetEtaCM{nullptr};
+    TH1D *hRecoMcDijetEtaForward{nullptr};
+    TH1D *hRecoMcDijetEtaBackward{nullptr};
+    TH1D *hRecoMcDijetFBRatio{nullptr};
+
+    // Gen
+    TH3D *hGenMcDijetPtEtaPhiLab = dynamic_cast<TH3D *>(fMc->Get("hGenDijetPtEtaPhiWeighted"));
+    if ( !hGenMcDijetPtEtaPhiLab ) {
+        std::cerr << "MC histogram hGenDijetPtEtaPhiWeighted not found in file." << std::endl; return;
+    }
+    hGenMcDijetPtEtaPhiLab->SetName("hGenMcDijetPtEtaPhiLab");
+    TH3D *hGenMcDijetPtEtaPhiCM = dynamic_cast<TH3D *>(fMc->Get("hGenDijetPtEtaPhiCMWeighted"));
+    if ( !hGenMcDijetPtEtaPhiCM ) {
+        std::cerr << "MC histogram hGenDijetPtEtaPhiCMWeighted not found in file." << std::endl; return;
+    }
+    hGenMcDijetPtEtaPhiCM->SetName("hGenMcDijetPtEtaPhiCM");
+    TH2D *hGenMcDijetPtEtaCMForward = dynamic_cast<TH2D *>(fMc->Get("hGenDijetPtEtaCMForwardWeighted"));
+    if ( !hGenMcDijetPtEtaCMForward ) {
+        std::cerr << "MC histogram hGenDijetPtEtaCMForwardWeighted not found in file." << std::endl; return;
+    }
+    hGenMcDijetPtEtaCMForward->SetName("hGenMcDijetPtEtaCMForward");
+    TH2D *hGenMcDijetPtEtaCMBackward =  dynamic_cast<TH2D *>(fMc->Get("hGenDijetPtEtaCMBackwardWeighted"));
+    if ( !hGenMcDijetPtEtaCMBackward ) {
+        std::cerr << "MC histogram hGenDijetPtEtaCMBackwardWeighted not found in file." << std::endl; return;
+    }
+    hGenMcDijetPtEtaCMBackward->SetName("hGenMcDijetPtEtaCMBackward");
+
+    rescaleHisto3D(hGenMcDijetPtEtaPhiLab);
+    rescaleHisto3D(hGenMcDijetPtEtaPhiCM);
+    rescaleHisto2D(hGenMcDijetPtEtaCMForward);
+    rescaleHisto2D(hGenMcDijetPtEtaCMBackward);
+
+    TH1D *hGenMcDijetEtaLab{nullptr};
+    TH1D *hGenMcDijetEtaCM{nullptr};
+    TH1D *hGenMcDijetEtaForward{nullptr};
+    TH1D *hGenMcDijetEtaBackward{nullptr};
+    TH1D *hGenMcDijetFBRatio{nullptr};
+
+    // Ref
+    TH3D *hRefMcDijetPtEtaPhiLab = dynamic_cast<TH3D *>(fMc->Get("hRefDijetPtEtaPhiWeighted"));
+    if ( !hRefMcDijetPtEtaPhiLab ) {
+        std::cerr << "MC histogram hRefDijetPtEtaPhiWeighted not found in file." << std::endl; return;
+    }
+    hRefMcDijetPtEtaPhiLab->SetName("hRefMcDijetPtEtaPhiLab");
+    TH3D *hRefMcDijetPtEtaPhiCM = dynamic_cast<TH3D *>(fMc->Get("hRefDijetPtEtaPhiCMWeighted"));
+    if ( !hRefMcDijetPtEtaPhiCM ) {
+        std::cerr << "MC histogram hRefDijetPtEtaPhiCMWeighted not found in file." << std::endl; return;
+    }
+    hRefMcDijetPtEtaPhiCM->SetName("hRefMcDijetPtEtaPhiCM");
+    TH2D *hRefMcDijetPtEtaCMForward = dynamic_cast<TH2D *>(fMc->Get("hRefDijetPtEtaCMForwardWeighted"));
+    if ( !hRefMcDijetPtEtaCMForward ) {
+        std::cerr << "MC histogram hRefDijetPtEtaCMForwardWeighted not found in file." << std::endl; return;
+    }
+    hRefMcDijetPtEtaCMForward->SetName("hRefMcDijetPtEtaCMForward");
+    TH2D *hRefMcDijetPtEtaCMBackward = dynamic_cast<TH2D *>(fMc->Get("hRefDijetPtEtaCMBackwardWeighted"));
+    if ( !hRefMcDijetPtEtaCMBackward ) {
+        std::cerr << "MC histogram hRefDijetPtEtaCMBackwardWeighted not found in file." << std::endl; return;
+    }
+    hRefMcDijetPtEtaCMBackward->SetName("hRefMcDijetPtEtaCMBackward");
+
+    rescaleHisto3D(hRefMcDijetPtEtaPhiLab);
+    rescaleHisto3D(hRefMcDijetPtEtaPhiCM);
+    rescaleHisto2D(hRefMcDijetPtEtaCMForward);
+    rescaleHisto2D(hRefMcDijetPtEtaCMBackward);
+
+    TH1D *hRefMcDijetEtaLab{nullptr};
+    TH1D *hRefMcDijetEtaCM{nullptr};
+    TH1D *hRefMcDijetEtaForward{nullptr};
+    TH1D *hRefMcDijetEtaBackward{nullptr};
+    TH1D *hRefMcDijetFBRatio{nullptr};
 
     // Ratio of full distributions to gen
-    TH1D *hRecoData2GenDijetEta[dijetPtBins];
-    TH1D *hRecoMc2GenDijetEta[dijetPtBins];
-    TH1D *hRef2GenDijetEta[dijetPtBins];
+    TH1D *hRecoData2GenDijetEtaLab{nullptr};
+    TH1D *hRecoMc2GenDijetEtaLab{nullptr};
+    TH1D *hRef2GenDijetEtaLab{nullptr};
 
-    TH1D *hRecoData2GenDijetEtaCM[dijetPtBins];
-    TH1D *hRecoMc2GenDijetEtaCM[dijetPtBins];
-    TH1D *hRef2GenDijetEtaCM[dijetPtBins];
+    TH1D *hRecoData2GenDijetEtaCM{nullptr};
+    TH1D *hRecoMc2GenDijetEtaCM{nullptr};
+    TH1D *hRef2GenDijetEtaCM{nullptr};
 
     //
-    // Loop over the dijet pT bins and read histograms from the files
+    // Canvas 
     //
-    for (int i = 0; i < dijetPtBins; ++i) {
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+    TCanvas *c = new TCanvas("c", "c", 1200, 1200);
+    setPadStyle();
 
-        double integralForward{0};
-        double integralBackward{0};
+    //
+    // Loop over the dijet pTave bins, make projections and plot distributions
+    //
+    for (int i = 0; i < sizeOfDijetPtVals - 1; ++i) {
+
+        double ptLow = dijetPtVals[i];
+        double ptHi = dijetPtVals[i + 1];
+        int ptBinLow = hRecoDataDijetPtEtaPhiLab->GetYaxis()->FindBin(ptLow);
+        int ptBinHigh = hRecoDataDijetPtEtaPhiLab->GetYaxis()->FindBin(ptHi) - 1;
+
 
         //
         // Data
         //
 
-        // Eta full (lab frame)
-        hRecoDataDijetEta[i] = dynamic_cast<TH1D*>( fData->Get( Form("hRecoDijetEta1DWeighted_%d", i) ) );
-        if ( !hRecoDataDijetEta[i] ) {
-            std::cerr << Form("Data histogram not found: hRecoDijetEta1DWeighted_%d", i) << std::endl; return;
+        hRecoDataDijetEtaLab = dynamic_cast<TH1D*>( hRecoDataDijetPtEtaPhiLab->ProjectionY( Form("hRecoDataDijetEtaLab_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRecoDataDijetEtaLab ) {
+            std::cerr << Form("Data histogram not found: hRecoDataDijetEtaLab_%d", i) << std::endl; return;
         }
-        hRecoDataDijetEta[i]->SetName( Form("hRecoDataDijetEta_%d", i) );
-        set1DStyle( hRecoDataDijetEta[i], 2 );
-        rescaleHisto1D( hRecoDataDijetEta[i] );
+        hRecoDataDijetEtaLab->SetName( Form("hRecoDataDijetEtaLab_%d", i) );
+        set1DStyle( hRecoDataDijetEtaLab, 2 );
+        rescaleHisto1D( hRecoDataDijetEtaLab );
 
-        // Eta full (CM frame)
-        hRecoDataDijetEtaCM[i] = dynamic_cast<TH1D*>( fData->Get( Form("hRecoDijetEta1DCMWeighted_%d", i) ) );
-        if ( !hRecoDataDijetEtaCM[i] ) {
-            std::cerr << Form("Data histogram not found: hRecoDijetEta1DCMWeighted_%d", i) << std::endl; return;
+        hRecoDataDijetEtaCM = dynamic_cast<TH1D*>( hRecoDataDijetPtEtaPhiCM->ProjectionY( Form("hRecoDataDijetEtaCM_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRecoDataDijetEtaCM ) {
+            std::cerr << Form("Data histogram not found: hRecoDataDijetEtaCM_%d", i) << std::endl; return;
         }
-        hRecoDataDijetEtaCM[i]->SetName( Form("hRecoDataDijetEtaCM_%d", i) );
-        set1DStyle( hRecoDataDijetEtaCM[i], 2 );
-        rescaleHisto1D( hRecoDataDijetEtaCM[i] );
+        hRecoDataDijetEtaCM->SetName( Form("hRecoDataDijetEtaCM_%d", i) );
+        set1DStyle( hRecoDataDijetEtaCM, 2 );
+        rescaleHisto1D( hRecoDataDijetEtaCM );
 
-        // Eta forward (CM frame)
-        hRecoDataDijetEtaForward[i] = dynamic_cast<TH1D*>( fData->Get( Form("hRecoDijetEtaCMForward1DWeighted_%d", i) ) );
-        if ( !hRecoDataDijetEtaForward[i] ) {
-            std::cerr << Form("Data histogram not found: hRecoDijetEtaCMForward1DWeighted_%d", i) << std::endl; return;
+        hRecoDataDijetEtaForward = dynamic_cast<TH1D*>( hRecoDataDijetPtEtaCMForward->ProjectionY( Form("hRecoDataDijetEtaForward_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRecoDataDijetEtaForward ) {
+            std::cerr << Form("Data histogram not found: hRecoDataDijetEtaForward_%d", i) << std::endl; return;
         }
-        hRecoDataDijetEtaForward[i]->SetName( Form("hRecoDataDijetEtaForward_%d", i) );
-        set1DStyle( hRecoDataDijetEtaForward[i], 2 );
-        integralForward = hRecoDataDijetEtaForward[i]->Integral();
-
-        // Eta backward (CM frame)
-        hRecoDataDijetEtaBackward[i] = dynamic_cast<TH1D*>( fData->Get( Form("hRecoDijetEtaCMBackward1DWeighted_%d", i) ) );
-        if ( !hRecoDataDijetEtaBackward[i] ) {
-            std::cerr << Form("Data histogram not found: hRecoDijetEtaCMBackward1DWeighted_%d", i) << std::endl; return;
+        hRecoDataDijetEtaForward->SetName( Form("hRecoDataDijetEtaForward_%d", i) );
+        set1DStyle( hRecoDataDijetEtaForward, 2 );
+        
+        hRecoDataDijetEtaBackward = dynamic_cast<TH1D*>( hRecoDataDijetPtEtaCMBackward->ProjectionY( Form("hRecoDataDijetEtaBackward_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRecoDataDijetEtaBackward ) {
+            std::cerr << Form("Data histogram not found: hRecoDataDijetEtaBackward_%d", i) << std::endl; return;
         }
-        hRecoDataDijetEtaBackward[i]->SetName( Form("hRecoDataDijetEtaBackward_%d", i) );
-        set1DStyle( hRecoDataDijetEtaBackward[i], 2 );
-        integralBackward = hRecoDataDijetEtaBackward[i]->Integral();
-
-        // Normalize the forward and backward distributions
-        hRecoDataDijetEtaForward[i]->Scale( integralForward / (integralForward + integralBackward) );
-        hRecoDataDijetEtaBackward[i]->Scale( integralBackward / (integralForward + integralBackward) );
+        hRecoDataDijetEtaBackward->SetName( Form("hRecoDataDijetEtaBackward_%d", i) );
+        set1DStyle( hRecoDataDijetEtaBackward, 2 );
 
         // Ratios
-        hRecoDataDijetFBRatio[i] = dynamic_cast<TH1D*>( hRecoDataDijetEtaForward[i]->Clone( Form("hRecoDataDijetFBRatio_%d", i) ) );
-        hRecoDataDijetFBRatio[i]->SetName( Form("hRecoDataDijetFBRatio_%d", i) );
-        hRecoDataDijetFBRatio[i]->Divide( hRecoDataDijetEtaBackward[i] );
+        hRecoDataDijetFBRatio = dynamic_cast<TH1D*>( hRecoDataDijetEtaForward->Clone( Form("hRecoDataDijetFBRatio_%d", i) ) );
+        hRecoDataDijetFBRatio->SetName( Form("hRecoDataDijetFBRatio_%d", i) );
+        hRecoDataDijetFBRatio->Divide( hRecoDataDijetFBRatio, hRecoDataDijetEtaBackward, 1., 1. );
 
         //
         // MC (reco)
         //
 
         // Eta full (lab frame)
-        hRecoMcDijetEta[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRecoDijetEta1DWeighted_%d", i) ) );
-        if ( !hRecoMcDijetEta[i] ) {
-            std::cerr << Form("MC histogram not found: hRecoDijetEta1DWeighted_%d", i) << std::endl; return;
+        hRecoMcDijetEtaLab = dynamic_cast<TH1D*>( hRecoMcDijetPtEtaPhiLab->ProjectionY( Form("hRecoMcDijetEtaLab_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRecoMcDijetEtaLab ) {
+            std::cerr << Form("MC histogram not found: hRecoDijetEta1DLab_%d", i) << std::endl; return;
         }
-        hRecoMcDijetEta[i]->SetName( Form("hRecoMcDijetEta_%d", i) );
-        set1DStyle( hRecoMcDijetEta[i], 0 );
-        rescaleHisto1D( hRecoMcDijetEta[i] );
+        hRecoMcDijetEtaLab->SetName( Form("hRecoMcDijetEtaLab_%d", i) );
+        set1DStyle( hRecoMcDijetEtaLab, 0 );
+        rescaleHisto1D( hRecoMcDijetEtaLab );
 
         // Eta full (CM frame)
-        hRecoMcDijetEtaCM[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRecoDijetEta1DCMWeighted_%d", i) ) );
-        if ( !hRecoMcDijetEtaCM[i] ) {
-            std::cerr << Form("MC histogram not found: hRecoDijetEta1DCMWeighted_%d", i) << std::endl; return;
+        hRecoMcDijetEtaCM = dynamic_cast<TH1D*>( hRecoMcDijetPtEtaPhiCM->ProjectionY( Form("hRecoMcDijetEtaCM_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRecoMcDijetEtaCM ) {
+            std::cerr << Form("MC histogram not found: hRecoMcDijetEtaCM_%d", i) << std::endl; return;
         }
-        hRecoMcDijetEtaCM[i]->SetName( Form("hRecoMcDijetEtaCM_%d", i) );
-        set1DStyle( hRecoMcDijetEtaCM[i], 0 );
-        rescaleHisto1D( hRecoMcDijetEtaCM[i] );
+        hRecoMcDijetEtaCM->SetName( Form("hRecoMcDijetEtaCM_%d", i) );
+        set1DStyle( hRecoMcDijetEtaCM, 0 );
+        rescaleHisto1D( hRecoMcDijetEtaCM );
 
         // Eta forward (CM frame)
-        hRecoMcDijetEtaForward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRecoDijetEtaCMForward1DWeighted_%d", i) ) );
-        if ( !hRecoMcDijetEtaForward[i] ) {
-            std::cerr << Form("MC histogram not found: hRecoDijetEtaCMForward1DWeighted_%d", i) << std::endl; return;
+        hRecoMcDijetEtaForward = dynamic_cast<TH1D*>(hRecoMcDijetPtEtaCMForward->ProjectionY( Form("hRecoMcDijetEtaForward_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRecoMcDijetEtaForward ) {
+            std::cerr << Form("MC histogram not found: hRecoDijetEtaCMForward1D_%d", i) << std::endl; return;
         }
-        hRecoMcDijetEtaForward[i]->SetName( Form("hRecoMcDijetEtaForward_%d", i) );
-        set1DStyle( hRecoMcDijetEtaForward[i], 0 );
-        integralForward = hRecoMcDijetEtaForward[i]->Integral();
+        hRecoMcDijetEtaForward->SetName( Form("hRecoMcDijetEtaForward_%d", i) );
+        set1DStyle( hRecoMcDijetEtaForward, 0 );
+        // integralForward = hRecoMcDijetEtaForward->Integral();
 
         // Eta backward (CM frame)
-        hRecoMcDijetEtaBackward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRecoDijetEtaCMBackward1DWeighted_%d", i) ) );
-        if ( !hRecoMcDijetEtaBackward[i] ) {
-            std::cerr << Form("MC histogram not found: hRecoDijetEtaCMBackward1DWeighted_%d", i) << std::endl; return;
+        hRecoMcDijetEtaBackward = dynamic_cast<TH1D*>( hRecoMcDijetPtEtaCMBackward->ProjectionY( Form("hRecoMcDijetEtaBackward_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRecoMcDijetEtaBackward ) {
+            std::cerr << Form("MC histogram not found: hRecoMcDijetEtaBackward_%d", i) << std::endl; return;
         }
-        hRecoMcDijetEtaBackward[i]->SetName( Form("hRecoMcDijetEtaBackward_%d", i) );
-        set1DStyle( hRecoMcDijetEtaBackward[i], 0 );
-        integralBackward = hRecoMcDijetEtaBackward[i]->Integral();
+        hRecoMcDijetEtaBackward->SetName( Form("hRecoMcDijetEtaBackward_%d", i) );
+        set1DStyle( hRecoMcDijetEtaBackward, 0 );
+        // double integralBackward = hRecoMcDijetEtaBackward->Integral();
 
         // Normalize the forward and backward distributions
-        hRecoMcDijetEtaForward[i]->Scale( integralForward / (integralForward + integralBackward) );
-        hRecoMcDijetEtaBackward[i]->Scale( integralBackward / (integralForward + integralBackward) );
+        // hRecoMcDijetEtaForward->Scale( integralForward / (integralForward + integralBackward) );
+        // hRecoMcDijetEtaBackward->Scale( integralBackward / (integralForward + integralBackward) );
 
         // Ratios
-        hRecoMcDijetFBRatio[i] = dynamic_cast<TH1D*>( hRecoMcDijetEtaForward[i]->Clone( Form("hRecoMcDijetFBRatio_%d", i) ) );
-        hRecoMcDijetFBRatio[i]->SetName( Form("hRecoMcDijetFBRatio_%d", i) );
-        hRecoMcDijetFBRatio[i]->Divide( hRecoMcDijetEtaBackward[i] );
+        hRecoMcDijetFBRatio = dynamic_cast<TH1D*>( hRecoMcDijetEtaForward->Clone( Form("hRecoMcDijetFBRatio_%d", i) ) );
+        hRecoMcDijetFBRatio->SetName( Form("hRecoMcDijetFBRatio_%d", i) );
+        hRecoMcDijetFBRatio->Divide( hRecoMcDijetFBRatio, hRecoMcDijetEtaBackward, 1., 1. );
 
         //
         // MC (gen)
         //
 
         // Eta full (lab frame)
-        hGenMcDijetEta[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hGenDijetEta1DWeighted_%d", i) ) );
-        if ( !hGenMcDijetEta[i] ) {
-            std::cerr << Form("MC histogram not found: hGenDijetEta1DWeighted_%d", i) << std::endl; return;
+        hGenMcDijetEtaLab = dynamic_cast<TH1D*>( hGenMcDijetPtEtaPhiLab->ProjectionY( Form("hGenMcDijetEtaLab_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hGenMcDijetEtaLab ) {
+            std::cerr << Form("MC histogram not found: hGenMcDijetEtaLab_%d", i) << std::endl; return;
         }
-        hGenMcDijetEta[i]->SetName( Form("hGenMcDijetEta_%d", i) );
-        set1DStyle( hGenMcDijetEta[i], 5 );
-        rescaleHisto1D( hGenMcDijetEta[i] );
+        hGenMcDijetEtaLab->SetName( Form("hGenMcDijetEtaLab_%d", i) );
+        set1DStyle( hGenMcDijetEtaLab, 5 );
+        rescaleHisto1D( hGenMcDijetEtaLab );    
 
         // Eta full (CM frame)
-        hGenMcDijetEtaCM[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hGenDijetEta1DCMWeighted_%d", i) ) );
-        if ( !hGenMcDijetEtaCM[i] ) {
-            std::cerr << Form("MC histogram not found: hGenDijetEta1DCMWeighted_%d", i) << std::endl; return;
+        hGenMcDijetEtaCM = dynamic_cast<TH1D*>( hGenMcDijetPtEtaPhiCM->ProjectionY( Form("hGenMcDijetEtaCM_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hGenMcDijetEtaCM ) {
+            std::cerr << Form("MC histogram not found: hGenMcDijetEtaCM_%d", i) << std::endl; return;
         }
-        hGenMcDijetEtaCM[i]->SetName( Form("hGenMcDijetEtaCM_%d", i) );
-        set1DStyle( hGenMcDijetEtaCM[i], 5 );
-        rescaleHisto1D( hGenMcDijetEtaCM[i] );
-
+        hGenMcDijetEtaCM->SetName( Form("hGenMcDijetEtaCM_%d", i) );
+        set1DStyle( hGenMcDijetEtaCM, 5 );
+        rescaleHisto1D( hGenMcDijetEtaCM );
+        
         // Eta forward (CM frame)
-        hGenMcDijetEtaForward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hGenDijetEtaCMForward1DWeighted_%d", i) ) );
-        if ( !hGenMcDijetEtaForward[i] ) {
-            std::cerr << Form("MC histogram not found: hGenDijetEtaCMForward1DWeighted_%d", i) << std::endl; return;
+        hGenMcDijetEtaForward = dynamic_cast<TH1D*>( hGenMcDijetPtEtaCMForward->ProjectionY( Form("hGenMcDijetEtaForward_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hGenMcDijetEtaForward ) {
+            std::cerr << Form("MC histogram not found: hGenMcDijetEtaForward_%d", i) << std::endl; return;
         }
-        hGenMcDijetEtaForward[i]->SetName( Form("hGenMcDijetEtaForward_%d", i) );
-        set1DStyle( hGenMcDijetEtaForward[i], 5 );
-        integralForward = hGenMcDijetEtaForward[i]->Integral();
+        hGenMcDijetEtaForward->SetName( Form("hGenMcDijetEtaForward_%d", i) );
+        set1DStyle( hGenMcDijetEtaForward, 5 );
+        // double integralForward = hGenMcDijetEtaForward->Integral();
 
         // Eta backward (CM frame)
-        hGenMcDijetEtaBackward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hGenDijetEtaCMBackward1DWeighted_%d", i) ) );
-        if ( !hGenMcDijetEtaBackward[i] ) {
-            std::cerr << Form("MC histogram not found: hGenDijetEtaCMBackward1DWeighted_%d", i) << std::endl; return;
+        hGenMcDijetEtaBackward = dynamic_cast<TH1D*>( hGenMcDijetPtEtaCMBackward->ProjectionY( Form("hGenMcDijetEtaBackward_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hGenMcDijetEtaBackward ) {
+            std::cerr << Form("MC histogram not found: hGenMcDijetEtaBackward_%d", i) << std::endl; return;
         }
-        hGenMcDijetEtaBackward[i]->SetName( Form("hGenMcDijetEtaBackward_%d", i) );
-        set1DStyle( hGenMcDijetEtaBackward[i], 5 );
-        integralBackward = hGenMcDijetEtaBackward[i]->Integral();
-
+        hGenMcDijetEtaBackward->SetName( Form("hGenMcDijetEtaBackward_%d", i) );
+        set1DStyle( hGenMcDijetEtaBackward, 5 );
+        // double integralBackward = hGenMcDijetEtaBackward->Integral();
+        
         // Normalize the forward and backward distributions
-        hGenMcDijetEtaForward[i]->Scale( integralForward / (integralForward + integralBackward) );
-        hGenMcDijetEtaBackward[i]->Scale( integralBackward / (integralForward + integralBackward) );
+        // hGenMcDijetEtaForward->Scale( integralForward / (integralForward + integralBackward) );
+        // hGenMcDijetEtaBackward->Scale( integralBackward / (integralForward + integralBackward) );
 
         // Ratios
-        hGenMcDijetFBRatio[i] = dynamic_cast<TH1D*>( hGenMcDijetEtaForward[i]->Clone( Form("hGenMcDijetFBRatio_%d", i) ) );
-        hGenMcDijetFBRatio[i]->SetName( Form("hGenMcDijetFBRatio_%d", i) );
-        hGenMcDijetFBRatio[i]->Divide( hGenMcDijetEtaBackward[i] );
+        hGenMcDijetFBRatio = dynamic_cast<TH1D*>( hGenMcDijetEtaForward->Clone( Form("hGenMcDijetFBRatio_%d", i) ) );
+        hGenMcDijetFBRatio->SetName( Form("hGenMcDijetFBRatio_%d", i) );
+        hGenMcDijetFBRatio->Divide( hGenMcDijetFBRatio, hGenMcDijetEtaBackward, 1., 1. );
 
         //
         // MC (ref)
         //
 
         // Eta full (lab frame)
-        hRefMcDijetEta[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRefDijetEta1DWeighted_%d", i) ) );
-        if ( !hRefMcDijetEta[i] ) {
-            std::cerr << Form("MC histogram not found: hRefDijetEta1DWeighted_%d", i) << std::endl; return;
+        hRefMcDijetEtaLab = dynamic_cast<TH1D*>( hRefMcDijetPtEtaPhiLab->ProjectionY( Form("hRefMcDijetEtaLab_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRefMcDijetEtaLab ) {
+            std::cerr << Form("MC histogram not found: hRefMcDijetEtaLab_%d", i) << std::endl; return;
         }
-        hRefMcDijetEta[i]->SetName( Form("hRefMcDijetEta_%d", i) );
-        set1DStyle( hRefMcDijetEta[i], 1 );
-        rescaleHisto1D( hRefMcDijetEta[i] );
+        hRefMcDijetEtaLab->SetName( Form("hRefMcDijetEtaLab_%d", i) );
+        set1DStyle( hRefMcDijetEtaLab, 1 );
+        rescaleHisto1D( hRefMcDijetEtaLab );
 
         // Eta full (CM frame)
-        hRefMcDijetEtaCM[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRefDijetEta1DCMWeighted_%d", i) ) );
-        if ( !hRefMcDijetEtaCM[i] ) {
-            std::cerr << Form("MC histogram not found: hRefDijetEta1DCMWeighted_%d", i) << std::endl; return;
+        hRefMcDijetEtaCM = dynamic_cast<TH1D*>( hRefMcDijetPtEtaPhiLab->ProjectionY( Form("hRefMcDijetEtaCM_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRefMcDijetEtaCM ) {
+            std::cerr << Form("MC histogram not found: hRefMcDijetEtaCM_%d", i) << std::endl; return;
         }
-        hRefMcDijetEtaCM[i]->SetName( Form("hRefMcDijetEtaCM_%d", i) );
-        set1DStyle( hRefMcDijetEtaCM[i], 1 );
-        rescaleHisto1D( hRefMcDijetEtaCM[i] );
+        hRefMcDijetEtaCM->SetName( Form("hRefMcDijetEtaCM_%d", i) );
+        set1DStyle( hRefMcDijetEtaCM, 1 );
+        rescaleHisto1D( hRefMcDijetEtaCM );
 
         // Eta forward (CM frame)
-        hRefMcDijetEtaForward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRefDijetEtaCMForward1DWeighted_%d", i) ) );
-        if ( !hRefMcDijetEtaForward[i] ) {
-            std::cerr << Form("MC histogram not found: hRefDijetEtaCMForward1DWeighted_%d", i) << std::endl; return;
+        hRefMcDijetEtaForward = dynamic_cast<TH1D*>( hRefMcDijetPtEtaCMForward->ProjectionY( Form("hRefMcDijetEtaForward_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRefMcDijetEtaForward ) {
+            std::cerr << Form("MC histogram not found: hRefMcDijetEtaForward_%d", i) << std::endl; return;
         }
-        hRefMcDijetEtaForward[i]->SetName( Form("hRefMcDijetEtaForward_%d", i) );
-        set1DStyle( hRefMcDijetEtaForward[i], 1 );
-        integralForward = hRefMcDijetEtaForward[i]->Integral();
+        hRefMcDijetEtaForward->SetName( Form("hRefMcDijetEtaForward_%d", i) );
+        set1DStyle( hRefMcDijetEtaForward, 1 );
+        // integralForward = hRefMcDijetEtaForward->Integral();
 
         // Eta backward (CM frame)
-        hRefMcDijetEtaBackward[i] = dynamic_cast<TH1D*>( fMc->Get( Form("hRefDijetEtaCMBackward1DWeighted_%d", i) ) );
-        if ( !hRefMcDijetEtaBackward[i] ) {
-            std::cerr << Form("MC histogram not found: hRefDijetEtaCMBackward1DWeighted_%d", i) << std::endl; return;
+        hRefMcDijetEtaBackward = dynamic_cast<TH1D*>( hRefMcDijetPtEtaCMBackward->ProjectionY( Form("hRefMcDijetEtaBackward_%d", i), ptBinLow, ptBinHigh ) );
+        if ( !hRefMcDijetEtaBackward ) {
+            std::cerr << Form("MC histogram not found: hRefMcDijetEtaBackward_%d", i) << std::endl; return;
         }
-        hRefMcDijetEtaBackward[i]->SetName( Form("hRefMcDijetEtaBackward_%d", i) );
-        set1DStyle( hRefMcDijetEtaBackward[i], 1 );
-        integralBackward = hRefMcDijetEtaBackward[i]->Integral();
+        hRefMcDijetEtaBackward->SetName( Form("hRefMcDijetEtaBackward_%d", i) );
+        set1DStyle( hRefMcDijetEtaBackward, 1 );
+        // integralBackward = hRefMcDijetEtaBackward->Integral();
 
         // Normalize the forward and backward distributions
-        hRefMcDijetEtaForward[i]->Scale( integralForward / (integralForward + integralBackward) );
-        hRefMcDijetEtaBackward[i]->Scale( integralBackward / (integralForward + integralBackward) );
+        // hRefMcDijetEtaForward->Scale( integralForward / (integralForward + integralBackward) );
+        // hRefMcDijetEtaBackward->Scale( integralBackward / (integralForward + integralBackward) );
 
         // Ratios
-        hRefMcDijetFBRatio[i] = dynamic_cast<TH1D*>( hRefMcDijetEtaForward[i]->Clone( Form("hRefMcDijetFBRatio_%d", i) ) );
-        hRefMcDijetFBRatio[i]->SetName( Form("hRefMcDijetFBRatio_%d", i) );
-        hRefMcDijetFBRatio[i]->Divide( hRefMcDijetEtaBackward[i] );
+        hRefMcDijetFBRatio = dynamic_cast<TH1D*>( hRefMcDijetEtaForward->Clone( Form("hRefMcDijetFBRatio_%d", i) ) );
+        hRefMcDijetFBRatio->SetName( Form("hRefMcDijetFBRatio_%d", i) );
+        hRefMcDijetFBRatio->Divide( hRefMcDijetFBRatio, hRefMcDijetEtaBackward, 1., 1. );
 
         //
-        // Ratios of full distributions to gen 
+        // Ratios of full distributions to gen in the laboratory 
         //
+        hRecoData2GenDijetEtaLab = dynamic_cast<TH1D*>( hRecoDataDijetEtaLab->Clone( Form("hRecoData2GenDijetEtaLab_%d", i) ) );
+        hRecoData2GenDijetEtaLab->SetName( Form("hRecoData2GenDijetEtaLab_%d", i) );
+        hRecoData2GenDijetEtaLab->GetYaxis()->SetTitle( "Ratio to Gen" );
+        hRecoData2GenDijetEtaLab->Divide( hRecoData2GenDijetEtaLab, hGenMcDijetEtaLab, 1., 1. );
 
-        hRecoData2GenDijetEta[i] = dynamic_cast<TH1D*>( hRecoDataDijetEta[i]->Clone( Form("hRecoData2GenDijetEta_%d", i) ) );
-        hRecoData2GenDijetEta[i]->SetName( Form("hRecoData2GenDijetEta_%d", i) );
-        hRecoData2GenDijetEta[i]->Divide( hRecoData2GenDijetEta[i], hGenMcDijetEta[i], 1., 1. );
+        hRecoMc2GenDijetEtaLab = dynamic_cast<TH1D*>( hRecoMcDijetEtaLab->Clone( Form("hRecoMc2GenDijetEtaLab_%d", i) ) );
+        hRecoMc2GenDijetEtaLab->SetName( Form("hRecoMc2GenDijetEtaLab_%d", i) );
+        hRecoMc2GenDijetEtaLab->GetYaxis()->SetTitle( "Ratio to Gen" );
+        hRecoMc2GenDijetEtaLab->Divide( hRecoMc2GenDijetEtaLab, hGenMcDijetEtaLab, 1., 1., "b" );
 
-        hRecoMc2GenDijetEta[i] = dynamic_cast<TH1D*>( hRecoMcDijetEta[i]->Clone( Form("hRecoMc2GenDijetEta_%d", i) ) );
-        hRecoMc2GenDijetEta[i]->SetName( Form("hRecoMc2GenDijetEta_%d", i) );
-        hRecoMc2GenDijetEta[i]->Divide( hRecoMc2GenDijetEta[i], hGenMcDijetEta[i], 1., 1., "b" );
-
-        hRef2GenDijetEta[i] = dynamic_cast<TH1D*>( hRefMcDijetEta[i]->Clone( Form("hRef2GenDijetEta_%d", i) ) );
-        hRef2GenDijetEta[i]->SetName( Form("hRef2GenDijetEta_%d", i) );
-        hRef2GenDijetEta[i]->Divide( hRef2GenDijetEta[i], hGenMcDijetEta[i], 1., 1., "b" );
-
-        hRecoData2GenDijetEtaCM[i] = dynamic_cast<TH1D*>( hRecoDataDijetEtaCM[i]->Clone( Form("hRecoData2GenDijetEtaCM_%d", i) ) );
-        hRecoData2GenDijetEtaCM[i]->SetName( Form("hRecoData2GenDijetEtaCM_%d", i) );
-        hRecoData2GenDijetEtaCM[i]->Divide( hRecoData2GenDijetEtaCM[i], hGenMcDijetEtaCM[i], 1., 1. );
-
-        hRecoMc2GenDijetEtaCM[i] = dynamic_cast<TH1D*>( hRecoMcDijetEtaCM[i]->Clone( Form("hRecoMc2GenDijetEtaCM_%d", i) ) );
-        hRecoMc2GenDijetEtaCM[i]->SetName( Form("hRecoMc2GenDijetEtaCM_%d", i) );
-        hRecoMc2GenDijetEtaCM[i]->Divide( hRecoMc2GenDijetEtaCM[i], hGenMcDijetEtaCM[i], 1., 1., "b" );
-
-        hRef2GenDijetEtaCM[i] = dynamic_cast<TH1D*>( hRefMcDijetEtaCM[i]->Clone( Form("hRef2GenDijetEtaCM_%d", i) ) );
-        hRef2GenDijetEtaCM[i]->SetName( Form("hRef2GenDijetEtaCM_%d", i) );
-        hRef2GenDijetEtaCM[i]->Divide( hRef2GenDijetEtaCM[i], hGenMcDijetEtaCM[i], 1., 1., "b" );
-    } // for (int i = 0; i < dijetPtBins; ++i)
-
-    //
-    // Plot comparisons and ratios
-    //
-
-    TLatex t;
-    t.SetTextFont( 42 );
-    t.SetTextSize( 0.05 );
-    TLegend *leg;
-    TCanvas *c = new TCanvas("c", "c", 1200, 1200);
-
-    //
-    // Loop over the dijet pT average bins and plot the distributions
-    //
-    for (int i = 0; i < dijetPtBins; ++i) {
-
-        TLatex t;
+        hRef2GenDijetEtaLab = dynamic_cast<TH1D*>( hRefMcDijetEtaLab->Clone( Form("hRef2GenDijetEtaLab_%d", i) ) );
+        hRef2GenDijetEtaLab->SetName( Form("hRef2GenDijetEtaLab_%d", i) );
+        hRef2GenDijetEtaLab->GetYaxis()->SetTitle( "Ratio to Gen" );
+        hRef2GenDijetEtaLab->Divide( hRef2GenDijetEtaLab, hGenMcDijetEtaLab, 1., 1., "b" );
 
         //
-        // Full eta distribution and f/b comparisons 
+        // Ratios of full distributions to gen in the center-of-mass frame
         //
+        hRecoData2GenDijetEtaCM = dynamic_cast<TH1D*>( hRecoDataDijetEtaCM->Clone( Form("hRecoData2GenDijetEtaCM_%d", i) ) );
+        hRecoData2GenDijetEtaCM->SetName( Form("hRecoData2GenDijetEtaCM_%d", i) );
+        hRecoData2GenDijetEtaCM->GetYaxis()->SetTitle( "Ratio to Gen" );
+        hRecoData2GenDijetEtaCM->Divide( hRecoData2GenDijetEtaCM, hGenMcDijetEtaCM, 1., 1. );
+
+        hRecoMc2GenDijetEtaCM = dynamic_cast<TH1D*>( hRecoMcDijetEtaCM->Clone( Form("hRecoMc2GenDijetEtaCM_%d", i) ) );
+        hRecoMc2GenDijetEtaCM->SetName( Form("hRecoMc2GenDijetEtaCM_%d", i) );
+        hRecoMc2GenDijetEtaCM->GetYaxis()->SetTitle( "Ratio to Gen" );
+        hRecoMc2GenDijetEtaCM->Divide( hRecoMc2GenDijetEtaCM, hGenMcDijetEtaCM, 1., 1., "b" );
+
+        hRef2GenDijetEtaCM = dynamic_cast<TH1D*>( hRefMcDijetEtaCM->Clone( Form("hRef2GenDijetEtaCM_%d", i) ) );
+        hRef2GenDijetEtaCM->SetName( Form("hRef2GenDijetEtaCM_%d", i) );
+        hRef2GenDijetEtaCM->GetYaxis()->SetTitle( "Ratio to Gen" );
+        hRef2GenDijetEtaCM->Divide( hRef2GenDijetEtaCM, hGenMcDijetEtaCM, 1., 1., "b" );
+
+        //
+        // Plot comparisons
+        //
+
 
         // Lab frame
-        drawDijetToGenComparison(c, hRecoMcDijetEta[i], hGenMcDijetEta[i], hRefMcDijetEta[i], nullptr, hRecoDataDijetEta[i], 
-                            (int)dijetPtVals[i], (int)dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
-
         c->cd();
+        drawDijetToGenComparison(c, hRecoMcDijetEtaLab, hGenMcDijetEtaLab, hRefMcDijetEtaLab, nullptr, hRecoDataDijetEtaLab,
+                            (int)ptLow, (int)ptHi, false, false, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHi) );
+
+        c->cd(); c->Clear(); setPadStyle();
         setPadStyle();
-        hRecoDataDijetEta[i]->Draw();
-        hRecoDataDijetEta[i]->GetXaxis()->SetRangeUser(-2.5, 2.5);
-        hRecoDataDijetEta[i]->GetYaxis()->SetRangeUser(0.0, 0.12);
-        t.DrawLatexNDC( 0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        hRecoDataDijetEtaLab->Draw();
+        hRecoDataDijetEtaLab->GetXaxis()->SetRangeUser(-2.5, 2.5);
+        hRecoDataDijetEtaLab->GetYaxis()->SetRangeUser(0.00001, 0.45);
+        t.DrawLatexNDC( 0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", (int)ptLow, (int)ptHi) );
         c->SaveAs( Form("%s/%s_%s_dijetEtaLab_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
 
         // CM frame
-        drawDijetToGenComparison(c, hRecoMcDijetEtaCM[i], hGenMcDijetEtaCM[i], hRefMcDijetEtaCM[i], nullptr, hRecoDataDijetEtaCM[i], 
-                            (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
-        
-        c->cd();
-        setPadStyle();
-        hRecoDataDijetEtaCM[i]->Draw();
-        hRecoDataDijetEtaCM[i]->GetXaxis()->SetRangeUser(-2., 2.);
-        hRecoDataDijetEtaCM[i]->GetYaxis()->SetRangeUser(0., 0.12);
-        t.DrawLatexNDC( 0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
-        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        drawDijetToGenComparison(c, hRecoMcDijetEtaCM, hGenMcDijetEtaCM, hRefMcDijetEtaCM, nullptr, hRecoDataDijetEtaCM,
+                            (int)ptLow, (int)ptHi, true, false, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHi) );
+
+        c->cd(); c->Clear(); setPadStyle();
+        hRecoDataDijetEtaCM->Draw();
+        hRecoDataDijetEtaCM->GetXaxis()->SetRangeUser(-2., 2.);
+        hRecoDataDijetEtaCM->GetYaxis()->SetRangeUser(0.00001, 0.45);
+        t.DrawLatexNDC( 0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", (int)ptLow, (int)ptHi) );
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHi) );
 
         // Forward-backward ratio
-        drawDijetToGenComparison(c, hRecoMcDijetFBRatio[i], hGenMcDijetFBRatio[i], hRefMcDijetFBRatio[i], nullptr, hRecoDataDijetFBRatio[i], 
-                            (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, true, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaFBRatio_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
-
-        c->cd();
-        setPadStyle();
-        hRecoDataDijetFBRatio[i]->Draw();
-        hRecoDataDijetFBRatio[i]->GetXaxis()->SetRangeUser(0., 2.);
-        hRecoDataDijetFBRatio[i]->GetYaxis()->SetRangeUser(0.8, 1.2);
-
-        t.DrawLatexNDC( 0.35, 0.85, Form("%d < p_{T}^{ave} < %d GeV", (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
-        c->SaveAs( Form("%s/%s_%s_dijetEtaFBRatio_data_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        drawDijetToGenComparison(c, hRecoMc2GenDijetEtaCM, nullptr, hRef2GenDijetEtaCM, nullptr, hRecoData2GenDijetEtaCM, 
+                            (int)ptLow, (int)ptHi, true, true, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaFBRatio_DataRecoRefGenComp_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHi) );
 
         //
-        // Full eta distribution ratios
+        // Plot ratios
         //
 
         // Lab frame
-        drawDijetToGenRatio(c, hRecoMc2GenDijetEta[i], hRef2GenDijetEta[i], nullptr, hRecoData2GenDijetEta[i],
-                       (int)dijetPtVals[i], (int)dijetPtVals[i+1], false, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        drawDijetToGenRatio(c, hRecoMc2GenDijetEtaLab, hRef2GenDijetEtaLab, nullptr, hRecoData2GenDijetEtaLab,
+                       (int)ptLow, (int)ptHi, false, false, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaLab_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHi) );
 
         // CM frame
-        drawDijetToGenRatio(c, hRecoMc2GenDijetEtaCM[i], hRef2GenDijetEtaCM[i], nullptr, hRecoData2GenDijetEtaCM[i],
-                       (int)dijetPtVals[i], (int)dijetPtVals[i+1], true, false, collisionSystem, collisionEnergy);
-        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)dijetPtVals[i], (int)dijetPtVals[i+1]) );
+        drawDijetToGenRatio(c, hRecoMc2GenDijetEtaCM, hRef2GenDijetEtaCM, nullptr, hRecoData2GenDijetEtaCM,
+                       (int)ptLow, (int)ptHi, true, false, collisionSystem, collisionEnergy);
+        c->SaveAs( Form("%s/%s_%s_dijetEtaCM_DataRecoRef2GenRatio_ptAve_%d_%d.pdf", date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHi) );
     }
+
+    if (c) { delete c; c = nullptr; }
 }
 
 //________________
@@ -3237,16 +3316,16 @@ void plotMcClosures() {
     //
     TFile *pPb8160EmbedFile = nullptr;
     if ( direction < 2 ) {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta20.root", uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data()) );
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta19.root", uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data()) );
         if ( !pPb8160EmbedFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta20.root", uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta19.root", uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
     else {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) );
+        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta19.root", uname.Data(), cutTypeStr.Data()) );
         if ( !pPb8160EmbedFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta20.root", uname.Data(), cutTypeStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta19.root", uname.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
@@ -3258,16 +3337,16 @@ void plotMcClosures() {
     //
     TFile *pPb8160PythiaFile = nullptr;
     if ( direction < 2 ) {
-        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) );
+        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_%seta19.root", uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data()) );
         if ( !pPb8160PythiaFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_eta20.root", uname.Data(), directionStr.Data(), directionStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_%seta19.root", uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
     else {
-        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20.root", uname.Data()) );
+        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_%seta19.root", uname.Data(), cutTypeStr.Data()) );
         if ( !pPb8160PythiaFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_eta20.root", uname.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_%seta19.root", uname.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
@@ -3277,16 +3356,16 @@ void plotMcClosures() {
     //
     TFile *pPb8160DataFile = nullptr;
     if ( direction < 2 ) {
-        pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_eta20.root", uname.Data(), dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data()) );
+        pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_%seta19.root", uname.Data(), dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data(), cutTypeStr.Data()) );
         if ( !pPb8160DataFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_eta20.root", uname.Data(), dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_%seta19.root", uname.Data(), dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
     else {
-        pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_eta20.root", uname.Data(), dataStr.Data()) );
+        pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_%seta19.root", uname.Data(), dataStr.Data(), cutTypeStr.Data()) );
         if ( !pPb8160DataFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_eta20.root", uname.Data(), dataStr.Data()) << std::endl;
+            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_%seta19.root", uname.Data(), dataStr.Data(), cutTypeStr.Data()) << std::endl;
             return;
         }
     }
@@ -3300,7 +3379,7 @@ void plotMcClosures() {
     // collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
     // jetType: 0 = Inclusive, 1 = Lead, 2 = SubLead
     // date: date string for saving the plots (default is "20250129")
-    inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
+    // inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
 
     //
     // Comparison of dijet reco and ref to gen distributions
@@ -3321,7 +3400,8 @@ void plotMcClosures() {
     //
     // Plot comparison of dijet reco and ref to gen distributions
     //
-    // data2mcDijetComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+    data2mcDijetComparison(pPb8160DataFile, pPb8160EmbedFile, collisionSystem, collisionEnergy, date);
+    // data2mcDijetComparison(pPb8160DataFile, pPb8160PythiaFile, collisionSystem, collisionEnergy, date);
 
     //
     // Plot comparison of inclusive jets and dijets for embedding and PYTHIA

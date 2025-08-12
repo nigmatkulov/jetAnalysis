@@ -79,7 +79,7 @@ fi
 if [ "$trigger_id" -eq 0 ]; then
     prefix_name=${trigger_name}_PD${pd_number}_${direction}
 else
-    prefix_name=${trigger_name}_${direction}
+    prefix_name=${trigger_name}_PAEG_${direction}
 fi
 
 cat <<EOF > condor/sub/pPb8160/${formatted_date}/pPb8160_${prefix_name}.sub
