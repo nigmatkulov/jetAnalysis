@@ -57,6 +57,8 @@ else
     input_file="${EXEC_PATH}/filelists/pPb8160/DATA_PAEGJet/${direction_name}/PAEGJet_${direction_name}.txt"
 fi
 
+echo "Using input file: $input_file"
+
 # Check if input file exists
 if [[ ! -f "$input_file" ]]; then
     echo "Error: Input file '$input_file' does not exist."
@@ -66,6 +68,7 @@ fi
 # Check if output directory exists, create if not
 if [[ ! -d "$output_dir" ]]; then
     mkdir -p "$output_dir"
+    echo "Created directory: $output_dir"
 fi
 
 # Date of submission
@@ -75,12 +78,14 @@ formatted_date=$(date +"%Y%m%d")
 path_2_sub_files="$EXEC_PATH/condor/sub/pPb8160/$formatted_date/foresting"
 if [[ ! -d "$path_2_sub_files" ]]; then
     mkdir -p "$path_2_sub_files"
+    echo "Created directory: $path_2_sub_files"
 fi
 
 # Check if directory to log, err, and out files exists
 path_2_log_files="$EXEC_PATH/condor/log/pPb8160/$formatted_date/foresting"
 if [[ ! -d "$path_2_log_files" ]]; then
     mkdir -p "$path_2_log_files"
+    echo "Created directory: $path_2_log_files"
 fi
 
 n_files=0
