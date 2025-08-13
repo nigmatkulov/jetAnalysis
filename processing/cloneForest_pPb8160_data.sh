@@ -44,11 +44,17 @@ if [[ "$trigger" == "0" && -z "$PD" ]]; then
     usage
 fi
 
+if [[ "$direction" == "0" ]]; then
+    direction_name="pgoing"
+else
+    direction_name="Pbgoing"
+fi
+
 # Set the input file based on the trigger and direction
 if [[ "$trigger" == "0" ]]; then
-    input_file="${EXEC_PATH}/filelists/pPb8160/DATA_MB/${direction}/MB_PD${PD}_${direction}.txt"
+    input_file="${EXEC_PATH}/filelists/pPb8160/DATA_MB/${direction_name}/MB_PD${PD}_${direction_name}.txt"
 else
-    input_file="${EXEC_PATH}/filelists/pPb8160/DATA_PAEGJet/${direction}/PAEGJet_${direction}.txt"
+    input_file="${EXEC_PATH}/filelists/pPb8160/DATA_PAEGJet/${direction_name}/PAEGJet_${direction_name}.txt"
 fi
 
 # Check if input file exists
