@@ -104,7 +104,8 @@ while IFS= read -r line; do
         continue  # Skip empty lines
     fi
     input_file_basename=$(basename "$line")
-    sub_file="${path_2_sub_files}/${input_file_basename}.sh"
+    input_file_basename="${input_file_basename%.*}"
+    sub_file="${path_2_sub_files}/${input_file_basename}.sub"
     cat <<EOF > $sub_file
 universe = vanilla
 executable = ${EXEC_PATH}/forestClonning.sh
