@@ -94,6 +94,7 @@ if [[ ! -d "$path_2_log_files" ]]; then
     echo "Created directory: $path_2_log_files"
 fi
 
+echo "Start input file processing"
 n_files=0
 # Parse input file line by line
 while IFS= read -r line; do
@@ -121,6 +122,6 @@ queue
 EOF
     chmod +x $sub_file
     # condor_submit $sub_file
-done 
+done < $input_file
 
 echo "Submitted $n_files jobs for forest cloning."
