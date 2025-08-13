@@ -1398,6 +1398,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
 
     if ( fVerbose ) {
         std::cout << "\nDiJetAnalysis::processRecoDijets -- begin" << std::endl;
+        std::cout << Form("Event weight: %f", weight) << std::endl;
     }
 
     if ( weight <= 0. ) {
@@ -2287,6 +2288,10 @@ void DiJetAnalysis::processEvent(const Event* event) {
 
     // Calculate event weight
     weight = eventWeight(ptHat, vz, centW, ptHatW);
+
+    if ( fVerbose ) {
+        std::cout << "Event weight: " << weight << std::endl;
+    }
 
     //
     // Create pT-sorted jet indices
