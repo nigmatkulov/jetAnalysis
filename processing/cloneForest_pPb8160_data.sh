@@ -112,17 +112,18 @@ universe = vanilla
 executable = ${EXEC_PATH}/forestClonning.sh
 +JobFlavour           = "microcentury"
 requirements =((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
+getenv     = True
 RequestCpus = 1
 transfer_input_files  = voms_proxy.txt
 environment = "X509_USER_PROXY=voms_proxy.txt"
 
 arguments = $line $output_dir
-output = "${path_2_log_files}/${input_file_basename}.out"
-log = "${path_2_log_files}/${input_file_basename}.log"
-error = "${path_2_log_files}/${input_file_basename}.err"
-queue    
+output = ${path_2_log_files}/${input_file_basename}.out
+log = ${path_2_log_files}/${input_file_basename}.log
+error = ${path_2_log_files}/${input_file_basename}.err
+queue
 EOF
-    chmod +x $sub_file
+    
     # condor_submit $sub_file
 done < $input_file
 
