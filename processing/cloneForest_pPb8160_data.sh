@@ -118,9 +118,9 @@ transfer_input_files  = ${EXEC_PATH}/voms_proxy.txt
 environment = "X509_USER_PROXY=voms_proxy.txt"
 
 arguments = $line $output_dir
-output = ${path_2_log_files}/${input_file_basename}.out
-log = ${path_2_log_files}/${input_file_basename}.log
-error = ${path_2_log_files}/${input_file_basename}.err
+output = ${EXEC_PATH}/${path_2_log_files}/${input_file_basename}.out
+log = ${EXEC_PATH}/${path_2_log_files}/${input_file_basename}.log
+error = ${EXEC_PATH}/${path_2_log_files}/${input_file_basename}.err
 queue
 EOF
     
