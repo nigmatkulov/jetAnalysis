@@ -44,17 +44,18 @@ if [[ "$trigger" == "0" && -z "$PD" ]]; then
     usage
 fi
 
+if [[ "$direction" == "0" ]]; then
+    direction_name="pgoing"
+else
+    direction_name="Pbgoing"
+fi
+
 if [[ "$trigger" == "0" ]]; then
     trigger_name="MB${PD}/$direction_name"
 else
     trigger_name="PAEGJet/$direction_name"
 fi
 
-if [[ "$direction" == "0" ]]; then
-    direction_name="pgoing"
-else
-    direction_name="Pbgoing"
-fi
 
 # Set the input file based on the trigger and direction
 if [[ "$trigger" == "0" ]]; then
