@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Source the CMSSW environment
-source ~/setup_cmsenv.sh
+source $HOME/setup_cmsenv.sh
 
 # Check if the correct number of arguments is provided
 if [ "$#" -ne 2 ]; then
