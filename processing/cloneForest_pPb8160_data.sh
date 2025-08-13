@@ -114,7 +114,7 @@ executable = ${EXEC_PATH}/forestClonning.sh
 requirements =((OpSysAndVer =?= "AlmaLinux9") && (CERNEnvironment =?= "qa"))
 getenv     = True
 RequestCpus = 1
-transfer_input_files  = voms_proxy.txt
+transfer_input_files  = ${EXEC_PATH}/voms_proxy.txt
 environment = "X509_USER_PROXY=voms_proxy.txt"
 
 arguments = $line $output_dir
