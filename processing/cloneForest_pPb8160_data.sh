@@ -44,6 +44,12 @@ if [[ "$trigger" == "0" && -z "$PD" ]]; then
     usage
 fi
 
+if [[ "$trigger" == "0" ]]; then
+    trigger_name="MB${PD}/$direction_name"
+else
+    trigger_name="PAEGJet/$direction_name"
+fi
+
 if [[ "$direction" == "0" ]]; then
     direction_name="pgoing"
 else
@@ -75,14 +81,14 @@ fi
 formatted_date=$(date +"%Y%m%d")
 
 # Check if directory in the condor/sub/$formatted_date/foresting directory exists
-path_2_sub_files="$EXEC_PATH/condor/sub/pPb8160/$formatted_date/foresting"
+path_2_sub_files="$EXEC_PATH/condor/sub/pPb8160/$formatted_date/foresting/$trigger_name"
 if [[ ! -d "$path_2_sub_files" ]]; then
     mkdir -p "$path_2_sub_files"
     echo "Created directory: $path_2_sub_files"
 fi
 
 # Check if directory to log, err, and out files exists
-path_2_log_files="$EXEC_PATH/condor/log/pPb8160/$formatted_date/foresting"
+path_2_log_files="$EXEC_PATH/condor/log/pPb8160/$formatted_date/foresting/$trigger_name"
 if [[ ! -d "$path_2_log_files" ]]; then
     mkdir -p "$path_2_log_files"
     echo "Created directory: $path_2_log_files"
