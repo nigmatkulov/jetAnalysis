@@ -89,10 +89,10 @@ if [[ ! -d "$path_2_sub_files" ]]; then
 fi
 
 # Check if directory to log, err, and out files exists
-path_2_log_files="$EXEC_PATH/condor/log/pPb8160/$formatted_date/foresting/$trigger_name"
-if [[ ! -d "$path_2_log_files" ]]; then
-    mkdir -p "$path_2_log_files"
-    echo "Created directory: $path_2_log_files"
+path_2_log_files="condor/log/pPb8160/$formatted_date/foresting/$trigger_name"
+if [[ ! -d "$EXEC_PATH/$path_2_log_files" ]]; then
+    mkdir -p "$EXEC_PATH/$path_2_log_files"
+    echo "Created directory: $EXEC_PATH/$path_2_log_files"
 fi
 
 echo "Start input file processing"
