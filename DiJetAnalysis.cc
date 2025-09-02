@@ -1144,7 +1144,7 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     float dijetGenDetaCM = fGenDijet->dEtaCM();
     float dijetGenPhi = fGenDijet->phi();
 
-    if ( ptGenSubLead > 30.f ) {
+    if ( ptGenSubLead > 30.f && fabs(dijetGenDphi) > TMath::PiOver2() ) {
         double genDijetLeadSublead[10] { dijetGenPtAve, dijetGenEtaLab, dijetGenEtaCM, dijetGenPhi, 
                                          ptGenLead, etaGenLeadLab, etaGenLeadCM, 
                                          ptGenSubLead, etaGenSubLeadLab, etaGenSubLeadCM };
@@ -1328,7 +1328,6 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // Lead jet
     RecoJet* recoLeadJet = event->recoJetCollection()->at( fRecoIdLead );
     float ptRecoLead = recoLeadJet->ptJECCorr();
-    float ptRawRecoLead = recoLeadJet->rawPt();
     float etaRecoLeadLab = etaLab( recoLeadJet->eta() );
     float etaRecoLeadCM = boostEta2CM( recoLeadJet->eta() );
     float phiRecoLead = recoLeadJet->phi();
@@ -1336,7 +1335,6 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // SubLead jet
     RecoJet* recoSubLeadJet = event->recoJetCollection()->at( fRecoIdSubLead );
     float ptRecoSubLead = recoSubLeadJet->ptJECCorr();
-    float ptRawRecoSubLead = recoSubLeadJet->rawPt();
     float etaRecoSubLeadLab = etaLab( recoSubLeadJet->eta() );
     float etaRecoSubLeadCM = boostEta2CM( recoSubLeadJet->eta() );
     float phiRecoSubLead = recoSubLeadJet->phi();
@@ -1384,10 +1382,10 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     float dijetRecoEtaLab = fRecoDijet->etaLab();
     float dijetRecoEtaCM = fRecoDijet->etaCM();
     // float dijetRecoDetaCM = fRecoDijet->dEtaCM();
-    float dijetRecoPhi = fRecoDijet->phi();
+    // float dijetRecoPhi = fRecoDijet->phi();
 
     // This will allow to perform an entire analysis offline
-    if ( ptRecoSubLead > 30.f ) {
+    if ( ptRecoSubLead > 30.f && fabs(dijetRecoDphi) > TMath::PiOver2() ) {
         double dijetRecoInfo[10] { dijetRecoPtAve, dijetRecoEtaLab, dijetRecoEtaCM, dijetRecoDphi,
                                    ptRecoLead, etaRecoLeadLab, etaRecoLeadCM,
                                    ptRecoSubLead, etaRecoSubLeadLab, etaRecoSubLeadCM };
@@ -1413,7 +1411,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     float dijetRefEtaLab{0.};
     float dijetRefEtaCM{0.};
     float dijetRefDphi{0.};
-    float dijetRefPhi{0.};
+    // float dijetRefPhi{0.};
 
     // For Monte Carlo check if reco jets have matched gen jets. Skip reco dijet if not
     if ( fIsMc ) {
@@ -1490,7 +1488,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             dijetRefDphi = fRefDijet->dPhi();
             dijetRefEtaLab = fRefDijet->etaLab();
             dijetRefEtaCM = fRefDijet->etaCM();
-            dijetRefPhi = fRefDijet->phi();
+            // dijetRefPhi = fRefDijet->phi();
 
             if ( fabs( ptRefLead - fRefDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
                 fabs( ptRefSubLead - fRefDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||

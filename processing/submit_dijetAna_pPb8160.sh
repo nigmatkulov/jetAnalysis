@@ -44,7 +44,7 @@ jeu_syst=0
 # JER systematics: 0 - default, -1 - JER-, 1 - JER+, other - no extra smearing is applied (pure JEC)
 jer_syst=-99
 # RecoJet selection method: 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
-reco_jet_sel_method=1
+reco_jet_sel_method=2
 
 # Specify number of files per list to split
 files_per_job=50
