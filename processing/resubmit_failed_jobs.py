@@ -59,11 +59,12 @@ def main():
         print(f"Copied: {src_sub_path} -> {dst_sub_path}")
 
         # Submit the job
-        # try:
-        #     subprocess.run(["condor_submit", dst_sub_path], check=True)
-        #     print(f"Submitted: {sub_filename}")
-        # except subprocess.CalledProcessError as e:
-        #     print(f"ERROR: Failed to submit {sub_filename}: {e}")
+        try:
+            subprocess.run(["condor_submit", dst_sub_path], check=True)
+            print(f"Submitted: {sub_filename}")
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Failed to submit {sub_filename}: {e}")
 
 if __name__ == "__main__":
     main()
+
