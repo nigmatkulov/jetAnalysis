@@ -2781,7 +2781,7 @@ void plotUp2DownComparison(std::vector<TH1D*> hDef, std::vector<TH1D*> hUp, std:
         systType = "pileup";
     }
     else if ( systematics == 3 ) {
-        systType = "pointinResolution";
+        systType = "pointingResolution";
     }
     else {
         drawFits = false;

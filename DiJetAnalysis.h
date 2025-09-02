@@ -142,11 +142,6 @@ class DiJetAnalysis : public BaseAnalysis {
     /// @brief Dijet eta calculation
     float dijetEtaInFrame(const float& eta1, const float& eta2, bool isCM = false);
 
-    /// @brief Find dijet ptAve bin
-    int  findDijetPtAveBin(const float& pt);
-    /// @brief Find dijet ptAve bin (old binning)
-    int  findDijetPtAveOldBin(const float& pt);
-
     /// @brief Initialize vz weight function
     void initVzWeightFunction();
 
@@ -223,11 +218,6 @@ class DiJetAnalysis : public BaseAnalysis {
     JetCut *fRecoJetCut;
     JetCut *fGenJetCut;
     DiJetCut *fDiJetCut;
-
-    /// @brief Values for new dijet ptAve binning
-    std::vector<float> fPtAveBins;
-    /// @brief Values for old dijet ptAve binning
-    std::vector<float> fPtAveOldBins;
 
     /// @brief Size of the mixing buffer (default: 10)
     int fMixBufferSize = 10; 
