@@ -142,7 +142,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     // 0 - dijet pt ave, 1 - dijet eta lab, 2 - dijet eta cm, 3 - dijet delta phi,
     // 4 - lead pt, 5 - lead eta lab, 6 - lead eta cm,
     // 7 - sublead pt, 8 - sublead eta lab, 9 - sublead eta cm
-    THnSparseD *hGenDijetInfo;
+    // THnSparseD *hGenDijetInfo;
 
     TH1D *hGenInclusiveJetPt;
     TH1D *hGenInclusiveJetEta;
@@ -158,6 +158,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenEtaCMLeadEtaCMSublead;
     TH2D *hGenPtLeadPtSubleadMcReweight;
     TH2D *hGenEtaLeadEtaSubleadMcReweight;
+
     TH1D *hGenDijetEta;
     TH2D *hGenDijetPtEta;
     TH2D *hGenDijetPtEtaWeighted;
@@ -178,6 +179,13 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenDijetPtEtaBackwardWeighted;
     TH2D *hGenDijetPtEtaCMForwardWeighted;
     TH2D *hGenDijetPtEtaCMBackwardWeighted;
+
+    // TH3D *hGenDijetLeadSubLeadEta;
+    // TH3D *hGenDijetLeadSubLeadEtaCM;
+    // TH3D *hGenDijetLeadSubLeadPt;
+    // TH3D *hGenDijetPtLeadSubLeadEta;
+    // TH3D *hGenDijetPtLeadSubLeadEtaCM;
+
     TH1D *hGenGoodInclusiveJetEtaLabFrame;
     TH1D *hGenGoodInclusiveJetEtaCMFrame;
 
@@ -234,7 +242,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     // 0 - dijet pt ave, 1 - dijet eta lab, 2 - dijet eta cm, 3 - dijet delta phi
     // 4 - lead pt, 5 - lead eta, 6 - lead eta cm,
     // 7 - sublead pt, 8 - sublead eta, 9 - sublead eta cm
-    THnSparseD *hRecoDijetInfo;
+    // THnSparseD *hRecoDijetInfo;
 
     TH1D *hRecoInclusiveAllJetPt;
     TH1D *hRecoInclusiveAllJetEta;
@@ -257,12 +265,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoDijetPtEtaBackward;
     TH2D *hRecoDijetPtEtaForwardCMInLab;
     TH2D *hRecoDijetPtEtaBackwardCMInLab;
-
     TH2D *hRecoDijetPtEtaCMForward;
     TH2D *hRecoDijetPtEtaCMBackward;
     TH2D *hRecoDijetPtEtaForwardLabInCM;
     TH2D *hRecoDijetPtEtaBackwardLabInCM;
-
     TH2D *hRecoDijetPtEtaForwardWeighted;
     TH2D *hRecoDijetPtEtaBackwardWeighted;
     TH2D *hRecoDijetPtEtaCMForwardWeighted;
@@ -276,6 +282,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoDijetPtEtaLabInCM;
     TH2D *hRecoDijetPtEtaMatched;
     TH2D *hRecoDijetPtEtaCMMatched;
+
+    // TH3D *hRecoDijetLeadSubLeadEta;
+    // TH3D *hRecoDijetLeadSubLeadEtaCM;
+    // TH3D *hRecoDijetLeadSubLeadPt;
 
     // Lead and SubLead jet acceptance
     TH2D *hRecoLeadAllJetPtEta;
@@ -377,7 +387,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     // 6 - ref dijet ptAve, 7 - dijet eta,
     // 8 - ref lead pt, 9 - lead eta,
     // 10 - ref sublead pt, 11 - sublead eta
-    THnSparseD *hReco2RefFull;
+    // THnSparseD *hReco2RefFull;
 
     // Reco dijet pt, eta
     // Ref dijet pt, eta
@@ -391,7 +401,7 @@ class HistoManagerDiJet : public BaseHistoManager {
     // 6 - ref dijet ptAve, 7 - dijet eta,
     // 8 - ref lead pt, 9 - lead eta,
     // 10 - ref sublead pt, 11 - sublead eta
-    THnSparseD *hRefSel2RecoFull;
+    // THnSparseD *hRefSel2RecoFull;
 
     TH1D *hRefDijetEta;
     TH2D *hRefDijetEtaVsRecoDijetEta;

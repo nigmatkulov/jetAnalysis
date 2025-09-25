@@ -98,6 +98,7 @@ HistoManagerJetESR::HistoManagerJetESR() :
     hRecoInclusiveAllJetEtaUnweighted{nullptr},
     hRecoInclusiveAllJetPtEta{nullptr},
     hRecoInclusiveAllJetPtEtaPtHat{nullptr},
+    hRecoInclusiveAllJetPtRawEtaPtHat{nullptr},
     hRecoLeadAllJetPtEta{nullptr},
     hRecoLeadAllJetPtEtaPtHat{nullptr},
     hRecoSubLeadAllJetPtEta{nullptr},
@@ -253,6 +254,7 @@ HistoManagerJetESR::~HistoManagerJetESR() {
     if (hRecoInclusiveAllJetEtaUnweighted) { delete hRecoInclusiveAllJetEtaUnweighted; hRecoInclusiveAllJetEtaUnweighted = nullptr; }
     if (hRecoInclusiveAllJetPtEta) { delete hRecoInclusiveAllJetPtEta; hRecoInclusiveAllJetPtEta = nullptr; }
     if (hRecoInclusiveAllJetPtEtaPtHat) { delete hRecoInclusiveAllJetPtEtaPtHat; hRecoInclusiveAllJetPtEtaPtHat = nullptr; }
+    if (hRecoInclusiveAllJetPtRawEtaPtHat) { delete hRecoInclusiveAllJetPtRawEtaPtHat; hRecoInclusiveAllJetPtRawEtaPtHat = nullptr; }
     if (hRecoLeadAllJetPtEta) { delete hRecoLeadAllJetPtEta; hRecoLeadAllJetPtEta = nullptr; }
     if (hRecoLeadAllJetPtEtaPtHat) { delete hRecoLeadAllJetPtEtaPtHat; hRecoLeadAllJetPtEtaPtHat = nullptr; }
     if (hRecoSubLeadAllJetPtEta) { delete hRecoSubLeadAllJetPtEta; hRecoSubLeadAllJetPtEta = nullptr; }
@@ -520,7 +522,12 @@ void HistoManagerJetESR::init() {
                                            fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
     hRecoInclusiveAllJetPtEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
     hRecoInclusiveAllJetPtEtaPtHat->Sumw2();
-
+    hRecoInclusiveAllJetPtRawEtaPtHat = new TH3D("hRecoInclusiveAllJetPtRawEtaPtHat","Reco jet p_{T}^{raw} vs #eta vs #hat{p_{T}} (raw);#eta;p_{T}^{raw} (GeV);#hat{p_{T}} (GeV)",
+                                           prescale * fEtaBins, fEtaRange[0], fEtaRange[1],
+                                           fPtBins, fPtRange[0], fPtRange[1],
+                                           fPtHatBins, fPtHatRange[0], fPtHatRange[1]);
+    hRecoInclusiveAllJetPtRawEtaPtHat->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+    hRecoInclusiveAllJetPtRawEtaPtHat->Sumw2();
 
     hRecoGoodInclusiveJetEtaLabFrame = new TH1D("hRecoGoodInclusiveJetEtaLabFrame","Reco good jet #eta in lab frame;#eta;Entries",
                                                 fEtaBins, fEtaRange[0], fEtaRange[1]);
@@ -897,6 +904,7 @@ void HistoManagerJetESR::writeOutput() {
     hRecoInclusiveAllJetEtaUnweighted->Write();
     hRecoInclusiveAllJetPtEta->Write();
     hRecoInclusiveAllJetPtEtaPtHat->Write();
+    hRecoInclusiveAllJetPtRawEtaPtHat->Write();
     hRecoLeadAllJetPtEta->Write();
     hRecoLeadAllJetPtEtaPtHat->Write(); 
     hRecoSubLeadAllJetPtEta->Write();

@@ -146,6 +146,7 @@ class HistoManagerJetESR : public BaseHistoManager {
     TH1D *hRecoInclusiveAllJetEtaUnweighted;
     TH2D *hRecoInclusiveAllJetPtEta;
     TH3D *hRecoInclusiveAllJetPtEtaPtHat;
+    TH3D *hRecoInclusiveAllJetPtRawEtaPtHat;
     TH2D *hRecoLeadAllJetPtEta;
     TH3D *hRecoLeadAllJetPtEtaPtHat; 
     TH2D *hRecoSubLeadAllJetPtEta;
