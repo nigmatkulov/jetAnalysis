@@ -114,7 +114,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hGenDijetPtAveLeadEtaSubLeadEta{nullptr},
     hGenDijetPtAveLeadEtaSubLeadEtaCM{nullptr},
     hGenDijetEtaLeadEtaSubLeadEta{nullptr},
-    hGenDijetEtaLeadEtaSubLeadEtaCM{nullptr};
+    hGenDijetEtaLeadEtaSubLeadEtaCM{nullptr},
 
     hGenGoodInclusiveJetEtaLabFrame{nullptr},
     hGenGoodInclusiveJetEtaCMFrame{nullptr},
@@ -206,7 +206,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoDijetPtAveLeadEtaSubLeadEta{nullptr},
     hRecoDijetPtAveLeadEtaSubLeadEtaCM{nullptr},
     hRecoDijetEtaLeadEtaSubLeadEta{nullptr},
-    hRecoDijetEtaLeadEtaSubLeadEtaCM{nullptr};
+    hRecoDijetEtaLeadEtaSubLeadEtaCM{nullptr},
 
     hRecoLeadAllJetPtEta{nullptr},
     hRecoLeadAllJetPtEtaPtHat{nullptr},
