@@ -1248,6 +1248,10 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         (dijetGenEtaLab >= 0) ? fHM->hGenDijetPtEtaForward->Fill(dijetGenPtAve, dijetGenEtaLab) : fHM->hGenDijetPtEtaBackward->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaLab));
         (dijetGenEtaLab >= 0) ? fHM->hGenDijetPtEtaForwardWeighted->Fill(dijetGenPtAve, dijetGenEtaLab, weight * fMcReweight) : fHM->hGenDijetPtEtaBackwardWeighted->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaLab), weight * fMcReweight);
         (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaForwardCMInLab->Fill(dijetGenPtAve, dijetGenEtaCM, weight * fMcReweight) : fHM->hGenDijetPtEtaBackwardCMInLab->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaCM), weight * fMcReweight);
+
+        fHM->hGenDijetPtAveLeadPtSubLeadPt->Fill( dijetGenPtAve, ptGenLead, ptGenSubLead, weight );
+        fHM->hGenDijetPtAveLeadEtaSubLeadEta->Fill( dijetGenPtAve, etaGenLeadLab, etaGenSubLeadLab, weight );
+        fHM->hGenDijetEtaLeadEtaSubLeadEta->Fill( dijetGenEtaLab,  etaGenLeadLab, etaGenSubLeadLab, weight );
     } // if ( goodDijetLab )
 
     //
@@ -1288,6 +1292,10 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward->Fill(dijetGenPtAve, dijetGenEtaCM) : fHM->hGenDijetPtEtaCMBackward->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaCM));
         (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForwardWeighted->Fill(dijetGenPtAve, dijetGenEtaCM, weight * fMcReweight) : fHM->hGenDijetPtEtaCMBackwardWeighted->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaCM), weight * fMcReweight);
         (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaForwardLabInCM->Fill(dijetGenPtAve, dijetGenEtaLab, weight * fMcReweight) : fHM->hGenDijetPtEtaBackwardLabInCM->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaLab), weight * fMcReweight);
+
+        fHM->hGenDijetPtAveLeadPtSubLeadPtCM->Fill( dijetGenPtAve, ptGenLead, ptGenSubLead, weight );
+        fHM->hGenDijetPtAveLeadEtaSubLeadEtaCM->Fill( dijetGenPtAve, etaGenLeadCM, etaGenSubLeadCM, weight );
+        fHM->hGenDijetEtaLeadEtaSubLeadEtaCM->Fill( dijetGenEtaCM,  etaGenLeadCM, etaGenSubLeadCM, weight );
     } // if ( goodDijetCM )
 
     fGenDijet->cleanParameters();
@@ -1554,6 +1562,10 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         (dijetRecoEtaLab >= 0) ? fHM->hRecoDijetPtEtaForwardWeighted->Fill(dijetRecoPtAve, dijetRecoEtaLab, weight * fMcReweight) : fHM->hRecoDijetPtEtaBackwardWeighted->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaLab), weight * fMcReweight);
         (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaForwardCMInLab->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetPtEtaBackwardCMInLab->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
 
+        fHM->hRecoDijetPtAveLeadPtSubLeadPt->Fill( dijetRecoPtAve, ptRecoLead, ptRecoSubLead, weight );
+        fHM->hRecoDijetPtAveLeadEtaSubLeadEta->Fill( dijetRecoPtAve, etaRecoLeadLab, etaRecoSubLeadLab, weight );
+        fHM->hRecoDijetEtaLeadEtaSubLeadEta->Fill( dijetRecoEtaLab,  etaRecoLeadLab, etaRecoSubLeadLab, weight );
+
         // In case of MC
         if ( fIsMc && recoLeadJet->hasMatching() && recoSubLeadJet->hasMatching() ) {
 
@@ -1640,6 +1652,10 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward->Fill(dijetRecoPtAve, dijetRecoEtaCM, 1.) : fHM->hRecoDijetPtEtaCMBackward->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaCM), 1.);
         (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForwardWeighted->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight * fMcReweight) : fHM->hRecoDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaCM), weight * fMcReweight);
         (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaForwardLabInCM->Fill(dijetRecoPtAve, dijetRecoEtaLab, weight * fMcReweight) : fHM->hRecoDijetPtEtaBackwardLabInCM->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaLab), weight * fMcReweight);
+
+        fHM->hRecoDijetPtAveLeadPtSubLeadPtCM->Fill( dijetRecoPtAve, ptRecoLead, ptRecoSubLead, weight );
+        fHM->hRecoDijetPtAveLeadEtaSubLeadEtaCM->Fill( dijetRecoPtAve, etaRecoLeadCM, etaRecoSubLeadCM, weight );
+        fHM->hRecoDijetEtaLeadEtaSubLeadEtaCM->Fill( dijetRecoEtaCM,  etaRecoLeadCM, etaRecoSubLeadCM, weight );
         
         // In case of MC
         if ( fIsMc && recoLeadJet->hasMatching() && recoSubLeadJet->hasMatching() ) {

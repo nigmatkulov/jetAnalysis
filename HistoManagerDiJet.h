@@ -180,11 +180,12 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenDijetPtEtaCMForwardWeighted;
     TH2D *hGenDijetPtEtaCMBackwardWeighted;
 
-    // TH3D *hGenDijetLeadSubLeadEta;
-    // TH3D *hGenDijetLeadSubLeadEtaCM;
-    // TH3D *hGenDijetLeadSubLeadPt;
-    // TH3D *hGenDijetPtLeadSubLeadEta;
-    // TH3D *hGenDijetPtLeadSubLeadEtaCM;
+    TH3D *hGenDijetPtAveLeadPtSubLeadPt;
+    TH3D *hGenDijetPtAveLeadPtSubLeadPtCM;
+    TH3D *hGenDijetPtAveLeadEtaSubLeadEta;
+    TH3D *hGenDijetPtAveLeadEtaSubLeadEtaCM;
+    TH3D *hGenDijetEtaLeadEtaSubLeadEta;
+    TH3D *hGenDijetEtaLeadEtaSubLeadEtaCM;
 
     TH1D *hGenGoodInclusiveJetEtaLabFrame;
     TH1D *hGenGoodInclusiveJetEtaCMFrame;
@@ -283,9 +284,12 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoDijetPtEtaMatched;
     TH2D *hRecoDijetPtEtaCMMatched;
 
-    // TH3D *hRecoDijetLeadSubLeadEta;
-    // TH3D *hRecoDijetLeadSubLeadEtaCM;
-    // TH3D *hRecoDijetLeadSubLeadPt;
+    TH3D *hRecoDijetPtAveLeadPtSubLeadPt;
+    TH3D *hRecoDijetPtAveLeadPtSubLeadPtCM;
+    TH3D *hRecoDijetPtAveLeadEtaSubLeadEta;
+    TH3D *hRecoDijetPtAveLeadEtaSubLeadEtaCM;
+    TH3D *hRecoDijetEtaLeadEtaSubLeadEta;
+    TH3D *hRecoDijetEtaLeadEtaSubLeadEtaCM;
 
     // Lead and SubLead jet acceptance
     TH2D *hRecoLeadAllJetPtEta;
