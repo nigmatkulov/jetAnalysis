@@ -353,13 +353,17 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hInclusiveJetJESVsPtGen;
     // pt corr/pt, gen pt, gen eta, ptHat
     THnSparseD *hInclusiveJetJESGenPtGenEtaPtHatWeighted;
+    // pt corr/pt, gen pt, gen eta, ptHat
+    THnSparseD *hInclusiveJetJESGenPtGenEtaCMPtHatWeighted;
     // pt corr/pt, reco pt, reco eta, ptHat
     THnSparseD *hInclusiveJetJESRecoPtRecoEtaPtHatWeighted;
 
     // pt corr/pt gen vs pt gen, gen eta, ptHat
     THnSparseD *hLeadJetJESGenPtEtaPtHatWeighted;
+    THnSparseD *hLeadJetJESGenPtEtaCMPtHatWeighted;
     // pt corr/pt gen vs pt gen, gen eta, ptHat
     THnSparseD *hSubLeadJetJESGenPtEtaPtHatWeighted;
+    THnSparseD *hSubLeadJetJESGenPtEtaCMPtHatWeighted;
 
     // Matched and unmatched jet acceptance
     TH1D *hRecoInclusiveMatchedJetPt;

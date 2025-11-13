@@ -747,6 +747,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 double res[4]  = { JES, genPt, genEta, genPhi };
                 double res1[4] = { JES, genPt, genEta, ptHat };
                 double res2[4] = { JES, pt, eta, ptHat };
+                double res3[4] = { JES, genPt, boostEta2CM(genEta), ptHat };
 
                 // Inclusive ref jets
                 fHM->hRefInclusiveJetPt->Fill( genPt, weight );
@@ -775,6 +776,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     fHM->hInclusiveJetJESVsPtGen->Fill( genPt, JES, weight );
                 }
                 fHM->hInclusiveJetJESGenPtGenEtaPtHatWeighted->Fill( res1, weight );
+                fHM->hInclusiveJetJESGenPtGenEtaCMPtHatWeighted->Fill( res3, weight );
                 fHM->hInclusiveJetJESRecoPtRecoEtaPtHatWeighted->Fill( res2, weight );
 
                 double correl[5] { pt, ptRaw, genPt, eta, genEta };
@@ -783,6 +785,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 // Lead jet
                 if ( (fRecoIdLead >= 0) && ((recoJetCounter-1) == fRecoIdLead) ) {
                     fHM->hLeadJetJESGenPtEtaPtHatWeighted->Fill( res1, weight );
+                    fHM->hLeadJetJESGenPtEtaCMPtHatWeighted->Fill( res3, weight );
                     fHM->hRecoLeadJetReco2Ref->Fill( correl, weight );
                     // Lead matched reco jet
                     fHM->hRecoLeadMatchedJetPtEta->Fill( eta, pt, weight);
@@ -802,6 +805,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 // SubLead jet
                 if ( (fRecoIdSubLead >= 0) && ((recoJetCounter-1) == fRecoIdSubLead) ) {
                     fHM->hSubLeadJetJESGenPtEtaPtHatWeighted->Fill( res1, weight );
+                    fHM->hSubLeadJetJESGenPtEtaCMPtHatWeighted->Fill( res3, weight );
                     fHM->hRecoSubLeadJetReco2Ref->Fill( correl, weight );
                     // SubLead matched reco jet
                     fHM->hRecoSubLeadMatchedJetPtEta->Fill( eta, pt, weight);
