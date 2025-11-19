@@ -907,11 +907,11 @@ void HistoManagerDiJet::init() {
     hRecoJetCollectionSize->Sumw2();
 
     hRecoLeadAllJetPtEta = new TH2D("hRecoLeadAllJetPtEta","Lead jet all p_{T} vs #eta;#eta;p_{T} (GeV)", 
-                                        fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                        2 * fEtaBins, fEtaRange[0], fEtaRange[1], 
                                         fPtBins, fPtRange[0], fPtRange[1]);
     hRecoLeadAllJetPtEta->Sumw2();
     hRecoLeadAllJetPtEtaCM = new TH2D("hRecoLeadAllJetPtEtaCM","Lead jet all p_{T} vs #eta CM frame;#eta;p_{T} (GeV)", 
-                                        fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                        2 * fEtaBins, fEtaRange[0], fEtaRange[1], 
                                         fPtBins, fPtRange[0], fPtRange[1]);
     hRecoLeadAllJetPtEtaCM->Sumw2();
 
@@ -931,11 +931,11 @@ void HistoManagerDiJet::init() {
     hRecoInclusiveAllJetPtRawEta->Sumw2();
 
     hRecoSubLeadAllJetPtEta = new TH2D("hRecoSubLeadAllJetPtEta","SubLead jet all p_{T} vs #eta;#eta;p_{T} (GeV)",
-                                            fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                         2 * fEtaBins, fEtaRange[0], fEtaRange[1], 
                                             fPtBins, fPtRange[0], fPtRange[1]);
     hRecoSubLeadAllJetPtEta->Sumw2();
     hRecoSubLeadAllJetPtEtaCM = new TH2D("hRecoSubLeadAllJetPtEtaCM","SubLead jet all p_{T} vs #eta CM frame;#eta;p_{T} (GeV)",
-                                            fEtaBins, fEtaRange[0], fEtaRange[1], 
+                                            2 * fEtaBins, fEtaRange[0], fEtaRange[1], 
                                             fPtBins, fPtRange[0], fPtRange[1]);
     hRecoSubLeadAllJetPtEtaCM->Sumw2();
 
@@ -960,11 +960,11 @@ void HistoManagerDiJet::init() {
                                    fEtaBins, fEtaRange[0], fEtaRange[1]);
     hRecoInclusiveAllJetEtaUnweighted->Sumw2();
     hRecoInclusiveAllJetPtEta = new TH2D("hRecoInclusiveAllJetPtEta","Reco jet p_{T} vs #eta;#eta;p_{T} (GeV)",
-                                      fEtaBins, fEtaRange[0], fEtaRange[1],
+                                      2 * fEtaBins, fEtaRange[0], fEtaRange[1],
                                       fPtBins, fPtRange[0], fPtRange[1]);
     hRecoInclusiveAllJetPtEta->Sumw2();
     hRecoInclusiveAllJetPtEtaCM = new TH2D("hRecoInclusiveAllJetPtEtaCM","Reco jet p_{T} vs #eta CM frame;#eta;p_{T} (GeV)",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        2 * fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1]);
     hRecoInclusiveAllJetPtEtaCM->Sumw2();
     hRecoInclusiveAllJetPtEtaPtHat = new TH3D("hRecoInclusiveAllJetPtEtaPtHat","Reco jet p_{T} vs #eta vs #hat{p_{T}};#eta;p_{T} (GeV);#hat{p_{T}} (GeV)",
