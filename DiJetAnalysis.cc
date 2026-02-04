@@ -1546,6 +1546,22 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // Lab frame
     //
 
+    if (ptRecoLead > 50. && ptRecoSubLead > 40. && 
+        fabs(etaRecoSubLeadLab)<1.2 && 
+        fabs(dijetRecoDphi) > TMath::TwoPi()/3.) {
+
+        float xj = ptRecoSubLead / ptRecoLead;
+        if ( -2.4 < etaRecoLeadLab && etaRecoLeadLab < -1.8) {
+            fHM->hRecoDijetXj[0]->Fill( xj, weight * fMcReweight );
+        }
+        else if ( -1.2 < etaRecoLeadLab && etaRecoLeadLab < 1.2) {
+            fHM->hRecoDijetXj[1]->Fill( xj, weight * fMcReweight );
+        }
+        else if ( 1.8 < etaRecoLeadLab && etaRecoLeadLab < 2.4) {
+            fHM->hRecoDijetXj[2]->Fill( xj, weight * fMcReweight );
+        }
+    } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(etaRecoSubLeadLab)<1.2 && fabs(dijetRecoDphi) > TMath::TwoPi()/3.)
+
     fIsRecoDijetLabFound = {false}; 
     if ( !fDiJetCut ) {
         fIsRecoDijetLabFound = true; // No cut, so dijet is always found

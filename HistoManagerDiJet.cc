@@ -218,6 +218,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoDijetLeadPtEtaStdBins{nullptr},
     hRecoDijetSubLeadPtEta{nullptr},
     hRecoDijetSubLeadPtEtaStdBins{nullptr},
+    hRecoDijetXj{nullptr},
 
     hRecoLeadAllJetPtEta{nullptr},
     hRecoLeadAllJetPtEtaCM{nullptr},
@@ -361,7 +362,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     //
     fIsMc{false}, fUseVariableBinning{true},
     fPtBins{100}, fPtRange{5., 1005.}, 
-    fEtaBins{72}, fEtaRange{-3.6, 3.6},
+    fEtaBins{36}, fEtaRange{-3.6, 3.6},
     fPhiBins{16}, fPhiRange{-TMath::Pi(), TMath::Pi()},
     fDijetPtBins{196}, fDijetPtRange{20., 1000.},
     fDijetEtaBins{32}, fDijetEtaRange{-3.2, 3.2},
@@ -559,6 +560,9 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoDijetLeadPtEtaStdBins) delete hRecoDijetLeadPtEtaStdBins;
     if (hRecoDijetSubLeadPtEta) delete hRecoDijetSubLeadPtEta;
     if (hRecoDijetSubLeadPtEtaStdBins) delete hRecoDijetSubLeadPtEtaStdBins;
+    for (int i{0}; i<3; i++) {
+        if (hRecoDijetXj[i]) delete hRecoDijetXj[i];
+    }
 
     if (hRecoLeadAllJetPtEta) delete hRecoLeadAllJetPtEta;
     if (hRecoLeadAllJetPtEtaCM) delete hRecoLeadAllJetPtEtaCM;
@@ -1242,6 +1246,12 @@ void HistoManagerDiJet::init() {
     hRecoDijetSubLeadPtEtaStdBins->GetYaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
     hRecoDijetSubLeadPtEtaStdBins->SetBinsLength(-1);
     hRecoDijetSubLeadPtEtaStdBins->Sumw2();
+
+    for (int i{0}; i<3; i++) {
+        hRecoDijetXj[i] = new TH1D( Form("hRecoDijetXj_%d", i), 
+                                    Form("Reco dijet x_{J} the #eta region %d (backward, midrange, forward);x_{J};Entries", i),
+                                    22, 0., 1.1);
+    }
 
 
     hRecoDijetPtEtaForward = new TH2D("hRecoDijetPtEtaForward", "Reco dijet info in lab frame (forward);p_{T}^{ave} (GeV);#eta^{dijet}",
@@ -2502,6 +2512,9 @@ void HistoManagerDiJet::writeOutput() {
     hRecoDijetLeadPtEtaStdBins->Write();
     hRecoDijetSubLeadPtEta->Write();
     hRecoDijetSubLeadPtEtaStdBins->Write();
+    for (int i{0}; i<3; ++i) {
+        hRecoDijetXj[i]->Write();
+    }
 
     hRecoLeadAllJetPtEta->Write();
     hRecoLeadAllJetPtEtaCM->Write();
