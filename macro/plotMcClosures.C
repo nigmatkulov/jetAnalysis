@@ -1351,6 +1351,7 @@ void dijetClosuresFrom2D(TFile *f, int collisionSystem = 1, double collisionEner
         c->SaveAs(Form("%s/%s_%s_dijetEtaCMInLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHigh));
 
+                       /*
         // Dijet azimuthal angle
         hRecoPhiLab = dynamic_cast<TH1D *>(hRecoDijetPtEtaLab->ProjectionZ(Form("hRecoPhiLab_%d", i),
                                            ptBinLow, ptBinHigh));
@@ -1390,6 +1391,8 @@ void dijetClosuresFrom2D(TFile *f, int collisionSystem = 1, double collisionEner
                             false, false, collisionSystem, collisionEnergy);
         c->SaveAs(Form("%s/%s_%s_dijetPhiLab_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHigh));
+
+                       */
 
         
         //
@@ -1472,6 +1475,8 @@ void dijetClosuresFrom2D(TFile *f, int collisionSystem = 1, double collisionEner
         c->SaveAs(Form("%s/%s_%s_dijetEtaLabInCM_RecoRefGenRatio_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHigh));
 
+
+                       /*
         // Dijet azimuthal angle
         hRecoPhiCM = dynamic_cast<TH1D *>(hRecoDijetPtEtaCM->ProjectionZ(Form("hRecoPhiCM_%d", i), 
                                           ptBinLow, ptBinHigh));
@@ -1511,6 +1516,8 @@ void dijetClosuresFrom2D(TFile *f, int collisionSystem = 1, double collisionEner
                             true, false, collisionSystem, collisionEnergy);
         c->SaveAs(Form("%s/%s_%s_dijetPhiCM_RecoRef2GenRatio_ptAve_%d_%d.pdf", 
                        date.Data(), collSystemStr.Data(), directionStr.Data(), (int)ptLow, (int)ptHigh));
+
+        */
 
 
         //
@@ -1931,33 +1938,29 @@ void data2mcInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem = 1,
     collSystemStr += Form("%d", (int)(1000 * energy));
     collSystemStr += Form("_%s", prefix.Data());
 
-    TH3D *hRecoDataPtEtaPtHat = dynamic_cast<TH3D *>(fData->Get("hRecoInclusiveJetPtEtaPtHat"));
-    if (!hRecoDataPtEtaPtHat) {
-        std::cerr << "Error: hRecoDataPtEtaPtHat not found in data file!" << std::endl;
+    TH2D *hRecoDataPtEta = dynamic_cast<TH2D *>(fData->Get("hRecoInclusiveAllJetPtEtaCM"));
+    if (!hRecoDataPtEta) {
+        std::cerr << "Error: hRecoDataPtEta not found in data file!" << std::endl;
         return;
     }
-    hRecoDataPtEtaPtHat->SetName("hRecoDataPtEtaPtHat");
-    TH3D *hRecoMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hRecoInclusiveJetPtEtaPtHat"));
-    if (!hRecoMcPtEtaPtHat) {
-        std::cerr << "Error: hRecoMcPtEtaPtHat not found in MC file!" << std::endl;
+    hRecoDataPtEta->SetName("hRecoDataPtEta");
+    TH2D *hRecoMcPtEta = dynamic_cast<TH2D *>(fMc->Get("hRecoInclusiveAllJetPtEtaCM"));
+    if (!hRecoMcPtEta) {
+        std::cerr << "Error: hRecoMcPtEta not found in MC file!" << std::endl;
         return;
     }
-    hRecoMcPtEtaPtHat->SetName("hRecoMcPtEtaPtHat");
+    hRecoMcPtEta->SetName("hRecoMcPtEta");
     // TH3D *hRecoMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hRecoMatchedJetPtEtaPtHat"));
     // hRecoMcPtEtaPtHat->SetName("hRecoMcPtEtaPtHat");
-    TH3D *hGenMcPtEtaPtHat = dynamic_cast<TH3D *>(fMc->Get("hGenInclusiveJetPtEtaPtHat"));
-    if (!hGenMcPtEtaPtHat) {
-        std::cerr << "Error: hGenMcPtEtaPtHat not found in MC file!" << std::endl;
+    TH2D *hGenMcPtEta = dynamic_cast<TH2D *>(fMc->Get("hGenInclusiveJetPtEtaCM"));
+    if (!hGenMcPtEta) {
+        std::cerr << "Error: hGenMcPtEta not found in MC file!" << std::endl;
         return;
     }
-    hGenMcPtEtaPtHat->SetName("hGenMcPtEtaPtHat");
-
-    // ptHat binning
-    double ptHatVals[] { 15., 60., 90. };
-    int sizeOfPtHatVals = sizeof(ptHatVals)/sizeof(ptHatVals[0]);
+    hGenMcPtEta->SetName("hGenMcPtEta");
 
     // jet pT and eta binning
-    double jetPtVals[] = {30., 50., 90., 120., 200., 500., 1000.};
+    double jetPtVals[] = {40., 80., 120., 180., 250., 500.};
     int sizeOfJetPtVals = sizeof(jetPtVals)/sizeof(jetPtVals[0]);
 
     double jetEtaVals[] = {-3.6, -2.4, -1.6, 1.6, 2.4, 3.6};
@@ -1970,24 +1973,20 @@ void data2mcInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem = 1,
 
     TCanvas *c = new TCanvas("c", "c", 1000, 1000);
 
-    double ptHatLow = ptHatVals[0];
-    int ptHatBinLow = hRecoDataPtEtaPtHat->GetZaxis()->FindBin(ptHatLow);
-    int ptHatBinHigh = hRecoDataPtEtaPtHat->GetNbinsZ();
-
     // Jet pT binning
     for ( int i = 0; i < sizeOfJetPtVals-1; i++) {
 
         double jetPtLow = jetPtVals[i];
         double jetPtHigh = jetPtVals[i+1];
-        int jetPtBinLow = hRecoDataPtEtaPtHat->GetYaxis()->FindBin(jetPtLow);
-        int jetPtBinHigh = hRecoDataPtEtaPtHat->GetYaxis()->FindBin(jetPtHigh)-1;
+        int jetPtBinLow = hRecoDataPtEta->GetYaxis()->FindBin(jetPtLow);
+        int jetPtBinHigh = hRecoDataPtEta->GetYaxis()->FindBin(jetPtHigh)-1;
 
         //
         // Reco data 2 Reco MC comparison
         //
         // Make projection of the 3D histograms
-        hRecoDataEta = dynamic_cast<TH1D *>(hRecoDataPtEtaPtHat->ProjectionX(Form("hRecoDataEta_%d", i),
-                                            jetPtBinLow, jetPtBinHigh, ptHatBinLow, ptHatBinHigh));
+        hRecoDataEta = dynamic_cast<TH1D *>(hRecoDataPtEta->ProjectionX(Form("hRecoDataEta_%d", i),
+                                            jetPtBinLow, jetPtBinHigh));
         if (!hRecoDataEta) {
             std::cerr << Form("Error: hRecoDataEta_%d not found!", i) << std::endl;
             return;
@@ -1995,8 +1994,8 @@ void data2mcInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem = 1,
         rescaleHisto1D(hRecoDataEta);
         set1DStyle(hRecoDataEta, 0);
 
-        hRecoMcEta = dynamic_cast<TH1D *>(hRecoMcPtEtaPtHat->ProjectionX(Form("hRecoMcEta_%d", i),
-                                          jetPtBinLow, jetPtBinHigh, ptHatBinLow, ptHatBinHigh));
+        hRecoMcEta = dynamic_cast<TH1D *>(hRecoMcPtEta->ProjectionX(Form("hRecoMcEta_%d", i),
+                                          jetPtBinLow, jetPtBinHigh));
         if (!hRecoMcEta) {
             std::cerr << Form("Error: hRecoMcEta_%d not found!", i) << std::endl;
             return;
@@ -2006,10 +2005,10 @@ void data2mcInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem = 1,
 
         // Plot distributions
         drawJecComparison(c, hRecoDataEta, hRecoMcEta,
-            jetPtLow, jetPtHigh, ptHatLow,
+            jetPtLow, jetPtHigh, 15,
             "Data", "Reco MC", collSystem, energy, false, true,
-            hRecoDataPtEtaPtHat->GetXaxis()->GetBinLowEdge(1),
-            hRecoDataPtEtaPtHat->GetXaxis()->GetBinUpEdge(hRecoDataPtEtaPtHat->GetXaxis()->GetNbins()));
+            hRecoDataPtEta->GetXaxis()->GetBinLowEdge(1),
+            hRecoDataPtEta->GetXaxis()->GetBinUpEdge(hRecoDataPtEta->GetXaxis()->GetNbins()));
 
         c->SaveAs( Form("%s/%s_closureEta_Reco2Reco_pt_%d_%d.pdf", 
             date.Data(), collSystemStr.Data(), (int)jetPtLow, (int)jetPtHigh ) );
@@ -2021,8 +2020,8 @@ void data2mcInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem = 1,
 
         c->cd(); c->Clear(); setPadStyle();
         // Make projection of the 3D histograms
-        hGenMcEta = dynamic_cast<TH1D *>(hGenMcPtEtaPtHat->ProjectionX(Form("hGenMcEta_%d", i),
-            jetPtBinLow, jetPtBinHigh, ptHatBinLow, ptHatBinHigh));
+        hGenMcEta = dynamic_cast<TH1D *>(hGenMcPtEta->ProjectionX(Form("hGenMcEta_%d", i),
+            jetPtBinLow, jetPtBinHigh));
         if (!hGenMcEta) {
             std::cerr << Form("Error: hGenMcEta_%d not found!", i) << std::endl;
             return;
@@ -2032,10 +2031,10 @@ void data2mcInclusiveJetComparison(TFile *fData, TFile *fMc, int collSystem = 1,
 
         // Plot distributions
         drawJecComparison(c, hRecoDataEta, hGenMcEta,
-                          jetPtLow, jetPtHigh, ptHatLow,
+                          jetPtLow, jetPtHigh, 15,
                           "Data", "Gen MC", collSystem, energy, false, true,
-                          hGenMcPtEtaPtHat->GetXaxis()->GetBinLowEdge(1),
-                          hGenMcPtEtaPtHat->GetXaxis()->GetBinUpEdge(hGenMcPtEtaPtHat->GetXaxis()->GetNbins())
+                          hGenMcPtEta->GetXaxis()->GetBinLowEdge(1),
+                          hGenMcPtEta->GetXaxis()->GetBinUpEdge(hGenMcPtEta->GetXaxis()->GetNbins())
                         );
 
         // Save canvas
@@ -2878,246 +2877,6 @@ void pythia2embeddingDijetComparison(TFile *fEmbedding, TFile *fPythia, int coll
     if (c) { delete c; c = nullptr; }
 }
 
-//________________
-void recoDijetDistributions(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129", bool isMc = false) {
-    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
-    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
-
-    // Determine the direction based on the filename
-    TString directionStr;
-    TString filename = f->GetName();
-    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
-        directionStr = "Pbgoing";
-    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
-        directionStr = "pgoing";
-    } else {
-        directionStr = "combined";
-    }
-
-    // Dijet ptAve binning
-    // int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
-    //                          100, 110,  120, 130, 140,
-    //                          150, 160,  180, 200, 250, 
-    //                          300, 500 };
-    double dijetPtNewVals[] {  50., 80., 120., 180., 200., 250., 300., 350., 500. };
-    int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
-
-    // Reco dijet info [9 dimensions]
-    // 0 - dijet pt ave, 1 - dijet eta, 2 - dijet phi,
-    // 3 - lead pt, 4 - lead eta, 5 - lead phi,
-    // 6 - sublead pt, 7 - sublead eta, 8 - sublead phi
-    THnSparseD *hRecoDijetInfo = dynamic_cast<THnSparseD *>(f->Get("hRecoDijetInfo"));
-    if (!hRecoDijetInfo) {
-        std::cerr << "Error: hRecoDijetInfo not found in file." << std::endl;
-        return;
-    }
-
-    // Plot dijet ptAve distribution
-    TH1D *hDijetPtAve = dynamic_cast<TH1D *>(hRecoDijetInfo->Projection(0));
-    set1DStyle(hDijetPtAve, 0, true);
-
-    // Next distributions will be plotted for the given dijet ptAve binning
-    TH1D *hDijetEta{nullptr};
-    TH2D *hLeadPtVsSubLeadPt{nullptr};
-    TH2D *hLeadEtaVsSubLeadEta{nullptr};
-
-    TH3D *hRecoDijetPtEtaLab{nullptr};
-    TH3D *hRecoDijetPtEtaLabMatched{nullptr};
-    TH3D *hRecoDijetPtEtaCM{nullptr};
-    TH3D *hRecoDijetPtEtaCMMatched{nullptr};
-    TH2D *hDijetPtAveVsEtaLabInclusive{nullptr};
-    TH2D *hDijetPtAveVsEtaLabMatched{nullptr};
-    TH2D *hDijetPtAveVsEtaCMInclusive{nullptr};
-    TH2D *hDijetPtAveVsEtaCMMatched{nullptr};
-
-    if ( isMc ) {
-        hRecoDijetPtEtaLab = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaWeighted"));
-        if (!hRecoDijetPtEtaLab) {
-            std::cerr << "Error: hRecoDijetPtEtaWeighted not found in file." << std::endl;
-            return;
-        }
-        hRecoDijetPtEtaLab->SetName("hRecoDijetPtEtaLab");
-
-        hRecoDijetPtEtaLabMatched = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaMatched"));
-        if (!hRecoDijetPtEtaLabMatched) {
-            std::cerr << "Error: hRecoDijetPtEtaMatched not found in file." << std::endl;
-            return;
-        }
-        hRecoDijetPtEtaLabMatched->SetName("hRecoDijetPtEtaLabMatched");
-
-        hRecoDijetPtEtaCM = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaCMWeighted"));
-        if (!hRecoDijetPtEtaCM) {
-            std::cerr << "Error: hRecoDijetPtEtaCMWeighted not found in file." << std::endl;
-            return;
-        }
-        hRecoDijetPtEtaCM->SetName("hRecoDijetPtEtaCM");
-
-        hRecoDijetPtEtaCMMatched = dynamic_cast<TH3D *>(f->Get("hRecoDijetPtEtaCMMatched"));
-        if (!hRecoDijetPtEtaCMMatched) {
-            std::cerr << "Error: hRecoDijetPtEtaCMMatched not found in file." << std::endl;
-            return;
-        }
-        hRecoDijetPtEtaCMMatched->SetName("hRecoDijetPtEtaCMMatched");
-
-        hDijetPtAveVsEtaLabInclusive = dynamic_cast<TH2D *>( hRecoDijetPtEtaLab->Project3D("xy") );
-        hDijetPtAveVsEtaLabInclusive->SetName("hDijetPtAveVsEtaLabInclusive");
-        set2DStyle(hDijetPtAveVsEtaLabInclusive);
-
-        hDijetPtAveVsEtaLabMatched = dynamic_cast<TH2D *>( hRecoDijetPtEtaLabMatched->Project3D("xy") );
-        hDijetPtAveVsEtaLabMatched->SetName("hDijetPtAveVsEtaLabMatched");
-        set2DStyle(hDijetPtAveVsEtaLabMatched);
-
-        hDijetPtAveVsEtaCMInclusive = dynamic_cast<TH2D *>( hRecoDijetPtEtaCM->Project3D("xy") );
-        hDijetPtAveVsEtaCMInclusive->SetName("hDijetPtAveVsEtaCMInclusive");
-        set2DStyle(hDijetPtAveVsEtaCMInclusive);
-
-        hDijetPtAveVsEtaCMMatched = dynamic_cast<TH2D *>( hRecoDijetPtEtaCMMatched->Project3D("xy") );
-        hDijetPtAveVsEtaCMMatched->SetName("hDijetPtAveVsEtaCMMatched");
-        set2DStyle(hDijetPtAveVsEtaCMMatched);
-    } // if ( isMc )
-
-    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
-    setPadStyle();
-    TLegend *leg{nullptr};
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.05);
-
-    hDijetPtAve->Draw();
-    hDijetPtAve->GetYaxis()->SetTitle("1/N dN/dp_{T}^{ave}");
-    hDijetPtAve->GetXaxis()->SetRangeUser(40, hDijetPtAve->GetXaxis()->GetBinUpEdge(hDijetPtAve->GetXaxis()->GetNbins()));
-    c->SetLogy(1);
-    c->SetLogx(1);
-    c->SetGrid(1, 1);
-    c->SaveAs(Form("%s/%s_%s_recoDijet_ptAve.pdf", date.Data(), collSystemStr.Data(), directionStr.Data()));
-    c->SetLogy(0);
-    c->SetLogx(0);
-    c->SetGrid(0, 0);
-
-    if ( isMc ) {
-        c->Clear();
-        setPadStyle();
-        hDijetPtAveVsEtaLabInclusive->Draw("colz");
-        hDijetPtAveVsEtaLabInclusive->GetXaxis()->SetRangeUser(-3.0, 3.0);
-        hDijetPtAveVsEtaLabInclusive->GetYaxis()->SetRangeUser(35, 505);
-        t.DrawLatexNDC(0.3, 0.8, "Inclusive dijets (lab)");
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaLabInclusive.pdf", date.Data(), 
-                       collSystemStr.Data(), directionStr.Data()));
-
-        c->Clear();
-        setPadStyle();
-        hDijetPtAveVsEtaLabMatched->Draw("colz");
-        hDijetPtAveVsEtaLabMatched->GetXaxis()->SetRangeUser(-3.0, 3.0);
-        hDijetPtAveVsEtaLabMatched->GetYaxis()->SetRangeUser(35, 505);
-        t.DrawLatexNDC(0.3, 0.8, "Matched dijets (lab)");
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaLabMatched.pdf", date.Data(), 
-                       collSystemStr.Data(), directionStr.Data()));
-
-        c->Clear();
-        setPadStyle();
-        hDijetPtAveVsEtaCMInclusive->Draw("colz");
-        hDijetPtAveVsEtaCMInclusive->GetXaxis()->SetRangeUser(-3.0, 3.0);
-        hDijetPtAveVsEtaCMInclusive->GetYaxis()->SetRangeUser(35, 505);
-        t.DrawLatexNDC  (0.3, 0.8, "Inclusive dijets (CM)");
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaCMInclusive.pdf", date.Data(), 
-                       collSystemStr.Data(), directionStr.Data()));
-
-        c->Clear();
-        setPadStyle();
-        hDijetPtAveVsEtaCMMatched->Draw("colz");
-        hDijetPtAveVsEtaCMMatched->GetXaxis()->SetRangeUser(-3.0, 3.0);
-        hDijetPtAveVsEtaCMMatched->GetYaxis()->SetRangeUser(35, 505);
-        t.DrawLatexNDC(0.3, 0.8, "Matched dijets (CM)");
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaCMMatched.pdf", date.Data(), 
-                       collSystemStr.Data(), directionStr.Data()));
-
-        
-        c->Clear();
-        setPadStyle();
-        hDijetPtAveVsEtaLabMatched->Divide(hDijetPtAveVsEtaLabMatched, hDijetPtAveVsEtaLabInclusive, 1., 1., "b");
-        hDijetPtAveVsEtaLabMatched->Draw("colz");
-        hDijetPtAveVsEtaLabMatched->GetXaxis()->SetRangeUser(-3.0, 3.0);
-        hDijetPtAveVsEtaLabMatched->GetYaxis()->SetRangeUser(35, 505);
-        hDijetPtAveVsEtaLabMatched->GetZaxis()->SetRangeUser(0.01, 1.05);
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaLabMatched_fraction.pdf", date.Data(), 
-                       collSystemStr.Data(), directionStr.Data()));
-
-        c->Clear();
-        setPadStyle();
-        hDijetPtAveVsEtaCMMatched->Divide(hDijetPtAveVsEtaCMMatched, hDijetPtAveVsEtaCMInclusive, 1., 1., "b");
-        hDijetPtAveVsEtaCMMatched->Draw("colz");
-        hDijetPtAveVsEtaCMMatched->GetXaxis()->SetRangeUser(-3.0, 3.0);
-        hDijetPtAveVsEtaCMMatched->GetYaxis()->SetRangeUser(35, 505);
-        hDijetPtAveVsEtaCMMatched->GetZaxis()->SetRangeUser(0.01, 1.05);
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_ptAveVsEtaCMMatched_fraction.pdf", date.Data(),
-                       collSystemStr.Data(), directionStr.Data()));
-    }
-
-    // Loop over dijet ptAve bins
-    for (int i = 0; i < sizeOfPtVals - 1; ++i) {
-        int ptLow = dijetPtNewVals[i];
-        int ptHi = dijetPtNewVals[i + 1];
-        int ptBinLow = hRecoDijetInfo->GetAxis(0)->FindBin(ptLow);
-        int ptBinHi = hRecoDijetInfo->GetAxis(0)->FindBin(ptHi) - 1;
-
-        // Set dijet ptAve range
-        hRecoDijetInfo->GetAxis(0)->SetRange(ptBinLow, ptBinHi);
-
-        // Dijet eta distribution
-        c->Clear();
-        setPadStyle();
-        hDijetEta = dynamic_cast<TH1D *>( hRecoDijetInfo->Projection(1) );
-        hDijetEta->SetName(Form("hDijetEta_%d_%d", ptLow, ptHi));
-        set1DStyle(hDijetEta, 0, true);
-        hDijetEta->GetXaxis()->SetRangeUser(-3.0, 3.0);
-        hDijetEta->GetYaxis()->SetRangeUser(0.000001, 0.12);
-        hDijetEta->GetYaxis()->SetTitle("1/N dN/d#eta^{dijet}");
-        hDijetEta->Draw();
-        t.DrawLatexNDC(0.35, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_eta_ptAve_%d_%d.pdf", date.Data(), 
-                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
-
-        // Dijet lead vs sublead pt distribution
-        c->Clear();
-        setPadStyle();
-        hLeadPtVsSubLeadPt = dynamic_cast<TH2D *>( hRecoDijetInfo->Projection(3, 6) );
-        hLeadPtVsSubLeadPt->SetName(Form("hLeadPtVsSubLeadPt_%d_%d", ptLow, ptHi));
-        set2DStyle(hLeadPtVsSubLeadPt);
-        hLeadPtVsSubLeadPt->GetXaxis()->SetRangeUser(30, 530);
-        hLeadPtVsSubLeadPt->GetYaxis()->SetRangeUser(30, 530);
-        //hLeadPtVsSubLeadPt->SetRange(0., 0.12);
-        hLeadPtVsSubLeadPt->Draw("colz");
-        t.DrawLatexNDC(0.35, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_leadVsSubLeadPt_ptAve_%d_%d.pdf", date.Data(), 
-                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
-
-        // Dijet lead vs sublead eta distribution
-        c->Clear();
-        setPadStyle();
-        hLeadEtaVsSubLeadEta = dynamic_cast<TH2D *>( hRecoDijetInfo->Projection(4, 7) );
-        hLeadEtaVsSubLeadEta->SetName(Form("hLeadEtaVsSubLeadEta_%d_%d", ptLow, ptHi));
-        set2DStyle(hLeadEtaVsSubLeadEta);
-        hLeadEtaVsSubLeadEta->GetXaxis()->SetRangeUser(-3.0, 3.0);
-        hLeadEtaVsSubLeadEta->GetYaxis()->SetRangeUser(-3.0, 3.0);
-        //hLeadEtaVsSubLeadEta->SetRange(0., 0.12);
-        hLeadEtaVsSubLeadEta->Draw("colz");
-        t.DrawLatexNDC(0.35, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        c->SaveAs(Form("%s/%s_%s_recoDijet_leadVsSubLeadEta_ptAve_%d_%d.pdf", date.Data(), 
-                       collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
-    } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
-
-    c->Clear();
-    delete c;
-}
 
 //________________
 // Plot dijet distributions for data by projecting those from 2D (ptAve, eta) histogram
@@ -3199,6 +2958,94 @@ void usefullDistributions(TFile *f, int collisionSystem = 1, double collisionEne
 }
 
 //________________
+void plotSingleJetData2McComparison(TFile *fExp, TFile *fMc, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    // Determine the direction based on the filename
+    // TString directionStr;
+    // TString filename = f->GetName();
+    // if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+    //     directionStr = "Pbgoing";
+    // } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+    //     directionStr = "pgoing";
+    // } else {
+    //     directionStr = "combined";
+    // }
+}
+
+//_________________
+void plotForwardBackwardRatios(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    // Determine the direction based on the filename
+    TString directionStr;
+    TString filename = f->GetName();
+    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
+        directionStr = "Pbgoing";
+    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
+        directionStr = "pgoing";
+    } else {
+        directionStr = "combined";
+    }
+
+    TH2D *hForward2D = dynamic_cast<TH2D *>(f->Get("hRecoDijetPtEtaCMForwardWeighted"));
+    if (!hForward2D) {
+        std::cerr << "Error: hRecoDijetPtEtaCMForwardWeighted not found in file." << std::endl;
+        return;
+    }
+    hForward2D->SetName("hForward2D");
+    hForward2D->SetDirectory(0);
+    TH2D *hBackward2D = dynamic_cast<TH2D *>(f->Get("hRecoDijetPtEtaCMBackwardWeighted"));
+    if (!hBackward2D) {
+        std::cerr << "Error: hRecoDijetPtEtaCMBackwardWeighted not found in file." << std::endl;
+        return;
+    }
+    hBackward2D->SetName("hBackward2D");
+    hBackward2D->SetDirectory(0);
+
+
+    // int dijetPtVals[] { 50, 80, 100, 140 };
+    int dijetPtVals[] { 120, 150, 180, 250, 500 };
+    int sizeOfPtVals = sizeof(dijetPtVals)/sizeof(dijetPtVals[0]);
+    for (int i = 0; i < sizeOfPtVals - 1; ++i) {
+        int ptLow = dijetPtVals[i];
+        int ptHi = dijetPtVals[i + 1];
+        int ptBinLow = hForward2D->GetXaxis()->FindBin(ptLow);
+        int ptBinHi = hForward2D->GetXaxis()->FindBin(ptHi) - 1;
+
+
+        // Project to 1D
+        TH1D *hForward1D = dynamic_cast<TH1D *>( hForward2D->ProjectionY(Form("hForward1D_%d_%d", ptLow, ptHi)) );
+        set1DStyle(hForward1D, 0, true);
+        TH1D *hBackward1D = dynamic_cast<TH1D *>( hBackward2D->ProjectionY(Form("hBackward1D_%d_%d", ptLow, ptHi)) );
+        set1DStyle(hBackward1D, 1, true);
+
+        // Create ratio
+        TH1D *hFwdBwdRatio = dynamic_cast<TH1D *>(hForward1D->Clone(Form("hFwdBwdRatio_%d_%d", ptLow, ptHi)));
+        hFwdBwdRatio->Divide(hForward1D, hBackward1D, 1., 1., "b");
+        set1DStyle(hFwdBwdRatio, 2);
+
+        TCanvas *c = new TCanvas("c", "c", 800, 800);
+        setPadStyle();
+        gPad->SetGrid();
+        hFwdBwdRatio->Draw();
+        hFwdBwdRatio->GetXaxis()->SetRangeUser(0., 2.);
+        hFwdBwdRatio->GetYaxis()->SetRangeUser(0.75, 1.25);
+        hFwdBwdRatio->GetYaxis()->SetTitle("Forward / Backward");
+        TLatex t;
+        t.SetTextFont(42);
+        t.SetTextSize(0.05);
+        t.DrawLatexNDC(0.3, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptLow, ptHi));
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_forwardBackwardRatio_ptAve_%d_%d.pdf", 
+                       date.Data(), collSystemStr.Data(), directionStr.Data(), ptLow, ptHi));
+        delete c;   
+    } // for (int i = 0; i < sizeOfPtVals - 1; ++i)
+}
+
+//________________
 void plotMcClosures() {
 
     // Base style
@@ -3232,27 +3079,27 @@ void plotMcClosures() {
     int matchType = 0; // 0 - inclusive, 1 - matched, 2 - unmatched
     int cutType = 2; // 0 - no cuts, 1 - trkMax, 2 - jetId
     TString cutTypeStr = (cutType == 0) ? "noCut_" : ((cutType == 1) ? "trkMax_" : ((cutType == 2) ? "jetId_" : "unknownCut"));
-    int etaRange = 19;
+    int etaRange = 15;
 
     //
     // Embedding
     //
     TFile *pPb8160EmbedFile = nullptr;
     if ( direction < 2 ) {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_%seta%d.root", 
-                                        uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data(), etaRange) );
+        pPb8160EmbedFile = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta%d.root", 
+                                        directionStr.Data(), directionStr.Data(), cutTypeStr.Data(), etaRange) );
         if ( !pPb8160EmbedFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_jerDef_ak4_%seta%d.root", 
-                               uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data(), etaRange) << std::endl;
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/embedding/%s/oEmbedding_%s_def_ak4_%seta%d.root", 
+                               directionStr.Data(), directionStr.Data(), cutTypeStr.Data(), etaRange) << std::endl;
             return;
         }
     }
     else {
-        pPb8160EmbedFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4_%seta%d.root", 
-                                        uname.Data(), cutTypeStr.Data(), etaRange) );
+        pPb8160EmbedFile = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta%d.root", 
+                                        cutTypeStr.Data(), etaRange) );
         if ( !pPb8160EmbedFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4_%seta%d.root", 
-                               uname.Data(), cutTypeStr.Data(), etaRange) << std::endl;
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_%seta%d.root", 
+                               cutTypeStr.Data(), etaRange) << std::endl;
             return;
         }
     }
@@ -3263,22 +3110,22 @@ void plotMcClosures() {
     //
     TFile *pPb8160PythiaFile = nullptr;
     if ( direction < 2 ) {
-        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_jerDef_ak4_%seta%d.root", 
-                                         uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data(), etaRange) );
+        pPb8160PythiaFile = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_%seta%d.root", 
+                                         directionStr.Data(), directionStr.Data(), cutTypeStr.Data(), etaRange) );
         if ( !pPb8160PythiaFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_jerDef_ak4_%seta%d.root", 
-                              uname.Data(), directionStr.Data(), directionStr.Data(), cutTypeStr.Data(), etaRange) << std::endl;
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/pythia/%s/oPythia_%s_def_ak4_%seta%d.root", 
+                              directionStr.Data(), directionStr.Data(), cutTypeStr.Data(), etaRange) << std::endl;
             return;
         }
     }
     else {
-        pPb8160PythiaFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_jerDef_ak4_%seta%d.root", 
-                                         uname.Data(), cutTypeStr.Data(), etaRange) );
-        if ( !pPb8160PythiaFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_jerDef_ak4_%seta%d.root", 
-                              uname.Data(), cutTypeStr.Data(), etaRange) << std::endl;
-            return;
-        }
+        pPb8160PythiaFile = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_%seta%d.root", 
+                                         cutTypeStr.Data(), etaRange) );
+        // if ( !pPb8160PythiaFile ) {
+        //     std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_%seta%d.root", 
+        //                       cutTypeStr.Data(), etaRange) << std::endl;
+        //     return;
+        // }
     }
 
     //
@@ -3286,20 +3133,20 @@ void plotMcClosures() {
     //
     TFile *pPb8160DataFile = nullptr;
     if ( direction < 2 ) {
-        pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_%seta%d.root", 
-            uname.Data(), dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data(), cutTypeStr.Data(), etaRange) );
+        pPb8160DataFile = TFile::Open( Form("~/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_%seta%d.root", 
+            dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data(), cutTypeStr.Data(), etaRange) );
         if ( !pPb8160DataFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_%seta%d.root", 
-                uname.Data(), dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data(), cutTypeStr.Data(), etaRange) << std::endl;
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/exp/%s/%s_%s_ak4_%seta%d.root", 
+                dataDirectionStr.Data(), dataStr.Data(), dataDirectionStr.Data(), cutTypeStr.Data(), etaRange) << std::endl;
             return;
         }
     }
     else {
-        pPb8160DataFile = TFile::Open( Form("/Users/%s/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_%seta%d.root", 
-            uname.Data(), dataStr.Data(), cutTypeStr.Data(), etaRange) );
+        pPb8160DataFile = TFile::Open( Form("~/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_%seta%d.root", 
+            dataStr.Data(), cutTypeStr.Data(), etaRange) );
         if ( !pPb8160DataFile ) {
-            std::cerr << Form("File not found: /Users/%s/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_%seta%d.root", 
-                uname.Data(), dataStr.Data(), cutTypeStr.Data(), etaRange) << std::endl;
+            std::cerr << Form("File not found: ~/cernbox/ana/pPb8160/exp/%s_pPb8160_ak4_%seta%d.root", 
+                dataStr.Data(), cutTypeStr.Data(), etaRange) << std::endl;
             return;
         }
     }
@@ -3323,7 +3170,7 @@ void plotMcClosures() {
     //
     // Comparison of dijet reco and ref to gen distributions from 3D histograms
     //
-    dijetClosuresFrom2D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
+    //dijetClosuresFrom2D( pPb8160EmbedFile, collisionSystem, collisionEnergy, date );
     // dijetClosuresFrom2D( pPb8160PythiaFile, collisionSystem, collisionEnergy, date );
 
     //
@@ -3352,4 +3199,6 @@ void plotMcClosures() {
     // Plot distributions for the reco dijets
     //
     // recoDijetDistributions(pPb8160EmbedFile, collisionSystem, collisionEnergy, date, true);
+
+    plotForwardBackwardRatios(pPb8160DataFile, collisionSystem, collisionEnergy, date);
 }

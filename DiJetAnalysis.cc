@@ -659,6 +659,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
 
         float pt = (*recoJetIter)->ptJECCorr();
         float eta = etaLab( (*recoJetIter)->eta() );
+        float etaCM = boostEta2CM( (*recoJetIter)->eta() );
         float phi = (*recoJetIter)->phi();
         float ptRaw = (*recoJetIter)->rawPt();
 
@@ -702,7 +703,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         fHM->hRecoInclusiveAllJetEta->Fill(eta, weight);
         fHM->hRecoInclusiveAllJetEtaUnweighted->Fill(eta, 1.);
         fHM->hRecoInclusiveAllJetPtEta->Fill(eta, pt, weight);
-        fHM->hRecoInclusiveAllJetPtEtaCM->Fill( boostEta2CM(eta), pt, weight );
+        fHM->hRecoInclusiveAllJetPtEtaCM->Fill(etaCM, pt, weight );
+        fHM->hRecoInclusiveAllJetPtRawEtaStdBins->Fill( eta, ptRaw, weight);
+        fHM->hRecoInclusiveAllJetPtEtaStdBins->Fill( eta, pt, weight);
         fHM->hRecoInclusiveAllJetPtRawEta->Fill(eta, ptRaw, weight);
         fHM->hRecoInclusiveAllJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
         fHM->hRecoInclusiveAllJetPtRawEtaPtHat->Fill(eta, ptRaw, ptHat, weight);
@@ -710,20 +713,25 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         // Inclusive (matched+unmatched) Lead jet
         if ( (fRecoIdLead >= 0) && ((recoJetCounter - 1) == fRecoIdLead) ) {
             fHM->hRecoLeadAllJetPtEta->Fill( eta, pt, weight );
-            fHM->hRecoLeadAllJetPtEtaCM->Fill( boostEta2CM(eta), pt, weight );
+            fHM->hRecoLeadAllJetPtEtaCM->Fill( etaCM, pt, weight );
+            fHM->hRecoLeadAllJetPtRawEtaStdBins->Fill( eta, ptRaw, weight);
+            fHM->hRecoLeadAllJetPtEtaStdBins->Fill( eta, pt, weight);
             fHM->hRecoLeadAllJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
+
         }
 
         // Inclusive (matched+unmatched) SubLead jet
         if ( (fRecoIdSubLead >= 0) && ((recoJetCounter - 1) == fRecoIdSubLead) ) {
             fHM->hRecoSubLeadAllJetPtEta->Fill( eta, pt, weight );
-            fHM->hRecoSubLeadAllJetPtEtaCM->Fill( boostEta2CM(eta), pt, weight );
+            fHM->hRecoSubLeadAllJetPtEtaCM->Fill( etaCM, pt, weight );
+            fHM->hRecoSubLeadAllJetPtRawEtaStdBins->Fill( eta, ptRaw, weight);
+            fHM->hRecoSubLeadAllJetPtEtaStdBins->Fill( eta, pt, weight);
             fHM->hRecoSubLeadAllJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
         }
 
         if ( pt > 30. ) {
-            fHM->hRecoGoodInclusiveJetEtaLabFrame->Fill( etaLab(eta), weight );
-            fHM->hRecoGoodInclusiveJetEtaCMFrame->Fill( boostEta2CM(eta), weight );
+            fHM->hRecoGoodInclusiveJetEtaLabFrame->Fill( eta, weight );
+            fHM->hRecoGoodInclusiveJetEtaCMFrame->Fill( etaCM, weight );
         }
 
         // For the MC, check and study matching to gen reconstructed jets
@@ -740,6 +748,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 
                 float genPt = matchedJet->pt();
                 float genEta = etaLab( matchedJet->eta() );
+                float genEtaCM = boostEta2CM( matchedJet->eta() );
                 float genPhi = matchedJet->phi();
 
                 float JES = pt/genPt;
@@ -747,14 +756,14 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 double res[4]  = { JES, genPt, genEta, genPhi };
                 double res1[4] = { JES, genPt, genEta, ptHat };
                 double res2[4] = { JES, pt, eta, ptHat };
-                double res3[4] = { JES, genPt, boostEta2CM(genEta), ptHat };
+                double res3[4] = { JES, genPt, genEtaCM, ptHat };
 
                 // Inclusive ref jets
                 fHM->hRefInclusiveJetPt->Fill( genPt, weight );
                 fHM->hRefInclusiveJetEta->Fill( genEta, weight );
                 fHM->hRefInclusiveJetEtaUnweighted->Fill( genEta, 1. );
                 fHM->hRefInclusiveJetPtEta->Fill( genEta, genPt, weight );
-                fHM->hRefInclusiveJetPtEtaCM->Fill( boostEta2CM(genEta), genPt, weight );
+                fHM->hRefInclusiveJetPtEtaCM->Fill( genEtaCM, genPt, weight );
                 // Must use reco jet pt to see the effect of JEC
                 fHM->hRefInclusiveJetPtEtaPtHat->Fill( genEta, pt, ptHat, weight );
 
@@ -792,7 +801,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     fHM->hRecoLeadMatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
                     // Lead ref jet
                     fHM->hRefLeadJetPtEta->Fill( genEta, genPt, weight );
-                    fHM->hRefLeadJetPtEtaCM->Fill( boostEta2CM(genEta), genPt, weight );
+                    fHM->hRefLeadJetPtEtaCM->Fill( genEtaCM, genPt, weight );
                     fHM->hRefLeadJetPtEtaPtHat->Fill( genEta, pt, ptHat, weight );
 
                     if ( (*recoJetIter)->genJetId() == fGenIdLead ) {
@@ -812,7 +821,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                     fHM->hRecoSubLeadMatchedJetPtEtaPtHat->Fill( eta, pt, ptHat, weight );
                     // SubLead ref jet
                     fHM->hRefSubLeadJetPtEta->Fill( genEta, genPt, weight );
-                    fHM->hRefSubLeadJetPtEtaCM->Fill( boostEta2CM(genEta), genPt, weight );
+                    fHM->hRefSubLeadJetPtEtaCM->Fill( genEtaCM, genPt, weight );
                     fHM->hRefSubLeadJetPtEtaPtHat->Fill( genEta, pt, ptHat, weight );
 
                     if ( (*recoJetIter)->genJetId() == fGenIdSubLead ) {
@@ -870,6 +879,7 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
 
             float pt = (*genJetIter)->pt();
             float eta = etaLab( (*genJetIter)->eta() );
+            float etaCM = boostEta2CM( (*genJetIter)->eta() );
             float phi = (*genJetIter)->phi();
     
             if ( fVerbose ) {
@@ -886,26 +896,26 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
             fHM->hGenInclusiveJetEta->Fill(eta, weight);
             fHM->hGenInclusiveJetEtaUnweighted->Fill(eta, 1.);
             fHM->hGenInclusiveJetPtEta->Fill(eta, pt, weight);
-            fHM->hGenInclusiveJetPtEtaCM->Fill( boostEta2CM(eta), pt, weight);
+            fHM->hGenInclusiveJetPtEtaCM->Fill( etaCM, pt, weight);
             fHM->hGenInclusiveJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
 
             // Lead gen jet
             if ( (fGenIdLead >= 0) && ((genJetCounter - 1) ==  fGenIdLead) ) {
                 fHM->hGenLeadJetPtEta->Fill(eta, pt, weight);
-                fHM->hGenLeadJetPtEtaCM->Fill( boostEta2CM(eta), pt, weight);
+                fHM->hGenLeadJetPtEtaCM->Fill( etaCM, pt, weight);
                 fHM->hGenLeadJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
             }
 
             // SubLead gen jet
             if ( (fGenIdSubLead >= 0) && ((genJetCounter - 1) ==  fGenIdSubLead) ) {
                 fHM->hGenSubLeadJetPtEta->Fill(eta, pt, weight);
-                fHM->hGenSubLeadJetPtEtaCM->Fill( boostEta2CM(eta), pt, weight);
+                fHM->hGenSubLeadJetPtEtaCM->Fill( etaCM, pt, weight);
                 fHM->hGenSubLeadJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
             }
     
             if ( pt > 30. ) {
-                fHM->hGenGoodInclusiveJetEtaLabFrame->Fill( etaLab(eta), weight);
-                fHM->hGenGoodInclusiveJetEtaCMFrame->Fill( boostEta2CM(eta), weight );
+                fHM->hGenGoodInclusiveJetEtaLabFrame->Fill( eta, weight);
+                fHM->hGenGoodInclusiveJetEtaCMFrame->Fill( etaCM, weight );
             }
 
         } // for ( genJetIter = event->genJetCollection()->begin(); genJetIter != event->genJetCollection()->end(); genJetIter++ )
@@ -946,6 +956,7 @@ void DiJetAnalysis::processRefJets(const Event* event, const double &weight) {
             GenJet *matchedJet = event->genJetCollection()->at( (*recoJetIter)->genJetId() );
             float genPt = matchedJet->pt();
             float genEta = etaLab( matchedJet->eta() );
+            float genEtaCM = boostEta2CM( matchedJet->eta() );
             float genPhi = matchedJet->phi();
 
             if ( fVerbose ) {
@@ -1669,7 +1680,12 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         fHM->hRecoDijetPtAveLeadPtSubLeadPtCM->Fill( dijetRecoPtAve, ptRecoLead, ptRecoSubLead, weight );
         fHM->hRecoDijetPtAveLeadEtaSubLeadEtaCM->Fill( dijetRecoPtAve, etaRecoLeadCM, etaRecoSubLeadCM, weight );
         fHM->hRecoDijetEtaLeadEtaSubLeadEtaCM->Fill( dijetRecoEtaCM,  etaRecoLeadCM, etaRecoSubLeadCM, weight );
-        
+
+        fHM->hRecoDijetLeadPtEta->Fill( ptRecoLead, etaRecoLeadLab, weight );
+        fHM->hRecoDijetLeadPtEtaStdBins->Fill( ptRecoLead, etaRecoLeadLab, weight );
+        fHM->hRecoDijetSubLeadPtEta->Fill( ptRecoSubLead, etaRecoSubLeadLab, weight );
+        fHM->hRecoDijetSubLeadPtEtaStdBins->Fill( ptRecoSubLead, etaRecoSubLeadLab, weight );
+
         // In case of MC
         if ( fIsMc && recoLeadJet->hasMatching() && recoSubLeadJet->hasMatching() ) {
 

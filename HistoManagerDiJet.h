@@ -253,6 +253,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hRecoInclusiveAllJetEtaUnweighted;
     TH2D *hRecoInclusiveAllJetPtEta;
     TH2D *hRecoInclusiveAllJetPtEtaCM;
+    TH2D *hRecoInclusiveAllJetPtRawEtaStdBins;
+    TH2D *hRecoInclusiveAllJetPtEtaStdBins;
     TH3D *hRecoInclusiveAllJetPtEtaPtHat;
     TH3D *hRecoInclusiveAllJetPtRawEtaPtHat;
     TH2D *hRecoInclusiveMatchedAllJetPtEta;
@@ -295,12 +297,21 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoDijetEtaLeadEtaSubLeadEta;
     TH3D *hRecoDijetEtaLeadEtaSubLeadEtaCM;
 
+    TH2D *hRecoDijetLeadPtEta;
+    TH2D *hRecoDijetLeadPtEtaStdBins;
+    TH2D *hRecoDijetSubLeadPtEta;
+    TH2D *hRecoDijetSubLeadPtEtaStdBins;
+
     // Lead and SubLead jet acceptance
     TH2D *hRecoLeadAllJetPtEta;
     TH2D *hRecoLeadAllJetPtEtaCM;
+    TH2D *hRecoLeadAllJetPtRawEtaStdBins;
+    TH2D *hRecoLeadAllJetPtEtaStdBins;
     TH3D *hRecoLeadAllJetPtEtaPtHat; 
     TH2D *hRecoSubLeadAllJetPtEta;
     TH2D *hRecoSubLeadAllJetPtEtaCM;
+    TH2D *hRecoSubLeadAllJetPtRawEtaStdBins;
+    TH2D *hRecoSubLeadAllJetPtEtaStdBins;
     TH3D *hRecoSubLeadAllJetPtEtaPtHat;
 
     TH1D *hRecoGoodInclusiveJetEtaLabFrame;
