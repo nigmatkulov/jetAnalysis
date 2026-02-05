@@ -1567,13 +1567,13 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         float xj = ptRecoSubLead / ptRecoLead;
         if (xj > 1.) { xj = 1.07; }
         if ( -1.9 < etaRecoLeadCM && etaRecoLeadCM < -1.6) {
-            fHM->hRecoDijetXj[0]->Fill( xj, weight * fMcReweight );
+            fHM->hRecoDijetXjCM[0]->Fill( xj, weight * fMcReweight );
         }
         else if ( -1.2 < etaRecoLeadCM && etaRecoLeadCM < 1.2) {
-            fHM->hRecoDijetXj[1]->Fill( xj, weight * fMcReweight );
+            fHM->hRecoDijetXjCM[1]->Fill( xj, weight * fMcReweight );
         }
         else if ( 1.6 < etaRecoLeadCM && etaRecoLeadCM < 1.9) {
-            fHM->hRecoDijetXj[2]->Fill( xj, weight * fMcReweight );
+            fHM->hRecoDijetXjCM[2]->Fill( xj, weight * fMcReweight );
         }
     } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(etaRecoSubLeadLab)<1.2 && fabs(dijetRecoDphi) > TMath::TwoPi()/3. && 50. < dijetRecoPtAve && dijetRecoPtAve < 90.)
 
