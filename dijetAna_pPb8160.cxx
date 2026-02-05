@@ -100,7 +100,7 @@ JetCut *createRecoJetCut(int collEnergyGeV, int recoJetSelMethod) {
     jetCut->setEtaLab(-5.2f, 5.2f);
     jetCut->setEtaCM(-5.2f, 5.2f);
     jetCut->setSelectionMethod(recoJetSelMethod); // 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetId
-    jetCut->setLooseJetIdCut(true); // true = loose, false = tight
+    jetCut->setLooseJetIdCut(false); // true = loose, false = tight
     // jetCut->setVerbose();
     return jetCut;
 }
