@@ -1552,6 +1552,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         50. < dijetRecoPtAve && dijetRecoPtAve < 90.) {
 
         float xj = ptRecoSubLead / ptRecoLead;
+        if (xj > 1.) { xj = 1.07; }
         if ( -2.4 < etaRecoLeadLab && etaRecoLeadLab < -1.8) {
             fHM->hRecoDijetXj[0]->Fill( xj, weight * fMcReweight );
         }
@@ -1561,7 +1562,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         else if ( 1.8 < etaRecoLeadLab && etaRecoLeadLab < 2.4) {
             fHM->hRecoDijetXj[2]->Fill( xj, weight * fMcReweight );
         }
-    } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(etaRecoSubLeadLab)<1.2 && fabs(dijetRecoDphi) > TMath::TwoPi()/3.)
+    } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(etaRecoSubLeadLab)<1.2 && fabs(dijetRecoDphi) > TMath::TwoPi()/3. && 50. < dijetRecoPtAve && dijetRecoPtAve < 90.)
 
     fIsRecoDijetLabFound = {false}; 
     if ( !fDiJetCut ) {
