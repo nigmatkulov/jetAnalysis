@@ -1548,7 +1548,8 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
 
     if (ptRecoLead > 50. && ptRecoSubLead > 40. && 
         fabs(etaRecoSubLeadLab)<1.2 && 
-        fabs(dijetRecoDphi) > TMath::TwoPi()/3.) {
+        fabs(dijetRecoDphi) > TMath::TwoPi()/3. &&
+        50. < dijetRecoPtAve && dijetRecoPtAve < 90.) {
 
         float xj = ptRecoSubLead / ptRecoLead;
         if ( -2.4 < etaRecoLeadLab && etaRecoLeadLab < -1.8) {
