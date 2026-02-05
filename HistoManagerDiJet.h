@@ -305,6 +305,9 @@ class HistoManagerDiJet : public BaseHistoManager {
     // Subleading jet is always in etaLab (-1.2, 1.2), while
     // Leading jet etaLab is backward (-2.4, -1.8), central (-1.2, 1.2), or forward (1.8, 2.4)
     TH1D *hRecoDijetXj[3];
+    // Subleading jet is always in etaCM (-1.2, 1.2), while
+    // Leading jet etaCM is backward (-1.9, -1.6), central (-1.2, 1.2), or forward (1.6, 1.9)
+    TH1D *hRecoDijetXjCM[3];
 
     // Lead and SubLead jet acceptance
     TH2D *hRecoLeadAllJetPtEta;

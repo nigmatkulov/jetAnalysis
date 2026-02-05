@@ -219,6 +219,7 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoDijetSubLeadPtEta{nullptr},
     hRecoDijetSubLeadPtEtaStdBins{nullptr},
     hRecoDijetXj{nullptr},
+    hRecoDijetXjCM{nullptr},
 
     hRecoLeadAllJetPtEta{nullptr},
     hRecoLeadAllJetPtEtaCM{nullptr},
@@ -562,6 +563,7 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoDijetSubLeadPtEtaStdBins) delete hRecoDijetSubLeadPtEtaStdBins;
     for (int i{0}; i<3; i++) {
         if (hRecoDijetXj[i]) delete hRecoDijetXj[i];
+        if (hRecoDijetXjCM[i]) delete hRecoDijetXjCM[i];
     }
 
     if (hRecoLeadAllJetPtEta) delete hRecoLeadAllJetPtEta;
@@ -1251,6 +1253,11 @@ void HistoManagerDiJet::init() {
         hRecoDijetXj[i] = new TH1D( Form("hRecoDijetXj_%d", i), 
                                     Form("Reco dijet x_{J} the #eta region %d (backward, midrange, forward);x_{J};Entries", i),
                                     22, 0., 1.1);
+        hRecoDijetXj[i]->Sumw2();
+        hRecoDijetXjCM[i] = new TH1D( Form("hRecoDijetXjCM_%d", i), 
+                                    Form("Reco dijet x_{J} in CM frame the #eta region %d (backward, midrange, forward);x_{J};Entries", i),
+                                    22, 0., 1.1);
+        hRecoDijetXjCM[i]->Sumw2();
     }
 
 
@@ -2514,6 +2521,7 @@ void HistoManagerDiJet::writeOutput() {
     hRecoDijetSubLeadPtEtaStdBins->Write();
     for (int i{0}; i<3; ++i) {
         hRecoDijetXj[i]->Write();
+        hRecoDijetXjCM[i]->Write();
     }
 
     hRecoLeadAllJetPtEta->Write();
