@@ -698,6 +698,30 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         // Check if jet passes the selection criteria (*recoJet, isCM, isMC, requireMatching)
         if ( fRecoJetCut && !fRecoJetCut->pass(*recoJetIter, false, false, false) ) continue;
 
+        unsigned int runId = event->runId();
+
+        if ( 40. < pt && pt < 90. ) {
+            int idx = -1;
+            if ( runId == 285480 ) { idx = 1; }
+            else if ( runId == 285505 ) { idx = 2; }
+            else if ( runId == 285517 ) { idx = 3; }
+            else if ( runId == 285832 ) { idx = 4; }
+            else if ( runId == 285993 ) { idx = 5; }
+
+            // For all runs
+            fHM->hRecoSubLeadJetEtaRun[0]->Fill( eta, weight );
+            if ( idx > 0 ) fHM->hRecoSubLeadJetEtaRun[idx]->Fill( eta, weight );
+            // Lead jet
+            if ( (fRecoIdLead >= 0) && ((recoJetCounter-1) == fRecoIdLead) ) {
+                fHM->hRecoLeadJetEtaRun[0]->Fill( eta, weight );
+                if ( idx > 0 ) fHM->hRecoLeadJetEtaRun[idx]->Fill( eta, weight );
+            }
+            if ( (fRecoIdSubLead >= 0) && ((recoJetCounter-1) == fRecoIdSubLead) ) {
+                fHM->hRecoSubLeadJetEtaRun[0]->Fill( eta, weight );
+                if ( idx > 0 ) fHM->hRecoSubLeadJetEtaRun[idx]->Fill( eta, weight );
+            }
+        } // if ( 40. < pt && pt < 90. )
+
         //Inclusive (matched+unmatched) jets
         fHM->hRecoInclusiveAllJetPt->Fill(pt, weight);
         fHM->hRecoInclusiveAllJetEta->Fill(eta, weight);
@@ -1217,12 +1241,12 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     // Fill forward and backward distributions for gen dijets in the CM frame
     if ( ptGenLead > 50. && ptGenSubLead > 30. && fabs(dijetGenDphi) > (TMath::TwoPi() / 3) ) {
         int caseId = -1;
-        if ( fabs(etaGenLeadCM) < 1.9 && fabs(etaGenSubLeadCM) < 1.9 ) caseId = 5;
-        else if ( fabs(etaGenLeadCM) < 1.8 && fabs(etaGenSubLeadCM) < 1.8 ) caseId = 4;
-        else if ( fabs(etaGenLeadCM) < 1.7 && fabs(etaGenSubLeadCM) < 1.7 ) caseId = 3;
-        else if ( fabs(etaGenLeadCM) < 1.6 && fabs(etaGenSubLeadCM) < 1.6 ) caseId = 2;
-        else if ( fabs(etaGenLeadCM) < 1.5 && fabs(etaGenSubLeadCM) < 1.5 ) caseId = 1;
-        else if ( fabs(etaGenLeadCM) < 1.4 && fabs(etaGenSubLeadCM) < 1.4 ) caseId = 0;
+        if ( fabs(etaGenLeadCM) < 1.9 && fabs(etaGenSubLeadCM) < 1.9 ) caseId = 0;
+        else if ( fabs(etaGenLeadCM) < 1.8 && fabs(etaGenSubLeadCM) < 1.8 ) caseId = 1;
+        else if ( fabs(etaGenLeadCM) < 1.7 && fabs(etaGenSubLeadCM) < 1.7 ) caseId = 2;
+        else if ( fabs(etaGenLeadCM) < 1.6 && fabs(etaGenSubLeadCM) < 1.6 ) caseId = 3;
+        else if ( fabs(etaGenLeadCM) < 1.5 && fabs(etaGenSubLeadCM) < 1.5 ) caseId = 4;
+        else if ( fabs(etaGenLeadCM) < 1.4 && fabs(etaGenSubLeadCM) < 1.4 ) caseId = 5;
 
         // In case of good dijet
         if ( caseId >= 0 ) {
@@ -1231,7 +1255,7 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
                     fHM->hGenDijetPtEtaForwardArr[i]->Fill(dijetGenPtAve, dijetGenEtaCM, weight * fMcReweight);
                 }
                 else {
-                    fHM->hGenDijetPtEtaBackwardArr[i]->Fill(dijetGenPtAve, dijetGenEtaCM, weight * fMcReweight);
+                    fHM->hGenDijetPtEtaBackwardArr[i]->Fill(dijetGenPtAve, fabs(dijetGenEtaCM), weight * fMcReweight);
                 }
             }
         }
@@ -1379,6 +1403,8 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         }
         return;
     }
+
+    unsigned int runId = event->runId();
 
     // Lead jet
     RecoJet* recoLeadJet = event->recoJetCollection()->at( fRecoIdLead );
@@ -1606,12 +1632,12 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // Fill forward and backward distributions for reco dijets in the CM frame (with corrected pT)
     if ( ptRecoLead > 50. && ptRecoSubLead > 30. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
         int caseId = -1;
-        if ( fabs(etaRecoLeadCM) < 1.9 && fabs(etaRecoSubLeadCM) < 1.9 ) caseId = 5;
-        else if ( fabs(etaRecoLeadCM) < 1.8 && fabs(etaRecoSubLeadCM) < 1.8 ) caseId = 4;
-        else if ( fabs(etaRecoLeadCM) < 1.7 && fabs(etaRecoSubLeadCM) < 1.7 ) caseId = 3;
-        else if ( fabs(etaRecoLeadCM) < 1.6 && fabs(etaRecoSubLeadCM) < 1.6 ) caseId = 2;
-        else if ( fabs(etaRecoLeadCM) < 1.5 && fabs(etaRecoSubLeadCM) < 1.5 ) caseId = 1;
-        else if ( fabs(etaRecoLeadCM) < 1.4 && fabs(etaRecoSubLeadCM) < 1.4 ) caseId = 0;
+        if ( fabs(etaRecoLeadCM) < 1.9 && fabs(etaRecoSubLeadCM) < 1.9 ) caseId = 0;
+        else if ( fabs(etaRecoLeadCM) < 1.8 && fabs(etaRecoSubLeadCM) < 1.8 ) caseId = 1;
+        else if ( fabs(etaRecoLeadCM) < 1.7 && fabs(etaRecoSubLeadCM) < 1.7 ) caseId = 2;
+        else if ( fabs(etaRecoLeadCM) < 1.6 && fabs(etaRecoSubLeadCM) < 1.6 ) caseId = 3;
+        else if ( fabs(etaRecoLeadCM) < 1.5 && fabs(etaRecoSubLeadCM) < 1.5 ) caseId = 4;
+        else if ( fabs(etaRecoLeadCM) < 1.4 && fabs(etaRecoSubLeadCM) < 1.4 ) caseId = 5;
 
         // In case of good dijet
         if ( caseId >= 0 ) {
@@ -1630,12 +1656,12 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // Fill forward and backward distributions for reco dijets in the CM frame (with uncerrected pT)
     if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 30. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
         int caseId = -1;
-        if ( fabs(etaRecoLeadCM) < 1.9 && fabs(etaRecoSubLeadCM) < 1.9 ) caseId = 5;
-        else if ( fabs(etaRecoLeadCM) < 1.8 && fabs(etaRecoSubLeadCM) < 1.8 ) caseId = 4;
-        else if ( fabs(etaRecoLeadCM) < 1.7 && fabs(etaRecoSubLeadCM) < 1.7 ) caseId = 3;
-        else if ( fabs(etaRecoLeadCM) < 1.6 && fabs(etaRecoSubLeadCM) < 1.6 ) caseId = 2;
-        else if ( fabs(etaRecoLeadCM) < 1.5 && fabs(etaRecoSubLeadCM) < 1.5 ) caseId = 1;
-        else if ( fabs(etaRecoLeadCM) < 1.4 && fabs(etaRecoSubLeadCM) < 1.4 ) caseId = 0;
+        if ( fabs(etaRecoLeadCM) < 1.9 && fabs(etaRecoSubLeadCM) < 1.9 ) caseId = 0;
+        else if ( fabs(etaRecoLeadCM) < 1.8 && fabs(etaRecoSubLeadCM) < 1.8 ) caseId = 1;
+        else if ( fabs(etaRecoLeadCM) < 1.7 && fabs(etaRecoSubLeadCM) < 1.7 ) caseId = 2;
+        else if ( fabs(etaRecoLeadCM) < 1.6 && fabs(etaRecoSubLeadCM) < 1.6 ) caseId = 3;
+        else if ( fabs(etaRecoLeadCM) < 1.5 && fabs(etaRecoSubLeadCM) < 1.5 ) caseId = 4;
+        else if ( fabs(etaRecoLeadCM) < 1.4 && fabs(etaRecoSubLeadCM) < 1.4 ) caseId = 5;
 
         // In case of good dijet
         if ( caseId >= 0 ) {
@@ -1644,7 +1670,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
                     fHM->hRecoDijetPtEtaForwardArr[i]->Fill(dijetRecoPtAveRaw, dijetRecoEtaCM, weight * fMcReweight);
                 }
                 else {
-                    fHM->hRecoDijetPtEtaBackwardArr[i]->Fill(dijetRecoPtAveRaw, dijetRecoEtaCM, weight * fMcReweight);
+                    fHM->hRecoDijetPtEtaBackwardArr[i]->Fill(dijetRecoPtAveRaw, fabs(dijetRecoEtaCM), weight * fMcReweight);
                 }
             }
         }
@@ -1794,6 +1820,19 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         fHM->hRecoDijetLeadPtEtaStdBins->Fill( ptRecoLead, etaRecoLeadLab, weight );
         fHM->hRecoDijetSubLeadPtEta->Fill( ptRecoSubLead, etaRecoSubLeadLab, weight );
         fHM->hRecoDijetSubLeadPtEtaStdBins->Fill( ptRecoSubLead, etaRecoSubLeadLab, weight );
+        
+        if ( 50. < dijetRecoPtAve && dijetRecoPtAve < 90. ) {
+            int idx = -1;
+            if ( runId == 285480 ) { idx = 1; }
+            else if ( runId == 285505 ) { idx = 2; }
+            else if ( runId == 285517 ) { idx = 3; }
+            else if ( runId == 285832 ) { idx = 4; }
+            else if ( runId == 285993 ) { idx = 5; }
+
+            // For all runs
+            fHM->hRecoDijetEtaCMRun[0]->Fill( dijetRecoEtaCM, weight );
+            if ( idx > 0 ) fHM->hRecoDijetEtaCMRun[idx]->Fill( dijetRecoEtaCM, weight );
+        } // if ( 50. < dijetRecoPtAve && dijetRecoPtAve < 90. )
 
         // In case of MC
         if ( fIsMc && recoLeadJet->hasMatching() && recoSubLeadJet->hasMatching() ) {

@@ -265,12 +265,22 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH3D *hRecoInclusiveMatchedJetPtEtaPtHat;
     TH2D *hRecoInclusiveUnmatchedAllJetPtEta;
     TH3D *hRecoInclusiveUnmatchedJetPtEtaPtHat;
+
+    // Inclusive jet eta distributions (with pT 40-90 GeV) for runs: 
+    // all, 285480, 285505, 285517, 285832, 285993
+    TH1D *hRecoInclusiveJetEtaRun[6];
+    TH1D *hRecoLeadJetEtaRun[6];
+    TH1D *hRecoSubLeadJetEtaRun[6];
     
     TH2D *hRecoPtLeadPtSublead;
     TH2D *hRecoEtaLeadEtaSublead;
     TH2D *hRecoEtaCMLeadEtaCMSublead;
     TH2D *hRecoPtLeadPtSubleadMcReweight;
     TH2D *hRecoEtaLeadEtaSubleadMcReweight;
+
+    // Dijet etaCM distributions for ptAve 50-90 GeV for runs:
+    // all, 285480, 285505, 285517, 285832, 285993
+    TH1D *hRecoDijetEtaCMRun[6];
 
     TH2D *hRecoDijetPtEtaForward;
     TH2D *hRecoDijetPtEtaBackward;
