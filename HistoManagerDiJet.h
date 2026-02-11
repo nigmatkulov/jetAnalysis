@@ -183,6 +183,10 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenDijetPtEtaCMForwardWeighted;
     TH2D *hGenDijetPtEtaCMBackwardWeighted;
 
+    // Array for various eta ragions: |eta|<x; x = 1.4, 1.5, 1.6, 1.7, 1.8, 1.9
+    TH2D *hGenDijetPtEtaForwardArr[6];
+    TH2D *hGenDijetPtEtaBackwardArr[6];
+
     TH3D *hGenDijetPtAveLeadPtSubLeadPt;
     TH3D *hGenDijetPtAveLeadPtSubLeadPtCM;
     TH3D *hGenDijetPtAveLeadEtaSubLeadEta;
@@ -280,6 +284,12 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRecoDijetPtEtaBackwardWeighted;
     TH2D *hRecoDijetPtEtaCMForwardWeighted;
     TH2D *hRecoDijetPtEtaCMBackwardWeighted;
+
+    // Array for various eta ragions: |eta|<x; x = 1.4, 1.5, 1.6, 1.7, 1.8, 1.9
+    TH2D *hRecoDijetPtRawEtaForwardArr[6];
+    TH2D *hRecoDijetPtRawEtaBackwardArr[6];
+    TH2D *hRecoDijetPtEtaForwardArr[6];
+    TH2D *hRecoDijetPtEtaBackwardArr[6];
 
     TH2D *hRecoDijetPtEta;
     TH2D *hRecoDijetPtEtaWeighted;

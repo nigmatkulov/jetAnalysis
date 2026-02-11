@@ -111,6 +111,8 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hGenDijetPtEtaBackwardWeighted{nullptr},
     hGenDijetPtEtaCMForwardWeighted{nullptr},
     hGenDijetPtEtaCMBackwardWeighted{nullptr},
+    hGenDijetPtEtaForwardArr{nullptr},
+    hGenDijetPtEtaBackwardArr{nullptr},
 
     hGenDijetPtAveLeadPtSubLeadPt{nullptr},
     hGenDijetPtAveLeadPtSubLeadPtCM{nullptr},
@@ -198,6 +200,10 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoDijetPtEtaBackwardWeighted{nullptr},
     hRecoDijetPtEtaCMForwardWeighted{nullptr},
     hRecoDijetPtEtaCMBackwardWeighted{nullptr},
+    hRecoDijetPtRawEtaForwardArr{nullptr},
+    hRecoDijetPtRawEtaBackwardArr{nullptr},
+    hRecoDijetPtEtaForwardArr{nullptr},
+    hRecoDijetPtEtaBackwardArr{nullptr},
     hRecoDijetPtEta{nullptr},
     hRecoDijetPtEtaWeighted{nullptr},
     hRecoDijetPtEtaCMInLab{nullptr},
@@ -228,9 +234,9 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hRecoLeadAllJetPtEtaPtHat{nullptr},
     hRecoSubLeadAllJetPtEta{nullptr},
     hRecoSubLeadAllJetPtEtaCM{nullptr},
-    hRecoSubLeadAllJetPtEtaPtHat{nullptr},
     hRecoSubLeadAllJetPtRawEtaStdBins{nullptr},
     hRecoSubLeadAllJetPtEtaStdBins{nullptr},
+    hRecoSubLeadAllJetPtEtaPtHat{nullptr},
     hRecoGoodInclusiveJetEtaLabFrame{nullptr},
     hRecoGoodInclusiveJetEtaCMFrame{nullptr},
     hRecoDijetEta{nullptr},
@@ -362,12 +368,12 @@ HistoManagerDiJet::HistoManagerDiJet() :
     // Variables
     //
     fIsMc{false}, fUseVariableBinning{true},
-    fPtBins{100}, fPtRange{5., 1005.}, 
+    fPtBins{50}, fPtRange{5., 505.}, 
     fEtaBins{36}, fEtaRange{-3.6, 3.6},
     fPhiBins{16}, fPhiRange{-TMath::Pi(), TMath::Pi()},
-    fDijetPtBins{196}, fDijetPtRange{20., 1000.},
+    fDijetPtBins{45}, fDijetPtRange{50., 500.},
     fDijetEtaBins{32}, fDijetEtaRange{-3.2, 3.2},
-    fDijetEtaFBBins{16}, fDijetEtaFBRange{0., 3.2},
+    fDijetEtaFBBins{32}, fDijetEtaFBRange{0., 3.2},
     // fDijetDphiBins{8}, fDijetDphiRange{-TMath::Pi(), TMath::Pi()},
     fPtHatBins{100}, fPtHatRange{15., 1015.},
     fFracBins{100}, fFracRange{0., 1.},
@@ -461,6 +467,10 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hGenDijetPtEtaBackwardWeighted) delete hGenDijetPtEtaBackwardWeighted;
         if (hGenDijetPtEtaCMForwardWeighted) delete hGenDijetPtEtaCMForwardWeighted;
         if (hGenDijetPtEtaCMBackwardWeighted) delete hGenDijetPtEtaCMBackwardWeighted;
+        for (int i{0}; i<6; i++) {
+            if (hGenDijetPtEtaForwardArr[i]) delete hGenDijetPtEtaForwardArr[i];
+            if (hGenDijetPtEtaBackwardArr[i]) delete hGenDijetPtEtaBackwardArr[i];
+        }
         if (hGenDijetPtAveLeadPtSubLeadPt) delete hGenDijetPtAveLeadPtSubLeadPt;
         if (hGenDijetPtAveLeadPtSubLeadPtCM) delete hGenDijetPtAveLeadPtSubLeadPtCM;
         if (hGenDijetPtAveLeadEtaSubLeadEta) delete hGenDijetPtAveLeadEtaSubLeadEta;
@@ -542,6 +552,12 @@ HistoManagerDiJet::~HistoManagerDiJet() {
     if (hRecoDijetPtEtaBackwardWeighted) delete hRecoDijetPtEtaBackwardWeighted;
     if (hRecoDijetPtEtaCMForwardWeighted) delete hRecoDijetPtEtaCMForwardWeighted;
     if (hRecoDijetPtEtaCMBackwardWeighted) delete hRecoDijetPtEtaCMBackwardWeighted;
+    for (int i{0}; i<6; i++) {
+        if (hRecoDijetPtRawEtaForwardArr[i]) delete hRecoDijetPtRawEtaForwardArr[i];
+        if (hRecoDijetPtRawEtaBackwardArr[i]) delete hRecoDijetPtRawEtaBackwardArr[i];
+        if (hRecoDijetPtEtaForwardArr[i]) delete hRecoDijetPtEtaForwardArr[i];
+        if (hRecoDijetPtEtaBackwardArr[i]) delete hRecoDijetPtEtaBackwardArr[i];
+    }
     if (hRecoDijetPtEta) delete hRecoDijetPtEta;
     if (hRecoDijetPtEtaWeighted) delete hRecoDijetPtEtaWeighted;
     if (hRecoDijetPtEtaCMInLab) delete hRecoDijetPtEtaCMInLab;
@@ -1361,6 +1377,27 @@ void HistoManagerDiJet::init() {
     }
     hRecoDijetPtEtaCMBackwardWeighted->Sumw2();
 
+    // Reco dijet distributions in different eta regions |eta_CM|<x
+    for (int i{0}; i<6; i++) {
+        float etaCut = 1.4 + 0.1*i;
+        hRecoDijetPtRawEtaForwardArr[i] = new TH2D( Form("hRecoDijetPtRawEtaForward_%d", i), Form("Reco dijet p_{T}^{raw} vs #eta_{CM}  (forward) |#eta^{dijet}_{CM}|<%.1f;p_{T}^{ave, raw} (GeV);#eta^{dijet}_{CM}", etaCut),
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaFBBins, fDijetEtaFBRange[0], fDijetEtaFBRange[1]);
+        hRecoDijetPtRawEtaForwardArr[i]->Sumw2();
+        hRecoDijetPtRawEtaBackwardArr[i] = new TH2D( Form("hRecoDijetPtRawEtaBackward_%d", i), Form("Reco dijet p_{T}^{raw} vs #eta_{CM}  (backward) |#eta^{dijet}_{CM}|<%.1f;p_{T}^{ave, raw} (GeV);#eta^{dijet}_{CM}", etaCut),
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaFBBins, fDijetEtaFBRange[0], fDijetEtaFBRange[1]);
+        hRecoDijetPtRawEtaBackwardArr[i]->Sumw2();
+        hRecoDijetPtEtaForwardArr[i] = new TH2D( Form("hRecoDijetPtEtaForward_%d", i), Form("Reco dijet p_{T} vs #eta in CM frame (forward) |#eta^{dijet}|<%.1f;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}", etaCut),
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaFBBins, fDijetEtaFBRange[0], fDijetEtaFBRange[1]);
+        hRecoDijetPtEtaForwardArr[i]->Sumw2();
+        hRecoDijetPtEtaBackwardArr[i] = new TH2D( Form("hRecoDijetPtEtaBackward_%d", i), Form("Reco dijet p_{T} vs #eta in CM frame (backward) |#eta^{dijet}|<%.1f;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}", etaCut),
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaFBBins, fDijetEtaFBRange[0], fDijetEtaFBRange[1]);
+        hRecoDijetPtEtaBackwardArr[i]->Sumw2();
+    } // for (int i{0}; i<6; i++)
+
     //
     // Monte Carlo information
     //
@@ -1654,6 +1691,19 @@ void HistoManagerDiJet::init() {
             hGenDijetPtEtaCMBackwardWeighted->SetBinsLength(-1);
         }
         hGenDijetPtEtaCMBackwardWeighted->Sumw2();
+
+        // Gen dijet forward-backward jets for different |eta| selections: <1.4, 1.5, 1.6, 1.7, 1.8, 1.9
+        for (int i{0}; i<6; ++i) {
+            float etaCut = 1.4 + i*0.1;
+            hGenDijetPtEtaForwardArr[i] = new TH2D(Form("hGenDijetPtEtaForwardArr_%d", i), Form("Gen dijet distribuition (forward) in CM frame |#eta^{jet}|<%2.1f;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}", etaCut),
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaFBBins, fDijetEtaFBRange[0], fDijetEtaFBRange[1]);
+            hGenDijetPtEtaForwardArr[i]->Sumw2();
+            hGenDijetPtEtaBackwardArr[i] = new TH2D(Form("hGenDijetPtEtaBackwardArr_%d", i), Form("Gen dijet distribuition (backward) in CM frame |#eta^{jet}|<%2.1f;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}", etaCut),
+                                            fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
+                                            fDijetEtaFBBins, fDijetEtaFBRange[0], fDijetEtaFBRange[1]);
+            hGenDijetPtEtaBackwardArr[i]->Sumw2();
+        } // for (int i{0}; i<6; ++i)
 
         hGenDijetPtAveLeadPtSubLeadPt = new TH3D("hGenDijetPtAveLeadPtSubLeadPt", "Gen dijet pT ave vs Lead pT vs SubLead pT;p_{T}^{ave} (GeV);p_{T}^{Lead} (GeV);p_{T}^{SubLead} (GeV)",
                                         fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
@@ -2496,6 +2546,12 @@ void HistoManagerDiJet::writeOutput() {
     hRecoDijetPtEtaBackwardWeighted->Write();
     hRecoDijetPtEtaCMForwardWeighted->Write();
     hRecoDijetPtEtaCMBackwardWeighted->Write();
+    for (int i{0}; i<6; ++i) {
+        hRecoDijetPtRawEtaForwardArr[i]->Write();
+        hRecoDijetPtRawEtaBackwardArr[i]->Write();
+        hRecoDijetPtEtaForwardArr[i]->Write();
+        hRecoDijetPtEtaBackwardArr[i]->Write();
+    }
 
     hRecoDijetPtEta->Write();
     hRecoDijetPtEtaWeighted->Write();
@@ -2593,6 +2649,10 @@ void HistoManagerDiJet::writeOutput() {
         hGenDijetPtEtaBackwardWeighted->Write();
         hGenDijetPtEtaCMForwardWeighted->Write();
         hGenDijetPtEtaCMBackwardWeighted->Write();
+        for (int i{0}; i<6; ++i) {
+            hGenDijetPtEtaForwardArr[i]->Write();
+            hGenDijetPtEtaBackwardArr[i]->Write();
+        }
         hGenDijetPtAveLeadPtSubLeadPt->Write();
         hGenDijetPtAveLeadPtSubLeadPtCM->Write();
         hGenDijetPtAveLeadEtaSubLeadEta->Write();
