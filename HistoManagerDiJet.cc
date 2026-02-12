@@ -1425,7 +1425,7 @@ void HistoManagerDiJet::init() {
 
     // Reco dijet distributions in different eta regions |eta_CM|<x
     for (int iEta{0}; iEta<6; iEta++) {
-        float etaCut = 1.4 + 0.1*iEta;
+        const float etaCut = 1.4 + 0.1*iEta;
         hRecoDijetPtRawEtaForwardArr[iEta] = new TH2D( Form("hRecoDijetPtRawEtaForwardArr_%d", iEta), Form("Reco dijet p_{T}^{raw} vs #eta_{CM}  (forward) |#eta^{dijet}_{CM}|<%.1f;p_{T}^{ave, raw} (GeV);#eta^{dijet}_{CM}", etaCut),
                                             fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                             fDijetEtaFBBins, fDijetEtaFBRange[0], fDijetEtaFBRange[1]);
@@ -1740,7 +1740,7 @@ void HistoManagerDiJet::init() {
 
         // Gen dijet forward-backward jets for different |eta| selections: <1.4, 1.5, 1.6, 1.7, 1.8, 1.9
         for (int iEta{0}; iEta<6; ++iEta) {
-            float etaCut = 1.4 + iEta*0.1;
+            const float etaCut = 1.4 + iEta*0.1;
             hGenDijetPtEtaForwardArr[iEta] = new TH2D(Form("hGenDijetPtEtaForwardArr_%d", iEta), Form("Gen dijet distribuition (forward) in CM frame |#eta^{jet}|<%2.1f;p_{T}^{ave} (GeV);#eta^{dijet}_{CM}", etaCut),
                                             fDijetPtBins, fDijetPtRange[0], fDijetPtRange[1],
                                             fDijetEtaFBBins, fDijetEtaFBRange[0], fDijetEtaFBRange[1]);

@@ -1239,27 +1239,15 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     fHM->hGenInclusiveDijetXPbOverXpEtaWeighted->Fill( xPbOverXp, dijetGenEtaLab, weight );
 
     // Fill forward and backward distributions for gen dijets in the CM frame
-    if ( ptGenLead > 50. && ptGenSubLead > 30. && fabs(dijetGenDphi) > (TMath::TwoPi() / 3) ) {
-        int caseId = -1;
-        if ( fabs(etaGenLeadCM) < 1.9 && fabs(etaGenSubLeadCM) < 1.9 ) caseId = 0;
-        else if ( fabs(etaGenLeadCM) < 1.8 && fabs(etaGenSubLeadCM) < 1.8 ) caseId = 1;
-        else if ( fabs(etaGenLeadCM) < 1.7 && fabs(etaGenSubLeadCM) < 1.7 ) caseId = 2;
-        else if ( fabs(etaGenLeadCM) < 1.6 && fabs(etaGenSubLeadCM) < 1.6 ) caseId = 3;
-        else if ( fabs(etaGenLeadCM) < 1.5 && fabs(etaGenSubLeadCM) < 1.5 ) caseId = 4;
-        else if ( fabs(etaGenLeadCM) < 1.4 && fabs(etaGenSubLeadCM) < 1.4 ) caseId = 5;
-
-        // In case of good dijet
-        if ( caseId >= 0 ) {
-            for (int i = 0; i <= caseId; i++) {
-                if (dijetGenEtaCM >= 0) { 
-                    fHM->hGenDijetPtEtaForwardArr[i]->Fill(dijetGenPtAve, dijetGenEtaCM, weight * fMcReweight);
-                }
-                else {
-                    fHM->hGenDijetPtEtaBackwardArr[i]->Fill(dijetGenPtAve, fabs(dijetGenEtaCM), weight * fMcReweight);
-                }
+    if ( ptGenLead > 50. && ptGenSubLead > 40. && fabs(dijetGenDphi) > (TMath::TwoPi() / 3) ) {
+        for (int iEtaCut{0}; iEtaCut<6; iEtaCut++) {
+            const float etaCut = 1.4 + iEtaCut * 0.1;
+            if ( fabs(etaGenLeadCM) < etaCut && fabs(etaGenSubLeadCM) < etaCut ) {
+                (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaForwardArr[iEtaCut]->Fill(dijetGenPtAve, dijetGenEtaCM, weight * fMcReweight) :
+                                       fHM->hGenDijetPtEtaBackwardArr[iEtaCut]->Fill(dijetGenPtAve, fabs(dijetGenEtaCM), weight * fMcReweight);
             }
         }
-    } // if ( ptGenLead > 50. && ptGenSubLead > 30. && fabs(dijetGenDphi) > (TMath::TwoPi() / 3) )
+    } // if ( ptGenLead > 50. && ptGenSubLead > 40. && fabs(dijetGenDphi) > (TMath::TwoPi() / 3) )
 
     //
     // Lab frame
@@ -1630,51 +1618,28 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(etaRecoSubLeadLab)<1.2 && fabs(dijetRecoDphi) > TMath::TwoPi()/3. && 50. < dijetRecoPtAve && dijetRecoPtAve < 90.)
 
     // Fill forward and backward distributions for reco dijets in the CM frame (with corrected pT)
-    if ( ptRecoLead > 50. && ptRecoSubLead > 30. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
-        int caseId = -1;
-        if ( fabs(etaRecoLeadCM) < 1.9 && fabs(etaRecoSubLeadCM) < 1.9 ) caseId = 0;
-        else if ( fabs(etaRecoLeadCM) < 1.8 && fabs(etaRecoSubLeadCM) < 1.8 ) caseId = 1;
-        else if ( fabs(etaRecoLeadCM) < 1.7 && fabs(etaRecoSubLeadCM) < 1.7 ) caseId = 2;
-        else if ( fabs(etaRecoLeadCM) < 1.6 && fabs(etaRecoSubLeadCM) < 1.6 ) caseId = 3;
-        else if ( fabs(etaRecoLeadCM) < 1.5 && fabs(etaRecoSubLeadCM) < 1.5 ) caseId = 4;
-        else if ( fabs(etaRecoLeadCM) < 1.4 && fabs(etaRecoSubLeadCM) < 1.4 ) caseId = 5;
-
-        // In case of good dijet
-        if ( caseId >= 0 ) {
-            for (int i = 0; i <= caseId; i++) {
-                if (dijetRecoEtaCM >= 0) { 
-                    fHM->hRecoDijetPtEtaForwardArr[i]->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight * fMcReweight);
-                }
-                else {
-                    fHM->hRecoDijetPtEtaBackwardArr[i]->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight * fMcReweight);
-                }
+    if ( ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
+        for (int iEtaCut{0}; iEtaCut < 6; iEtaCut++) {
+            const float etaCut = 1.4 + iEtaCut * 0.1;
+            if ( fabs(etaRecoLeadCM) < etaCut && fabs(etaRecoSubLeadCM) < etaCut ) {
+                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaForwardArr[iEtaCut]->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight * fMcReweight) : 
+                                        fHM->hRecoDijetPtEtaBackwardArr[iEtaCut]->Fill(dijetRecoPtAve, fabs(dijetRecoEtaCM), weight * fMcReweight);
             }
-        }
-    } // if ( ptRecoLead > 50. && ptRecoSubLead > 30. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) )
+        } // for (int iEtaCut{0}; iEtaCut < 6; iEtaCut++)
+    } // if ( ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) )
 
 
-    // Fill forward and backward distributions for reco dijets in the CM frame (with uncerrected pT)
-    if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 30. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
-        int caseId = -1;
-        if ( fabs(etaRecoLeadCM) < 1.9 && fabs(etaRecoSubLeadCM) < 1.9 ) caseId = 0;
-        else if ( fabs(etaRecoLeadCM) < 1.8 && fabs(etaRecoSubLeadCM) < 1.8 ) caseId = 1;
-        else if ( fabs(etaRecoLeadCM) < 1.7 && fabs(etaRecoSubLeadCM) < 1.7 ) caseId = 2;
-        else if ( fabs(etaRecoLeadCM) < 1.6 && fabs(etaRecoSubLeadCM) < 1.6 ) caseId = 3;
-        else if ( fabs(etaRecoLeadCM) < 1.5 && fabs(etaRecoSubLeadCM) < 1.5 ) caseId = 4;
-        else if ( fabs(etaRecoLeadCM) < 1.4 && fabs(etaRecoSubLeadCM) < 1.4 ) caseId = 5;
+    // Fill forward and backward distributions for reco dijets in the CM frame (with uncorrected pT)
+    if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 40. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
+        for (int iEtaCut{0}; iEtaCut < 6; iEtaCut++) {
+            const float etaCut = 1.4 + iEtaCut * 0.1;
 
-        // In case of good dijet
-        if ( caseId >= 0 ) {
-            for (int i = 0; i <= caseId; i++) {
-                if (dijetRecoEtaCM >= 0) { 
-                    fHM->hRecoDijetPtEtaForwardArr[i]->Fill(dijetRecoPtAveRaw, dijetRecoEtaCM, weight * fMcReweight);
-                }
-                else {
-                    fHM->hRecoDijetPtEtaBackwardArr[i]->Fill(dijetRecoPtAveRaw, fabs(dijetRecoEtaCM), weight * fMcReweight);
-                }
+            if ( fabs(etaRecoLeadCM) < etaCut && fabs(etaRecoSubLeadCM) < etaCut ) {
+                (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtRawEtaForwardArr[iEtaCut]->Fill(dijetRecoPtAveRaw, dijetRecoEtaCM, weight * fMcReweight) : 
+                                        fHM->hRecoDijetPtRawEtaBackwardArr[iEtaCut]->Fill(dijetRecoPtAveRaw, fabs(dijetRecoEtaCM), weight * fMcReweight);
             }
-        }
-    } // if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 30. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) )
+        } // for (int iEtaCut{0}; iEtaCut < 6; iEtaCut++)
+    } // if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 40. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) )
 
 
     //
