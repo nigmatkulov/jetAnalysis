@@ -709,8 +709,8 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
             else if ( runId == 285993 ) { idx = 5; }
 
             // For all runs
-            fHM->hRecoSubLeadJetEtaRun[0]->Fill( eta, weight );
-            if ( idx > 0 ) fHM->hRecoSubLeadJetEtaRun[idx]->Fill( eta, weight );
+            fHM->hRecoInclusiveJetEtaRun[0]->Fill( eta, weight );
+            if ( idx > 0 ) fHM->hRecoInclusiveJetEtaRun[idx]->Fill( eta, weight );
             // Lead jet
             if ( (fRecoIdLead >= 0) && ((recoJetCounter-1) == fRecoIdLead) ) {
                 fHM->hRecoLeadJetEtaRun[0]->Fill( eta, weight );
