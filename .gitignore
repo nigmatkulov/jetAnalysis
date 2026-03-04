@@ -45,4 +45,5 @@ macro/npdf/figs/*
 processing/input/*
 processing/output/*
 processing/log/*
-processin/voms_proxy.txt
+processing/voms_proxy.txt
+
