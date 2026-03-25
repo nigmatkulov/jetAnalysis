@@ -1039,13 +1039,13 @@ bool DiJetAnalysis::isOverweightedEvent(const Event* event, const double& weight
         float dijetRecoPt = ptRecoLead + ptRecoSubLead;
         float dijetRecoPtAve = 0.5 * dijetRecoPt;
 
-        fHM->hRecoLeadJetPtOverPtHatVsLeadJetPt->Fill( ptRecoLead, ptRecoLead/ptHat, 1. );
-        fHM->hRecoLeadJetPtOverPtHatVsLeadJetPtWeighted->Fill( ptRecoLead, ptRecoLead/ptHat, weight );
+        fHM->hRecoLeadJetPtOverPtHatVsPtHat->Fill( ptHat, ptRecoLead/ptHat, 1. );
+        fHM->hRecoLeadJetPtOverPtHatVsPtHatWeighted->Fill( ptHat, ptRecoLead/ptHat, weight );
         
-        fHM->hRecoDijetPtOverPtHatVsDijetPt->Fill(dijetRecoPt, dijetRecoPt/ptHat, 1.);
-        fHM->hRecoDijetPtOverPtHatVsDijetPtWeighted->Fill(dijetRecoPt, dijetRecoPt/ptHat, weight);
-        fHM->hRecoDijetPtAveOverPtHatVsDijetPtAve->Fill(dijetRecoPtAve, dijetRecoPtAve/ptHat, 1.);
-        fHM->hRecoDijetPtAveOverPtHatVsDijetPtAveWeighted->Fill(dijetRecoPtAve, dijetRecoPtAve/ptHat, weight);
+        fHM->hRecoDijetPtOverPtHatVsPtHat->Fill(ptHat, dijetRecoPt/ptHat, 1.);
+        fHM->hRecoDijetPtOverPtHatVsPtHatWeighted->Fill(ptHat, dijetRecoPt/ptHat, weight);
+        fHM->hRecoDijetPtAveOverPtHatVsPtHat->Fill(ptHat, dijetRecoPtAve/ptHat, 1.);
+        fHM->hRecoDijetPtAveOverPtHatVsPtHatWeighted->Fill(ptHat, dijetRecoPtAve/ptHat, weight);
 
         if ( isOverweighted( ptRecoLead, dijetRecoPtAve, ptHat ) ) {
             if ( fVerbose ) {
@@ -1059,47 +1059,12 @@ bool DiJetAnalysis::isOverweightedEvent(const Event* event, const double& weight
         isRecoOverweightedEvent = {true};
     }
 
-    //
-    // Process gen jets in order to remove overweighted gen events
-    //
-
-    if ( fGenIdLead >= 0 && fGenIdSubLead >= 0 ) {
-
-        GenJet* leadJet = event->genJetCollection()->at( fGenIdLead );
-        GenJet* subLeadJet = event->genJetCollection()->at( fGenIdSubLead );
-        float ptGenLead = leadJet->pt();
-        float ptGenSubLead = subLeadJet->pt();
-        float dijetGenPt = ptGenLead + ptGenSubLead;
-        float dijetGenPtAve = 0.5 * dijetGenPt;
-
-        fHM->hGenLeadJetPtOverPtHatVsLeadJetPt->Fill( ptGenLead, ptGenLead/ptHat, 1. );
-        fHM->hGenLeadJetPtOverPtHatVsLeadJetPtWeighted->Fill( ptGenLead, ptGenLead/ptHat, weight );
-
-        fHM->hGenDijetPtOverPtHatVsDijetPt->Fill(dijetGenPt, dijetGenPt/ptHat, 1.);
-        fHM->hGenDijetPtOverPtHatVsDijetPtWeighted->Fill(dijetGenPt, dijetGenPt/ptHat, weight);
-        fHM->hGenDijetPtAveOverPtHatVsDijetPtAve->Fill(dijetGenPtAve, dijetGenPtAve/ptHat, 1.);
-        fHM->hGenDijetPtAveOverPtHatVsDijetPtAveWeighted->Fill(dijetGenPtAve, dijetGenPtAve/ptHat, weight);
-
-        if ( isOverweighted( ptGenLead, dijetGenPtAve, ptHat ) ) {
-            if ( fVerbose ) {
-                std::cout << Form("Overweighted event [Gen]: ptLead/ptHat = %3.2f ptAve/ptHat = %3.2f", ptGenLead/ptHat, dijetGenPtAve/ptHat) << std::endl;
-            }
-            isGenOverweightedEvent = {true};
-        } // if ( isOverweightedEvent( ptGenLead, ptHat ) )
-    } // if ( fGenIdLead >= 0 && fGenIdSubLead >= 0 )
-    else {
-        // Skip events with less than 2 jets
-        isGenOverweightedEvent = {true};
-    }
-
-
-    bool overweightedEvent = isRecoOverweightedEvent || isGenOverweightedEvent;
+    bool overweightedEvent = isRecoOverweightedEvent;
 
     if ( fVerbose ) {
         std::cout << Form("Event overweighted: %s Reco overweighted: %s Gen overweighted: %s", 
                           ((overweightedEvent) ? "[true]" : "[false]"),
-                          ((isRecoOverweightedEvent) ? "[true]" : "[false]"), 
-                          ((isGenOverweightedEvent) ? "[true]" : "[false]")) << std::endl;
+                          ((isRecoOverweightedEvent) ? "[true]" : "[false]") ) << std::endl;
         std::cout << "DiJetAnalysis::isOverweightedEvent -- end" << std::endl;
     }
     return overweightedEvent;
@@ -1108,7 +1073,7 @@ bool DiJetAnalysis::isOverweightedEvent(const Event* event, const double& weight
 //________________
 bool DiJetAnalysis::isOverweighted(const float& ptLead, const float& dijetPtAve, const float& ptHat) {
     return false;
-    // return (  ( ( ptLead / ptHat ) > 2.5) || ( ( dijetPtAve / ptHat ) > 1.7) );
+    // return (  ( ( ptLead / ptHat ) > 3.0) || ( ( dijetPtAve / ptHat ) > 2.0) );
 }
 
 //________________
@@ -1354,6 +1319,13 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         fHM->hGenDijetPtAveLeadPtSubLeadPtCM->Fill( dijetGenPtAve, ptGenLead, ptGenSubLead, weight );
         fHM->hGenDijetPtAveLeadEtaSubLeadEtaCM->Fill( dijetGenPtAve, etaGenLeadCM, etaGenSubLeadCM, weight );
         fHM->hGenDijetEtaLeadEtaSubLeadEtaCM->Fill( dijetGenEtaCM,  etaGenLeadCM, etaGenSubLeadCM, weight );
+
+        fHM->hGenDijetLeadPtEtaLabUnflipped->Fill(ptGenLead, leadJet->eta(), weight);
+        fHM->hGenDijetLeadPtEtaLab->Fill(ptGenLead, etaGenLeadLab, weight);
+        fHM->hGenDijetLeadPtEtaCM->Fill(ptGenLead, etaGenLeadLab, weight);
+        fHM->hGenDijetSubLeadPtEtaLabUnflipped->Fill(ptGenSubLead, subLeadJet->eta(), weight);
+        fHM->hGenDijetSubLeadPtEtaLab->Fill(ptGenSubLead, etaGenSubLeadLab, weight);
+        fHM->hGenDijetSubLeadPtEtaCM->Fill(ptGenSubLead, etaGenSubLeadLab, weight);
     } // if ( goodDijetCM )
 
     fGenDijet->cleanParameters();
