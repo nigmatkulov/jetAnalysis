@@ -142,6 +142,8 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH1D *hGenInclusiveJetEtaUnweighted;
     TH2D *hGenInclusiveJetPtEta;
     TH2D *hGenInclusiveJetPtEtaCM;
+    TH2D *hGenInclusiveJetPtEtaCMForward;
+    TH2D *hGenInclusiveJetPtEtaCMBackward;
     TH3D *hGenInclusiveJetPtEtaPtHat;
     TH2D *hGenLeadJetPtEta;
     TH2D *hGenLeadJetPtEtaCM;

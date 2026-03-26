@@ -12,6 +12,8 @@
 #include "TSystem.h"
 #include "TRatioPlot.h"
 #include "TPad.h"
+#include "TF1.h"
+#include "TGraphErrors.h"
 
 // C++ headers
 #include <iostream>
@@ -161,6 +163,19 @@ void makeFullEtaFromForwardAndBackward(TH1D *hFull, TH1D *hForward, TH1D *hBackw
     }
 }
 
+//________________
+void makeForwardBackwardFromFullEta(TH1D *hRatio, TH1D *hForward, TH1D *hBackward) {
+    hRatio->Divide(hForward, hBackward);
+}
+
+//________________
+void makeForwardBackwardDoubleRatio(TH1D *hDR, TH1D *hNpdfForward, TH1D *hNpdfBackward, TH1D *hPdfForward, TH1D *hPdfBackward) {
+    TH1D *hRatioForward = (TH1D*)hNpdfForward->Clone("hRatioForward");
+    hRatioForward->Divide(hPdfForward);
+    TH1D *hRatioBackward = (TH1D*)hNpdfBackward->Clone("hRatioBackward");
+    hRatioBackward->Divide(hPdfBackward);
+    hDR->Divide(hRatioForward, hRatioBackward);
+}
 
 //________________
 // Rescale a 1D histogram by its area-weighted integral
@@ -442,6 +457,29 @@ void rescaleForwardBackward(TH1D *hForward, TH1D *hBackward) {
 }
 
 //________________
+void recalculateUncertaintyOfNpdf(TH1D *h) {
+
+    TString fitName = Form("%s_fit", h->GetName());
+    int lastNonZeroBin = h->FindLastBinAbove(0);
+    TF1 *f = new TF1(fitName.Data(), "pol3", 
+                     h->GetXaxis()->GetXmin(), 
+                     h->GetXaxis()->GetBinUpEdge(lastNonZeroBin) );
+    f->SetLineColor( h->GetLineColor() );
+    f->SetLineWidth(3);
+    h->Fit(fitName.Data(), "MRE0");
+
+    for (int iBin{1}; iBin<=lastNonZeroBin; iBin++) {
+        double x = h->GetXaxis()->GetBinCenter(iBin);
+        double y = h->GetBinContent(iBin);
+        if ( abs(y) < 1e-5 ) continue; // Skip bins with zero content to avoid issues with fitting
+        double yFit = f->Eval(x);
+        double newUnc = std::abs(y - yFit);
+        h->SetBinError(iBin, newUnc);
+    }
+}
+
+
+//________________
 // Compare reco, ref, refSel to gen inclusive jet eta distributions
 void drawSingleJetToGenComparison(TCanvas *c, TH1D *hReco, TH1D *hRef = nullptr, 
                                   TH1D *hGen = nullptr, TH1D *hRefSel = nullptr,
@@ -583,6 +621,8 @@ void drawSingleJetToGenRatio(TCanvas *c, TH1D *hReco2Gen, TH1D *hRef2Gen = nullp
     }
     leg->Draw();
 }
+
+
 
 //________________
 // Draw comparison of reco, ref, gen and refSel dijet eta distributions
@@ -741,7 +781,7 @@ void recalculateFBRatioFromFullDistribution(TH1* hRatio, TH1* hForward, TH1* hBa
     // std::cout << Form("Number of bins Full: %d Forward: %d Backward: %d Ratio: %d\n",
     //                   hFull->GetNbinsX(), hForward->GetNbinsX(), hBackward->GetNbinsX(), hRatio->GetNbinsX());
 
-    int middleBin = hFull->FindBin(0.);
+    int middleBin = hFull->FindBin(0.0001);
 
     // Make forward
     for (int i=middleBin; i<=hFull->GetNbinsX(); i++) {
@@ -1602,263 +1642,6 @@ void dijetClosuresFrom2D(TFile *f, int collisionSystem = 1, double collisionEner
     if (c) { delete c; c = nullptr; }
 }
 
-//_________________
-// Function plots eta and pT distribution comparisons and ratios of reco, ref, refSel to gen jets
-// in bins of ptHat.
-// It retrieves histograms for reconstructed, generated, and reference jets, and computes the ratios.
-// f is the input TFile containing the histograms.
-// collisionSystem: 0 = pp, 1 = pPb, 2 = PbPb
-// collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
-// jetType: 0 = Inclusive, 1 = Lead, 2 = SubLead
-// date: date string for saving the plots (default is "20250129")
-void inclusiveJetJECClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, int jetType = 0, int matchType = 0, TString date = "20250129") {
-    // Collisions system: 0 = pp, 1 = pPb, 2 = PbPb
-    // energy in TeV
-
-    double xTextPosition = 0.6;
-    double yTextPosition = 0.8;
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.05);
-
-    TString tMatched = "All";
-    tMatched = (matchType == 0) ? "All" : ((matchType == 1) ? "Matched" : "Unmatched");
-
-    TString tJetType = "Inclusive"; 
-    tJetType = (jetType == 0) ? "Inclusive" : ((jetType == 1) ? "Lead" : "SubLead");
-
-    std::cout << "Jet type: " << tJetType.Data() << std::endl;
-    std::cout << "Match type: " << tMatched.Data() << std::endl;
-
-    // Determine the direction based on the filename
-    TString directionStr;
-    TString filename = f->GetName();
-    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
-        directionStr = "Pbgoing";
-    } 
-    else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
-        directionStr = "pgoing";
-    } 
-    else {
-        directionStr = "comb";
-    }
-    
-
-    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
-    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
-
-    // ptHat binning
-    double ptHatVals[] { 15., 60., 90. };
-    int sizeOfPtHatVals = sizeof(ptHatVals)/sizeof(ptHatVals[0]);
-
-    // jet pT and eta binning
-    double_t jetPtVals[] = {30., 50., 90., 120., 200., 500., 1500.};
-    int sizeOfJetPtVals = sizeof(jetPtVals)/sizeof(jetPtVals[0]);
-
-    double jetEtaVals[] = {-3.6, -2.4, -1.6, 1.6, 2.4, 3.6};
-    int sizeOfJetEtaVals = sizeof(jetEtaVals)/sizeof(jetEtaVals[0]);
-
-    std::cout << Form("Reco histogram to read: ") << Form("hReco%s%sJetPtEtaPtHat", tJetType.Data(), tMatched.Data() ) << std::endl;
-    std::cout << Form("Gen histogram to read: ") << Form("hGen%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
-    std::cout << Form("Ref histogram to read: ") << Form("hRef%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
-    std::cout << Form("RefSel histogram to read: ") << Form("hRefSel%sJetPtEtaPtHat", tJetType.Data() ) << std::endl;
-
-    // Retrieve histograms
-    TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hReco%s%sJetPtEtaPtHat", tJetType.Data(), tMatched.Data() ) ) );
-    if ( !hRecoPtEtaPtHat ) {
-        std::cerr << "Histogram hRecoPtEtaPtHat not found in file." << std::endl; return;
-    }
-    // TH3D *hRecoPtEtaPtHat = dynamic_cast<TH3D *>(f->Get("hRecoMatchedJetPtEtaPtHat"));
-    TH3D *hGenPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hGen%sJetPtEtaPtHat", tJetType.Data() ) ) );
-    if ( !hGenPtEtaPtHat ) {
-        std::cerr << "Histogram hGenPtEtaPtHat not found in file." << std::endl; return;
-    }
-    TH3D *hRefPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hRef%sJetPtEtaPtHat", tJetType.Data() ) ) );
-    if ( !hRefPtEtaPtHat ) {
-        std::cerr << "Histogram hRefPtEtaPtHat not found in file." << std::endl; return;
-    }
-    TH3D *hRefSelPtEtaPtHat = dynamic_cast<TH3D *>(f->Get( Form("hRefSel%sJetPtEtaPtHat", tJetType.Data() ) ) );
-    if ( !hRefSelPtEtaPtHat ) {
-        std::cerr << "Histogram hRefSelPtEtaPtHat not found in file." << std::endl; return;
-    }
-
-    //
-    // Declare canvases and histograms
-    //
-
-    TH2D *hRecoPtVsEta{nullptr};
-    TH2D *hGenPtVsEta{nullptr};
-    TH1D *hRecoPt{nullptr};
-    TH1D *hGenPt{nullptr};
-
-    TH1D *hRecoEta{nullptr};
-    TH1D *hGenEta{nullptr};
-    TH1D *hRefEta{nullptr};
-    TH1D *hRefSelEta{nullptr};
-
-    TH1D *hReco2GenEta{nullptr};
-    TH1D *hRef2GenEta{nullptr};
-    TH1D *hRefSel2GenEta{nullptr};
-
-    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
-    setPadStyle();
-    gPad->SetGrid(1, 1);
-
-    //
-    // Perform analysis and build comparisons for different ptHat intervals.
-    // First part loops over jet pT, second part over jet eta.
-    //
-
-    // Loop over ptHat bins
-    for (int i = 0; i < sizeOfPtHatVals; i++) {
-
-        double ptHatLow = ptHatVals[i];
-        double ptHatHigh = hRecoPtEtaPtHat->GetZaxis()->GetBinUpEdge( hRecoPtEtaPtHat->GetNbinsZ() );
-        int ptHatBinLow = hRecoPtEtaPtHat->GetZaxis()->FindBin(ptHatLow);
-        int ptHatBinHigh = hRecoPtEtaPtHat->GetNbinsZ();
-
-        //
-        // Loop over jet pT bins
-        //
-        for (int j = 0; j < sizeOfJetPtVals-1; j++) {
-
-            //
-            // Make projections of the 3D histograms
-            //
-
-            double jetPtLow = jetPtVals[j];
-            double jetPtHigh = jetPtVals[j+1];
-            int jetPtBinLow = hRecoPtEtaPtHat->GetYaxis()->FindBin(jetPtLow);
-            int jetPtBinHigh = hRecoPtEtaPtHat->GetYaxis()->FindBin(jetPtHigh) - 1;
-
-
-            // Reco jets
-            hRecoEta = dynamic_cast<TH1D *>(hRecoPtEtaPtHat->ProjectionX(Form("hRecoEta_%d_%d", i, j),
-                                                                               jetPtBinLow, jetPtBinHigh,
-                                                                               ptHatBinLow, ptHatBinHigh));
-            if ( !hRecoEta ) {
-                std::cout << "hRecoEta_" << i << "_" << j << " does not exist" << std::endl;
-                return;
-            }
-            rescaleHisto1D(hRecoEta);
-            set1DStyle(hRecoEta, 0);
-
-            // Gen jets
-            hGenEta = dynamic_cast<TH1D *>(hGenPtEtaPtHat->ProjectionX(Form("hGenEta_%d_%d", i, j),
-                                           jetPtBinLow, jetPtBinHigh,
-                                           ptHatBinLow, ptHatBinHigh));
-            if ( !hGenEta ) {
-                std::cout << "hGenEta_" << i << "_" << j << " does not exist" << std::endl;
-                return;
-            }
-            rescaleHisto1D(hGenEta);
-            set1DStyle(hGenEta, 5);
-
-            // Ref jets
-            hRefEta = dynamic_cast<TH1D *>(hRefPtEtaPtHat->ProjectionX(Form("hRefEta_%d_%d", i, j),
-                                           jetPtBinLow, jetPtBinHigh,
-                                           ptHatBinLow, ptHatBinHigh));
-            if ( !hRefEta ) {
-                std::cout << "hRefEta_" << i << "_" << j << " does not exist" << std::endl;
-                return;
-            }
-            rescaleHisto1D(hRefEta);
-            set1DStyle(hRefEta, 1);
-        
-            // RefSel jets
-            hRefSelEta = dynamic_cast<TH1D *>(hRefSelPtEtaPtHat->ProjectionX(Form("hRefSelEta_%d_%d", i, j),
-                                              jetPtBinLow, jetPtBinHigh,
-                                              ptHatBinLow, ptHatBinHigh));
-            if ( !hRefSelEta ) {
-                std::cout << "hRefSelEta_" << i << "_" << j << " does not exist" << std::endl;
-                return;
-            }
-            set1DStyle(hRefSelEta, 2);
-            rescaleHisto1D(hRefSelEta);
-
-            int rebinFactor{2};
-            hRecoEta->Rebin(rebinFactor);
-            hGenEta->Rebin(rebinFactor);
-            hRefEta->Rebin(rebinFactor);
-            hRefSelEta->Rebin(rebinFactor);
-
-            //
-            // Ratios of reco, ref and refSel to gen
-            //
-            hReco2GenEta = dynamic_cast<TH1D *>(hRecoEta->Clone(Form("hReco2GenEta_%d_%d", i, j)));
-            hReco2GenEta->Divide(hReco2GenEta, hGenEta, 1., 1., "b");
-            hRef2GenEta = dynamic_cast<TH1D *>(hRefEta->Clone(Form("hRef2GenEta_%d_%d", i, j)));
-            hRef2GenEta->Divide(hRef2GenEta, hGenEta, 1., 1., "b");
-            hRefSel2GenEta = dynamic_cast<TH1D *>(hRefSelEta->Clone(Form("hRefSel2GenEta_%d_%d", i, j)));
-            hRefSel2GenEta->Divide(hRefSel2GenEta, hGenEta, 1., 1., "b");
-            
-            //
-            // Plot comparisons
-            //
-            drawSingleJetToGenComparison(c, hRecoEta, hRefEta, hGenEta, hRefSelEta, nullptr,
-                                         jetPtLow, jetPtHigh, ptHatLow, 
-                                         false, false, collisionSystem, collisionEnergy);
-            c->SaveAs(Form("%s/%s_%s_jetEta_RecoRefGenComp_ptAve_%d_%d_ptHatLow_%d.pdf", 
-                      date.Data(), collSystemStr.Data(), directionStr.Data(),
-                      (int)jetPtLow, (int)jetPtHigh, (int)ptHatLow));
-
-            //
-            // Plot ratios
-            //
-            drawSingleJetToGenRatio(c, hReco2GenEta, hRef2GenEta, hRefSel2GenEta, nullptr,
-                                    jetPtLow, jetPtHigh, ptHatLow, false, false, collisionSystem, collisionEnergy);
-            c->SaveAs(Form("%s/%s_%s_jetEta_RecoRef2GenRatio_ptAve_%d_%d_ptHatLow_%d.pdf", 
-                      date.Data(), collSystemStr.Data(), directionStr.Data(),
-                      (int)jetPtLow, (int)jetPtHigh, (int)ptHatLow));
-
-
-            // // Create canvas
-            // cClosureEta[i][j] = new TCanvas(Form("cClosureEta_%d_%d", i, j), Form("cClosureEta_%d_%d", i, j), 700, 800);
-
-            // // Plot distributions
-            // drawJecComparison(cClosureEta[i][j], hRecoEta[i][j], hGenEta[i][j],
-            //                   hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge( jetPtBinsLow[j] ), 
-            //                   hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge( jetPtBinsHigh[j] ),
-            //                   ptHatLow,
-            //                   "Reco", "Gen", collisionSystem, collisionEnergy, false, true, false,
-            //                   hRecoPtEtaPtHat->GetXaxis()->GetBinLowEdge( 1 ),
-            //                   hRecoPtEtaPtHat->GetXaxis()->GetBinUpEdge( hRecoPtEtaPtHat->GetXaxis()->GetNbins() )
-            //                 );
-
-        } // for (unsigned int j = 0; j < jetPtBinsLow.size(); j++)
-
-
-        // //
-        // // Loop over jet eta bins
-        // //
-        // for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++) {
-
-        //     // Create canvas
-        //     cClosurePt[i][j] = new TCanvas(Form("cClosurePt_%d_%d", i, j), Form("cClosurePt_%d_%d", i, j), 700, 800);
-        //     // Make projection of the 3D histograms
-        //     hRecoPt[i][j] = dynamic_cast<TH1D *>(hRecoPtEtaPtHat->ProjectionY(Form("hRecoPt_%d_%d", i, j),
-        //                                                                       jetEtaBinsLow[j], jetEtaBinsHigh[j],
-        //                                                                       ptHatBins[i], ptHatBinsMax));
-        //     set1DStyle(hRecoPt[i][j], 0, kFALSE);
-        //     hGenPt[i][j] = dynamic_cast<TH1D *>(hGenPtEtaPtHat->ProjectionY(Form("hGenPt_%d_%d", i, j),
-        //                                                                     jetEtaBinsLow[j], jetEtaBinsHigh[j],
-        //                                                                     ptHatBins[i], ptHatBinsMax));
-        //     set1DStyle(hGenPt[i][j], 1, kFALSE);
-
-        //     // Plot distributions
-        //     drawJecComparison(cClosurePt[i][j], hRecoPt[i][j], hGenPt[i][j],
-        //                       hRecoPtEtaPtHat->GetYaxis()->GetBinLowEdge( 1 ),
-        //                       hRecoPtEtaPtHat->GetYaxis()->GetBinUpEdge( hRecoPtEtaPtHat->GetYaxis()->GetNbins() ),
-        //                       ptHatLow,
-        //                       "Reco", "Gen", collisionSystem, collisionEnergy, false, true, true,
-        //                       hRecoPtEtaPtHat->GetXaxis()->GetBinLowEdge( jetEtaBinsLow[j] ), 
-        //                       hRecoPtEtaPtHat->GetXaxis()->GetBinUpEdge( jetEtaBinsHigh[j] ));
-
-        // } // for (unsigned int j = 0; j < jetEtaBinsLow.size(); j++)
-    } // for (unsigned int i = 0; i < ptHatBins.size(); i++)
-
-    if (c) { delete c; c = nullptr; }
-}
 
 //________________
 //
@@ -3870,153 +3653,48 @@ void plotEtaDistributionsForRunId(int collisionSystem = 1, double collisionEnerg
 }
 
 //________________
-void plotNpdfEtaForwardBackwardRatios(int collisionSystem, double collisionEnergy, TString date) {
-    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
-    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
-
-    TFile *fNpdf = TFile::Open( Form("./npdf/epps21_pPb8160_dijet_eta.root" ) );
-    if ( !fNpdf || fNpdf->IsZombie() ) {
-        std::cerr << "Error: Could not open npdf file." << std::endl;
-        return;
-    }
-
-    bool isRecalculateStatUnc = true;
-    static constexpr std::array<int, 7> etaCMIntCut = {25, 19, 18, 17, 16, 15, 14};
-    static constexpr std::array<double, 7> etaCMDoubleCut = {2.5, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4};
-    static constexpr std::array<const char*, 7> p8Colors {"kBlack", "kBlue", "kRed", "kMagenta", "kP8Orange", "kP8Green", "kP8Azure"};
-    const int etaCMCutSize = etaCMIntCut.size();
-
-    TH1D *hNpdfForwardCMEta[etaCMCutSize];
-    TH1D *hNpdfBackwardCMEta[etaCMCutSize];
-    TH1D *hNpdfForwardBackwardRatio[etaCMCutSize];
-
-    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
-        // Forward
-        hNpdfForwardCMEta[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("hDijetEtaCMForward_%d_0", etaCMIntCut[iEta]) ) );
-        if ( !hNpdfForwardCMEta[iEta] ) {
-            std::cerr << "Error: hDijetEtaCMForward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
-            return;
-        }
-        hNpdfForwardCMEta[iEta]->SetDirectory(0);
-        set1DStyle( hNpdfForwardCMEta[iEta], 0);
-        hNpdfForwardCMEta[iEta]->SetName( Form("hNpdfForwardCMEta_%d", iEta) );
-
-        // Backward
-        hNpdfBackwardCMEta[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("hDijetEtaCMBackward_%d_0", etaCMIntCut[iEta]) ) );
-        if ( !hNpdfBackwardCMEta[iEta] ) {
-            std::cerr << "Error: hDijetEtaCMBackward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
-            return;
-        }
-        hNpdfBackwardCMEta[iEta]->SetDirectory(0);
-        set1DStyle( hNpdfBackwardCMEta[iEta], 1);
-
-        if (isRecalculateStatUnc) {
-            recalculateStatisticalUncertainty( hNpdfForwardCMEta[iEta] );
-            recalculateStatisticalUncertainty( hNpdfBackwardCMEta[iEta] );
-        }
-
-        // Ratio
-        hNpdfBackwardCMEta[iEta]->SetName( Form("hNpdfBackwardCMEta_%d", iEta) );
-        hNpdfForwardBackwardRatio[iEta] = (TH1D*)hNpdfForwardCMEta[iEta]->Clone(Form("hNpdfForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
-        hNpdfForwardBackwardRatio[iEta]->Divide(hNpdfBackwardCMEta[iEta]);
-    }
-
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.05);
-
-    TLegend *leg{nullptr};
-
-    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
-    setPadStyle();
-    gPad->SetGrid();
-
-    // Plot a comparison of forward/backward ratios for different eta cuts
-    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
-        hNpdfForwardBackwardRatio[iEta]->SetLineColor( p8Colors[iEta] );
-        hNpdfForwardBackwardRatio[iEta]->SetMarkerColor( p8Colors[iEta] );
-        hNpdfForwardBackwardRatio[iEta]->Draw( (iEta==0) ? "" : "same" );
-        if (iEta == 0) {
-            hNpdfForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.6);
-            hNpdfForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.7, 1.1);
-            hNpdfForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward / Backward");
-            leg = new TLegend(0.16, 0.16, 0.34, 0.45);
-            leg->SetTextSize(0.03);
-            leg->SetFillColor(0);
-            leg->SetBorderSize(0);
-        }
-        leg->AddEntry(hNpdfForwardBackwardRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
-    } // for (int i{0}; i<etaCMCutSize; i++)
-     plotCMSHeader(collisionSystem, collisionEnergy);
-     t.DrawLatexNDC(0.4, 0.85, "nPDF (EPPS21)");
-     t.DrawLatexNDC(0.4, 0.8, "60 < p_{T}^{ave} < 80 GeV");
-     leg->Draw();
-     c->SaveAs(Form("%s/epps21_%s_forwardBackwardRatio_etaCM_comparison.pdf", 
-                    date.Data(), collSystemStr.Data()) );
-
-    // Make ratios of forward/backward ratios for different eta to the most broad one (|eta| < 2.5)
-    TH1D *hRatiosTo25[etaCMCutSize - 1];
-    for (int iEta{1}; iEta<etaCMCutSize; iEta++) {
-        hRatiosTo25[iEta - 1] = (TH1D*)hNpdfForwardBackwardRatio[iEta]->Clone(Form("hNpdfForwardBackwardRatio_%d_to_25", etaCMIntCut[iEta]));
-        hRatiosTo25[iEta - 1]->Divide(hNpdfForwardBackwardRatio[0]);
-        hRatiosTo25[iEta - 1]->SetLineColor( p8Colors[iEta] );
-        hRatiosTo25[iEta - 1]->SetMarkerColor( p8Colors[iEta] );
-    }
-
-    c->cd();
-    for (int iEta{1}; iEta<etaCMCutSize; iEta++) {
-        hRatiosTo25[iEta - 1]->Draw( (iEta==1) ? "" : "same" );
-        if (iEta == 1) {
-            hRatiosTo25[iEta - 1]->GetXaxis()->SetRangeUser(0., 2.6);
-            hRatiosTo25[iEta - 1]->GetYaxis()->SetRangeUser(0.8, 1.1);
-            hRatiosTo25[iEta - 1]->GetYaxis()->SetTitle("Ratio to |#eta^{jet}_{CM}| < 2.5");
-            leg = new TLegend(0.16, 0.16, 0.34, 0.45);
-            leg->SetTextSize(0.03);
-            leg->SetFillColor(0);
-            leg->SetBorderSize(0);
-            leg->Draw();
-        }
-        leg->AddEntry(hRatiosTo25[iEta - 1], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
-    } // for (int i{1}; i<etaCMCutSize; i++)
-    plotCMSHeader(collisionSystem, collisionEnergy);
-    t.DrawLatexNDC(0.4, 0.85, "nPDF (EPPS21)");
-    t.DrawLatexNDC(0.4, 0.8, "60 < p_{T}^{ave} < 80 GeV");
-    leg->Draw();
-    c->SaveAs(Form("%s/epps21_%s_forwardBackwardRatio_etaCM_ratio_to_25.pdf", 
-                   date.Data(), collSystemStr.Data()) );
-
-}
-
-//________________
 void plotNpdfToDataComparison(int collisionSystem, double collisionEnergy, TString date) {
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    bool isRecalculateStatUnc = true;
+    int rebinFactor = 2;
     static constexpr std::array<int, 6> etaCMIntCut = {19, 18, 17, 16, 15, 14};
     static constexpr std::array<double, 6> etaCMDoubleCut = {1.9, 1.8, 1.7, 1.6, 1.5, 1.4};
     static constexpr std::array<const char*, 6> p8Colors {"kBlack", "kBlue", "kRed", "kMagenta", "kP8Orange", "kP8Green"};
     const int etaCMCutSize = etaCMIntCut.size();
     const double ptLow = 60.;
     const double ptHigh = 80.;
+    const double dijetEtaCMMax = 3.2;
+    const int dijetEtaCMBins = 64;
 
-    TH1D *hNpdfForwardCMEta[etaCMCutSize];
-    TH1D *hNpdfBackwardCMEta[etaCMCutSize];
-    TH1D *hNpdfForwardBackwardRatio[etaCMCutSize];
-    TH1D *hNpdfFullCMEta[etaCMCutSize];
+    // nPDF and PDF histograms
+    TH1D *hNpdfEtaCMForward[etaCMCutSize];
+    TH1D *hNpdfEtaCMBackward[etaCMCutSize];
+    TH1D *hNpdfEtaCMForwardBackwardRatio[etaCMCutSize];
+    TH1D *hNpdfEtaCMFull[etaCMCutSize];
 
-    TH2D *hData2DForwardCMEta[etaCMCutSize];
-    TH2D *hData2DBackwardCMEta[etaCMCutSize];
+    TH1D *hPdfEtaCMForward[etaCMCutSize];
+    TH1D *hPdfEtaCMBackward[etaCMCutSize];
+    TH1D *hPdfEtaCMForwardBackwardRatio[etaCMCutSize];
+    TH1D *hPdfEtaCMFull[etaCMCutSize];
 
-    TH1D *hDataForwardCMEta[etaCMCutSize];
-    TH1D *hDataBackwardCMEta[etaCMCutSize];
-    TH1D *hDataForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataFullCMEta[etaCMCutSize];
+    TH1D *hNpdfToPdfEtaCMFullRatio[etaCMCutSize];
+    TH1D *hNpdfToPdfEtaCMForwardBackwardRatio[etaCMCutSize];
 
+    // Data histograms
+    TH2D *hData2DEtaCMForward[etaCMCutSize];
+    TH2D *hData2DEtaCMBackward[etaCMCutSize];
+
+    TH1D *hDataEtaCMForward[etaCMCutSize];
+    TH1D *hDataEtaCMBackward[etaCMCutSize];
+    TH1D *hDataEtaCMForwardBackwardRatio[etaCMCutSize];
+    TH1D *hDataEtaCMFull[etaCMCutSize];
+
+    // Data to nPDF ratios
     TH1D *hDataToNpdfForwardBackwardRatio[etaCMCutSize];
     TH1D *hDataToNpdfFullEtaRatio[etaCMCutSize];
 
-    TFile *fNpdf = TFile::Open( Form("./npdf/epps21_pPb8160_dijet_eta.root" ) );
+    TFile *fNpdf = TFile::Open( Form("./npdf/epps21_pPb8160_dijet_eta_dset.root" ) );
     if ( !fNpdf || fNpdf->IsZombie() ) {
         std::cerr << "Error: Could not open npdf file." << std::endl;
         return;
@@ -4031,55 +3709,762 @@ void plotNpdfToDataComparison(int collisionSystem, double collisionEnergy, TStri
 
     // Read histograms from files
     for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+
         //
         // nPDF
         //
 
+        // Full
+        hNpdfEtaCMFull[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("pPb_hDijetEtaCMFull_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hNpdfEtaCMFull[iEta] ) {
+            std::cerr << "Error: pPb_hDijetEtaCMFull_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hNpdfEtaCMFull[iEta]->SetDirectory(0);
+        set1DStyle( hNpdfEtaCMFull[iEta], 0, true );
+        hNpdfEtaCMFull[iEta]->SetName( Form("hNpdfEtaCMFull_%d", iEta) );
+        hNpdfEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hNpdfEtaCMFull[iEta]->Rebin(rebinFactor);
+
         // Forward
-        hNpdfForwardCMEta[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("hDijetEtaCMForward_%d_0", etaCMIntCut[iEta]) ) );
-        if ( !hNpdfForwardCMEta[iEta] ) {
+        hNpdfEtaCMForward[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("pPb_hDijetEtaCMForward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hNpdfEtaCMForward[iEta] ) {
+            std::cerr << "Error: pPb_hDijetEtaCMForward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hNpdfEtaCMForward[iEta]->SetDirectory(0);
+        set1DStyle( hNpdfEtaCMForward[iEta], 0 );
+        hNpdfEtaCMForward[iEta]->SetName( Form("hNpdfEtaCMForward_%d", iEta) );
+        hNpdfEtaCMForward[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMForward[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hNpdfEtaCMForward[iEta]->Rebin(rebinFactor);
+
+        // Backward
+        hNpdfEtaCMBackward[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("pPb_hDijetEtaCMBackward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hNpdfEtaCMBackward[iEta] ) {
+            std::cerr << "Error: pPb_hDijetEtaCMBackward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hNpdfEtaCMBackward[iEta]->SetDirectory(0);
+        set1DStyle( hNpdfEtaCMBackward[iEta], 0 );
+        hNpdfEtaCMBackward[iEta]->SetName( Form("hNpdfEtaCMBackward_%d", iEta) );
+        hNpdfEtaCMBackward[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMBackward[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hNpdfEtaCMBackward[iEta]->Rebin(rebinFactor);
+
+        // Forward/backward ratio
+        hNpdfEtaCMForwardBackwardRatio[iEta] = (TH1D*)hNpdfEtaCMForward[iEta]->Clone(Form("hNpdfEtaCMForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
+        hNpdfEtaCMForwardBackwardRatio[iEta]->Divide(hNpdfEtaCMBackward[iEta]);
+        hNpdfEtaCMForwardBackwardRatio[iEta]->SetDirectory(0);
+
+        //
+        // PDF
+        //
+
+        // Full
+        hPdfEtaCMFull[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("pp_hDijetEtaCMFull_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hPdfEtaCMFull[iEta] ) {
+            std::cerr << "Error: pp_hDijetEtaCMFull_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hPdfEtaCMFull[iEta]->SetDirectory(0);
+        set1DStyle( hPdfEtaCMFull[iEta], 1, true );
+        hPdfEtaCMFull[iEta]->SetName( Form("hPdfEtaCMFull_%d", iEta) );
+        hPdfEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfEtaCMFull[iEta]->Rebin(rebinFactor);
+
+        // Forward
+        hPdfEtaCMForward[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("pp_hDijetEtaCMForward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hPdfEtaCMForward[iEta] ) {
+            std::cerr << "Error: pp_hDijetEtaCMForward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hPdfEtaCMForward[iEta]->SetDirectory(0);
+        set1DStyle( hPdfEtaCMForward[iEta], 1 );
+        hPdfEtaCMForward[iEta]->SetName( Form("hPdfEtaCMForward_%d", iEta) );
+        hPdfEtaCMForward[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfEtaCMForward[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfEtaCMForward[iEta]->Rebin(rebinFactor);
+
+        // Backward
+        hPdfEtaCMBackward[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("pp_hDijetEtaCMBackward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hPdfEtaCMBackward[iEta] ) {
+            std::cerr << "Error: pp_hDijetEtaCMBackward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hPdfEtaCMBackward[iEta]->SetDirectory(0);
+        set1DStyle( hPdfEtaCMBackward[iEta], 1 );
+        hPdfEtaCMBackward[iEta]->SetName( Form("hPdfEtaCMBackward_%d", iEta) );
+        hPdfEtaCMBackward[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfEtaCMBackward[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfEtaCMBackward[iEta]->Rebin(rebinFactor);
+
+        // Forward/backward ratio
+        hPdfEtaCMForwardBackwardRatio[iEta] = (TH1D*)hPdfEtaCMForward[iEta]->Clone(Form("hPdfEtaCMForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
+        hPdfEtaCMForwardBackwardRatio[iEta]->Divide(hPdfEtaCMBackward[iEta]);
+        hPdfEtaCMForwardBackwardRatio[iEta]->SetDirectory(0);
+
+        // Ratio of nPDF to PDF
+        hNpdfToPdfEtaCMFullRatio[iEta] = (TH1D*)hNpdfEtaCMFull[iEta]->Clone(Form("hNpdfToPdfEtaCMFullRatio_%d_0", etaCMIntCut[iEta]));
+        hNpdfToPdfEtaCMFullRatio[iEta]->Divide(hPdfEtaCMFull[iEta]);
+        hNpdfToPdfEtaCMFullRatio[iEta]->SetDirectory(0);
+
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta] = (TH1D*)hNpdfEtaCMForwardBackwardRatio[iEta]->Clone(Form("hNpdfToPdfEtaCMForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->Divide(hPdfEtaCMForwardBackwardRatio[iEta]);
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->SetDirectory(0);
+
+        recalculateUncertaintyOfNpdf( hNpdfToPdfEtaCMForwardBackwardRatio[iEta] );
+
+        //
+        // Data
+        //
+
+        // Forward
+        hData2DEtaCMForward[iEta] = dynamic_cast<TH2D *>( fData->Get( Form("hRecoDijetPtEtaForwardArr_%d", etaCMCutSize - iEta - 1) ) );
+        if ( !hData2DEtaCMForward[iEta] ) {
+            std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << etaCMCutSize - iEta - 1 << " not found in data file." << std::endl;
+            return;
+        }
+        hData2DEtaCMForward[iEta]->SetDirectory(0);
+        hData2DEtaCMForward[iEta]->RebinY(rebinFactor);
+        int ptBinLow = hData2DEtaCMForward[iEta]->GetXaxis()->FindBin(ptLow);
+        int ptBinHigh = hData2DEtaCMForward[iEta]->GetXaxis()->FindBin(ptHigh) - 1;
+        hDataEtaCMForward[iEta] = dynamic_cast<TH1D *>( hData2DEtaCMForward[iEta]->ProjectionY( Form("hDataEtaCMForward_%d", iEta), ptBinLow, ptBinHigh ) );
+        set1DStyle( hDataEtaCMForward[iEta], 0 );
+        hDataEtaCMForward[iEta]->SetName( Form("hDataEtaCMForward_%d", iEta) );
+        hDataEtaCMForward[iEta]->SetLineColor( p8Colors[iEta] );
+        hDataEtaCMForward[iEta]->SetMarkerColor( p8Colors[iEta] );
+
+        // Backward
+        hData2DEtaCMBackward[iEta] = dynamic_cast<TH2D *>( fData->Get( Form("hRecoDijetPtEtaBackwardArr_%d", etaCMCutSize - iEta - 1) ) );
+        if ( !hData2DEtaCMBackward[iEta] ) {
+            std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << etaCMCutSize - iEta - 1 << " not found in data file." << std::endl;
+            return;
+        }
+        hData2DEtaCMBackward[iEta]->SetDirectory(0);
+        hData2DEtaCMBackward[iEta]->RebinY(rebinFactor);
+        hDataEtaCMBackward[iEta] = dynamic_cast<TH1D *>( hData2DEtaCMBackward[iEta]->ProjectionY( Form("hDataEtaCMBackward_%d", iEta), ptBinLow, ptBinHigh ) );
+        set1DStyle( hDataEtaCMBackward[iEta], 0 );
+        hDataEtaCMBackward[iEta]->SetName( Form("hDataEtaCMBackward_%d", iEta) );
+        hDataEtaCMBackward[iEta]->SetLineColor( p8Colors[iEta] );
+        hDataEtaCMBackward[iEta]->SetMarkerColor( p8Colors[iEta] );
+
+        // Make full eta distribution by combining forward and backward
+        hDataEtaCMFull[iEta] = new TH1D( Form("hDataEtaCMFull_%d", iEta), 
+                                         Form("hDataEtaCMFull_%d;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", iEta), 
+                                         20, -2.0, 2.0 );
+        hDataEtaCMFull[iEta]->Sumw2();
+        hDataEtaCMFull[iEta]->SetDirectory(0);
+        makeFullEtaFromForwardAndBackward( hDataEtaCMFull[iEta], hDataEtaCMForward[iEta], hDataEtaCMBackward[iEta] );
+        set1DStyle( hDataEtaCMFull[iEta], 0, true );
+        hDataEtaCMFull[iEta]->SetName( Form("hDataEtaCMFull_%d", iEta) );
+        hDataEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hDataEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+
+        // Ratio
+        hDataEtaCMBackward[iEta]->SetName( Form("hDataEtaCMBackward_%d", iEta) );
+        hDataEtaCMForwardBackwardRatio[iEta] = (TH1D*)hDataEtaCMForward[iEta]->Clone(Form("hDataEtaCMForwardBackwardRatio_%d", iEta));
+        hDataEtaCMForwardBackwardRatio[iEta]->Divide(hDataEtaCMBackward[iEta]);
+        hDataEtaCMForwardBackwardRatio[iEta]->SetDirectory(0);
+
+        //
+        // Data to nPDF ratios
+        //
+
+        // Forward/backward ratio
+        hDataToNpdfForwardBackwardRatio[iEta] = (TH1D*)hDataEtaCMForwardBackwardRatio[iEta]->Clone(Form("hDataToNpdfForwardBackwardRatio_%d", iEta));
+        hDataToNpdfForwardBackwardRatio[iEta]->Divide(hNpdfToPdfEtaCMForwardBackwardRatio[iEta]);
+        hDataToNpdfForwardBackwardRatio[iEta]->SetDirectory(0);
+
+        // Full eta distribution
+        hDataToNpdfFullEtaRatio[iEta] = (TH1D*)hDataEtaCMFull[iEta]->Clone(Form("hDataToNpdfFullEtaRatio_%d", iEta));
+        hDataToNpdfFullEtaRatio[iEta]->Divide(hNpdfEtaCMFull[iEta]);
+        hDataToNpdfFullEtaRatio[iEta]->SetDirectory(0);
+    } // for (int i{0}; i<etaCMCutSize; i++)
+
+    fData->Close();
+    fNpdf->Close();
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+    TLegend *leg{nullptr};
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+
+    // Plot forward/backward ratios for data on the same canvas
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        hDataEtaCMForwardBackwardRatio[iEta]->Draw( (iEta==0) ? "" : "same" );
+        if (iEta == 0) {
+            hDataEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.0);
+            hDataEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.3);
+            hDataEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward / Backward");
+            leg = new TLegend(0.16, 0.5, 0.34, 0.8);
+            leg->SetTextSize(0.03);
+            leg->SetFillColor(0);
+            leg->SetBorderSize(0);
+        }
+        leg->AddEntry(hDataEtaCMForwardBackwardRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
+    } // for (int i{0}; i<etaCMCutSize; i++)
+     plotCMSHeader(collisionSystem, collisionEnergy);
+     t.DrawLatexNDC(0.4, 0.85, "MB data");
+     t.DrawLatexNDC(0.4, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+     leg->Draw();
+     c->SaveAs(Form("%s/MB_%s_forwardBackwardRatio_etaCM_comparison.pdf", 
+                    date.Data(), collSystemStr.Data()) );
+
+    // Plot full eta comparison of data to nPDF for different eta cuts individually
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+
+        hDataEtaCMFull[iEta]->SetLineColor( kRed );
+        hDataEtaCMFull[iEta]->SetMarkerColor( kRed );
+        hNpdfEtaCMFull[iEta]->SetLineColor( kBlue );
+        hNpdfEtaCMFull[iEta]->SetMarkerColor( kBlue );
+
+        hDataEtaCMFull[iEta]->Draw();
+        hNpdfEtaCMFull[iEta]->Draw("same");
+        hDataEtaCMFull[iEta]->GetXaxis()->SetRangeUser(-2.0, 2.0);
+        hDataEtaCMFull[iEta]->GetYaxis()->SetRangeUser(0., 0.16);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        t.SetTextSize(0.04);
+        t.DrawLatexNDC(0.16, 0.85, "MB to nPDF comparison");
+        t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+        t.DrawLatexNDC(0.16, 0.75, Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]) );
+        leg = new TLegend(0.16, 0.6, 0.34, 0.7);
+        leg->SetTextSize(0.03);
+        leg->SetFillColor(0);
+        leg->SetBorderSize(0);
+        leg->AddEntry(hDataEtaCMFull[iEta], "MB data", "p");
+        leg->AddEntry(hNpdfEtaCMFull[iEta], "nPDF (EPPS21)", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_data2nPDF_fullEtaRatio_etaCM_comparison_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), etaCMIntCut[iEta]) );
+
+        hDataEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hDataEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hNpdfEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+    } // for (int i{0}; i<etaCMCutSize; i++)
+
+
+    TGraphErrors *grNpdfToPdfForwardBackwardRatio[etaCMCutSize];
+    for (int iEta{0}; iEta<etaCMCutSize; ++iEta) {
+        int nPoints = hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetNbinsX();
+        grNpdfToPdfForwardBackwardRatio[iEta] = new TGraphErrors(nPoints);
+        for (int iPoint{0}; iPoint<nPoints; ++iPoint) {
+            double x = hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetBinCenter(iPoint + 1);
+            double y = hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetBinContent(iPoint + 1);
+            double ex = 0.;
+            double ey = hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetBinError(iPoint + 1);
+            grNpdfToPdfForwardBackwardRatio[iEta]->SetPoint(iPoint, x, y);
+            grNpdfToPdfForwardBackwardRatio[iEta]->SetPointError(iPoint, ex, ey);
+        }
+        grNpdfToPdfForwardBackwardRatio[iEta]->SetName( Form("grNpdfToPdfForwardBackwardRatio_%d", iEta) );
+        grNpdfToPdfForwardBackwardRatio[iEta]->SetLineColor( kBlue );
+        grNpdfToPdfForwardBackwardRatio[iEta]->SetMarkerColor( kBlue );
+        grNpdfToPdfForwardBackwardRatio[iEta]->SetFillColorAlpha( kBlue, 0.35 );
+        grNpdfToPdfForwardBackwardRatio[iEta]->SetFillStyle(1001);
+    } //    for (int iEta{0}; iEta<etaCMCutSize; ++iEta) {
+
+    // Plot forward/backward ratio comparison of data to nPDF for different eta cuts individually
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        hDataEtaCMForwardBackwardRatio[iEta]->SetLineColor( kRed );
+        hDataEtaCMForwardBackwardRatio[iEta]->SetMarkerColor( kRed );
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->SetLineColor( kBlue );
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->SetMarkerColor( kBlue );
+
+        grNpdfToPdfForwardBackwardRatio[iEta]->Draw("AL2");
+        hDataEtaCMForwardBackwardRatio[iEta]->Draw("same");
+        grNpdfToPdfForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.0);
+        grNpdfToPdfForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.1);
+        grNpdfToPdfForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward / Backward");
+        // hDataEtaCMForwardBackwardRatio[iEta]->Draw();
+        // hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->Draw("E1 SAME");
+        hDataEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.0);
+        hDataEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.1);
+        hDataEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward / Backward");
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        t.SetTextSize(0.04);
+        t.DrawLatexNDC(0.16, 0.85, "MB to nPDF comparison");
+        t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+        t.DrawLatexNDC(0.16, 0.75, Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]) );
+        leg = new TLegend(0.16, 0.25, 0.34, 0.35);
+        leg->SetTextSize(0.03);
+        leg->SetFillColor(0);
+        leg->SetBorderSize(0);
+        leg->AddEntry(hDataEtaCMForwardBackwardRatio[iEta], "MB data", "p");
+        leg->AddEntry(hNpdfToPdfEtaCMForwardBackwardRatio[iEta], "nPDF (EPPS21)", "A");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_data2nPDF_forwardBackwardRatio_etaCM_comparison_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), etaCMIntCut[iEta]) );
+
+        hDataEtaCMForwardBackwardRatio[iEta]->SetLineColor( p8Colors[iEta] );
+        hDataEtaCMForwardBackwardRatio[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->SetMarkerColor( p8Colors[iEta] );
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+
+    // Compilation of ratios of data to nPDF for different eta cuts on the same canvas
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        hDataToNpdfFullEtaRatio[iEta]->Draw( (iEta==0) ? "" : "same" );
+        if (iEta == 0) {
+            hDataToNpdfFullEtaRatio[iEta]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+            hDataToNpdfFullEtaRatio[iEta]->GetYaxis()->SetTitle("Data / nPDF");
+            hDataToNpdfFullEtaRatio[iEta]->GetXaxis()->SetRangeUser(-2.0, 2.0);
+            hDataToNpdfFullEtaRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.4);
+            leg = new TLegend(0.35, 0.5, 0.65, 0.75);
+            leg->SetTextSize(0.03);
+            leg->SetFillColor(0);
+            leg->SetBorderSize(0);
+        }
+        leg->AddEntry(hDataToNpdfFullEtaRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.16, 0.85, "MB to nPDF comparison");
+    t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_data2nPDF_fullEtaRatio_etaCM_ratios.pdf", 
+                    date.Data(), collSystemStr.Data()) );
+}
+
+//________________
+void plotNpdfToPdfComparison(int collisionSystem, double collisionEnergy, TString date) {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    TFile *f = TFile::Open( Form("./npdf/epps21_pPb8160_dijet_eta_dset.root" ) );
+    if ( !f || f->IsZombie() ) {
+        std::cerr << "Error: Could not open npdf file." << std::endl;
+        return;
+    }
+
+    int rebinFactor = 2;
+    static constexpr std::array<int, 7> etaCMIntCut = {25, 19, 18, 17, 16, 15, 14};
+    static constexpr std::array<double, 7> etaCMDoubleCut = {2.5, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4};
+    static constexpr std::array<const char*, 7> p8Colors {"kBlack", "kBlue", "kRed", "kMagenta", "kP8Orange", "kP8Green", "kP8Azure"};
+    const int etaCMCutSize = etaCMIntCut.size();
+    const double ptLow = 60.;
+    const double ptHigh = 80.;
+
+    TH1D *hNpdfEtaCMForward[etaCMCutSize];
+    TH1D *hNpdfEtaCMBackward[etaCMCutSize];
+    TH1D *hNpdfEtaCMForwardBackwardRatio[etaCMCutSize];
+    TH1D *hNpdfEtaCMFull[etaCMCutSize];
+
+    TH1D *hPdfEtaCMForward[etaCMCutSize];
+    TH1D *hPdfEtaCMBackward[etaCMCutSize];
+    TH1D *hPdfEtaCMForwardBackwardRatio[etaCMCutSize];
+    TH1D *hPdfEtaCMFull[etaCMCutSize];
+
+    TH1D *hNpdfToPdfEtaCMFullRatio[etaCMCutSize];
+    TH1D *hNpdfToPdfEtaCMForwardBackwardRatio[etaCMCutSize];
+    TH1D *hNpdfToPdfEtaCMForwardBackwardRatioTo25[etaCMCutSize - 1];
+
+    // Read histograms from files and make comparisons
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        //
+        // nPDF
+        //
+
+        // Full
+        hNpdfEtaCMFull[iEta] = dynamic_cast<TH1D *>( f->Get( Form("pPb_hDijetEtaCMFull_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hNpdfEtaCMFull[iEta] ) {
+            std::cerr << "Error: pPb_hDijetEtaCMFull_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hNpdfEtaCMFull[iEta]->SetDirectory(0);
+        set1DStyle( hNpdfEtaCMFull[iEta], 0, true );
+        hNpdfEtaCMFull[iEta]->SetName( Form("hNpdfEtaCMFull_%d", iEta) );
+        hNpdfEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hNpdfEtaCMFull[iEta]->Rebin(rebinFactor);
+
+        // Forward
+        hNpdfEtaCMForward[iEta] = dynamic_cast<TH1D *>( f->Get( Form("pPb_hDijetEtaCMForward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hNpdfEtaCMForward[iEta] ) {
+            std::cerr << "Error: pPb_hDijetEtaCMForward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hNpdfEtaCMForward[iEta]->SetDirectory(0);
+        set1DStyle( hNpdfEtaCMForward[iEta], 0 );
+        hNpdfEtaCMForward[iEta]->SetName( Form("hNpdfEtaCMForward_%d", iEta) );
+        hNpdfEtaCMForward[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMForward[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hNpdfEtaCMForward[iEta]->Rebin(rebinFactor);
+
+        // Backward
+        hNpdfEtaCMBackward[iEta] = dynamic_cast<TH1D *>( f->Get( Form("pPb_hDijetEtaCMBackward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hNpdfEtaCMBackward[iEta] ) {
+            std::cerr << "Error: pPb_hDijetEtaCMBackward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hNpdfEtaCMBackward[iEta]->SetDirectory(0);
+        set1DStyle( hNpdfEtaCMBackward[iEta], 0 );
+        hNpdfEtaCMBackward[iEta]->SetName( Form("hNpdfEtaCMBackward_%d", iEta) );
+        hNpdfEtaCMBackward[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMBackward[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hNpdfEtaCMBackward[iEta]->Rebin(rebinFactor);
+
+        // Forward/backward ratio
+        hNpdfEtaCMForwardBackwardRatio[iEta] = (TH1D*)hNpdfEtaCMForward[iEta]->Clone(Form("hNpdfEtaCMForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
+        hNpdfEtaCMForwardBackwardRatio[iEta]->Divide(hNpdfEtaCMBackward[iEta]);
+        hNpdfEtaCMForwardBackwardRatio[iEta]->SetDirectory(0);
+
+        //
+        // PDF
+        //
+
+        // Full
+        hPdfEtaCMFull[iEta] = dynamic_cast<TH1D *>( f->Get( Form("pp_hDijetEtaCMFull_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hPdfEtaCMFull[iEta] ) {
+            std::cerr << "Error: pp_hDijetEtaCMFull_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hPdfEtaCMFull[iEta]->SetDirectory(0);
+        set1DStyle( hPdfEtaCMFull[iEta], 1, true );
+        hPdfEtaCMFull[iEta]->SetName( Form("hPdfEtaCMFull_%d", iEta) );
+        hPdfEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfEtaCMFull[iEta]->Rebin(rebinFactor);
+
+        // Forward
+        hPdfEtaCMForward[iEta] = dynamic_cast<TH1D *>( f->Get( Form("pp_hDijetEtaCMForward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hPdfEtaCMForward[iEta] ) {
+            std::cerr << "Error: pp_hDijetEtaCMForward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hPdfEtaCMForward[iEta]->SetDirectory(0);
+        set1DStyle( hPdfEtaCMForward[iEta], 1 );
+        hPdfEtaCMForward[iEta]->SetName( Form("hPdfEtaCMForward_%d", iEta) );
+        hPdfEtaCMForward[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfEtaCMForward[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfEtaCMForward[iEta]->Rebin(rebinFactor);
+
+        // Backward
+        hPdfEtaCMBackward[iEta] = dynamic_cast<TH1D *>( f->Get( Form("pp_hDijetEtaCMBackward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hPdfEtaCMBackward[iEta] ) {
+            std::cerr << "Error: pp_hDijetEtaCMBackward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
+            return;
+        }
+        hPdfEtaCMBackward[iEta]->SetDirectory(0);
+        set1DStyle( hPdfEtaCMBackward[iEta], 1 );
+        hPdfEtaCMBackward[iEta]->SetName( Form("hPdfEtaCMBackward_%d", iEta) );
+        hPdfEtaCMBackward[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfEtaCMBackward[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfEtaCMBackward[iEta]->Rebin(rebinFactor);
+
+        // Forward/backward ratio
+        hPdfEtaCMForwardBackwardRatio[iEta] = (TH1D*)hPdfEtaCMForward[iEta]->Clone(Form("hPdfEtaCMForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
+        hPdfEtaCMForwardBackwardRatio[iEta]->Divide(hPdfEtaCMBackward[iEta]);
+        hPdfEtaCMForwardBackwardRatio[iEta]->SetDirectory(0);
+
+        // Ratio of nPDF to PDF
+        hNpdfToPdfEtaCMFullRatio[iEta] = (TH1D*)hNpdfEtaCMFull[iEta]->Clone(Form("hNpdfToPdfEtaCMFullRatio_%d_0", etaCMIntCut[iEta]));
+        hNpdfToPdfEtaCMFullRatio[iEta]->Divide(hPdfEtaCMFull[iEta]);
+        hNpdfToPdfEtaCMFullRatio[iEta]->SetDirectory(0);
+
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta] = (TH1D*)hNpdfEtaCMForwardBackwardRatio[iEta]->Clone(Form("hNpdfToPdfEtaCMForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->Divide(hPdfEtaCMForwardBackwardRatio[iEta]);
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->SetDirectory(0);
+
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+
+    f->Close();
+
+    // Plotting components
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.05);
+    TLegend *leg{nullptr};
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+
+    // Plot forward/backward ratio comparison of nPDF and PDF for different eta cuts individually
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        hNpdfEtaCMForwardBackwardRatio[iEta]->SetLineColor( kRed );
+        hNpdfEtaCMForwardBackwardRatio[iEta]->SetMarkerColor( kRed );
+        hPdfEtaCMForwardBackwardRatio[iEta]->SetLineColor( kBlue );
+        hPdfEtaCMForwardBackwardRatio[iEta]->SetMarkerColor( kBlue );
+ 
+        hNpdfEtaCMForwardBackwardRatio[iEta]->Draw();
+        hPdfEtaCMForwardBackwardRatio[iEta]->Draw("same");
+        hNpdfEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.6);
+        hNpdfEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.1);
+        hNpdfEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward / Backward");
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        t.SetTextSize(0.04);
+        t.DrawLatexNDC(0.16, 0.85, "nPDF to PDF comparison");
+        t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+        t.DrawLatexNDC(0.16, 0.75, Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]) );
+        leg = new TLegend(0.16, 0.25, 0.34, 0.35);
+        leg->SetTextSize(0.03);
+        leg->SetFillColor(0);
+        leg->SetBorderSize(0);
+        leg->AddEntry(hNpdfEtaCMForwardBackwardRatio[iEta], "EPPS21xCT18", "p");
+        leg->AddEntry(hPdfEtaCMForwardBackwardRatio[iEta], "CT18", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_npdf2pdf_forwardBackwardRatio_etaCM_comparison_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), etaCMIntCut[iEta]) );
+        hNpdfEtaCMForwardBackwardRatio[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMForwardBackwardRatio[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfEtaCMForwardBackwardRatio[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfEtaCMForwardBackwardRatio[iEta]->SetMarkerColor( p8Colors[iEta] );
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+
+    // Plot full eta comparison of nPDF to PDF for different eta cuts individually
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        hNpdfEtaCMFull[iEta]->SetLineColor( kRed );
+        hNpdfEtaCMFull[iEta]->SetMarkerColor( kRed );
+        hPdfEtaCMFull[iEta]->SetLineColor( kBlue );
+        hPdfEtaCMFull[iEta]->SetMarkerColor( kBlue );
+        hNpdfEtaCMFull[iEta]->Draw();
+        hPdfEtaCMFull[iEta]->Draw("same");
+        hNpdfEtaCMFull[iEta]->GetXaxis()->SetRangeUser(-2.6, 2.6);
+        hNpdfEtaCMFull[iEta]->GetYaxis()->SetRangeUser(0., 0.16);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        t.SetTextSize(0.04);
+        t.DrawLatexNDC(0.16, 0.85, "nPDF to PDF comparison");
+        t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+        t.DrawLatexNDC(0.16, 0.75, Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]) );
+        leg = new TLegend(0.16, 0.6, 0.34, 0.7);
+        leg->SetTextSize(0.03);
+        leg->SetFillColor(0);
+        leg->SetBorderSize(0);
+        leg->AddEntry(hNpdfEtaCMFull[iEta], "EPPS21xCT18", "p");
+        leg->AddEntry(hPdfEtaCMFull[iEta], "CT18", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_npdf2pdf_fullEtaRatio_etaCM_comparison_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), etaCMIntCut[iEta]) );
+        hNpdfEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hNpdfEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfEtaCMFull[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfEtaCMFull[iEta]->SetMarkerColor( p8Colors[iEta] );
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+
+    // Plot ratio of nPDF to PDF for different eta cuts on the same canvas
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        hNpdfToPdfEtaCMFullRatio[iEta]->Draw( (iEta==0) ? "" : "same" );
+        if (iEta == 0) {
+            hNpdfToPdfEtaCMFullRatio[iEta]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+            hNpdfToPdfEtaCMFullRatio[iEta]->GetYaxis()->SetTitle("nPDF / PDF");
+            hNpdfToPdfEtaCMFullRatio[iEta]->GetXaxis()->SetRangeUser(-2.6, 2.6);
+            hNpdfToPdfEtaCMFullRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.15);
+            leg = new TLegend(0.35, 0.2, 0.55, 0.55);
+            leg->SetTextSize(0.03);
+            leg->SetFillColor(0);
+            leg->SetBorderSize(0);
+        }
+        leg->AddEntry(hNpdfToPdfEtaCMFullRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.16, 0.85, "nPDF/PDF");
+    t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_npdf2pdf_fullEtaRatio_etaCM_ratios.pdf", 
+                    date.Data(), collSystemStr.Data()) );
+
+    // Plot double ratio of nPDF to PDF forward/backward ratio for different eta cuts on the same canvas
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->Draw( (iEta==0) ? "" : "same" );
+        if (iEta == 0) {
+            hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+            hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward/Backward (nPDF/PDF)");
+            hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.6);
+            hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.05);
+            leg = new TLegend(0.65, 0.6, 0.85, 0.88);
+            leg->SetTextSize(0.03);
+            leg->SetFillColor(0);
+            leg->SetBorderSize(0);
+        }
+        leg->AddEntry(hNpdfToPdfEtaCMForwardBackwardRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.16, 0.85, "nPDF/PDF");
+    t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_npdf2pdf_forwardBackwardRatio_doubleRatio_etaCM_ratios.pdf", 
+                    date.Data(), collSystemStr.Data()) );
+
+    //
+    // Perform uncertainty correction for forward/backward double ratio and plot comparisons
+    // on the same canvas again to see the effect of the correction
+    //
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        recalculateUncertaintyOfNpdf( hNpdfToPdfEtaCMForwardBackwardRatio[iEta] );
+        if (iEta == 0) {
+            hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+            hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward/Backward (nPDF/PDF)");
+            hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.6);
+            hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.05);
+            leg = new TLegend(0.65, 0.6, 0.85, 0.88);
+            leg->SetTextSize(0.03);
+            leg->SetFillColor(0);
+            leg->SetBorderSize(0);
+        }
+        leg->AddEntry(hNpdfToPdfEtaCMForwardBackwardRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.16, 0.85, "nPDF/PDF");
+    t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_npdf2pdf_forwardBackwardRatio_doubleRatio_etaCM_ratios_uncertaintyCorrected.pdf", 
+                    date.Data(), collSystemStr.Data()) );
+
+    // Look at the ratio to the most inclusive cut and plot them on the same canvas
+    for (int iEta{1}; iEta<etaCMCutSize; iEta++) {
+        hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1] = (TH1D*)hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->Clone(Form("hNpdfToPdfEtaCMForwardBackwardRatioTo25_%d", etaCMIntCut[iEta]));
+        hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1]->Divide(hNpdfToPdfEtaCMForwardBackwardRatio[0]);
+        hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1]->SetDirectory(0);
+
+        hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1]->Draw( (iEta==1) ? "" : "same" );
+        if (iEta == 1) {
+            hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+            hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1]->GetYaxis()->SetTitle("Ratios to |#eta_{CM}|<2.5");
+            hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1]->GetXaxis()->SetRangeUser(0., 2.0);
+            hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1]->GetYaxis()->SetRangeUser(0.96, 1.01);
+            leg = new TLegend(0.2, 0.2, 0.45, 0.45);
+            leg->SetTextSize(0.03);
+            leg->SetFillColor(0);
+            leg->SetBorderSize(0);
+        }
+        leg->AddEntry(hNpdfToPdfEtaCMForwardBackwardRatioTo25[iEta - 1], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p"); 
+    } // for (int iEta{1}; iEta<etaCMCutSize; iEta++)
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.16, 0.85, "F/B ratios to the most inclusive one (|#eta_{CM}|<2.5)");
+    t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_npdf2pdf_forwardBackwardRatio_doubleRatio_ratios_to25.pdf", 
+                    date.Data(), collSystemStr.Data()) );
+}
+
+//________________
+void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnergy, TString date) {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    TFile *fPdf = TFile::Open( Form("./npdf/ct18_pp8160_dijet_eta.root" ) );
+    if ( !fPdf || fPdf->IsZombie() ) {
+        std::cerr << "Error: Could not open npdf file." << std::endl;
+        return;
+    }
+
+    TFile *fData = TFile::Open( Form("~/cernbox/ana/pPb8160/exp/MB_pPb8160_ak4_jetId_eta19_newResidual.root") );
+    // TFile *fData = TFile::Open( Form("~/cernbox/ana/pPb8160/exp/MB_pPb8160_ak4_jetId_eta19_newResidual.root") );
+    if ( !fData || fData->IsZombie() ) {
+        std::cerr << "Error: Could not open data file." << std::endl;
+        return;
+    }
+
+    TFile *fPythia = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_jetId_eta19.root") );
+    // TFile *fPythia = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_jetId_eta19_ptHat_gt_30.root") );
+    if ( !fPythia || fPythia->IsZombie() ) {
+        std::cerr << "Error: Could not open pythia file." << std::endl;
+        return;
+    }
+
+    bool isRecalculateStatUnc = true;
+    static constexpr std::array<int, 6> etaCMIntCut = {19, 18, 17, 16, 15, 14};
+    static constexpr std::array<double, 6> etaCMDoubleCut = {1.9, 1.8, 1.7, 1.6, 1.5, 1.4};
+    static constexpr std::array<const char*, 6> p8Colors {"kBlack", "kBlue", "kRed", "kMagenta", "kP8Orange", "kP8Green"};
+    const int etaCMCutSize = etaCMIntCut.size();
+    const double ptLow = 60.;
+    const double ptHigh = 80.;
+
+    // PDF histograms
+    TH1D *hPdfForwardCMEta[etaCMCutSize];
+    TH1D *hPdfBackwardCMEta[etaCMCutSize];
+    TH1D *hPdfForwardBackwardRatio[etaCMCutSize];
+    TH1D *hPdfFullCMEta[etaCMCutSize];
+
+    // Data histograms
+    TH2D *hData2DForwardCMEta[etaCMCutSize];
+    TH2D *hData2DBackwardCMEta[etaCMCutSize];
+
+    TH1D *hDataForwardCMEta[etaCMCutSize];
+    TH1D *hDataBackwardCMEta[etaCMCutSize];
+    TH1D *hDataForwardBackwardRatio[etaCMCutSize];
+    TH1D *hDataFullCMEta[etaCMCutSize];
+
+    TH1D *hDataToPdfForwardBackwardRatio[etaCMCutSize];
+    TH1D *hDataToPdfFullEtaRatio[etaCMCutSize];
+
+    // Pythia histograms
+    TH2D *hPythia2DForwardCMEta[etaCMCutSize];
+    TH2D *hPythia2DBackwardCMEta[etaCMCutSize];
+
+    TH1D *hPythiaForwardCMEta[etaCMCutSize];
+    TH1D *hPythiaBackwardCMEta[etaCMCutSize];
+    TH1D *hPythiaForwardBackwardRatio[etaCMCutSize];
+    TH1D *hPythiaFullCMEta[etaCMCutSize];
+
+    TH1D *hDataToPythiaForwardBackwardRatio[etaCMCutSize];
+    TH1D *hDataToPythiaFullEtaRatio[etaCMCutSize];
+
+    // Pythia to PDF ratios
+    TH1D *hPDFToPythiaFullEtaRatio[etaCMCutSize];
+
+    // Read histograms from files
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        //
+        // PDF
+        //
+
+        // Forward
+        hPdfForwardCMEta[iEta] = dynamic_cast<TH1D *>( fPdf->Get( Form("hDijetEtaCMForward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hPdfForwardCMEta[iEta] ) {
             std::cerr << "Error: hDijetEtaCMForward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
             return;
         }
-        hNpdfForwardCMEta[iEta]->SetDirectory(0);
-        set1DStyle( hNpdfForwardCMEta[iEta], 1);
-        hNpdfForwardCMEta[iEta]->SetName( Form("hNpdfForwardCMEta_%d", iEta) );
-        hNpdfForwardCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hNpdfForwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfForwardCMEta[iEta]->SetDirectory(0);
+        set1DStyle( hPdfForwardCMEta[iEta], 1);
+        hPdfForwardCMEta[iEta]->SetName( Form("hPdfForwardCMEta_%d", iEta) );
+        hPdfForwardCMEta[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfForwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
 
         // Backward
-        hNpdfBackwardCMEta[iEta] = dynamic_cast<TH1D *>( fNpdf->Get( Form("hDijetEtaCMBackward_%d_0", etaCMIntCut[iEta]) ) );
-        if ( !hNpdfBackwardCMEta[iEta] ) {
+        hPdfBackwardCMEta[iEta] = dynamic_cast<TH1D *>( fPdf->Get( Form("hDijetEtaCMBackward_%d_0", etaCMIntCut[iEta]) ) );
+        if ( !hPdfBackwardCMEta[iEta] ) {
             std::cerr << "Error: hDijetEtaCMBackward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
             return;
         }
-        hNpdfBackwardCMEta[iEta]->SetDirectory(0);
-        set1DStyle( hNpdfBackwardCMEta[iEta], 1);
-        hNpdfBackwardCMEta[iEta]->SetName( Form("hNpdfBackwardCMEta_%d", iEta) );
-        hNpdfBackwardCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hNpdfBackwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfBackwardCMEta[iEta]->SetDirectory(0);
+        set1DStyle( hPdfBackwardCMEta[iEta], 1);
+        hPdfBackwardCMEta[iEta]->SetName( Form("hPdfBackwardCMEta_%d", iEta) );
+        hPdfBackwardCMEta[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfBackwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
 
         // Optionally recalculate statistical uncertainties 
         if (isRecalculateStatUnc) {
-            recalculateStatisticalUncertainty( hNpdfForwardCMEta[iEta] );
-            recalculateStatisticalUncertainty( hNpdfBackwardCMEta[iEta] );
+            recalculateStatisticalUncertainty( hPdfForwardCMEta[iEta] );
+            recalculateStatisticalUncertainty( hPdfBackwardCMEta[iEta] );
         }
 
         // Make full eta distribution by combining forward and backward
-        hNpdfFullCMEta[iEta] = new TH1D( Form("hNpdfFullCMEta_%d", iEta), 
-                                         Form("hNpdfFullCMEta_%d;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", iEta), 
+        hPdfFullCMEta[iEta] = new TH1D( Form("hPdfFullCMEta_%d", iEta), 
+                                         Form("hPdfFullCMEta_%d;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", iEta), 
                                          20, -2.0, 2.0 );
-        hNpdfFullCMEta[iEta]->Sumw2();
-        hNpdfFullCMEta[iEta]->SetDirectory(0);
-        makeFullEtaFromForwardAndBackward( hNpdfFullCMEta[iEta], hNpdfForwardCMEta[iEta], hNpdfBackwardCMEta[iEta] );
-        set1DStyle( hNpdfFullCMEta[iEta], 1, true );
-        hNpdfFullCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hNpdfFullCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
+        hPdfFullCMEta[iEta]->Sumw2();
+        hPdfFullCMEta[iEta]->SetDirectory(0);
+        makeFullEtaFromForwardAndBackward( hPdfFullCMEta[iEta], hPdfForwardCMEta[iEta], hPdfBackwardCMEta[iEta] );
+        set1DStyle( hPdfFullCMEta[iEta], 1, true );
+        hPdfFullCMEta[iEta]->SetLineColor( p8Colors[iEta] );
+        hPdfFullCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
 
         // Ratio
-        hNpdfForwardBackwardRatio[iEta] = (TH1D*)hNpdfForwardCMEta[iEta]->Clone(Form("hNpdfForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
-        hNpdfForwardBackwardRatio[iEta]->Divide(hNpdfBackwardCMEta[iEta]);
-        hNpdfForwardBackwardRatio[iEta]->SetDirectory(0);
+        hPdfForwardBackwardRatio[iEta] = (TH1D*)hPdfForwardCMEta[iEta]->Clone(Form("hPdfForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
+        hPdfForwardBackwardRatio[iEta]->Divide(hPdfBackwardCMEta[iEta]);
+        hPdfForwardBackwardRatio[iEta]->SetDirectory(0);
 
         //
         // Data
@@ -4128,310 +4513,9 @@ void plotNpdfToDataComparison(int collisionSystem, double collisionEnergy, TStri
         hDataFullCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
 
         // Ratio
-        hDataBackwardCMEta[iEta]->SetName( Form("hDataBackwardCMEta_%d", iEta) );
         hDataForwardBackwardRatio[iEta] = (TH1D*)hDataForwardCMEta[iEta]->Clone(Form("hDataForwardBackwardRatio_%d", iEta));
         hDataForwardBackwardRatio[iEta]->Divide(hDataBackwardCMEta[iEta]);
         hDataForwardBackwardRatio[iEta]->SetDirectory(0);
-
-        //
-        // Data to nPDF ratios
-        //
-
-        // Forward/backward ratio
-        hDataToNpdfForwardBackwardRatio[iEta] = (TH1D*)hDataForwardBackwardRatio[iEta]->Clone(Form("hDataToNpdfForwardBackwardRatio_%d", iEta));
-        hDataToNpdfForwardBackwardRatio[iEta]->Divide(hNpdfForwardBackwardRatio[iEta]);
-        hDataToNpdfForwardBackwardRatio[iEta]->SetDirectory(0);
-
-        // Full eta distribution
-        hDataToNpdfFullEtaRatio[iEta] = (TH1D*)hDataFullCMEta[iEta]->Clone(Form("hDataToNpdfFullEtaRatio_%d", iEta));
-        hDataToNpdfFullEtaRatio[iEta]->Divide(hNpdfFullCMEta[iEta]);
-        hDataToNpdfFullEtaRatio[iEta]->SetDirectory(0);
-    }
-
-    fData->Close();
-    fNpdf->Close();
-
-    TLatex t;
-    t.SetTextFont(42);
-    t.SetTextSize(0.05);
-    TLegend *leg{nullptr};
-
-    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
-    setPadStyle();
-    gPad->SetGrid();
-
-    // Plot forward/backward ratios for data on the same canvas
-    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
-        hDataForwardBackwardRatio[iEta]->Draw( (iEta==0) ? "" : "same" );
-        if (iEta == 0) {
-            hDataForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.0);
-            hDataForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.3);
-            hDataForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward / Backward");
-            leg = new TLegend(0.16, 0.5, 0.34, 0.8);
-            leg->SetTextSize(0.03);
-            leg->SetFillColor(0);
-            leg->SetBorderSize(0);
-        }
-        leg->AddEntry(hDataForwardBackwardRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
-    } // for (int i{0}; i<etaCMCutSize; i++)
-     plotCMSHeader(collisionSystem, collisionEnergy);
-     t.DrawLatexNDC(0.4, 0.85, "MB data");
-     t.DrawLatexNDC(0.4, 0.8, "60 < p_{T}^{ave} < 80 GeV");
-     leg->Draw();
-     c->SaveAs(Form("%s/MB_%s_forwardBackwardRatio_etaCM_comparison.pdf", 
-                    date.Data(), collSystemStr.Data()) );
-
-    // Plot full eta comparison of data to nPDF for different eta cuts individually
-    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
-
-        hDataFullCMEta[iEta]->SetLineColor( kRed );
-        hDataFullCMEta[iEta]->SetMarkerColor( kRed );
-        hNpdfFullCMEta[iEta]->SetLineColor( kBlue );
-        hNpdfFullCMEta[iEta]->SetMarkerColor( kBlue );
-
-        hDataFullCMEta[iEta]->Draw();
-        hNpdfFullCMEta[iEta]->Draw("same");
-        hDataFullCMEta[iEta]->GetXaxis()->SetRangeUser(-2.0, 2.0);
-        hDataFullCMEta[iEta]->GetYaxis()->SetRangeUser(0., 0.16);
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        t.SetTextSize(0.04);
-        t.DrawLatexNDC(0.16, 0.85, "MB to nPDF comparison");
-        t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
-        t.DrawLatexNDC(0.16, 0.75, Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]) );
-        leg = new TLegend(0.16, 0.6, 0.34, 0.7);
-        leg->SetTextSize(0.03);
-        leg->SetFillColor(0);
-        leg->SetBorderSize(0);
-        leg->AddEntry(hDataFullCMEta[iEta], "MB data", "p");
-        leg->AddEntry(hNpdfFullCMEta[iEta], "nPDF (EPPS21)", "p");
-        leg->Draw();
-        c->SaveAs(Form("%s/%s_data2nPDF_fullEtaRatio_etaCM_comparison_%d.pdf", 
-                    date.Data(), collSystemStr.Data(), etaCMIntCut[iEta]) );
-
-        hDataFullCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hDataFullCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
-        hNpdfFullCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hNpdfFullCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
-    } // for (int i{0}; i<etaCMCutSize; i++)
-
-    // Plot forward/backward ratio comparison of data to nPDF for different eta cuts individually
-    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
-        hDataForwardBackwardRatio[iEta]->SetLineColor( kRed );
-        hDataForwardBackwardRatio[iEta]->SetMarkerColor( kRed );
-        hNpdfForwardBackwardRatio[iEta]->SetLineColor( kBlue );
-        hNpdfForwardBackwardRatio[iEta]->SetMarkerColor( kBlue );
-
-        hDataForwardBackwardRatio[iEta]->Draw();
-        hNpdfForwardBackwardRatio[iEta]->Draw("same");
-        hDataForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.0);
-        hDataForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.1);
-        hDataForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward / Backward");
-        plotCMSHeader(collisionSystem, collisionEnergy);
-        t.SetTextSize(0.04);
-        t.DrawLatexNDC(0.16, 0.85, "MB to nPDF comparison");
-        t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
-        t.DrawLatexNDC(0.16, 0.75, Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]) );
-        leg = new TLegend(0.16, 0.25, 0.34, 0.35);
-        leg->SetTextSize(0.03);
-        leg->SetFillColor(0);
-        leg->SetBorderSize(0);
-        leg->AddEntry(hDataForwardBackwardRatio[iEta], "MB data", "p");
-        leg->AddEntry(hNpdfForwardBackwardRatio[iEta], "nPDF (EPPS21)", "p");
-        leg->Draw();
-        c->SaveAs(Form("%s/%s_data2nPDF_forwardBackwardRatio_etaCM_comparison_%d.pdf", 
-                    date.Data(), collSystemStr.Data(), etaCMIntCut[iEta]) );
-
-        hDataForwardBackwardRatio[iEta]->SetLineColor( p8Colors[iEta] );
-        hDataForwardBackwardRatio[iEta]->SetMarkerColor( p8Colors[iEta] );
-        hNpdfForwardBackwardRatio[iEta]->SetLineColor( p8Colors[iEta] );
-        hNpdfForwardBackwardRatio[iEta]->SetMarkerColor( p8Colors[iEta] );
-    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
-
-    // Compilation of ratios of data to nPDF for different eta cuts on the same canvas
-    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
-        hDataToNpdfFullEtaRatio[iEta]->Draw( (iEta==0) ? "" : "same" );
-        if (iEta == 0) {
-            hDataToNpdfFullEtaRatio[iEta]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
-            hDataToNpdfFullEtaRatio[iEta]->GetYaxis()->SetTitle("Data / nPDF");
-            hDataToNpdfFullEtaRatio[iEta]->GetXaxis()->SetRangeUser(-2.0, 2.0);
-            hDataToNpdfFullEtaRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.4);
-            leg = new TLegend(0.35, 0.5, 0.65, 0.75);
-            leg->SetTextSize(0.03);
-            leg->SetFillColor(0);
-            leg->SetBorderSize(0);
-        }
-        leg->AddEntry(hDataToNpdfFullEtaRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
-    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
-    plotCMSHeader(collisionSystem, collisionEnergy);
-    t.SetTextSize(0.04);
-    t.DrawLatexNDC(0.16, 0.85, "MB to nPDF comparison");
-    t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
-    leg->Draw();
-    c->SaveAs(Form("%s/%s_data2nPDF_fullEtaRatio_etaCM_ratios.pdf", 
-                    date.Data(), collSystemStr.Data()) );
-}
-
-//________________
-void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnergy, TString date) {
-    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
-    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
-
-    TFile *fPdf = TFile::Open( Form("./npdf/ct18_pp8160_dijet_eta.root" ) );
-    if ( !fPdf || fPdf->IsZombie() ) {
-        std::cerr << "Error: Could not open npdf file." << std::endl;
-        return;
-    }
-
-    TFile *fData = TFile::Open( Form("~/cernbox/ana/pPb8160/exp/MB_pPb8160_ak4_jetId_eta19_newResidual.root") );
-    // TFile *fData = TFile::Open( Form("~/cernbox/ana/pPb8160/exp/MB_pPb8160_ak4_jetId_eta19_newResidual.root") );
-    if ( !fData || fData->IsZombie() ) {
-        std::cerr << "Error: Could not open data file." << std::endl;
-        return;
-    }
-
-    TFile *fPythia = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_jetId_eta19.root") );
-    if ( !fPythia || fPythia->IsZombie() ) {
-        std::cerr << "Error: Could not open pythia file." << std::endl;
-        return;
-    }
-
-    bool isRecalculateStatUnc = true;
-    static constexpr std::array<int, 6> etaCMIntCut = {19, 18, 17, 16, 15, 14};
-    static constexpr std::array<double, 6> etaCMDoubleCut = {1.9, 1.8, 1.7, 1.6, 1.5, 1.4};
-    static constexpr std::array<const char*, 6> p8Colors {"kBlack", "kBlue", "kRed", "kMagenta", "kP8Orange", "kP8Green"};
-    const int etaCMCutSize = etaCMIntCut.size();
-    const double ptLow = 60.;
-    const double ptHigh = 80.;
-
-    // PDF histograms
-    TH1D *hPdfForwardCMEta[etaCMCutSize];
-    TH1D *hPdfBackwardCMEta[etaCMCutSize];
-    TH1D *hPdfForwardBackwardRatio[etaCMCutSize];
-    TH1D *hPdfFullCMEta[etaCMCutSize];
-
-    // Data histograms
-    TH2D *hData2DForwardCMEta[etaCMCutSize];
-    TH2D *hData2DBackwardCMEta[etaCMCutSize];
-
-    TH1D *hDataForwardCMEta[etaCMCutSize];
-    TH1D *hDataBackwardCMEta[etaCMCutSize];
-    TH1D *hDataForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataFullCMEta[etaCMCutSize];
-
-    TH1D *hDataToPdfForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataToPdfFullEtaRatio[etaCMCutSize];
-
-    // Pythia histograms
-    TH2D *hPythia2DForwardCMEta[etaCMCutSize];
-    TH2D *hPythia2DBackwardCMEta[etaCMCutSize];
-
-    TH1D *hPythiaForwardCMEta[etaCMCutSize];
-    TH1D *hPythiaBackwardCMEta[etaCMCutSize];
-    TH1D *hPythiaForwardBackwardRatio[etaCMCutSize];
-    TH1D *hPythiaFullCMEta[etaCMCutSize];
-
-    TH1D *hDataToPythiaForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataToPythiaFullEtaRatio[etaCMCutSize];
-
-    // Read histograms from files
-    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
-        //
-        // PDF
-        //
-
-        // Forward
-        hPdfForwardCMEta[iEta] = dynamic_cast<TH1D *>( fPdf->Get( Form("hDijetEtaCMForward_%d_0", etaCMIntCut[iEta]) ) );
-        if ( !hPdfForwardCMEta[iEta] ) {
-            std::cerr << "Error: hDijetEtaCMForward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
-            return;
-        }
-        hPdfForwardCMEta[iEta]->SetDirectory(0);
-        set1DStyle( hPdfForwardCMEta[iEta], 1);
-        hPdfForwardCMEta[iEta]->SetName( Form("hPdfForwardCMEta_%d", iEta) );
-        hPdfForwardCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hPdfForwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
-
-        // Backward
-        hPdfBackwardCMEta[iEta] = dynamic_cast<TH1D *>( fPdf->Get( Form("hDijetEtaCMBackward_%d_0", etaCMIntCut[iEta]) ) );
-        if ( !hPdfBackwardCMEta[iEta] ) {
-            std::cerr << "Error: hDijetEtaCMBackward_" << etaCMIntCut[iEta] << " not found in npdf file." << std::endl;
-            return;
-        }
-        hPdfBackwardCMEta[iEta]->SetDirectory(0);
-        set1DStyle( hPdfBackwardCMEta[iEta], 1);
-        hPdfBackwardCMEta[iEta]->SetName( Form("hPdfBackwardCMEta_%d", iEta) );
-        hPdfBackwardCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hPdfBackwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
-
-        // Optionally recalculate statistical uncertainties 
-        if (isRecalculateStatUnc) {
-            recalculateStatisticalUncertainty( hPdfForwardCMEta[iEta] );
-            recalculateStatisticalUncertainty( hPdfBackwardCMEta[iEta] );
-        }
-
-        // Make full eta distribution by combining forward and backward
-        hPdfFullCMEta[iEta] = new TH1D( Form("hPdfFullCMEta_%d", iEta), 
-                                         Form("hPdfFullCMEta_%d;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", iEta), 
-                                         20, -2.0, 2.0 );
-        hPdfFullCMEta[iEta]->Sumw2();
-        makeFullEtaFromForwardAndBackward( hPdfFullCMEta[iEta], hPdfForwardCMEta[iEta], hPdfBackwardCMEta[iEta] );
-        set1DStyle( hPdfFullCMEta[iEta], 1, true );
-        hPdfFullCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hPdfFullCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
-
-        // Ratio
-        hPdfForwardBackwardRatio[iEta] = (TH1D*)hPdfForwardCMEta[iEta]->Clone(Form("hPdfForwardBackwardRatio_%d_0", etaCMIntCut[iEta]));
-        hPdfForwardBackwardRatio[iEta]->Divide(hPdfBackwardCMEta[iEta]);
-
-        //
-        // Data
-        //
-
-        // Forward
-        hData2DForwardCMEta[iEta] = dynamic_cast<TH2D *>( fData->Get( Form("hRecoDijetPtEtaForwardArr_%d", etaCMCutSize - iEta - 1) ) );
-        if ( !hData2DForwardCMEta[iEta] ) {
-            std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << etaCMCutSize - iEta - 1 << " not found in data file." << std::endl;
-            return;
-        }
-        hData2DForwardCMEta[iEta]->SetDirectory(0);
-        hData2DForwardCMEta[iEta]->RebinY(2);
-        int ptBinLow = hData2DForwardCMEta[iEta]->GetXaxis()->FindBin(ptLow);
-        int ptBinHigh = hData2DForwardCMEta[iEta]->GetXaxis()->FindBin(ptHigh) - 1;
-        hDataForwardCMEta[iEta] = dynamic_cast<TH1D *>( hData2DForwardCMEta[iEta]->ProjectionY( Form("hDataForwardCMEta_%d", iEta), ptBinLow, ptBinHigh ) );
-        set1DStyle( hDataForwardCMEta[iEta], 0 );
-        hDataForwardCMEta[iEta]->SetName( Form("hDataForwardCMEta_%d", iEta) );
-        hDataForwardCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hDataForwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
-
-        // Backward
-        hData2DBackwardCMEta[iEta] = dynamic_cast<TH2D *>( fData->Get( Form("hRecoDijetPtEtaBackwardArr_%d", etaCMCutSize - iEta - 1) ) );
-        if ( !hData2DBackwardCMEta[iEta] ) {
-            std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << etaCMCutSize - iEta - 1 << " not found in data file." << std::endl;
-            return;
-        }
-        hData2DBackwardCMEta[iEta]->SetDirectory(0);
-        hData2DBackwardCMEta[iEta]->RebinY(2);
-        hDataBackwardCMEta[iEta] = dynamic_cast<TH1D *>( hData2DBackwardCMEta[iEta]->ProjectionY( Form("hDataBackwardCMEta_%d", iEta), ptBinLow, ptBinHigh ) );
-        set1DStyle( hDataBackwardCMEta[iEta], 0 );
-        hDataBackwardCMEta[iEta]->SetName( Form("hDataBackwardCMEta_%d", iEta) );
-        hDataBackwardCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hDataBackwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
-
-        // Make full eta distribution by combining forward and backward
-        hDataFullCMEta[iEta] = new TH1D( Form("hDataFullCMEta_%d", iEta), 
-                                         Form("hDataFullCMEta_%d;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", iEta), 
-                                         20, -2.0, 2.0 );
-        hDataFullCMEta[iEta]->Sumw2();
-        makeFullEtaFromForwardAndBackward( hDataFullCMEta[iEta], hDataForwardCMEta[iEta], hDataBackwardCMEta[iEta] );
-        set1DStyle( hDataFullCMEta[iEta], 0, true );
-        hDataFullCMEta[iEta]->SetName( Form("hDataFullCMEta_%d", iEta) );
-        hDataFullCMEta[iEta]->SetLineColor( p8Colors[iEta] );
-        hDataFullCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
-
-        // Ratio
-        hDataBackwardCMEta[iEta]->SetName( Form("hDataBackwardCMEta_%d", iEta) );
-        hDataForwardBackwardRatio[iEta] = (TH1D*)hDataForwardCMEta[iEta]->Clone(Form("hDataForwardBackwardRatio_%d", iEta));
-        hDataForwardBackwardRatio[iEta]->Divide(hDataBackwardCMEta[iEta]);
 
         //
         // PYTHIA
@@ -4470,6 +4554,7 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
                                          Form("hPythiaFullCMEta_%d;#eta^{dijet}_{CM};dN/d#eta^{dijet}_{CM}", iEta), 
                                          20, -2.0, 2.0 );
         hPythiaFullCMEta[iEta]->Sumw2();
+        hPythiaFullCMEta[iEta]->SetDirectory(0);
         makeFullEtaFromForwardAndBackward( hPythiaFullCMEta[iEta], hPythiaForwardCMEta[iEta], hPythiaBackwardCMEta[iEta] );
         set1DStyle( hPythiaFullCMEta[iEta], 1, true );
         hPythiaFullCMEta[iEta]->SetLineColor( p8Colors[iEta] );
@@ -4478,6 +4563,7 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
         // Ratio
         hPythiaForwardBackwardRatio[iEta] = (TH1D*)hPythiaForwardCMEta[iEta]->Clone(Form("hPythiaForwardBackwardRatio_%d", iEta));
         hPythiaForwardBackwardRatio[iEta]->Divide(hPythiaBackwardCMEta[iEta]);
+        hPythiaForwardBackwardRatio[iEta]->SetDirectory(0);
 
         //
         // Data to PDF ratios
@@ -4486,10 +4572,12 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
         // Forward/backward ratio
         hDataToPdfForwardBackwardRatio[iEta] = (TH1D*)hDataForwardBackwardRatio[iEta]->Clone(Form("hDataToPdfForwardBackwardRatio_%d", iEta));
         hDataToPdfForwardBackwardRatio[iEta]->Divide(hPdfForwardBackwardRatio[iEta]);
+        hDataToPdfForwardBackwardRatio[iEta]->SetDirectory(0);
 
         // Full eta distribution
         hDataToPdfFullEtaRatio[iEta] = (TH1D*)hDataFullCMEta[iEta]->Clone(Form("hDataToPdfFullEtaRatio_%d", iEta));
         hDataToPdfFullEtaRatio[iEta]->Divide(hPdfFullCMEta[iEta]);
+        hDataToPdfFullEtaRatio[iEta]->SetDirectory(0);
 
         //
         // Data to PYTHIA ratios
@@ -4498,12 +4586,25 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
         // Forward/backward ratio
         hDataToPythiaForwardBackwardRatio[iEta] = (TH1D*)hDataForwardBackwardRatio[iEta]->Clone(Form("hDataToPythiaForwardBackwardRatio_%d", iEta));
         hDataToPythiaForwardBackwardRatio[iEta]->Divide(hPythiaForwardBackwardRatio[iEta]);
+        hDataToPythiaForwardBackwardRatio[iEta]->SetDirectory(0);
 
         // Full eta distribution
         hDataToPythiaFullEtaRatio[iEta] = (TH1D*)hDataFullCMEta[iEta]->Clone(Form("hDataToPythiaFullEtaRatio_%d", iEta));
         hDataToPythiaFullEtaRatio[iEta]->Divide(hPythiaFullCMEta[iEta]);
-    }
+        hDataToPythiaFullEtaRatio[iEta]->SetDirectory(0);
 
+        // PDF to PYTHIA ratio for full eta distribution
+        hPDFToPythiaFullEtaRatio[iEta] = (TH1D*)hPdfFullCMEta[iEta]->Clone(Form("hPDFToPythiaFullEtaRatio_%d", iEta));
+        hPDFToPythiaFullEtaRatio[iEta]->Divide(hPythiaFullCMEta[iEta]);
+        hPDFToPythiaFullEtaRatio[iEta]->SetDirectory(0);
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+
+    // Close files
+    fPdf->Close();
+    fData->Close();
+    fPythia->Close();
+
+    // Plotting components
     TLatex t;
     t.SetTextFont(42);
     t.SetTextSize(0.05);
@@ -4699,7 +4800,7 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
             leg->SetFillColor(0);
             leg->SetBorderSize(0);
         }
-            leg->AddEntry(hDataToPythiaFullEtaRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
+        leg->AddEntry(hDataToPythiaFullEtaRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
     } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
     plotCMSHeader(collisionSystem, collisionEnergy);
     t.SetTextSize(0.04);
@@ -4708,6 +4809,1078 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
     leg->Draw();
     c->SaveAs(Form("%s/%s_data2PYTHIA_fullEtaRatio_etaCM_ratios.pdf", 
                     date.Data(), collSystemStr.Data()) );
+
+    // Compilation of ratios of PDF to PYTHIA for different eta cuts on the same canvas
+    for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
+        hPDFToPythiaFullEtaRatio[iEta]->SetMarkerStyle(kFullCircle);
+        hPDFToPythiaFullEtaRatio[iEta]->Draw( (iEta==0) ? "" : "same" );
+        if (iEta == 0) {
+            hPDFToPythiaFullEtaRatio[iEta]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+            hPDFToPythiaFullEtaRatio[iEta]->GetYaxis()->SetTitle("PDF / PYTHIA");
+            hPDFToPythiaFullEtaRatio[iEta]->GetXaxis()->SetRangeUser(-2.0, 2.0);
+            hPDFToPythiaFullEtaRatio[iEta]->GetYaxis()->SetRangeUser(0.8, 1.1);
+            leg = new TLegend(0.45, 0.2, 0.65, 0.45);
+            leg->SetTextSize(0.03);
+            leg->SetFillColor(0);
+            leg->SetBorderSize(0);
+        }
+        leg->AddEntry(hPDFToPythiaFullEtaRatio[iEta], Form("|#eta^{jet}_{CM}| < %.1f", etaCMDoubleCut[iEta]), "p");
+    } // for (int iEta{0}; iEta<etaCMCutSize; iEta++)
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.16, 0.85, "PDF to PYTHIA comparison");
+    t.DrawLatexNDC(0.16, 0.8, "60 < p_{T}^{ave} < 80 GeV");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_PDF2PYTHIA_fullEtaRatio_etaCM_ratios.pdf", 
+                    date.Data(), collSystemStr.Data()) ); 
+}
+
+//________________
+void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString date) {
+
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    // pT bin selection
+    double ptLow = 80.001;
+    double ptHigh = 120.001;
+    double etaLabMax = 2.4;
+    double etaCMMax = 2.0;
+    double yAxisRatio2Gen[2] = {0.85, 1.15};
+
+    TString mcType = "PYTHIA"; // "pythia" or "embedding"
+    TString mcTypeLower = mcType;
+    mcTypeLower.ToLower();
+
+    TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_jetId_eta19.root") );
+    // TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_jetId_eta19.root") );
+
+    // TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/Pbgoing/oPythia_pPb8160_Pbgoing_30.root") );
+    // TFile *fPythia = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_jetId_eta19_ptHat_gt_30.root") );
+    if ( !fMC || fMC->IsZombie() ) {
+        std::cerr << "Error: Could not open pythia file." << std::endl;
+        return;
+    }
+
+    // Gen histograms
+    TH2D *hGenInclusiveJetPtEta;
+    TH2D *hGenLeadJetPtEta;
+    TH2D *hGenSubLeadJetPtEta;
+    TH2D *hGenInclusiveJetPtEtaCM;
+    TH2D *hGenLeadJetPtEtaCM;
+    TH2D *hGenSubLeadJetPtEtaCM;
+
+    // Reco histograms
+    TH2D *hRecoInclusiveJetPtEta;
+    TH2D *hRecoLeadJetPtEta;
+    TH2D *hRecoSubLeadJetPtEta;
+    TH2D *hRecoInclusiveJetPtEtaCM;
+    TH2D *hRecoLeadJetPtEtaCM;
+    TH2D *hRecoSubLeadJetPtEtaCM;
+
+    // Ref histograms
+    TH2D *hRefInclusiveJetPtEta;
+    TH2D *hRefLeadJetPtEta;
+    TH2D *hRefSubLeadJetPtEta;
+    TH2D *hRefInclusiveJetPtEtaCM;
+    TH2D *hRefLeadJetPtEtaCM;
+    TH2D *hRefSubLeadJetPtEtaCM;
+
+    //////////////////////////////////////////
+    //    Retrieve histograms from MC file  //
+    //////////////////////////////////////////
+
+    // Gen level
+    
+    // Lab frame
+    hGenInclusiveJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hGenInclusiveJetPtEta") );
+    if ( !hGenInclusiveJetPtEta ) {
+        std::cerr << "Error: hGenInclusiveJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetPtEta->SetDirectory(0);
+    hGenInclusiveJetPtEta->SetName("hGenInclusiveJetPtEta");
+    hGenInclusiveJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+    hGenLeadJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hGenLeadJetPtEta") );
+    if ( !hGenLeadJetPtEta ) {
+        std::cerr << "Error: hGenLeadJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hGenLeadJetPtEta->SetDirectory(0);
+    hGenLeadJetPtEta->SetName("hGenLeadJetPtEta");
+    hGenLeadJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+    hGenSubLeadJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hGenSubLeadJetPtEta") );
+    if ( !hGenSubLeadJetPtEta ) {
+        std::cerr << "Error: hGenSubLeadJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hGenSubLeadJetPtEta->SetDirectory(0);
+    hGenSubLeadJetPtEta->SetName("hGenSubLeadJetPtEta");
+    hGenSubLeadJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+
+    // CM frame
+    hGenInclusiveJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hGenInclusiveJetPtEtaCM") );
+    if ( !hGenInclusiveJetPtEtaCM ) {
+        std::cerr << "Error: hGenInclusiveJetPtEtaCM not found in MC file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetPtEtaCM->SetDirectory(0);
+    hGenInclusiveJetPtEtaCM->SetName("hGenInclusiveJetPtEtaCM");
+    hGenInclusiveJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+    hGenLeadJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hGenLeadJetPtEtaCM") );
+    if ( !hGenLeadJetPtEtaCM ) {
+        std::cerr << "Error: hGenLeadJetPtEtaCM not found in MC file." << std::endl;
+        return;
+    }
+    hGenLeadJetPtEtaCM->SetDirectory(0);
+    hGenLeadJetPtEtaCM->SetName("hGenLeadJetPtEtaCM");
+    hGenLeadJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+    hGenSubLeadJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hGenSubLeadJetPtEtaCM") );
+    if ( !hGenSubLeadJetPtEtaCM ) {
+        std::cerr << "Error: hGenSubLeadJetPtEtaCM not found in MC file." << std::endl;
+        return;
+    }
+    hGenSubLeadJetPtEtaCM->SetDirectory(0);
+    hGenSubLeadJetPtEtaCM->SetName("hGenSubLeadJetPtEtaCM");
+    hGenSubLeadJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+
+    // Reco level
+
+    // Lab frame
+    hRecoInclusiveJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hRecoInclusiveAllJetPtEta") );
+    if ( !hRecoInclusiveJetPtEta ) {
+        std::cerr << "Error: hRecoInclusiveAllJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetPtEta->SetDirectory(0);
+    hRecoInclusiveJetPtEta->SetName("hRecoInclusiveJetPtEta");
+    hRecoInclusiveJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+    hRecoLeadJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hRecoLeadAllJetPtEta") );
+    if ( !hRecoLeadJetPtEta ) {
+        std::cerr << "Error: hRecoLeadAllJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hRecoLeadJetPtEta->SetDirectory(0);
+    hRecoLeadJetPtEta->SetName("hRecoLeadJetPtEta");
+    hRecoLeadJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+    hRecoSubLeadJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hRecoSubLeadAllJetPtEta") );
+    if ( !hRecoSubLeadJetPtEta ) {
+        std::cerr << "Error: hRecoSubLeadAllJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hRecoSubLeadJetPtEta->SetDirectory(0);
+    hRecoSubLeadJetPtEta->SetName("hRecoSubLeadJetPtEta");
+    hRecoSubLeadJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+
+    // CM frame
+    hRecoInclusiveJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hRecoInclusiveAllJetPtEtaCM") );
+    if ( !hRecoInclusiveJetPtEtaCM ) {
+        std::cerr << "Error: hRecoInclusiveAllJetPtEtaCM not found in MC file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetPtEtaCM->SetDirectory(0);
+    hRecoInclusiveJetPtEtaCM->SetName("hRecoInclusiveJetPtEtaCM");
+    hRecoInclusiveJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+    hRecoLeadJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hRecoLeadAllJetPtEtaCM") );
+    if ( !hRecoLeadJetPtEtaCM ) {
+        std::cerr << "Error: hRecoLeadAllJetPtEtaCM not found in MC file." << std::endl;
+        return; 
+    }
+    hRecoLeadJetPtEtaCM->SetDirectory(0);
+    hRecoLeadJetPtEtaCM->SetName("hRecoLeadJetPtEtaCM");
+    hRecoLeadJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+    hRecoSubLeadJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hRecoSubLeadAllJetPtEtaCM") );
+    if ( !hRecoSubLeadJetPtEtaCM ) {
+        std::cerr << "Error: hRecoSubLeadAllJetPtEtaCM not found in MC file." << std::endl;
+        return;
+    }
+    hRecoSubLeadJetPtEtaCM->SetDirectory(0);
+    hRecoSubLeadJetPtEtaCM->SetName("hRecoSubLeadJetPtEtaCM");
+    hRecoSubLeadJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+
+    // Ref level
+
+    // Lab frame
+    hRefInclusiveJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hRefInclusiveJetPtEta") );
+    if ( !hRefInclusiveJetPtEta ) {
+        std::cerr << "Error: hRefInclusiveJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hRefInclusiveJetPtEta->SetDirectory(0);
+    hRefInclusiveJetPtEta->SetName("hRefInclusiveJetPtEta");
+    hRefInclusiveJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+    hRefLeadJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hRefLeadJetPtEta") );
+    if ( !hRefLeadJetPtEta ) {
+        std::cerr << "Error: hRefLeadJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hRefLeadJetPtEta->SetDirectory(0);
+    hRefLeadJetPtEta->SetName("hRefLeadJetPtEta");
+    hRefLeadJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+    hRefSubLeadJetPtEta = dynamic_cast<TH2D *>( fMC->Get("hRefSubLeadJetPtEta") );
+    if ( !hRefSubLeadJetPtEta ) {
+        std::cerr << "Error: hRefSubLeadJetPtEta not found in MC file." << std::endl;
+        return;
+    }
+    hRefSubLeadJetPtEta->SetDirectory(0);
+    hRefSubLeadJetPtEta->SetName("hRefSubLeadJetPtEta");
+    hRefSubLeadJetPtEta->GetXaxis()->SetTitle("#eta^{jet}");
+
+    // CM frame
+    hRefInclusiveJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hRefInclusiveJetPtEtaCM") );
+    if ( !hRefInclusiveJetPtEtaCM ) {
+        std::cerr << "Error: hRefInclusiveJetPtEtaCM not found in MC file." << std::endl;
+        return;
+    }
+    hRefInclusiveJetPtEtaCM->SetDirectory(0);
+    hRefInclusiveJetPtEtaCM->SetName("hRefInclusiveJetPtEtaCM");
+    hRefInclusiveJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+    hRefLeadJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hRefLeadJetPtEtaCM") );
+    if ( !hRefLeadJetPtEtaCM ) {
+        std::cerr << "Error: hRefLeadJetPtEtaCM not found in MC file." << std::endl;
+        return;
+    }
+    hRefLeadJetPtEtaCM->SetDirectory(0);
+    hRefLeadJetPtEtaCM->SetName("hRefLeadJetPtEtaCM");
+    hRefLeadJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+    hRefSubLeadJetPtEtaCM = dynamic_cast<TH2D *>( fMC->Get("hRefSubLeadJetPtEtaCM") );
+    if ( !hRefSubLeadJetPtEtaCM ) {
+        std::cerr << "Error: hRefSubLeadJetPtEtaCM not found in MC file." << std::endl;
+        return;
+    }
+    hRefSubLeadJetPtEtaCM->SetDirectory(0);
+    hRefSubLeadJetPtEtaCM->SetName("hRefSubLeadJetPtEtaCM");
+    hRefSubLeadJetPtEtaCM->GetXaxis()->SetTitle("#eta^{jet}_{CM}");
+
+    fMC->Close();
+
+    /////////////////////////////////////////////
+    //  Histograms for projections and ratios  //
+    /////////////////////////////////////////////
+
+    // Gen level
+
+    // Lab frame
+    TH1D *hGenInclusiveJetEta;
+    TH1D *hGenLeadJetEta;
+    TH1D *hGenSubLeadJetEta;
+
+    // CM frame
+    TH1D *hGenInclusiveJetEtaCM;
+    TH1D *hGenInclusiveJetEtaCMForward;
+    TH1D *hGenInclusiveJetEtaCMBackward;
+    TH1D *hGenInclusiveJetForwardBackwardRatioCM;
+
+    TH1D *hGenLeadJetEtaCM;
+    TH1D *hGenLeadJetEtaCMForward;
+    TH1D *hGenLeadJetEtaCMBackward;
+    TH1D *hGenLeadJetForwardBackwardRatioCM;
+
+    TH1D *hGenSubLeadJetEtaCM;
+    TH1D *hGenSubLeadJetEtaCMForward;
+    TH1D *hGenSubLeadJetEtaCMBackward;
+    TH1D *hGenSubLeadJetForwardBackwardRatioCM;
+
+    // Reco level
+
+    // Lab frame
+    TH1D *hRecoInclusiveJetEta;
+    TH1D *hRecoLeadJetEta;
+    TH1D *hRecoSubLeadJetEta;
+
+    TH1D *hInclusiveJetReco2GenEta;
+    TH1D *hLeadJetReco2GenEta;
+    TH1D *hSubLeadJetReco2GenEta;
+
+    // CM frame
+    TH1D *hRecoInclusiveJetEtaCM;
+    TH1D *hRecoInclusiveJetEtaCMForward;
+    TH1D *hRecoInclusiveJetEtaCMBackward;
+    TH1D *hRecoInclusiveJetForwardBackwardRatioCM;
+
+    TH1D *hRecoLeadJetEtaCM;
+    TH1D *hRecoLeadJetEtaCMForward;
+    TH1D *hRecoLeadJetEtaCMBackward;
+    TH1D *hRecoLeadJetForwardBackwardRatioCM;
+
+    TH1D *hRecoSubLeadJetEtaCM;
+    TH1D *hRecoSubLeadJetEtaCMForward;
+    TH1D *hRecoSubLeadJetEtaCMBackward;
+    TH1D *hRecoSubLeadJetForwardBackwardRatioCM;
+
+    TH1D *hInclusiveJetReco2GenEtaCM;
+    TH1D *hLeadJetReco2GenEtaCM;
+    TH1D *hSubLeadJetReco2GenEtaCM;
+
+    // Ref level
+
+    // Lab frame
+    TH1D *hRefInclusiveJetEta;
+    TH1D *hRefLeadJetEta;
+    TH1D *hRefSubLeadJetEta;
+
+    TH1D *hInclusiveJetRef2GenEta;
+    TH1D *hLeadJetRef2GenEta;
+    TH1D *hSubLeadJetRef2GenEta;
+
+    // CM frame
+    TH1D *hRefInclusiveJetEtaCM;
+    TH1D *hRefInclusiveJetEtaCMForward;
+    TH1D *hRefInclusiveJetEtaCMBackward;
+    TH1D *hRefInclusiveJetForwardBackwardRatioCM;
+
+    TH1D *hRefLeadJetEtaCM;
+    TH1D *hRefLeadJetEtaCMForward;
+    TH1D *hRefLeadJetEtaCMBackward;
+    TH1D *hRefLeadJetForwardBackwardRatioCM;
+
+    TH1D *hRefSubLeadJetEtaCM;
+    TH1D *hRefSubLeadJetEtaCMForward;
+    TH1D *hRefSubLeadJetEtaCMBackward;
+    TH1D *hRefSubLeadJetForwardBackwardRatioCM;
+
+    TH1D *hInclusiveJetRef2GenEtaCM;
+    TH1D *hLeadJetRef2GenEtaCM;
+    TH1D *hSubLeadJetRef2GenEtaCM;
+
+
+    ///////////////////////////
+    //    Make projections   //
+    ///////////////////////////
+
+    // Gen level
+
+    // Lab frame
+    hGenInclusiveJetEta = dynamic_cast<TH1D *>( hGenInclusiveJetPtEta->ProjectionX("hGenInclusiveJetEta", 
+                                        hGenInclusiveJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hGenInclusiveJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+    hGenLeadJetEta = dynamic_cast<TH1D *>( hGenLeadJetPtEta->ProjectionX("hGenLeadJetEta", 
+                                        hGenLeadJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hGenLeadJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+    hGenSubLeadJetEta = dynamic_cast<TH1D *>( hGenSubLeadJetPtEta->ProjectionX("hGenSubLeadJetEta", 
+                                        hGenSubLeadJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hGenSubLeadJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+
+    set1DStyle(hGenInclusiveJetEta, 1, true);
+    set1DStyle(hGenLeadJetEta, 1, true);
+    set1DStyle(hGenSubLeadJetEta, 1, true);
+    hGenInclusiveJetEta->Scale(1./hGenInclusiveJetEta->Integral( hGenInclusiveJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                                 hGenInclusiveJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+    hGenLeadJetEta->Scale(1./hGenLeadJetEta->Integral( hGenLeadJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                       hGenLeadJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+    hGenSubLeadJetEta->Scale(1./hGenSubLeadJetEta->Integral( hGenSubLeadJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                             hGenSubLeadJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+
+    // CM frame
+    hGenInclusiveJetEtaCM = dynamic_cast<TH1D *>( hGenInclusiveJetPtEtaCM->ProjectionX("hGenInclusiveJetEtaCM", 
+                                                  hGenInclusiveJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                                  hGenInclusiveJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hGenInclusiveJetEtaCM, 1, true);
+    hGenInclusiveJetEtaCM->Scale(1./hGenInclusiveJetEtaCM->Integral( hGenInclusiveJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                   hGenInclusiveJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hGenInclusiveJetEtaCMForward = new TH1D("hGenInclusiveJetEtaCMForward", "hGenInclusiveJetEtaCMForward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                            hGenInclusiveJetPtEtaCM->GetNbinsX() / 2, 0., hGenInclusiveJetPtEtaCM->GetXaxis()->GetXmax() );
+    hGenInclusiveJetEtaCMBackward = new TH1D("hGenInclusiveJetEtaCMBackward", "hGenInclusiveJetEtaCMBackward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                             hGenInclusiveJetPtEtaCM->GetNbinsX() / 2, 0., hGenInclusiveJetPtEtaCM->GetXaxis()->GetXmax() );
+    hGenInclusiveJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hGenInclusiveJetEtaCMForward->Clone("hGenInclusiveJetForwardBackwardRatioCM") );
+    hGenInclusiveJetForwardBackwardRatioCM->Divide(hGenInclusiveJetEtaCMBackward);
+    set1DStyle(hGenInclusiveJetForwardBackwardRatioCM, 1);
+
+    hGenLeadJetEtaCM = dynamic_cast<TH1D *>( hGenLeadJetPtEtaCM->ProjectionX("hGenLeadJetEtaCM", 
+                                             hGenLeadJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                             hGenLeadJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hGenLeadJetEtaCM, 1, true);
+    hGenLeadJetEtaCM->Scale(1./hGenLeadJetEtaCM->Integral( hGenLeadJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                   hGenLeadJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hGenLeadJetEtaCMForward = new TH1D("hGenLeadJetEtaCMForward", "hGenLeadJetEtaCMForward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                            hGenLeadJetPtEtaCM->GetNbinsX() / 2, 0., hGenLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hGenLeadJetEtaCMBackward = new TH1D("hGenLeadJetEtaCMBackward", "hGenLeadJetEtaCMBackward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                             hGenLeadJetPtEtaCM->GetNbinsX() / 2, 0., hGenLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hGenLeadJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hGenLeadJetEtaCMForward->Clone("hGenLeadJetForwardBackwardRatioCM") );
+    hGenLeadJetForwardBackwardRatioCM->Divide(hGenLeadJetEtaCMBackward);
+    set1DStyle(hGenLeadJetForwardBackwardRatioCM, 1);
+
+    hGenSubLeadJetEtaCM = dynamic_cast<TH1D *>( hGenSubLeadJetPtEtaCM->ProjectionX("hGenSubLeadJetEtaCM", 
+                                                hGenSubLeadJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                                hGenSubLeadJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hGenSubLeadJetEtaCM, 1, true);
+    hGenSubLeadJetEtaCM->Scale(1./hGenSubLeadJetEtaCM->Integral( hGenSubLeadJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                                 hGenSubLeadJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hGenSubLeadJetEtaCMForward = new TH1D("hGenSubLeadJetEtaCMForward", "hGenSubLeadJetEtaCMForward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}",
+                                            hGenSubLeadJetPtEtaCM->GetNbinsX() / 2, 0., hGenSubLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hGenSubLeadJetEtaCMBackward = new TH1D("hGenSubLeadJetEtaCMBackward", "hGenSubLeadJetEtaCMBackward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                             hGenSubLeadJetPtEtaCM->GetNbinsX() / 2, 0., hGenSubLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hGenSubLeadJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hGenSubLeadJetEtaCMForward->Clone("hGenSubLeadJetForwardBackwardRatioCM") );
+    hGenSubLeadJetForwardBackwardRatioCM->Divide(hGenSubLeadJetEtaCMBackward);
+    set1DStyle(hGenSubLeadJetForwardBackwardRatioCM, 1);
+
+    // Make forward/backward ratios
+    recalculateFBRatioFromFullDistribution(hGenInclusiveJetForwardBackwardRatioCM, hGenInclusiveJetEtaCMForward, hGenInclusiveJetEtaCMBackward, hGenInclusiveJetEtaCM);
+    recalculateFBRatioFromFullDistribution(hGenLeadJetForwardBackwardRatioCM, hGenLeadJetEtaCMForward, hGenLeadJetEtaCMBackward, hGenLeadJetEtaCM);
+    recalculateFBRatioFromFullDistribution(hGenSubLeadJetForwardBackwardRatioCM, hGenSubLeadJetEtaCMForward, hGenSubLeadJetEtaCMBackward, hGenSubLeadJetEtaCM);
+
+
+    // Reco level
+
+    // Lab frame
+    hRecoInclusiveJetEta = dynamic_cast<TH1D *>( hRecoInclusiveJetPtEta->ProjectionX("hRecoInclusiveJetEta", 
+                                        hRecoInclusiveJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hRecoInclusiveJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+    hRecoLeadJetEta = dynamic_cast<TH1D *>( hRecoLeadJetPtEta->ProjectionX("hRecoLeadJetEta", 
+                                        hRecoLeadJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hRecoLeadJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+    hRecoSubLeadJetEta = dynamic_cast<TH1D *>( hRecoSubLeadJetPtEta->ProjectionX("hRecoSubLeadJetEta", 
+                                        hRecoSubLeadJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hRecoSubLeadJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hRecoInclusiveJetEta, 0, true);
+    set1DStyle(hRecoLeadJetEta, 0, true);
+    set1DStyle(hRecoSubLeadJetEta, 0, true);
+    hRecoInclusiveJetEta->Scale(1./hRecoInclusiveJetEta->Integral( hRecoInclusiveJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                                 hRecoInclusiveJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+    hRecoLeadJetEta->Scale(1./hRecoLeadJetEta->Integral( hRecoLeadJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                       hRecoLeadJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+    hRecoSubLeadJetEta->Scale(1./hRecoSubLeadJetEta->Integral( hRecoSubLeadJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                             hRecoSubLeadJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+
+    hInclusiveJetReco2GenEta = dynamic_cast<TH1D *>( hRecoInclusiveJetEta->Clone("hInclusiveJetReco2GenEta") );
+    hInclusiveJetReco2GenEta->Divide(hGenInclusiveJetEta);
+    set1DStyle(hInclusiveJetReco2GenEta, 0);
+    hLeadJetReco2GenEta = dynamic_cast<TH1D *>( hRecoLeadJetEta->Clone("hLeadJetReco2GenEta") );
+    hLeadJetReco2GenEta->Divide(hGenLeadJetEta);
+    set1DStyle(hLeadJetReco2GenEta, 0);
+    hSubLeadJetReco2GenEta = dynamic_cast<TH1D *>( hRecoSubLeadJetEta->Clone("hSubLeadJetReco2GenEta") );
+    hSubLeadJetReco2GenEta->Divide(hGenSubLeadJetEta);
+    set1DStyle(hSubLeadJetReco2GenEta, 0);
+
+    // CM frame
+    hRecoInclusiveJetEtaCM = dynamic_cast<TH1D *>( hRecoInclusiveJetPtEtaCM->ProjectionX("hRecoInclusiveJetEtaCM", 
+                                                   hRecoInclusiveJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                                   hRecoInclusiveJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hRecoInclusiveJetEtaCM, 0, true);
+    hRecoInclusiveJetEtaCM->Scale(1./hRecoInclusiveJetEtaCM->Integral( hRecoInclusiveJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                   hRecoInclusiveJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hRecoInclusiveJetEtaCMForward = new TH1D("hRecoInclusiveJetEtaCMForward", "hRecoInclusiveJetEtaCMForward;#eta_{CM};dN/d#eta_{CM}", 
+                                            hRecoInclusiveJetPtEtaCM->GetNbinsX() / 2, 0., hRecoInclusiveJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRecoInclusiveJetEtaCMBackward = new TH1D("hRecoInclusiveJetEtaCMBackward", "hRecoInclusiveJetEtaCMBackward;#eta_{CM};dN/d#eta_{CM}", 
+                                             hRecoInclusiveJetPtEtaCM->GetNbinsX() / 2, 0., hRecoInclusiveJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRecoInclusiveJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hRecoInclusiveJetEtaCMForward->Clone("hRecoInclusiveJetForwardBackwardRatioCM") );
+    hRecoInclusiveJetForwardBackwardRatioCM->Divide(hRecoInclusiveJetEtaCMBackward);
+    set1DStyle(hRecoInclusiveJetForwardBackwardRatioCM, 0, true);
+
+    hRecoLeadJetEtaCM = dynamic_cast<TH1D *>( hRecoLeadJetPtEtaCM->ProjectionX("hRecoLeadJetEtaCM", 
+                                             hRecoLeadJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                             hRecoLeadJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hRecoLeadJetEtaCM, 0, true);
+    hRecoLeadJetEtaCM->Scale(1./hRecoLeadJetEtaCM->Integral( hRecoLeadJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                   hRecoLeadJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hRecoLeadJetEtaCMForward = new TH1D("hRecoLeadJetEtaCMForward", "hRecoLeadJetEtaCMForward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}",
+                                            hRecoLeadJetPtEtaCM->GetNbinsX() / 2, 0., hRecoLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRecoLeadJetEtaCMBackward = new TH1D("hRecoLeadJetEtaCMBackward", "hRecoLeadJetEtaCMBackward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                             hRecoLeadJetPtEtaCM->GetNbinsX() / 2, 0., hRecoLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRecoLeadJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hRecoLeadJetEtaCMForward->Clone("hRecoLeadJetForwardBackwardRatioCM") );
+    hRecoLeadJetForwardBackwardRatioCM->Divide(hRecoLeadJetEtaCMBackward);
+    set1DStyle(hRecoLeadJetForwardBackwardRatioCM, 0, true);
+
+    hRecoSubLeadJetEtaCM = dynamic_cast<TH1D *>( hRecoSubLeadJetPtEtaCM->ProjectionX("hRecoSubLeadJetEtaCM", 
+                                                hRecoSubLeadJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                                hRecoSubLeadJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hRecoSubLeadJetEtaCM, 0, true);
+    hRecoSubLeadJetEtaCM->Scale(1./hRecoSubLeadJetEtaCM->Integral( hRecoSubLeadJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                                 hRecoSubLeadJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hRecoSubLeadJetEtaCMForward = new TH1D("hRecoSubLeadJetEtaCMForward", "hRecoSubLeadJetEtaCMForward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}",
+                                            hRecoSubLeadJetPtEtaCM->GetNbinsX() / 2, 0., hRecoSubLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRecoSubLeadJetEtaCMBackward = new TH1D("hRecoSubLeadJetEtaCMBackward", "hRecoSubLeadJetEtaCMBackward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                             hRecoSubLeadJetPtEtaCM->GetNbinsX() / 2, 0., hRecoSubLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRecoSubLeadJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hRecoSubLeadJetEtaCMForward->Clone("hRecoSubLeadJetForwardBackwardRatioCM") );
+    hRecoSubLeadJetForwardBackwardRatioCM->Divide(hRecoSubLeadJetEtaCMBackward);
+    set1DStyle(hRecoSubLeadJetForwardBackwardRatioCM, 0, true);
+
+    recalculateFBRatioFromFullDistribution(hRecoInclusiveJetForwardBackwardRatioCM, hRecoInclusiveJetEtaCMForward, hRecoInclusiveJetEtaCMBackward, hRecoInclusiveJetEtaCM);
+    recalculateFBRatioFromFullDistribution(hRecoLeadJetForwardBackwardRatioCM, hRecoLeadJetEtaCMForward, hRecoLeadJetEtaCMBackward, hRecoLeadJetEtaCM);
+    recalculateFBRatioFromFullDistribution(hRecoSubLeadJetForwardBackwardRatioCM, hRecoSubLeadJetEtaCMForward, hRecoSubLeadJetEtaCMBackward, hRecoSubLeadJetEtaCM);
+
+    hInclusiveJetReco2GenEtaCM = dynamic_cast<TH1D *>( hRecoInclusiveJetEtaCM->Clone("hInclusiveJetReco2GenEtaCM") );
+    hInclusiveJetReco2GenEtaCM->Divide(hGenInclusiveJetEtaCM);
+    set1DStyle(hInclusiveJetReco2GenEtaCM, 0);
+    hLeadJetReco2GenEtaCM = dynamic_cast<TH1D *>( hRecoLeadJetEtaCM->Clone("hLeadJetReco2GenEtaCM") );
+    hLeadJetReco2GenEtaCM->Divide(hGenLeadJetEtaCM);
+    set1DStyle(hLeadJetReco2GenEtaCM, 0);
+    hSubLeadJetReco2GenEtaCM = dynamic_cast<TH1D *>( hRecoSubLeadJetEtaCM->Clone("hSubLeadJetReco2GenEtaCM") );
+    hSubLeadJetReco2GenEtaCM->Divide(hGenSubLeadJetEtaCM);
+    set1DStyle(hSubLeadJetReco2GenEtaCM, 0);
+
+    // Ref level
+
+    // Lab frame
+    hRefInclusiveJetEta = dynamic_cast<TH1D *>( hRefInclusiveJetPtEta->ProjectionX("hRefInclusiveJetEta", 
+                                        hRefInclusiveJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hRefInclusiveJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+    hRefLeadJetEta = dynamic_cast<TH1D *>( hRefLeadJetPtEta->ProjectionX("hRefLeadJetEta", 
+                                        hRefLeadJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hRefLeadJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+    hRefSubLeadJetEta = dynamic_cast<TH1D *>( hRefSubLeadJetPtEta->ProjectionX("hRefSubLeadJetEta", 
+                                        hRefSubLeadJetPtEta->GetYaxis()->FindBin(ptLow), 
+                                        hRefSubLeadJetPtEta->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hRefInclusiveJetEta, 2, true);
+    set1DStyle(hRefLeadJetEta, 2, true);
+    set1DStyle(hRefSubLeadJetEta, 2, true);
+    hRefInclusiveJetEta->Scale(1./hRefInclusiveJetEta->Integral( hRefInclusiveJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                                 hRefInclusiveJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+    hRefLeadJetEta->Scale(1./hRefLeadJetEta->Integral( hRefLeadJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                       hRefLeadJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+    hRefSubLeadJetEta->Scale(1./hRefSubLeadJetEta->Integral( hRefSubLeadJetEta->GetXaxis()->FindBin(-etaLabMax), 
+                                                             hRefSubLeadJetEta->GetXaxis()->FindBin(etaLabMax) ) );
+
+    hInclusiveJetRef2GenEta = dynamic_cast<TH1D *>( hRefInclusiveJetEta->Clone("hInclusiveJetRef2GenEta") );
+    hInclusiveJetRef2GenEta->Divide(hGenInclusiveJetEta);
+    set1DStyle(hInclusiveJetRef2GenEta, 2);
+    hLeadJetRef2GenEta = dynamic_cast<TH1D *>( hRefLeadJetEta->Clone("hLeadJetRef2GenEta") );
+    hLeadJetRef2GenEta->Divide(hGenLeadJetEta);
+    set1DStyle(hLeadJetRef2GenEta, 2);
+    hSubLeadJetRef2GenEta = dynamic_cast<TH1D *>( hRefSubLeadJetEta->Clone("hSubLeadJetRef2GenEta") );
+    hSubLeadJetRef2GenEta->Divide(hGenSubLeadJetEta);
+    set1DStyle(hSubLeadJetRef2GenEta, 2);
+
+    // CM frame
+    hRefInclusiveJetEtaCM = dynamic_cast<TH1D *>( hRefInclusiveJetPtEtaCM->ProjectionX("hRefInclusiveJetEtaCM", 
+                                                  hRefInclusiveJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                                  hRefInclusiveJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hRefInclusiveJetEtaCM, 2, true);
+    hRefInclusiveJetEtaCM->Scale(1./hRefInclusiveJetEtaCM->Integral( hRefInclusiveJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                   hRefInclusiveJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hRefInclusiveJetEtaCMForward = new TH1D("hRefInclusiveJetEtaCMForward", "hRefInclusiveJetEtaCMForward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                            hRefInclusiveJetPtEtaCM->GetNbinsX() / 2, 0., hRefInclusiveJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRefInclusiveJetEtaCMBackward = new TH1D("hRefInclusiveJetEtaCMBackward", "hRefInclusiveJetEtaCMBackward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                             hRefInclusiveJetPtEtaCM->GetNbinsX() / 2, 0., hRefInclusiveJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRefInclusiveJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hRefInclusiveJetEtaCMForward->Clone("hRefInclusiveJetForwardBackwardRatioCM") );
+    hRefInclusiveJetForwardBackwardRatioCM->Divide(hRefInclusiveJetEtaCMBackward);
+    set1DStyle(hRefInclusiveJetForwardBackwardRatioCM, 3, true);
+
+    hRefLeadJetEtaCM = dynamic_cast<TH1D *>( hRefLeadJetPtEtaCM->ProjectionX("hRefLeadJetEtaCM", 
+                                             hRefLeadJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                             hRefLeadJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hRefLeadJetEtaCM, 2, true);
+    hRefLeadJetEtaCM->Scale(1./hRefLeadJetEtaCM->Integral( hRefLeadJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                   hRefLeadJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hRefLeadJetEtaCMForward = new TH1D("hRefLeadJetEtaCMForward", "hRefLeadJetEtaCMForward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                            hRefLeadJetPtEtaCM->GetNbinsX() / 2, 0., hRefLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRefLeadJetEtaCMBackward = new TH1D("hRefLeadJetEtaCMBackward", "hRefLeadJetEtaCMBackward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                             hRefLeadJetPtEtaCM->GetNbinsX() / 2, 0., hRefLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRefLeadJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hRefLeadJetEtaCMForward->Clone("hRefLeadJetForwardBackwardRatioCM") );
+    hRefLeadJetForwardBackwardRatioCM->Divide(hRefLeadJetEtaCMBackward);
+    set1DStyle(hRefLeadJetForwardBackwardRatioCM, 2, true);
+
+    hRefSubLeadJetEtaCM = dynamic_cast<TH1D *>( hRefSubLeadJetPtEtaCM->ProjectionX("hRefSubLeadJetEtaCM", 
+                                                hRefSubLeadJetPtEtaCM->GetYaxis()->FindBin(ptLow), 
+                                                hRefSubLeadJetPtEtaCM->GetYaxis()->FindBin(ptHigh)) );
+    set1DStyle(hRefSubLeadJetEtaCM, 2, true);
+    hRefSubLeadJetEtaCM->Scale(1./hRefSubLeadJetEtaCM->Integral( hRefSubLeadJetEtaCM->GetXaxis()->FindBin(-etaCMMax), 
+                                                                 hRefSubLeadJetEtaCM->GetXaxis()->FindBin(etaCMMax) ) );
+    hRefSubLeadJetEtaCMForward = new TH1D("hRefSubLeadJetEtaCMForward", "hRefSubLeadJetEtaCMForward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                            hRefSubLeadJetPtEtaCM->GetNbinsX() / 2, 0., hRefSubLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRefSubLeadJetEtaCMBackward = new TH1D("hRefSubLeadJetEtaCMBackward", "hRefSubLeadJetEtaCMBackward;#eta^{jet}_{CM};dN/d#eta^{jet}_{CM}", 
+                                             hRefSubLeadJetPtEtaCM->GetNbinsX() / 2, 0., hRefSubLeadJetPtEtaCM->GetXaxis()->GetXmax() );
+    hRefSubLeadJetForwardBackwardRatioCM = dynamic_cast<TH1D *>( hRefSubLeadJetEtaCMForward->Clone("hRefSubLeadJetForwardBackwardRatioCM") );
+    hRefSubLeadJetForwardBackwardRatioCM->Divide(hRefSubLeadJetEtaCMBackward);
+    set1DStyle(hRefSubLeadJetForwardBackwardRatioCM, 2, true);
+
+    // Make forward/backward ratios
+    recalculateFBRatioFromFullDistribution(hRefInclusiveJetForwardBackwardRatioCM, hRefInclusiveJetEtaCMForward, hRefInclusiveJetEtaCMBackward, hRefInclusiveJetEtaCM);
+    recalculateFBRatioFromFullDistribution(hRefLeadJetForwardBackwardRatioCM, hRefLeadJetEtaCMForward, hRefLeadJetEtaCMBackward, hRefLeadJetEtaCM);
+    recalculateFBRatioFromFullDistribution(hRefSubLeadJetForwardBackwardRatioCM, hRefSubLeadJetEtaCMForward, hRefSubLeadJetEtaCMBackward, hRefSubLeadJetEtaCM);
+
+    hInclusiveJetRef2GenEtaCM = dynamic_cast<TH1D *>( hRefInclusiveJetEtaCM->Clone("hInclusiveJetRef2GenEtaCM") );
+    hInclusiveJetRef2GenEtaCM->Divide(hGenInclusiveJetEtaCM);
+    set1DStyle(hInclusiveJetRef2GenEtaCM, 2);
+    hLeadJetRef2GenEtaCM = dynamic_cast<TH1D *>( hRefLeadJetEtaCM->Clone("hLeadJetRef2GenEtaCM") );
+    hLeadJetRef2GenEtaCM->Divide(hGenLeadJetEtaCM);
+    set1DStyle(hLeadJetRef2GenEtaCM, 2);
+    hSubLeadJetRef2GenEtaCM = dynamic_cast<TH1D *>( hRefSubLeadJetEtaCM->Clone("hSubLeadJetRef2GenEtaCM") );
+    hSubLeadJetRef2GenEtaCM->Divide(hGenSubLeadJetEtaCM);
+    set1DStyle(hSubLeadJetRef2GenEtaCM, 2);
+
+    /////////////////////////////////////
+    //             Plotting            //
+    /////////////////////////////////////
+
+    TLegend *leg;
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.04);
+
+    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+
+    // Overlay inclusive reco, ref and gen distributions in lab frame
+    hGenInclusiveJetEta->Draw();
+    hRecoInclusiveJetEta->Draw("same");
+    hRefInclusiveJetEta->Draw("same");
+    hGenInclusiveJetEta->GetXaxis()->SetTitle("#eta^{Inclusive}");
+    hGenInclusiveJetEta->GetYaxis()->SetTitle("dN/d#eta^{Inclusive}");
+    hGenInclusiveJetEta->GetYaxis()->SetRangeUser(0., 0.1);
+    hGenInclusiveJetEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenInclusiveJetEta, "Gen", "p");
+    leg->AddEntry(hRecoInclusiveJetEta, "Reco", "p");
+    leg->AddEntry(hRefInclusiveJetEta, "Ref", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_inclusiveJet_etaLab_comparison_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+    
+    // Overlay lead jet reco, ref and gen distributions in lab frame
+    hGenLeadJetEta->Draw();
+    hRecoLeadJetEta->Draw("same");
+    hRefLeadJetEta->Draw("same");
+    hGenLeadJetEta->GetXaxis()->SetTitle("#eta^{Lead}");
+    hGenLeadJetEta->GetYaxis()->SetTitle("dN/d#eta^{Lead}");
+    hGenLeadJetEta->GetYaxis()->SetRangeUser(0., 0.1);
+    hGenLeadJetEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenLeadJetEta, "Gen", "p");
+    leg->AddEntry(hRecoLeadJetEta, "Reco", "p");
+    leg->AddEntry(hRefLeadJetEta, "Ref", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_leadJet_etaLab_comparison_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+    
+    // Overlay sublead jet reco, ref and gen distributions in lab frame
+    hGenSubLeadJetEta->Draw();
+    hRecoSubLeadJetEta->Draw("same");
+    hRefSubLeadJetEta->Draw("same");
+    hGenSubLeadJetEta->GetXaxis()->SetTitle("#eta^{SubLead}");
+    hGenSubLeadJetEta->GetYaxis()->SetTitle("dN/d#eta^{SubLead}");
+    hGenSubLeadJetEta->GetYaxis()->SetRangeUser(0., 0.1);
+    hGenSubLeadJetEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenSubLeadJetEta, "Gen", "p");
+    leg->AddEntry(hRecoSubLeadJetEta, "Reco", "p");
+    leg->AddEntry(hRefSubLeadJetEta, "Ref", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_subLeadJet_etaLab_comparison_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+    
+    // Overlay of inclusive reco and ref to gen ratio in lab frame
+    hInclusiveJetReco2GenEta->Draw();
+    hInclusiveJetRef2GenEta->Draw("same");
+    hInclusiveJetReco2GenEta->GetXaxis()->SetTitle("#eta^{Inclusive}");
+    hInclusiveJetReco2GenEta->GetYaxis()->SetTitle("Reco / Gen");
+    hInclusiveJetReco2GenEta->GetYaxis()->SetRangeUser(yAxisRatio2Gen[0], yAxisRatio2Gen[1]);
+    hInclusiveJetReco2GenEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hInclusiveJetReco2GenEta, "Reco / Gen", "p");
+    leg->AddEntry(hInclusiveJetRef2GenEta, "Ref / Gen", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_inclusiveJet_etaLab_ratio2gen_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of lead jet reco and ref to gen ratio in lab frame
+    hLeadJetReco2GenEta->Draw();
+    hLeadJetRef2GenEta->Draw("same");
+    hLeadJetReco2GenEta->GetXaxis()->SetTitle("#eta^{Lead}");
+    hLeadJetReco2GenEta->GetYaxis()->SetTitle("Reco / Gen");
+    hLeadJetReco2GenEta->GetYaxis()->SetRangeUser(yAxisRatio2Gen[0], yAxisRatio2Gen[1]);
+    hLeadJetReco2GenEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hLeadJetReco2GenEta, "Reco / Gen", "p");
+    leg->AddEntry(hLeadJetRef2GenEta, "Ref / Gen", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_leadJet_etaLab_ratio2gen_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of sublead jet reco and ref to gen ratio in lab frame
+    hSubLeadJetReco2GenEta->Draw();
+    hSubLeadJetRef2GenEta->Draw("same");
+    hSubLeadJetReco2GenEta->GetXaxis()->SetTitle("#eta^{SubLead}");
+    hSubLeadJetReco2GenEta->GetYaxis()->SetTitle("Reco / Gen");
+    hSubLeadJetReco2GenEta->GetYaxis()->SetRangeUser(yAxisRatio2Gen[0], yAxisRatio2Gen[1]);
+    hSubLeadJetReco2GenEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hSubLeadJetReco2GenEta, "Reco / Gen", "p");
+    leg->AddEntry(hSubLeadJetRef2GenEta, "Ref / Gen", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_subLeadJet_etaLab_ratio2gen_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of inclusive gen, reco and ref eta distributions in CM frame
+    hGenInclusiveJetEtaCM->Draw();
+    hRecoInclusiveJetEtaCM->Draw("same");
+    hRefInclusiveJetEtaCM->Draw("same");
+    hGenInclusiveJetEtaCM->GetXaxis()->SetTitle("#eta^{Inclusive}_{CM}");
+    hGenInclusiveJetEtaCM->GetYaxis()->SetTitle("dN/d#eta^{Inclusive}_{CM}");
+    hGenInclusiveJetEtaCM->GetYaxis()->SetRangeUser(0., 0.1);
+    hGenInclusiveJetEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenInclusiveJetEtaCM, "Gen", "p");
+    leg->AddEntry(hRecoInclusiveJetEtaCM, "Reco", "p");
+    leg->AddEntry(hRefInclusiveJetEtaCM, "Ref", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_inclusiveJet_etaCM_comparison_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of lead jet gen, reco and ref eta distributions in CM frame
+    hGenLeadJetEtaCM->Draw();
+    hRecoLeadJetEtaCM->Draw("same");
+    hRefLeadJetEtaCM->Draw("same");
+    hGenLeadJetEtaCM->GetXaxis()->SetTitle("#eta^{Lead}_{CM}");
+    hGenLeadJetEtaCM->GetYaxis()->SetTitle("dN/d#eta^{Lead}_{CM}");
+    hGenLeadJetEtaCM->GetYaxis()->SetRangeUser(0., 0.1);
+    hGenLeadJetEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenLeadJetEtaCM, "Gen", "p");
+    leg->AddEntry(hRecoLeadJetEtaCM, "Reco", "p");
+    leg->AddEntry(hRefLeadJetEtaCM, "Ref", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_leadJet_etaCM_comparison_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of sublead jet gen, reco and ref eta distributions in CM frame
+    hGenSubLeadJetEtaCM->Draw();
+    hRecoSubLeadJetEtaCM->Draw("same");
+    hRefSubLeadJetEtaCM->Draw("same");
+    hGenSubLeadJetEtaCM->GetXaxis()->SetTitle("#eta^{SubLead}_{CM}");
+    hGenSubLeadJetEtaCM->GetYaxis()->SetTitle("dN/d#eta^{SubLead}_{CM}");
+    hGenSubLeadJetEtaCM->GetYaxis()->SetRangeUser(0., 0.1);
+    hGenSubLeadJetEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenSubLeadJetEtaCM, "Gen", "p");
+    leg->AddEntry(hRecoSubLeadJetEtaCM, "Reco", "p");
+    leg->AddEntry(hRefSubLeadJetEtaCM, "Ref", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_subLeadJet_etaCM_comparison_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of inclusive reco and ref to gen ratio in CM frame
+    hInclusiveJetReco2GenEtaCM->Draw();
+    hInclusiveJetRef2GenEtaCM->Draw("same");
+    hInclusiveJetReco2GenEtaCM->GetXaxis()->SetTitle("#eta^{Inclusive}_{CM}");
+    hInclusiveJetReco2GenEtaCM->GetYaxis()->SetTitle("Reco / Gen");
+    hInclusiveJetReco2GenEtaCM->GetYaxis()->SetRangeUser(yAxisRatio2Gen[0], yAxisRatio2Gen[1]);
+    hInclusiveJetReco2GenEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hInclusiveJetReco2GenEtaCM, "Reco / Gen", "p");
+    leg->AddEntry(hInclusiveJetRef2GenEtaCM, "Ref / Gen", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_inclusiveJet_etaCM_ratio2gen_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of lead jet reco and ref to gen ratio in CM frame
+    hLeadJetReco2GenEtaCM->Draw();
+    hLeadJetRef2GenEtaCM->Draw("same");
+    hLeadJetReco2GenEtaCM->GetXaxis()->SetTitle("#eta^{Lead}_{CM}");
+    hLeadJetReco2GenEtaCM->GetYaxis()->SetTitle("Reco / Gen");
+    hLeadJetReco2GenEtaCM->GetYaxis()->SetRangeUser(yAxisRatio2Gen[0], yAxisRatio2Gen[1]);
+    hLeadJetReco2GenEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hLeadJetReco2GenEtaCM, "Reco / Gen", "p");
+    leg->AddEntry(hLeadJetRef2GenEtaCM, "Ref / Gen", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_leadJet_etaCM_ratio2gen_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of sublead jet reco and ref to gen ratio in CM frame
+    hSubLeadJetReco2GenEtaCM->Draw();
+    hSubLeadJetRef2GenEtaCM->Draw("same");
+    hSubLeadJetReco2GenEtaCM->GetXaxis()->SetTitle("#eta^{SubLead}_{CM}");
+    hSubLeadJetReco2GenEtaCM->GetYaxis()->SetTitle("Reco / Gen");
+    hSubLeadJetReco2GenEtaCM->GetYaxis()->SetRangeUser(yAxisRatio2Gen[0], yAxisRatio2Gen[1]);
+    hSubLeadJetReco2GenEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.45, 0.2, 0.65, 0.3);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hSubLeadJetReco2GenEtaCM, "Reco / Gen", "p");
+    leg->AddEntry(hSubLeadJetRef2GenEtaCM, "Ref / Gen", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_subLeadJet_etaCM_ratio2gen_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+    
+    // Overlay of gen forward/backward ratio for inclusive, lead and sublead jets in CM frame
+    set1DStyle(hGenInclusiveJetForwardBackwardRatioCM, 2);
+    set1DStyle(hGenLeadJetForwardBackwardRatioCM, 0);
+    set1DStyle(hGenSubLeadJetForwardBackwardRatioCM, 1);
+    hGenInclusiveJetForwardBackwardRatioCM->Draw();
+    hGenLeadJetForwardBackwardRatioCM->Draw("same");
+    hGenSubLeadJetForwardBackwardRatioCM->Draw("same");
+    hGenInclusiveJetForwardBackwardRatioCM->GetYaxis()->SetTitle("Forward / Backward");
+    hGenInclusiveJetForwardBackwardRatioCM->GetYaxis()->SetRangeUser(0.85, 1.15);
+    hGenInclusiveJetForwardBackwardRatioCM->GetXaxis()->SetRangeUser(0., etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", mcType.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenInclusiveJetForwardBackwardRatioCM, "Inclusive", "p");
+    leg->AddEntry(hGenLeadJetForwardBackwardRatioCM, "Lead", "p");
+    leg->AddEntry(hGenSubLeadJetForwardBackwardRatioCM, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_gen_singleJet_forwardBackwardRatio_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    
+    // Overlay of reco forward/backward ratio for inclusive, lead and sublead jets in CM frame
+    set1DStyle(hRecoInclusiveJetForwardBackwardRatioCM, 2);
+    set1DStyle(hRecoLeadJetForwardBackwardRatioCM, 0);
+    set1DStyle(hRecoSubLeadJetForwardBackwardRatioCM, 1);
+    hRecoInclusiveJetForwardBackwardRatioCM->Draw();
+    hRecoLeadJetForwardBackwardRatioCM->Draw("same");
+    hRecoSubLeadJetForwardBackwardRatioCM->Draw("same");
+    hRecoInclusiveJetForwardBackwardRatioCM->GetYaxis()->SetTitle("Forward / Backward");
+    hRecoInclusiveJetForwardBackwardRatioCM->GetYaxis()->SetRangeUser(0.85, 1.15);
+    hRecoInclusiveJetForwardBackwardRatioCM->GetXaxis()->SetRangeUser(0., etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s reco", mcType.Data()));
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hRecoInclusiveJetForwardBackwardRatioCM, "Inclusive", "p");
+    leg->AddEntry(hRecoLeadJetForwardBackwardRatioCM, "Lead", "p");
+    leg->AddEntry(hRecoSubLeadJetForwardBackwardRatioCM, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_reco_singleJet_forwardBackwardRatio_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of ref forward/backward ratio for inclusive, lead and sublead jets in CM frame
+    set1DStyle(hRefInclusiveJetForwardBackwardRatioCM, 2);
+    set1DStyle(hRefLeadJetForwardBackwardRatioCM, 0);
+    set1DStyle(hRefSubLeadJetForwardBackwardRatioCM, 1);
+    hRefInclusiveJetForwardBackwardRatioCM->Draw();
+    hRefLeadJetForwardBackwardRatioCM->Draw("same");
+    hRefSubLeadJetForwardBackwardRatioCM->Draw("same");
+    hRefInclusiveJetForwardBackwardRatioCM->GetYaxis()->SetTitle("Forward / Backward");
+    hRefInclusiveJetForwardBackwardRatioCM->GetYaxis()->SetRangeUser(0.85, 1.15);
+    hRefInclusiveJetForwardBackwardRatioCM->GetXaxis()->SetRangeUser(0., etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s ref", mcType.Data()));
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hRefInclusiveJetForwardBackwardRatioCM, "Inclusive", "p");
+    leg->AddEntry(hRefLeadJetForwardBackwardRatioCM, "Lead", "p");
+    leg->AddEntry(hRefSubLeadJetForwardBackwardRatioCM, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_ref_singleJet_forwardBackwardRatio_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+
+    // Overlay of gen eta distributions for inclusive, lead and sublead jets in CM frame
+    set1DStyle(hGenInclusiveJetEtaCM, 2, true);
+    set1DStyle(hGenLeadJetEtaCM, 0, true);
+    set1DStyle(hGenSubLeadJetEtaCM, 1, true);
+    hGenInclusiveJetEtaCM->Draw();
+    hGenLeadJetEtaCM->Draw("same");
+    hGenSubLeadJetEtaCM->Draw("same");
+    hGenInclusiveJetEtaCM->GetYaxis()->SetTitle("dN/d#eta_{CM}");
+    hGenInclusiveJetEtaCM->GetYaxis()->SetRangeUser(0., 0.1);
+    hGenInclusiveJetEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s gen", mcType.Data()));
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenInclusiveJetEtaCM, "Inclusive", "p");
+    leg->AddEntry(hGenLeadJetEtaCM, "Lead", "p");
+    leg->AddEntry(hGenSubLeadJetEtaCM, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_gen_singleJet_etaCM_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of reco eta distributions for inclusive, lead and sublead jets in CM frame
+    set1DStyle(hRecoInclusiveJetEtaCM, 2, true);
+    set1DStyle(hRecoLeadJetEtaCM, 0, true);
+    set1DStyle(hRecoSubLeadJetEtaCM, 1, true);
+    hRecoInclusiveJetEtaCM->Draw();
+    hRecoLeadJetEtaCM->Draw("same");
+    hRecoSubLeadJetEtaCM->Draw("same");
+    hRecoInclusiveJetEtaCM->GetYaxis()->SetTitle("dN/d#eta_{CM}");
+    hRecoInclusiveJetEtaCM->GetYaxis()->SetRangeUser(0., 0.1);
+    hRecoInclusiveJetEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s reco", mcType.Data()));
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hRecoInclusiveJetEtaCM, "Inclusive", "p");
+    leg->AddEntry(hRecoLeadJetEtaCM, "Lead", "p");
+    leg->AddEntry(hRecoSubLeadJetEtaCM, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_reco_singleJet_etaCM_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of ref eta distributions for inclusive, lead and sublead jets in CM frame
+    set1DStyle(hRefInclusiveJetEtaCM, 2, true);
+    set1DStyle(hRefLeadJetEtaCM, 0, true);
+    set1DStyle(hRefSubLeadJetEtaCM, 1, true);
+    hRefInclusiveJetEtaCM->Draw();
+    hRefLeadJetEtaCM->Draw("same");
+    hRefSubLeadJetEtaCM->Draw("same");
+    hRefInclusiveJetEtaCM->GetYaxis()->SetTitle("dN/d#eta_{CM}");
+    hRefInclusiveJetEtaCM->GetYaxis()->SetRangeUser(0., 0.1);
+    hRefInclusiveJetEtaCM->GetXaxis()->SetRangeUser(-etaCMMax, etaCMMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s ref", mcType.Data()));
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hRefInclusiveJetEtaCM, "Inclusive", "p");
+    leg->AddEntry(hRefLeadJetEtaCM, "Lead", "p");
+    leg->AddEntry(hRefSubLeadJetEtaCM, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_ref_singleJet_etaCM_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of gen eta distributions for inclusive, lead and sublead jets in lab frame
+    set1DStyle(hGenInclusiveJetEta, 2, true);
+    set1DStyle(hGenLeadJetEta, 0, true);
+    set1DStyle(hGenSubLeadJetEta, 1, true);
+    hGenInclusiveJetEta->Draw();
+    hGenLeadJetEta->Draw("same");
+    hGenSubLeadJetEta->Draw("same");
+    hGenInclusiveJetEta->GetYaxis()->SetTitle("dN/d#eta");
+    hGenInclusiveJetEta->GetYaxis()->SetRangeUser(0., 0.1);
+    hGenInclusiveJetEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s gen", mcType.Data()));
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenInclusiveJetEta, "Inclusive", "p");
+    leg->AddEntry(hGenLeadJetEta, "Lead", "p");
+    leg->AddEntry(hGenSubLeadJetEta, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_gen_singleJet_etaLab_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of reco eta distributions for inclusive, lead and sublead jets in lab frame
+    set1DStyle(hRecoInclusiveJetEta, 2, true);
+    set1DStyle(hRecoLeadJetEta, 0, true);
+    set1DStyle(hRecoSubLeadJetEta, 1, true);
+    hRecoInclusiveJetEta->Draw();
+    hRecoLeadJetEta->Draw("same");
+    hRecoSubLeadJetEta->Draw("same");
+    hRecoInclusiveJetEta->GetYaxis()->SetTitle("dN/d#eta");
+    hRecoInclusiveJetEta->GetYaxis()->SetRangeUser(0., 0.1);
+    hRecoInclusiveJetEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s reco", mcType.Data()));
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hRecoInclusiveJetEta, "Inclusive", "p");
+    leg->AddEntry(hRecoLeadJetEta, "Lead", "p");
+    leg->AddEntry(hRecoSubLeadJetEta, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_reco_singleJet_etaLab_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
+
+    // Overlay of ref eta distributions for inclusive, lead and sublead jets in lab frame
+    set1DStyle(hRefInclusiveJetEta, 2, true);
+    set1DStyle(hRefLeadJetEta, 0, true);
+    set1DStyle(hRefSubLeadJetEta, 1, true);
+    hRefInclusiveJetEta->Draw();
+    hRefLeadJetEta->Draw("same");
+    hRefSubLeadJetEta->Draw("same");
+    hRefInclusiveJetEta->GetYaxis()->SetTitle("dN/d#eta");
+    hRefInclusiveJetEta->GetYaxis()->SetRangeUser(0., 0.1);
+    hRefInclusiveJetEta->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s ref", mcType.Data()));
+    t.DrawLatexNDC(0.16, 0.8, Form("%d < p_{T}^{jet} < %d GeV", int(ptLow), int(ptHigh)) );
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg = new TLegend(0.16, 0.65, 0.34, 0.75);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hRefInclusiveJetEta, "Inclusive", "p");
+    leg->AddEntry(hRefLeadJetEta, "Lead", "p");
+    leg->AddEntry(hRefSubLeadJetEta, "SubLead", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_ref_singleJet_etaLab_pt_%d_%d.pdf", 
+                    date.Data(), collSystemStr.Data(), mcTypeLower.Data(), int(ptLow), int(ptHigh) ) );
 }
 
 //________________
@@ -4817,16 +5990,6 @@ void plotMcClosures() {
     }
 
 
-    // Function plots eta and pT distribution comparisons and ratios of reco, ref, refSel to gen jets
-    // in bins of ptHat.
-    // It retrieves histograms for reconstructed, generated, and reference jets, and computes the ratios.
-    // f is the input TFile containing the histograms.
-    // collisionSystem: 0 = pp, 1 = pPb, 2 = PbPb
-    // collisionEnergy: energy in TeV (default is 8.16 TeV for pPb)
-    // jetType: 0 = Inclusive, 1 = Lead, 2 = SubLead
-    // date: date string for saving the plots (default is "20250129")
-    // inclusiveJetJECClosures(pPb8160EmbedFile, collisionSystem, collisionEnergy, jetType, matchType, date);
-
     //
     // Comparison of dijet reco and ref to gen distributions
     //
@@ -4875,12 +6038,14 @@ void plotMcClosures() {
     // Plot eta distributions for inclusive jets, leading jets, subleading jets, and dijets in CM frame for different run periods
     // plotEtaDistributionsForRunId(collisionSystem, collisionEnergy, date);
 
-    // Plot forward/backward ratios for different eta cuts from nPDF calculations
-    // plotNpdfEtaForwardBackwardRatios(collisionSystem, collisionEnergy, date);
-
     // Plot comparison of forward/backward ratios and full eta distributions between nPDF calculations and data
-    // plotNpdfToDataComparison(collisionSystem, collisionEnergy, date);
+    //plotNpdfToDataComparison(collisionSystem, collisionEnergy, date);
 
     // Plot comparison of forward/backward ratios and full eta distributions between PDF calculations and data
-    plotPdfAndPythiaToDataComparison(collisionSystem, collisionEnergy, date);
+    // plotPdfAndPythiaToDataComparison(collisionSystem, collisionEnergy, date);
+
+    // Plot comparison of forward/backward ratios and full eta distributions between nPDF and PDF calculations
+    // plotNpdfToPdfComparison(collisionSystem, collisionEnergy, date);
+
+    plotSingleJetClosures(collisionSystem, collisionEnergy, date);
 }

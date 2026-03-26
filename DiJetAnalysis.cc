@@ -680,9 +680,9 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
         int numberOfConstituents = chargedMult + neutralMult;
         
         int dummyIter{0};
-        if ( fabs( eta ) <= 2.4 ) { dummyIter = {0}; }
-        else if ( fabs( eta ) <= 2.7 ) { dummyIter = {1}; }
-        else if ( fabs( eta ) <= 3.0 ) { dummyIter = {2}; }
+        if ( std::abs( eta ) <= 2.4 ) { dummyIter = {0}; }
+        else if ( std::abs( eta ) <= 2.7 ) { dummyIter = {1}; }
+        else if ( std::abs( eta ) <= 3.0 ) { dummyIter = {2}; }
         else { dummyIter = {3}; }
 
         // JetId histograms
@@ -805,7 +805,7 @@ void DiJetAnalysis::processRecoJets(const Event* event, const double &weight) {
                 // fHM->hRecoInclusiveJetPtRawOverPtRefVsRecoPtEtaStdBinning->Fill( ptRaw/genPt, ptRaw, eta, weight );
 
                 // Fill JES vs pt for |eta| < 1.4 (midrapidity)
-                if ( fabs( genEta ) < 1.4 ) {
+                if ( std::abs( genEta ) < 1.4 ) {
                     fHM->hInclusiveJetJESVsPtGen->Fill( genPt, JES, weight );
                 }
                 fHM->hInclusiveJetJESGenPtGenEtaPtHatWeighted->Fill( res1, weight );
@@ -921,6 +921,12 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
             fHM->hGenInclusiveJetEtaUnweighted->Fill(eta, 1.);
             fHM->hGenInclusiveJetPtEta->Fill(eta, pt, weight);
             fHM->hGenInclusiveJetPtEtaCM->Fill( etaCM, pt, weight);
+            if (etaCM >= 0) {
+                fHM->hGenInclusiveJetPtEtaCMForward->Fill( etaCM, pt, weight);
+            }
+            else {
+                fHM->hGenInclusiveJetPtEtaCMBackward->Fill( std::abs(etaCM), pt, weight);
+            }
             fHM->hGenInclusiveJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
 
             // Lead gen jet
@@ -1156,7 +1162,7 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     float dijetGenDetaCM = fGenDijet->dEtaCM();
     float dijetGenPhi = fGenDijet->phi();
 
-    // if ( ptGenSubLead > 30.f && fabs(dijetGenDphi) > TMath::PiOver2() ) {
+    // if ( ptGenSubLead > 30.f && std::abs(dijetGenDphi) > TMath::PiOver2() ) {
     //     double genDijetLeadSublead[10] { dijetGenPtAve, dijetGenEtaLab, dijetGenEtaCM, dijetGenPhi, 
     //                                      ptGenLead, etaGenLeadLab, etaGenLeadCM, 
     //                                      ptGenSubLead, etaGenSubLeadLab, etaGenSubLeadCM };
@@ -1164,14 +1170,14 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     //     fHM->hGenDijetInfo->Fill(genDijetLeadSublead, weight * fMcReweight);
     // }
 
-    if ( fabs(ptGenLead - fGenDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
-         fabs(ptGenSubLead - fGenDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaGenLeadLab - fGenDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaGenSubLeadLab - fGenDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaGenLeadCM - fGenDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaGenSubLeadCM - fGenDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-         fabs(phiGenLead - fGenDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
-         fabs(phiGenSubLead - fGenDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
+    if ( std::abs(ptGenLead - fGenDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(ptGenSubLead - fGenDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaGenLeadLab - fGenDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaGenSubLeadLab - fGenDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaGenLeadCM - fGenDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaGenSubLeadCM - fGenDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(phiGenLead - fGenDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(phiGenSubLead - fGenDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
         std::cout << "Error: pt of lead or sublead gen jet does not match the dijet pt within rounding" << std::endl;
         return;
     }
@@ -1203,15 +1209,15 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
     fHM->hGenInclusiveDijetXPbOverXpEtaWeighted->Fill( xPbOverXp, dijetGenEtaLab, weight );
 
     // Fill forward and backward distributions for gen dijets in the CM frame
-    if ( ptGenLead > 50. && ptGenSubLead > 40. && fabs(dijetGenDphi) > (TMath::TwoPi() / 3) ) {
+    if ( ptGenLead > 50. && ptGenSubLead > 40. && std::abs(dijetGenDphi) > (TMath::TwoPi() / 3) ) {
         for (int iEtaCut{0}; iEtaCut<6; iEtaCut++) {
             const float etaCut = 1.4 + iEtaCut * 0.1;
-            if ( fabs(etaGenLeadCM) < etaCut && fabs(etaGenSubLeadCM) < etaCut ) {
+            if ( std::abs(etaGenLeadCM) < etaCut && std::abs(etaGenSubLeadCM) < etaCut ) {
                 (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaForwardArr[iEtaCut]->Fill(dijetGenPtAve, dijetGenEtaCM, weight ) :
-                                       fHM->hGenDijetPtEtaBackwardArr[iEtaCut]->Fill(dijetGenPtAve, fabs(dijetGenEtaCM), weight );
+                                       fHM->hGenDijetPtEtaBackwardArr[iEtaCut]->Fill(dijetGenPtAve, std::abs(dijetGenEtaCM), weight );
             }
         }
-    } // if ( ptGenLead > 50. && ptGenSubLead > 40. && fabs(dijetGenDphi) > (TMath::TwoPi() / 3) )
+    } // if ( ptGenLead > 50. && ptGenSubLead > 40. && std::abs(dijetGenDphi) > (TMath::TwoPi() / 3) )
 
     //
     // Lab frame
@@ -1268,9 +1274,9 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         fHM->hGenDijetPtEta->Fill(dijetGenPtAve, dijetGenEtaLab, 1.);
         fHM->hGenDijetPtEtaWeighted->Fill(dijetGenPtAve, dijetGenEtaLab, weight );
         fHM->hGenDijetPtEtaCMInLab->Fill(dijetGenPtAve, dijetGenEtaCM, weight );
-        (dijetGenEtaLab >= 0) ? fHM->hGenDijetPtEtaForward->Fill(dijetGenPtAve, dijetGenEtaLab) : fHM->hGenDijetPtEtaBackward->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaLab));
-        (dijetGenEtaLab >= 0) ? fHM->hGenDijetPtEtaForwardWeighted->Fill(dijetGenPtAve, dijetGenEtaLab, weight ) : fHM->hGenDijetPtEtaBackwardWeighted->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaLab), weight );
-        (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaForwardCMInLab->Fill(dijetGenPtAve, dijetGenEtaCM, weight ) : fHM->hGenDijetPtEtaBackwardCMInLab->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaCM), weight );
+        (dijetGenEtaLab >= 0) ? fHM->hGenDijetPtEtaForward->Fill(dijetGenPtAve, dijetGenEtaLab) : fHM->hGenDijetPtEtaBackward->Fill(dijetGenPtAve, std::abs(dijetGenEtaLab));
+        (dijetGenEtaLab >= 0) ? fHM->hGenDijetPtEtaForwardWeighted->Fill(dijetGenPtAve, dijetGenEtaLab, weight ) : fHM->hGenDijetPtEtaBackwardWeighted->Fill(dijetGenPtAve, std::abs(dijetGenEtaLab), weight );
+        (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaForwardCMInLab->Fill(dijetGenPtAve, dijetGenEtaCM, weight ) : fHM->hGenDijetPtEtaBackwardCMInLab->Fill(dijetGenPtAve, std::abs(dijetGenEtaCM), weight );
 
         fHM->hGenDijetPtAveLeadPtSubLeadPt->Fill( dijetGenPtAve, ptGenLead, ptGenSubLead, weight );
         fHM->hGenDijetPtAveLeadEtaSubLeadEta->Fill( dijetGenPtAve, etaGenLeadLab, etaGenSubLeadLab, weight );
@@ -1312,9 +1318,9 @@ void DiJetAnalysis::processGenDijets(const Event* event, const double &weight) {
         fHM->hGenDijetPtEtaCM->Fill(dijetGenPtAve, dijetGenEtaCM, 1.);
         fHM->hGenDijetPtEtaCMWeighted->Fill(dijetGenPtAve, dijetGenEtaCM, weight );
         fHM->hGenDijetPtEtaLabInCM->Fill(dijetGenPtAve, dijetGenEtaLab, weight );
-        (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward->Fill(dijetGenPtAve, dijetGenEtaCM) : fHM->hGenDijetPtEtaCMBackward->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaCM));
-        (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForwardWeighted->Fill(dijetGenPtAve, dijetGenEtaCM, weight ) : fHM->hGenDijetPtEtaCMBackwardWeighted->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaCM), weight );
-        (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaForwardLabInCM->Fill(dijetGenPtAve, dijetGenEtaLab, weight ) : fHM->hGenDijetPtEtaBackwardLabInCM->Fill(dijetGenPtAve, TMath::Abs(dijetGenEtaLab), weight );
+        (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForward->Fill(dijetGenPtAve, dijetGenEtaCM) : fHM->hGenDijetPtEtaCMBackward->Fill(dijetGenPtAve, std::abs(dijetGenEtaCM));
+        (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaCMForwardWeighted->Fill(dijetGenPtAve, dijetGenEtaCM, weight ) : fHM->hGenDijetPtEtaCMBackwardWeighted->Fill(dijetGenPtAve, std::abs(dijetGenEtaCM), weight );
+        (dijetGenEtaCM >= 0) ? fHM->hGenDijetPtEtaForwardLabInCM->Fill(dijetGenPtAve, dijetGenEtaLab, weight ) : fHM->hGenDijetPtEtaBackwardLabInCM->Fill(dijetGenPtAve, std::abs(dijetGenEtaLab), weight );
 
         fHM->hGenDijetPtAveLeadPtSubLeadPtCM->Fill( dijetGenPtAve, ptGenLead, ptGenSubLead, weight );
         fHM->hGenDijetPtAveLeadEtaSubLeadEtaCM->Fill( dijetGenPtAve, etaGenLeadCM, etaGenSubLeadCM, weight );
@@ -1406,14 +1412,14 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     //     dijetReco.print();
     // }
 
-    if ( fabs( ptRecoLead - fRecoDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
-         fabs( ptRecoSubLead - fRecoDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
-         fabs( etaRecoLeadLab - fRecoDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-         fabs( etaRecoSubLeadLab - fRecoDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-         fabs( etaRecoLeadCM - fRecoDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-         fabs( etaRecoSubLeadCM - fRecoDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-         fabs( phiRecoLead - fRecoDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
-         fabs( phiRecoSubLead - fRecoDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
+    if ( std::abs( ptRecoLead - fRecoDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
+         std::abs( ptRecoSubLead - fRecoDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
+         std::abs( etaRecoLeadLab - fRecoDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+         std::abs( etaRecoSubLeadLab - fRecoDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+         std::abs( etaRecoLeadCM - fRecoDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+         std::abs( etaRecoSubLeadCM - fRecoDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+         std::abs( phiRecoLead - fRecoDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
+         std::abs( phiRecoSubLead - fRecoDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
         std::cout << "Error: Reco dijet parameters do not match the Lead and SubLead jet parameters within rounding\n";
         return;
     }
@@ -1427,7 +1433,7 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     // float dijetRecoPhi = fRecoDijet->phi();
 
     // This will allow to perform an entire analysis offline
-    // if ( ptRecoSubLead > 30.f && fabs(dijetRecoDphi) > TMath::PiOver2() ) {
+    // if ( ptRecoSubLead > 30.f && std::abs(dijetRecoDphi) > TMath::PiOver2() ) {
     //     double dijetRecoInfo[10] { dijetRecoPtAve, dijetRecoEtaLab, dijetRecoEtaCM, dijetRecoDphi,
     //                                ptRecoLead, etaRecoLeadLab, etaRecoLeadCM,
     //                                ptRecoSubLead, etaRecoSubLeadLab, etaRecoSubLeadCM };
@@ -1532,14 +1538,14 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             dijetRefEtaCM = fRefDijet->etaCM();
             // dijetRefPhi = fRefDijet->phi();
 
-            if ( fabs( ptRefLead - fRefDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
-                fabs( ptRefSubLead - fRefDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
-                fabs( etaRefLeadLab - fRefDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-                fabs( etaRefSubLeadLab - fRefDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-                fabs( etaRefLeadCM - fRefDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-                fabs( etaRefSubLeadCM - fRefDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-                fabs( phiRefLead - fRefDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
-                fabs( phiRefSubLead - fRefDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
+            if ( std::abs( ptRefLead - fRefDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
+                std::abs( ptRefSubLead - fRefDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
+                std::abs( etaRefLeadLab - fRefDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+                std::abs( etaRefSubLeadLab - fRefDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+                std::abs( etaRefLeadCM - fRefDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+                std::abs( etaRefSubLeadCM - fRefDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+                std::abs( phiRefLead - fRefDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
+                std::abs( phiRefSubLead - fRefDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
                 std::cerr << "Error: Ref dijet reference parameters do not match the Lead and SubLead jet parameters within rounding\n";
                 return;
             }
@@ -1552,8 +1558,8 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
     } // if ( fIsMc )
 
     if (ptRecoLead > 50. && ptRecoSubLead > 40. && 
-        fabs(etaRecoSubLeadLab)<1.2 && 
-        fabs(dijetRecoDphi) > TMath::TwoPi()/3. &&
+        std::abs(etaRecoSubLeadLab)<1.2 && 
+        std::abs(dijetRecoDphi) > TMath::TwoPi()/3. &&
         50. < dijetRecoPtAve && dijetRecoPtAve < 90.) {
 
         float xj = ptRecoSubLead / ptRecoLead;
@@ -1567,11 +1573,11 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         else if ( 1.8 < etaRecoLeadLab && etaRecoLeadLab < 2.4) {
             fHM->hRecoDijetXj[2]->Fill( xj, weight );
         }
-    } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(etaRecoSubLeadLab)<1.2 && fabs(dijetRecoDphi) > TMath::TwoPi()/3. && 50. < dijetRecoPtAve && dijetRecoPtAve < 90.)
+    } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && std::abs(etaRecoSubLeadLab)<1.2 && std::abs(dijetRecoDphi) > TMath::TwoPi()/3. && 50. < dijetRecoPtAve && dijetRecoPtAve < 90.)
 
     if (ptRecoLead > 50. && ptRecoSubLead > 40. && 
-        fabs(etaRecoSubLeadCM)<1.2 && 
-        fabs(dijetRecoDphi) > TMath::TwoPi()/3. &&
+        std::abs(etaRecoSubLeadCM)<1.2 && 
+        std::abs(dijetRecoDphi) > TMath::TwoPi()/3. &&
         50. < dijetRecoPtAve && dijetRecoPtAve < 90.) {
 
         float xj = ptRecoSubLead / ptRecoLead;
@@ -1585,31 +1591,31 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         else if ( 1.6 < etaRecoLeadCM && etaRecoLeadCM < 1.9) {
             fHM->hRecoDijetXjCM[2]->Fill( xj, weight );
         }
-    } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(etaRecoSubLeadLab)<1.2 && fabs(dijetRecoDphi) > TMath::TwoPi()/3. && 50. < dijetRecoPtAve && dijetRecoPtAve < 90.)
+    } // if (ptRecoLead > 50. && ptRecoSubLead > 40. && std::abs(etaRecoSubLeadLab)<1.2 && std::abs(dijetRecoDphi) > TMath::TwoPi()/3. && 50. < dijetRecoPtAve && dijetRecoPtAve < 90.)
 
     // Fill forward and backward distributions for reco dijets in the CM frame (with corrected pT)
-    if ( ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
+    if ( ptRecoLead > 50. && ptRecoSubLead > 40. && std::abs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
         for (int iEtaCut{0}; iEtaCut < 6; iEtaCut++) {
             const float etaCut = 1.4 + iEtaCut * 0.1;
-            if ( fabs(etaRecoLeadCM) < etaCut && fabs(etaRecoSubLeadCM) < etaCut ) {
+            if ( std::abs(etaRecoLeadCM) < etaCut && std::abs(etaRecoSubLeadCM) < etaCut ) {
                 (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaForwardArr[iEtaCut]->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight ) : 
-                                        fHM->hRecoDijetPtEtaBackwardArr[iEtaCut]->Fill(dijetRecoPtAve, fabs(dijetRecoEtaCM), weight );
+                                        fHM->hRecoDijetPtEtaBackwardArr[iEtaCut]->Fill(dijetRecoPtAve, std::abs(dijetRecoEtaCM), weight );
             }
         } // for (int iEtaCut{0}; iEtaCut < 6; iEtaCut++)
-    } // if ( ptRecoLead > 50. && ptRecoSubLead > 40. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) )
+    } // if ( ptRecoLead > 50. && ptRecoSubLead > 40. && std::abs(dijetRecoDphi) > (TMath::TwoPi() / 3) )
 
 
     // Fill forward and backward distributions for reco dijets in the CM frame (with uncorrected pT)
-    if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 40. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
+    if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 40. && std::abs(dijetRecoDphi) > (TMath::TwoPi() / 3) ) {
         for (int iEtaCut{0}; iEtaCut < 6; iEtaCut++) {
             const float etaCut = 1.4 + iEtaCut * 0.1;
 
-            if ( fabs(etaRecoLeadCM) < etaCut && fabs(etaRecoSubLeadCM) < etaCut ) {
+            if ( std::abs(etaRecoLeadCM) < etaCut && std::abs(etaRecoSubLeadCM) < etaCut ) {
                 (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtRawEtaForwardArr[iEtaCut]->Fill(dijetRecoPtAveRaw, dijetRecoEtaCM, weight ) : 
-                                        fHM->hRecoDijetPtRawEtaBackwardArr[iEtaCut]->Fill(dijetRecoPtAveRaw, fabs(dijetRecoEtaCM), weight );
+                                        fHM->hRecoDijetPtRawEtaBackwardArr[iEtaCut]->Fill(dijetRecoPtAveRaw, std::abs(dijetRecoEtaCM), weight );
             }
         } // for (int iEtaCut{0}; iEtaCut < 6; iEtaCut++)
-    } // if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 40. && fabs(dijetRecoDphi) > (TMath::TwoPi() / 3) )
+    } // if ( ptRawRecoLead > 50. && ptRawRecoSubLead > 40. && std::abs(dijetRecoDphi) > (TMath::TwoPi() / 3) )
 
 
     //
@@ -1652,9 +1658,9 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         fHM->hRecoDijetPtEtaWeighted->Fill( dijetRecoPtAve, dijetRecoEtaLab, weight );
         fHM->hRecoDijetPtEtaCMInLab->Fill( dijetRecoPtAve, dijetRecoEtaCM, weight );
 
-        (dijetRecoEtaLab >= 0) ? fHM->hRecoDijetPtEtaForward->Fill(dijetRecoPtAve, dijetRecoEtaLab, 1.) : fHM->hRecoDijetPtEtaBackward->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaLab), 1.);
-        (dijetRecoEtaLab >= 0) ? fHM->hRecoDijetPtEtaForwardWeighted->Fill(dijetRecoPtAve, dijetRecoEtaLab, weight ) : fHM->hRecoDijetPtEtaBackwardWeighted->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaLab), weight );
-        (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaForwardCMInLab->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight ) : fHM->hRecoDijetPtEtaBackwardCMInLab->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaCM), weight );
+        (dijetRecoEtaLab >= 0) ? fHM->hRecoDijetPtEtaForward->Fill(dijetRecoPtAve, dijetRecoEtaLab, 1.) : fHM->hRecoDijetPtEtaBackward->Fill(dijetRecoPtAve, std::abs(dijetRecoEtaLab), 1.);
+        (dijetRecoEtaLab >= 0) ? fHM->hRecoDijetPtEtaForwardWeighted->Fill(dijetRecoPtAve, dijetRecoEtaLab, weight ) : fHM->hRecoDijetPtEtaBackwardWeighted->Fill(dijetRecoPtAve, std::abs(dijetRecoEtaLab), weight );
+        (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaForwardCMInLab->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight ) : fHM->hRecoDijetPtEtaBackwardCMInLab->Fill(dijetRecoPtAve, std::abs(dijetRecoEtaCM), weight );
 
         fHM->hRecoDijetPtAveLeadPtSubLeadPt->Fill( dijetRecoPtAve, ptRecoLead, ptRecoSubLead, weight );
         fHM->hRecoDijetPtAveLeadEtaSubLeadEta->Fill( dijetRecoPtAve, etaRecoLeadLab, etaRecoSubLeadLab, weight );
@@ -1702,9 +1708,9 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             fHM->hRefDijetPtEtaWeighted->Fill( dijetRecoPtAve, dijetRefEtaLab, weight );
             fHM->hRefDijetPtEtaCMInLab->Fill( dijetRecoPtAve, dijetRefEtaCM, weight );
 
-            (dijetRefEtaLab >= 0) ? fHM->hRefDijetPtEtaForward->Fill(dijetRecoPtAve, dijetRefEtaLab) : fHM->hRefDijetPtEtaBackward->Fill(dijetRecoPtAve, TMath::Abs(dijetRefEtaLab));
-            (dijetRefEtaLab >= 0) ? fHM->hRefDijetPtEtaForwardWeighted->Fill(dijetRecoPtAve, dijetRefEtaLab, weight ) : fHM->hRefDijetPtEtaBackwardWeighted->Fill(dijetRecoPtAve, TMath::Abs(dijetRefEtaLab), weight );
-            (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaForwardCMInLab->Fill(dijetRecoPtAve, dijetRefEtaCM, weight ) : fHM->hRefDijetPtEtaBackwardCMInLab->Fill(dijetRecoPtAve, TMath::Abs(dijetRefEtaCM), weight );
+            (dijetRefEtaLab >= 0) ? fHM->hRefDijetPtEtaForward->Fill(dijetRecoPtAve, dijetRefEtaLab) : fHM->hRefDijetPtEtaBackward->Fill(dijetRecoPtAve, std::abs(dijetRefEtaLab));
+            (dijetRefEtaLab >= 0) ? fHM->hRefDijetPtEtaForwardWeighted->Fill(dijetRecoPtAve, dijetRefEtaLab, weight ) : fHM->hRefDijetPtEtaBackwardWeighted->Fill(dijetRecoPtAve, std::abs(dijetRefEtaLab), weight );
+            (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaForwardCMInLab->Fill(dijetRecoPtAve, dijetRefEtaCM, weight ) : fHM->hRefDijetPtEtaBackwardCMInLab->Fill(dijetRecoPtAve, std::abs(dijetRefEtaCM), weight );
         } // if ( fIsMc && recoLeadJet->hasMatching() && recoSubLeadJet->hasMatching() )
     } // if ( fIsRecoDijetLabFound )
 
@@ -1743,9 +1749,9 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
         fHM->hRecoDijetPtEtaCMWeighted->Fill( dijetRecoPtAve, dijetRecoEtaCM, weight );
         fHM->hRecoDijetPtEtaLabInCM->Fill( dijetRecoPtAve, dijetRecoEtaLab, weight );
 
-        (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward->Fill(dijetRecoPtAve, dijetRecoEtaCM, 1.) : fHM->hRecoDijetPtEtaCMBackward->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaCM), 1.);
-        (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForwardWeighted->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight ) : fHM->hRecoDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaCM), weight );
-        (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaForwardLabInCM->Fill(dijetRecoPtAve, dijetRecoEtaLab, weight ) : fHM->hRecoDijetPtEtaBackwardLabInCM->Fill(dijetRecoPtAve, TMath::Abs(dijetRecoEtaLab), weight );
+        (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForward->Fill(dijetRecoPtAve, dijetRecoEtaCM, 1.) : fHM->hRecoDijetPtEtaCMBackward->Fill(dijetRecoPtAve, std::abs(dijetRecoEtaCM), 1.);
+        (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaCMForwardWeighted->Fill(dijetRecoPtAve, dijetRecoEtaCM, weight ) : fHM->hRecoDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPtAve, std::abs(dijetRecoEtaCM), weight );
+        (dijetRecoEtaCM >= 0) ? fHM->hRecoDijetPtEtaForwardLabInCM->Fill(dijetRecoPtAve, dijetRecoEtaLab, weight ) : fHM->hRecoDijetPtEtaBackwardLabInCM->Fill(dijetRecoPtAve, std::abs(dijetRecoEtaLab), weight );
 
         fHM->hRecoDijetPtAveLeadPtSubLeadPtCM->Fill( dijetRecoPtAve, ptRecoLead, ptRecoSubLead, weight );
         fHM->hRecoDijetPtAveLeadEtaSubLeadEtaCM->Fill( dijetRecoPtAve, etaRecoLeadCM, etaRecoSubLeadCM, weight );
@@ -1794,9 +1800,9 @@ void DiJetAnalysis::processRecoDijets(const Event* event, const double &weight) 
             fHM->hRefDijetPtEtaCMWeighted->Fill( dijetRecoPtAve, dijetRefEtaCM, weight );
             fHM->hRefDijetPtEtaLabInCM->Fill( dijetRecoPtAve, dijetRefEtaLab, weight );
 
-            (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward->Fill(dijetRecoPtAve, dijetRefEtaCM, 1.) : fHM->hRefDijetPtEtaCMBackward->Fill(dijetRecoPtAve, TMath::Abs(dijetRefEtaCM), 1.);
-            (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForwardWeighted->Fill(dijetRecoPtAve, dijetRefEtaCM, weight ) : fHM->hRefDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPtAve, TMath::Abs(dijetRefEtaCM), weight );
-            (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaForwardLabInCM->Fill(dijetRecoPtAve, dijetRefEtaLab, weight ) : fHM->hRefDijetPtEtaBackwardLabInCM->Fill(dijetRecoPtAve, TMath::Abs(dijetRefEtaLab), weight );
+            (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForward->Fill(dijetRecoPtAve, dijetRefEtaCM, 1.) : fHM->hRefDijetPtEtaCMBackward->Fill(dijetRecoPtAve, std::abs(dijetRefEtaCM), 1.);
+            (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaCMForwardWeighted->Fill(dijetRecoPtAve, dijetRefEtaCM, weight ) : fHM->hRefDijetPtEtaCMBackwardWeighted->Fill(dijetRecoPtAve, std::abs(dijetRefEtaCM), weight );
+            (dijetRefEtaCM >= 0) ? fHM->hRefDijetPtEtaForwardLabInCM->Fill(dijetRecoPtAve, dijetRefEtaLab, weight ) : fHM->hRefDijetPtEtaBackwardLabInCM->Fill(dijetRecoPtAve, std::abs(dijetRefEtaLab), weight );
         } // if ( fIsMc )
     } // if ( fIsRecoDijetCMFound )
 
@@ -1875,14 +1881,14 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
     // float dijetRefDphi = fRefDijet->dPhi();
     float dijetRefPhi = fRefDijet->phi();
 
-    if ( fabs(ptRefLead - fRefDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
-         fabs(ptRefSubLead - fRefDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaRefLeadLab - fRefDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaRefSubLeadLab - fRefDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaRefLeadCM - fRefDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaRefSubLeadCM - fRefDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-         fabs(phiRefLead - fRefDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
-         fabs(phiRefSubLead - fRefDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
+    if ( std::abs(ptRefLead - fRefDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(ptRefSubLead - fRefDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaRefLeadLab - fRefDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaRefSubLeadLab - fRefDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaRefLeadCM - fRefDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaRefSubLeadCM - fRefDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(phiRefLead - fRefDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(phiRefSubLead - fRefDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
         std::cout << "Error: Ref dijet reference parameters do not match the Lead and SubLead jet parameters within rounding\n";
         return;
     }
@@ -1927,14 +1933,14 @@ void DiJetAnalysis::processRefDijets(const Event* event, const double &weight) {
     // float dijetRecoDphi = fRecoDijet->dPhi();
     float dijetRecoPhi = fRecoDijet->phi();
 
-    if ( fabs(ptRecoLead - fRecoDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
-         fabs(ptRecoSubLead - fRecoDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaRecoLeadLab - fRecoDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaRecoSubLeadLab - fRecoDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaRecoLeadCM - fRecoDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-         fabs(etaRecoSubLeadCM - fRecoDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
-         fabs(phiRecoLead - fRecoDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
-         fabs(phiRecoSubLead - fRecoDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
+    if ( std::abs(ptRecoLead - fRecoDijet->leadJetPt()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(ptRecoSubLead - fRecoDijet->subLeadJetPt()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaRecoLeadLab - fRecoDijet->leadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaRecoSubLeadLab - fRecoDijet->subLeadJetEtaLab()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaRecoLeadCM - fRecoDijet->leadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(etaRecoSubLeadCM - fRecoDijet->subLeadJetEtaCM()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(phiRecoLead - fRecoDijet->leadJetPhi()) > std::numeric_limits<float>::epsilon() ||
+         std::abs(phiRecoSubLead - fRecoDijet->subLeadJetPhi()) > std::numeric_limits<float>::epsilon() ) {
         std::cout << "Error: Reco dijet reference parameters do not match the Lead and SubLead jet parameters within rounding\n";
         return;
     }
