@@ -900,6 +900,7 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
             fHM->hGenInclusiveJetEta->Fill(eta, weight);
             fHM->hGenInclusiveJetEtaUnweighted->Fill(eta, 1.);
             fHM->hGenInclusiveJetPtEta->Fill(eta, pt, weight);
+            fHM->hGenInclusiveJetPtEtaStdBins->Fill( eta, pt, weight);
             fHM->hGenInclusiveJetPtEtaCM->Fill( etaCM, pt, weight);
             if (etaCM >= 0) {
                 fHM->hGenInclusiveJetPtEtaCMForward->Fill( etaCM, pt, weight);
@@ -912,6 +913,7 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
             // Lead gen jet
             if ( (fGenIdLead >= 0) && ((genJetCounter - 1) ==  fGenIdLead) ) {
                 fHM->hGenLeadJetPtEta->Fill(eta, pt, weight);
+                fHM->hGenLeadJetPtEtaStdBins->Fill( eta, pt, weight);
                 fHM->hGenLeadJetPtEtaCM->Fill( etaCM, pt, weight);
                 fHM->hGenLeadJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
             }
@@ -919,6 +921,7 @@ void DiJetAnalysis::processGenJets(const Event* event, const double &weight) {
             // SubLead gen jet
             if ( (fGenIdSubLead >= 0) && ((genJetCounter - 1) ==  fGenIdSubLead) ) {
                 fHM->hGenSubLeadJetPtEta->Fill(eta, pt, weight);
+                fHM->hGenSubLeadJetPtEtaStdBins->Fill( eta, pt, weight);
                 fHM->hGenSubLeadJetPtEtaCM->Fill( etaCM, pt, weight);
                 fHM->hGenSubLeadJetPtEtaPtHat->Fill(eta, pt, ptHat, weight);
             }

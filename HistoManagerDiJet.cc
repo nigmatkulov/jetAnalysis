@@ -70,14 +70,17 @@ HistoManagerDiJet::HistoManagerDiJet() :
     hGenInclusiveJetEta{nullptr},
     hGenInclusiveJetEtaUnweighted{nullptr},
     hGenInclusiveJetPtEta{nullptr},
+    hGenInclusiveJetPtEtaStdBins{nullptr},
     hGenInclusiveJetPtEtaCM{nullptr},
     hGenInclusiveJetPtEtaCMForward{nullptr},
     hGenInclusiveJetPtEtaCMBackward{nullptr},
     hGenInclusiveJetPtEtaPtHat{nullptr},
     hGenLeadJetPtEta{nullptr},
+    hGenLeadJetPtEtaStdBins{nullptr},
     hGenLeadJetPtEtaCM{nullptr},
     hGenLeadJetPtEtaPtHat{nullptr},
     hGenSubLeadJetPtEta{nullptr},
+    hGenSubLeadJetPtEtaStdBins{nullptr},
     hGenSubLeadJetPtEtaCM{nullptr},
     hGenSubLeadJetPtEtaPtHat{nullptr},
     hGenPtLeadPtSublead{nullptr},
@@ -465,13 +468,16 @@ HistoManagerDiJet::~HistoManagerDiJet() {
         if (hGenInclusiveJetEta) delete hGenInclusiveJetEta;
         if (hGenInclusiveJetEtaUnweighted) delete hGenInclusiveJetEtaUnweighted;
         if (hGenInclusiveJetPtEta) delete hGenInclusiveJetPtEta;
+        if (hGenInclusiveJetPtEtaStdBins) delete hGenInclusiveJetPtEtaStdBins;
         if (hGenInclusiveJetPtEtaCM) delete hGenInclusiveJetPtEtaCM;
         if (hGenInclusiveJetPtEtaCMForward) delete hGenInclusiveJetPtEtaCMForward;
         if (hGenInclusiveJetPtEtaCMBackward) delete hGenInclusiveJetPtEtaCMBackward;
         if (hGenInclusiveJetPtEtaPtHat) delete hGenInclusiveJetPtEtaPtHat;
         if (hGenLeadJetPtEta) delete hGenLeadJetPtEta;
+        if (hGenLeadJetPtEtaStdBins) delete hGenLeadJetPtEtaStdBins;
         if (hGenLeadJetPtEtaPtHat) delete hGenLeadJetPtEtaPtHat;
         if (hGenSubLeadJetPtEta) delete hGenSubLeadJetPtEta;
+        if (hGenSubLeadJetPtEtaStdBins) delete hGenSubLeadJetPtEtaStdBins;
         if (hGenSubLeadJetPtEtaPtHat) delete hGenSubLeadJetPtEtaPtHat;
         if (hGenPtLeadPtSublead) delete hGenPtLeadPtSublead;
         if (hGenEtaLeadEtaSublead) delete hGenEtaLeadEtaSublead;
@@ -1556,6 +1562,12 @@ void HistoManagerDiJet::init() {
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1] );
         hGenInclusiveJetPtEta->Sumw2();
+        hGenInclusiveJetPtEtaStdBins = new TH2D("hGenInclusiveJetPtEtaStdBins","Gen inclusive jet acceptance (std bins);Gen #eta;Gen p_{T} (GeV)",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1] );
+        hGenInclusiveJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+        hGenInclusiveJetPtEtaStdBins->SetBinsLength(-1);
+        hGenInclusiveJetPtEtaStdBins->Sumw2();
         hGenInclusiveJetPtEtaCM = new TH2D("hGenInclusiveJetPtEtaCM","Gen inclusive jet acceptance CM frame;Gen #eta_{CM};Gen p_{T} (GeV)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1] );
@@ -1581,6 +1593,12 @@ void HistoManagerDiJet::init() {
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1] );
         hGenLeadJetPtEta->Sumw2();
+        hGenLeadJetPtEtaStdBins = new TH2D("hGenLeadJetPtEtaStdBins","Gen Lead jet acceptance (std bins);Gen #eta;Gen p_{T} (GeV)",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1] );
+        hGenLeadJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+        hGenLeadJetPtEtaStdBins->SetBinsLength(-1);
+        hGenLeadJetPtEtaStdBins->Sumw2();
         hGenLeadJetPtEtaCM = new TH2D("hGenLeadJetPtEtaCM","Gen Lead jet acceptance CM frame;Gen #eta_{CM};Gen p_{T} (GeV)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1] );
@@ -1598,6 +1616,12 @@ void HistoManagerDiJet::init() {
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1] );
         hGenSubLeadJetPtEta->Sumw2();
+        hGenSubLeadJetPtEtaStdBins = new TH2D("hGenSubLeadJetPtEtaStdBins","Gen SubLead jet acceptance (std bins);Gen #eta;Gen p_{T} (GeV)",
+                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        fPtBins, fPtRange[0], fPtRange[1] );
+        hGenSubLeadJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
+        hGenSubLeadJetPtEtaStdBins->SetBinsLength(-1);
+        hGenSubLeadJetPtEtaStdBins->Sumw2();
         hGenSubLeadJetPtEtaCM = new TH2D("hGenSubLeadJetPtEtaCM","Gen SubLead jet acceptance CM frame;Gen #eta_{CM};Gen p_{T} (GeV)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
                                         fPtBins, fPtRange[0], fPtRange[1] );
@@ -2832,14 +2856,17 @@ void HistoManagerDiJet::writeOutput() {
         hGenInclusiveJetEta->Write();
         hGenInclusiveJetEtaUnweighted->Write();
         hGenInclusiveJetPtEta->Write();
+        hGenInclusiveJetPtEtaStdBins->Write();
         hGenInclusiveJetPtEtaCM->Write();
         hGenInclusiveJetPtEtaCMForward->Write();
         hGenInclusiveJetPtEtaCMBackward->Write();
         hGenInclusiveJetPtEtaPtHat->Write();
         hGenLeadJetPtEta->Write();
+        hGenLeadJetPtEtaStdBins->Write();
         hGenLeadJetPtEtaCM->Write();
         hGenLeadJetPtEtaPtHat->Write();
         hGenSubLeadJetPtEta->Write();
+        hGenSubLeadJetPtEtaStdBins->Write();
         hGenSubLeadJetPtEtaCM->Write();
         hGenSubLeadJetPtEtaPtHat->Write();
         hGenPtLeadPtSublead->Write();
