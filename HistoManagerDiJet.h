@@ -182,7 +182,6 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hGenDijetPtEtaForwardArr[6];
     TH2D *hGenDijetPtEtaBackwardArr[6];
     
-
     TH3D *hGenDijetPtAveLeadPtSubLeadPt;
     TH3D *hGenDijetPtAveLeadPtSubLeadPtCM;
     TH3D *hGenDijetPtAveLeadEtaSubLeadEta;
@@ -192,11 +191,13 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     TH2D *hGenDijetLeadPtEtaLabUnflipped;
     TH2D *hGenDijetLeadPtEtaLab;
+    TH2D *hGenDijetLeadPtEtaLabStdBins;
     TH2D *hGenDijetLeadPtEtaCM;
     TH2D *hGenDijetSubLeadPtEtaLabUnflipped;
     TH2D *hGenDijetSubLeadPtEtaLab;
+    TH2D *hGenDijetSubLeadPtEtaLabStdBins;
     TH2D *hGenDijetSubLeadPtEtaCM;
-
+    
     TH1D *hGenGoodInclusiveJetEtaLabFrame;
     TH1D *hGenGoodInclusiveJetEtaCMFrame;
 
@@ -322,15 +323,16 @@ class HistoManagerDiJet : public BaseHistoManager {
 
     TH2D *hRecoDijetLeadPtEtaLabUnflipped;
     TH2D *hRecoDijetLeadPtEtaLab;
+    TH2D *hRecoDijetLeadPtEtaLabStdBins;
     TH2D *hRecoDijetLeadPtEtaCM;
+    TH2D *hRecoDijetLeadMatchedPtEtaCM;
+    TH2D *hRecoDijetLeadMatchedLeadPtEtaCM;
     TH2D *hRecoDijetSubLeadPtEtaLabUnflipped;
     TH2D *hRecoDijetSubLeadPtEtaLab;
+    TH2D *hRecoDijetSubLeadPtEtaLabStdBins;
     TH2D *hRecoDijetSubLeadPtEtaCM;
-
-    TH2D *hRecoDijetLeadPtEta;
-    TH2D *hRecoDijetLeadPtEtaStdBins;
-    TH2D *hRecoDijetSubLeadPtEta;
-    TH2D *hRecoDijetSubLeadPtEtaStdBins;
+    TH2D *hRecoDijetSubLeadMatchedPtEtaCM;
+    TH2D *hRecoDijetSubLeadMatchedSubLeadPtEtaCM;
 
     // Subleading jet is always in etaLab (-1.2, 1.2), while
     // Leading jet etaLab is backward (-2.4, -1.8), central (-1.2, 1.2), or forward (1.8, 2.4)
@@ -412,6 +414,11 @@ class HistoManagerDiJet : public BaseHistoManager {
     // pt corr/pt gen vs pt gen, gen eta, ptHat
     THnSparseD *hSubLeadJetJESGenPtEtaPtHatWeighted;
     THnSparseD *hSubLeadJetJESGenPtEtaCMPtHatWeighted;
+
+    // pt corr/pt gen vs pt gen, gen eta, ptHat for leading and subleading jets
+    // from the selected dijet
+    THnSparseD *hDijetLeadJESGenPtEtaPtHatWeighted;
+    THnSparseD *hDijetSubLeadJESGenPtEtaPtHatWeighted;
 
     // Matched and unmatched jet acceptance
     TH1D *hRecoInclusiveMatchedJetPt;
@@ -501,6 +508,15 @@ class HistoManagerDiJet : public BaseHistoManager {
     TH2D *hRefEtaCMLeadEtaCMSublead;
     TH2D *hRefPtLeadPtSubleadMcReweight;
     TH2D *hRefEtaLeadEtaSubleadMcReweight;
+
+    TH2D *hRefDijetLeadPtEtaLabUnflipped;
+    TH2D *hRefDijetLeadPtEtaLab;
+    TH2D *hRefDijetLeadPtEtaLabStdBins;
+    TH2D *hRefDijetLeadPtEtaCM;
+    TH2D *hRefDijetSubLeadPtEtaLabUnflipped;
+    TH2D *hRefDijetSubLeadPtEtaLab;
+    TH2D *hRefDijetSubLeadPtEtaLabStdBins;
+    TH2D *hRefDijetSubLeadPtEtaCM;
 
     //
     // Ref-selected jet histograms
