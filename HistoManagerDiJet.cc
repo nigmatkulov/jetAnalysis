@@ -1032,17 +1032,13 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1]);
     hRecoLeadAllJetPtEtaCM->Sumw2();
     hRecoLeadAllJetPtRawEtaStdBins = new TH2D("hRecoLeadAllJetPtRawEtaStdBins","Lead jet p_{T} (raw) vs #eta (std bins);#eta;p_{T}^{raw} (GeV)",
-                                              208, -5.2, 5.2,
+                                              jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                               fPtBins, fPtRange[0], fPtRange[1]);
     hRecoLeadAllJetPtRawEtaStdBins->Sumw2();
-    hRecoLeadAllJetPtRawEtaStdBins->GetYaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-    hRecoLeadAllJetPtRawEtaStdBins->SetBinsLength(-1);
     hRecoLeadAllJetPtEtaStdBins = new TH2D("hRecoLeadAllJetPtEtaStdBins","Lead jet p_{T} vs #eta (std bins);#eta;p_{T} (GeV)",
-                                              208, -5.2, 5.2,
+                                              jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                               fPtBins, fPtRange[0], fPtRange[1]);
     hRecoLeadAllJetPtEtaStdBins->Sumw2();
-    hRecoLeadAllJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-    hRecoLeadAllJetPtEtaStdBins->SetBinsLength(-1);
 
     hRecoLeadAllJetPtEtaPtHat = new TH3D("hRecoLeadAllJetPtEtaPtHat","Lead jet (matched+unmatched) p_{T} vs #eta vs #hat{p_{T}};#eta;p_{T} (GeV);#hat{p_{T}} (GeV)",
                                          fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1068,17 +1064,13 @@ void HistoManagerDiJet::init() {
                                          fPtBins, fPtRange[0], fPtRange[1]);
     hRecoSubLeadAllJetPtEtaCM->Sumw2();
     hRecoSubLeadAllJetPtRawEtaStdBins = new TH2D("hRecoSubLeadAllJetPtRawEtaStdBins","SubLead jet p_{T} (raw) vs #eta (std bins);#eta;p_{T}^{raw} (GeV)",
-                                              208, -5.2, 5.2,
+                                              jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                               fPtBins, fPtRange[0], fPtRange[1]);
     hRecoSubLeadAllJetPtRawEtaStdBins->Sumw2();
-    hRecoSubLeadAllJetPtRawEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-    hRecoSubLeadAllJetPtRawEtaStdBins->SetBinsLength(-1);
     hRecoSubLeadAllJetPtEtaStdBins = new TH2D("hRecoSubLeadAllJetPtEtaStdBins","SubLead jet p_{T} vs #eta (std bins);#eta;p_{T} (GeV)",
-                                              208, -5.2, 5.2,
+                                              jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                               fPtBins, fPtRange[0], fPtRange[1]);
     hRecoSubLeadAllJetPtEtaStdBins->Sumw2();
-    hRecoSubLeadAllJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-    hRecoSubLeadAllJetPtEtaStdBins->SetBinsLength(-1);
 
     hRecoSubLeadAllJetPtEtaPtHat = new TH3D("hRecoSubLeadAllJetPtEtaPtHat","SubLead jet (matched+unmatched) p_{T} vs #eta vs #hat{p_{T}};#eta;p_{T} (GeV);#hat{p_{T}} (GeV)",
                                             fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1110,17 +1102,13 @@ void HistoManagerDiJet::init() {
     hRecoInclusiveAllJetPtEtaCM->Sumw2();
 
     hRecoInclusiveAllJetPtRawEtaStdBins = new TH2D("hRecoInclusiveAllJetPtRawEtaStdBins","Reco jet p_{T} (raw) vs #eta (std bins);#eta;p_{T}^{raw} (GeV)",
-                                              208, -5.2, 5.2,
+                                              jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                               fPtBins, fPtRange[0], fPtRange[1]);
     hRecoInclusiveAllJetPtRawEtaStdBins->Sumw2();
-    hRecoInclusiveAllJetPtRawEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-    hRecoInclusiveAllJetPtRawEtaStdBins->SetBinsLength(-1);
     hRecoInclusiveAllJetPtEtaStdBins = new TH2D("hRecoInclusiveAllJetPtEtaStdBins","Reco jet p_{T} vs #eta (std bins);#eta;p_{T} (GeV)",
-                                              208, -5.2, 5.2,
+                                              jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                               fPtBins, fPtRange[0], fPtRange[1]);
     hRecoInclusiveAllJetPtEtaStdBins->Sumw2();
-    hRecoInclusiveAllJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-    hRecoInclusiveAllJetPtEtaStdBins->SetBinsLength(-1);
 
     hRecoInclusiveAllJetPtEtaPtHat = new TH3D("hRecoInclusiveAllJetPtEtaPtHat","Reco jet p_{T} vs #eta vs #hat{p_{T}};#eta;p_{T} (GeV);#hat{p_{T}} (GeV)",
                                               fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1356,10 +1344,8 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1]);
     hRecoDijetLeadPtEtaLab->Sumw2();
     hRecoDijetLeadPtEtaLabStdBins = new TH2D("hRecoDijetLeadPtEtaLabStdBins", "Reco dijet lead info in lab frame (std bins); p_{T}^{Lead} (GeV);#eta^{Lead}",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                         fPtBins, fPtRange[0], fPtRange[1]);
-    hRecoDijetLeadPtEtaLabStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-    hRecoDijetLeadPtEtaLabStdBins->SetBinsLength(-1);
     hRecoDijetLeadPtEtaLabStdBins->Sumw2();
     hRecoDijetLeadPtEtaCM = new TH2D("hRecoDijetLeadPtEtaCM", "Reco dijet lead info in CM frame; p_{T}^{Lead} (GeV);#eta^{Lead}_{CM}",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1382,10 +1368,8 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1]);
     hRecoDijetSubLeadPtEtaLab->Sumw2();
     hRecoDijetSubLeadPtEtaLabStdBins = new TH2D("hRecoDijetSubLeadPtEtaLabStdBins", "Reco dijet sublead info in lab frame (std bins); p_{T}^{SubLead} (GeV);#eta^{SubLead}",
-                                                fEtaBins, fEtaRange[0], fEtaRange[1],
+                                                jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                                 fPtBins, fPtRange[0], fPtRange[1]);
-    hRecoDijetSubLeadPtEtaLabStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-    hRecoDijetSubLeadPtEtaLabStdBins->SetBinsLength(-1);
     hRecoDijetSubLeadPtEtaLabStdBins->Sumw2();
     hRecoDijetSubLeadPtEtaCM = new TH2D("hRecoDijetSubLeadPtEtaCM", "Reco dijet sublead info in CM frame; p_{T}^{SubLead} (GeV);#eta^{SubLead}_{CM}",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1563,10 +1547,8 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1] );
         hGenInclusiveJetPtEta->Sumw2();
         hGenInclusiveJetPtEtaStdBins = new TH2D("hGenInclusiveJetPtEtaStdBins","Gen inclusive jet acceptance (std bins);Gen #eta;Gen p_{T} (GeV)",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                         fPtBins, fPtRange[0], fPtRange[1] );
-        hGenInclusiveJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-        hGenInclusiveJetPtEtaStdBins->SetBinsLength(-1);
         hGenInclusiveJetPtEtaStdBins->Sumw2();
         hGenInclusiveJetPtEtaCM = new TH2D("hGenInclusiveJetPtEtaCM","Gen inclusive jet acceptance CM frame;Gen #eta_{CM};Gen p_{T} (GeV)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1594,10 +1576,8 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1] );
         hGenLeadJetPtEta->Sumw2();
         hGenLeadJetPtEtaStdBins = new TH2D("hGenLeadJetPtEtaStdBins","Gen Lead jet acceptance (std bins);Gen #eta;Gen p_{T} (GeV)",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
-                                        fPtBins, fPtRange[0], fPtRange[1] );
-        hGenLeadJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-        hGenLeadJetPtEtaStdBins->SetBinsLength(-1);
+                                            jetEtaL2L3StdBins, jetEtaL2L3StdVals,
+                                            fPtBins, fPtRange[0], fPtRange[1] );
         hGenLeadJetPtEtaStdBins->Sumw2();
         hGenLeadJetPtEtaCM = new TH2D("hGenLeadJetPtEtaCM","Gen Lead jet acceptance CM frame;Gen #eta_{CM};Gen p_{T} (GeV)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1617,10 +1597,8 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1] );
         hGenSubLeadJetPtEta->Sumw2();
         hGenSubLeadJetPtEtaStdBins = new TH2D("hGenSubLeadJetPtEtaStdBins","Gen SubLead jet acceptance (std bins);Gen #eta;Gen p_{T} (GeV)",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                         fPtBins, fPtRange[0], fPtRange[1] );
-        hGenSubLeadJetPtEtaStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-        hGenSubLeadJetPtEtaStdBins->SetBinsLength(-1);
         hGenSubLeadJetPtEtaStdBins->Sumw2();
         hGenSubLeadJetPtEtaCM = new TH2D("hGenSubLeadJetPtEtaCM","Gen SubLead jet acceptance CM frame;Gen #eta_{CM};Gen p_{T} (GeV)",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1889,10 +1867,8 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1] );
         hGenDijetLeadPtEtaLab->Sumw2();
         hGenDijetLeadPtEtaLabStdBins = new TH2D("hGenDijetLeadPtEtaLabStdBins","Gen dijet lead jet info in lab frame (std bins);Gen p_{T}^{Lead} (GeV);#eta^{Lead}",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                         fPtBins, fPtRange[0], fPtRange[1] );
-        hGenDijetLeadPtEtaLabStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-        hGenDijetLeadPtEtaLabStdBins->SetBinsLength(-1);
         hGenDijetLeadPtEtaLabStdBins->Sumw2();
         hGenDijetLeadPtEtaCM = new TH2D("hGenDijetLeadPtEtaCM","Gen dijet lead jet info in CM frame;Gen p_{T}^{Lead} (GeV);#eta^{Lead}_{CM}",
                                         fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -1907,10 +1883,8 @@ void HistoManagerDiJet::init() {
                                         fPtBins, fPtRange[0], fPtRange[1] );
         hGenDijetSubLeadPtEtaLab->Sumw2();
         hGenDijetSubLeadPtEtaLabStdBins = new TH2D("hGenDijetSubLeadPtEtaLabStdBins","Gen dijet sublead jet info in lab frame (std bins);Gen p_{T}^{SubLead} (GeV);#eta^{SubLead}",
-                                        fEtaBins, fEtaRange[0], fEtaRange[1],
+                                        jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                         fPtBins, fPtRange[0], fPtRange[1] );
-        hGenDijetSubLeadPtEtaLabStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-        hGenDijetSubLeadPtEtaLabStdBins->SetBinsLength(-1);
         hGenDijetSubLeadPtEtaLabStdBins->Sumw2();
         hGenDijetSubLeadPtEtaCM = new TH2D("hGenDijetSubLeadPtEtaCM","Gen dijet sublead jet info in CM frame;Gen p_{T}^{SubLead} (GeV);#eta^{SubLead}_{CM}",
                                             fEtaBins, fEtaRange[0], fEtaRange[1],
@@ -2460,10 +2434,8 @@ void HistoManagerDiJet::init() {
                                                     fPtBins, fPtRange[0], fPtRange[1]);
         hRefDijetLeadPtEtaLab->Sumw2();
         hRefDijetLeadPtEtaLabStdBins = new TH2D("hRefDijetLeadPtEtaLabStdBins","Ref dijet Lead jet info in lab frame with standard bins;p_{T}^{Lead} (GeV);#eta^{Lead}",
-                                                    fEtaBins, fEtaRange[0], fEtaRange[1],                            
+                                                    jetEtaL2L3StdBins, jetEtaL2L3StdVals,                          
                                                     fPtBins, fPtRange[0], fPtRange[1]);
-        hRefDijetLeadPtEtaLabStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-        hRefDijetLeadPtEtaLabStdBins->SetBinsLength(-1);    
         hRefDijetLeadPtEtaLabStdBins->Sumw2();
         hRefDijetLeadPtEtaCM = new TH2D("hRefDijetLeadPtEtaCM","Ref dijet Lead jet info in CM frame;p_{T}^{Lead} (GeV);#eta^{Lead}_{CM}",
                                             fEtaBins, fEtaRange[0], fEtaRange[1],                            
@@ -2478,10 +2450,8 @@ void HistoManagerDiJet::init() {
                                                         fPtBins, fPtRange[0], fPtRange[1]);
         hRefDijetSubLeadPtEtaLab->Sumw2();
         hRefDijetSubLeadPtEtaLabStdBins = new TH2D("hRefDijetSubLeadPtEtaLabStdBins","Ref dijet SubLead jet info in lab frame with standard bins;p_{T}^{SubLead} (GeV);#eta^{SubLead}",
-                                                        fEtaBins, fEtaRange[0], fEtaRange[1],                            
+                                                        jetEtaL2L3StdBins, jetEtaL2L3StdVals,                          
                                                         fPtBins, fPtRange[0], fPtRange[1]);
-        hRefDijetSubLeadPtEtaLabStdBins->GetXaxis()->Set(jetEtaL2L3StdBins, jetEtaL2L3StdVals);
-        hRefDijetSubLeadPtEtaLabStdBins->SetBinsLength(-1);
         hRefDijetSubLeadPtEtaLabStdBins->Sumw2();
         hRefDijetSubLeadPtEtaCM = new TH2D("hRefDijetSubLeadPtEtaCM","Ref dijet SubLead jet info in CM frame;p_{T}^{SubLead} (GeV);#eta^{SubLead}_{CM}",
                                             fEtaBins, fEtaRange[0], fEtaRange[1],                            
