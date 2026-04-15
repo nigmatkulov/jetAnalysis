@@ -5765,15 +5765,15 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    bool isPythia = true; // Set to false for embedding
+    bool isPythia = false; // Set to false for embedding
     TString generatorType = isPythia ? "pythia" : "embedding";
-    TString direction = "pgoing"; // "pgoing", "Pbgoing", "combined"
+    TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
     // TString inputFileName = Form("eta_shift/%s_%s.root", generatorType.Data(), direction.Data() );
-    TString inputFileName = Form("eta_shift/%s_%s_ptHat120.root", generatorType.Data(), direction.Data() );
-    const int nEtaShifts = 8;
-    static constexpr std::array<float, nEtaShifts> etaShift{0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470};
-    static constexpr std::array<int, nEtaShifts> markerStyles{20, 21, 22, 23, 24, 25, 26, 27};
-    static constexpr std::array<const char*, nEtaShifts> p8Colors {"kBlue", "kRed", "kBlack", "kMagenta", "kP8Orange", "kP8Green", "kP8Azure", "kPink"};
+    TString inputFileName = Form("eta_shift/%s_%s_ptHat30.root", generatorType.Data(), direction.Data() );
+    const int nEtaShifts = 13;
+    static constexpr std::array<float, nEtaShifts> etaShift{0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470, 0.475, 0.480, 0.485, 0.490, 0.495 };
+    static constexpr std::array<int, nEtaShifts> markerStyles{20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32};
+    static constexpr std::array<const char*, nEtaShifts> p8Colors {"kBlue", "kRed", "kBlack", "kMagenta", "kP8Orange", "kP8Green", "kP8Azure", "kPink", "kCyan", "kTeal", "kGray", "kSpring", "kViolet"};
     int lineWidth = 3;
     double markerSize = 1.3;
 
@@ -5859,7 +5859,7 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
     t.SetTextFont(42);   
 
     // Overlay of gen eta cm distributions for different eta shifts
-    leg = new TLegend(0.16, 0.6, 0.34, 0.83);
+    leg = new TLegend(0.16, 0.55, 0.34, 0.83);
     leg->SetTextSize(0.03);
     leg->SetFillColor(0);
     leg->SetBorderSize(0);
@@ -5869,7 +5869,7 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
             hGenEtaCM[iEta]->GetXaxis()->SetTitle("#eta_{CM}");
             hGenEtaCM[iEta]->GetYaxis()->SetTitle("dN/d#eta_{CM}");
             hGenEtaCM[iEta]->GetYaxis()->SetRangeUser(0., 0.06);
-            hGenEtaCM[iEta]->GetXaxis()->SetRangeUser(-3.8, 3.8);
+            hGenEtaCM[iEta]->GetXaxis()->SetRangeUser(-4.8, 4.8);
         }
         plotCMSHeader(collisionSystem, collisionEnergy);
         t.DrawLatexNDC(0.16, 0.85, Form("%s gen (inclusive jets)", generatorType.Data()));
@@ -5882,7 +5882,7 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
     if (leg) { delete leg; leg = nullptr; }
 
     // Overlay of gen forward/backward cm distributions for different eta shifts
-    leg = new TLegend(0.16, 0.6, 0.34, 0.83);
+    leg = new TLegend(0.16, 0.55, 0.34, 0.83);
     leg->SetTextSize(0.03);
     leg->SetFillColor(0);
     leg->SetBorderSize(0);
