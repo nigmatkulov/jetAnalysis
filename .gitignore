@@ -30,3 +30,19 @@
 *.exe
 *.out
 *.app
+
+# Macbook garbage
+*.DS_Store
+
+# build directory
+build/*
+
+# histograms
+macro/202*
+macro/npdf/figs/*
+
+# processing
+processing/input/*
+processing/output/*
+processing/log/*
+processing/voms_proxy.txt

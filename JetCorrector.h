@@ -18,28 +18,8 @@
 #include "TF3.h"
 
 // Forward declarations
-class JetCorrector;
-class SingleJetCorrector;
-
-//________________
-class JetCorrector {
-  private:
-   std::vector<SingleJetCorrector> JEC;
-   double JetPT, JetEta, JetPhi, JetArea, Rho;
-  public:
-   JetCorrector()                               {}
-   JetCorrector(std::string File)               { Initialize(File); }
-   JetCorrector(std::vector<std::string> Files) { Initialize(Files); }
-   void Initialize(std::string File)            { std::vector<std::string> X; X.push_back(File); Initialize(X); }
-   void Initialize(std::vector<std::string> Files);
-   void SetJetPT(double value)     { JetPT = value; }
-   void SetJetEta(double value)    { JetEta = value; }
-   void SetJetPhi(double value)    { JetPhi = value; }
-   void SetJetArea(double value)   { JetArea = value; }
-   void SetRho(double value)       { Rho = value; }
-   double GetCorrection();
-   double GetCorrectedPT();
-};
+#ifndef SingleJetCorrector_h
+#define SingleJetCorrector_h
 
 //________________
 class SingleJetCorrector {
@@ -75,41 +55,6 @@ class SingleJetCorrector {
 private:
    std::string Hack4(std::string Formula, char V, int N);
 };
-
-//________________   
-void JetCorrector::Initialize(std::vector<std::string> Files) {
-   JEC.clear();
-   for(auto File : Files)
-      JEC.push_back(SingleJetCorrector(File));
-}
-
-//________________
-double JetCorrector::GetCorrection() {
-   double PT = GetCorrectedPT();
-   if(PT < 0)
-      return -1;
-   return PT / JetPT;
-}
-
-//________________
-double JetCorrector::GetCorrectedPT() {
-   double PT = JetPT;
-
-   for(int i = 0; i < (int)JEC.size(); i++) {
-      JEC[i].SetJetPT(PT);
-      JEC[i].SetJetEta(JetEta);
-      JEC[i].SetJetPhi(JetPhi);
-      JEC[i].SetRho(Rho);
-      JEC[i].SetJetArea(JetArea);
-
-      PT = JEC[i].GetCorrectedPT();
-
-      if(PT < 0)
-         break;
-   }
-
-   return PT;
-}
 
 //________________
 void SingleJetCorrector::Initialize(std::string FileName) {
@@ -373,3 +318,64 @@ std::string SingleJetCorrector::Hack4(std::string Formula, char V, int N) {
 
    return Formula;
 }
+
+#endif // #define SingleJetCorrector_h
+
+#ifndef JetCorrector_h
+#define JetCorrector_h
+//________________
+class JetCorrector {
+  private:
+   std::vector<SingleJetCorrector> JEC;
+   double JetPT, JetEta, JetPhi, JetArea, Rho;
+  public:
+   JetCorrector()                               {}
+   JetCorrector(std::string File)               { Initialize(File); }
+   JetCorrector(std::vector<std::string> Files) { Initialize(Files); }
+   void Initialize(std::string File)            { std::vector<std::string> X; X.push_back(File); Initialize(X); }
+   void Initialize(std::vector<std::string> Files);
+   void SetJetPT(double value)     { JetPT = value; }
+   void SetJetEta(double value)    { JetEta = value; }
+   void SetJetPhi(double value)    { JetPhi = value; }
+   void SetJetArea(double value)   { JetArea = value; }
+   void SetRho(double value)       { Rho = value; }
+   double GetCorrection();
+   double GetCorrectedPT();
+};
+
+//________________   
+void JetCorrector::Initialize(std::vector<std::string> Files) {
+   JEC.clear();
+   for(auto File : Files)
+      JEC.push_back(SingleJetCorrector(File));
+}
+
+//________________
+double JetCorrector::GetCorrection() {
+   double PT = GetCorrectedPT();
+   if(PT < 0)
+      return -1;
+   return PT / JetPT;
+}
+
+//________________
+double JetCorrector::GetCorrectedPT() {
+   double PT = JetPT;
+
+   for(int i = 0; i < (int)JEC.size(); i++) {
+      JEC[i].SetJetPT(PT);
+      JEC[i].SetJetEta(JetEta);
+      JEC[i].SetJetPhi(JetPhi);
+      JEC[i].SetRho(Rho);
+      JEC[i].SetJetArea(JetArea);
+
+      PT = JEC[i].GetCorrectedPT();
+
+      if(PT < 0)
+         break;
+   }
+
+   return PT;
+}
+
+#endif // #define JetCorrector_h

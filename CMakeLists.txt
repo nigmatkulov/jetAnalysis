@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(simpleReadForest 
+project(processForestSimple 
         VERSION 1.0 
         LANGUAGES C CXX)
 
@@ -28,7 +28,6 @@ include_directories(${CMAKE_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})
 # Add same CXX flags that were used to combile and build ROOT (including CXX standard)
 add_definitions(${ROOT_CXX_FLAGS})
 
-add_executable(simpleReadForest simpleReadForest.C)
-target_link_libraries(simpleReadForest ${ROOT_LIBRARIES})
-target_include_directories(simpleReadForest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS}) #${ROOT_INCLUDE_DIRS}
-
+add_executable(processForestSimple processForestSimple.C)
+target_link_libraries(processForestSimple ${ROOT_LIBRARIES})
+target_include_directories(processForestSimple PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS}) #${ROOT_INCLUDE_DIRS}
