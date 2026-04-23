@@ -75,6 +75,23 @@ float refJetEta[maxJets];  // reference jet eta
 float refJetPhi[maxJets];  // reference jet phi
 
 //________________
+void usage() {
+    std::cout << GREEN << "Usage: ./processForestSimple  [options]\n"
+                << "Options:\n"
+                << "  <input_file_or_list>  Input ROOT file or file list (default: empty)\n"
+                << "  <output_file>         Output ROOT file name (default: empty)\n"
+                << "  <0|1|2>               MC type (default 2): 0 - data, 1 - embedding, 2 - pythia\n"
+                << "  <0|1>                 Direction (default 1): 0 - p-going, 1 - Pb-going\n"
+                << "  <value>               pT hat sample for MC (default: 30)\n"
+                << "  <-1|0|1>              JEU systematic variation (default 0): -1 - JEU-, 0 - not applied, 1 - JEU+\n"
+                << "  <-99|0|1|-1>          JER systematic variation (default -99): -99 - only JEC applied, -1 - JER-, 0 - std.JER, 1 - JER+ \n"
+                << "  <value>               Trigger ID (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100\n"
+                << "  <value>               Reco jet selection method (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose\n"
+                << RESET;
+    exit (0);
+}
+
+//________________
 struct GenJet {
     float pt;
     float eta;
@@ -615,22 +632,23 @@ bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &ptHatSample
 void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weight, 
                     std::vector<GenJet> &genJets, Histograms &hs) {
 
+    float genJetEtaLabFlipped{0.};
+    float genJetEtaCM{0.};
     for (int iGenJet{0}; iGenJet < nGenJets; ++iGenJet) {
-        float genJetPtL = genJetPt[iGenJet];
-        float genJetEtaL = etaLab(genJetEta[iGenJet], isPbGoing, isMc);
-        float genJetPhiL = genJetPhi[iGenJet];
+        genJetEtaLabFlipped = etaLab(genJetEta[iGenJet], isPbGoing, isMc);
 
-        hs.hGenInclusiveJetPtEtaLabUnflipped->Fill(genJetEtaL, genJetPtL);
-        hs.hGenInclusiveJetEtaLabUnflipped->Fill(genJetEtaL);
-        hs.hGenInclusiveJetEtaLab->Fill(etaLab(genJetEta[iGenJet], isPbGoing, isMc));
-        hs.hGenInclusiveJetPt->Fill(genJetPtL);
+        hs.hGenInclusiveJetPtEtaLabUnflipped->Fill(genJetEta[iGenJet], genJetPt[iGenJet], weight);
+        hs.hGenInclusiveJetEtaLabUnflipped->Fill(genJetEta[iGenJet], weight);
+        hs.hGenInclusiveJetEtaLab->Fill(genJetEtaLabFlipped, weight);
+        hs.hGenInclusiveJetPt->Fill(genJetPt[iGenJet], weight);
 
         for (int iShift{0}; iShift < nEtaShifts; ++iShift) {
-            hs.hGenInclusiveJetEtaCMShiftedUnweighted[iShift]->Fill(etaCM(genJetEta[iGenJet], etaShift[iShift], isPbGoing, isMc));
-            hs.hGenInclusiveJetEtaCMShifted[iShift]->Fill(etaCM(genJetEta[iGenJet], etaShift[iShift], isPbGoing, isMc));
+            genJetEtaCM = etaCM(genJetEta[iGenJet], etaShift[iShift], isPbGoing, isMc);
+            hs.hGenInclusiveJetEtaCMShiftedUnweighted[iShift]->Fill( genJetEtaCM, 1.); // Unweighted
+            hs.hGenInclusiveJetEtaCMShifted[iShift]->Fill(genJetEtaCM, weight);
         } // for (int iShift{0}; iShift < nEtaShifts; ++iShift)
 
-        hs.hGenInclusiveJetPtEtaStdBins->Fill(etaLab(genJetEta[iGenJet], isPbGoing, isMc), genJetPtL);
+        hs.hGenInclusiveJetPtEtaStdBins->Fill(genJetEta[iGenJet], genJetPt[iGenJet], weight);
     } // for (int iGenJet{0}; iGenJet < nGenJets; ++iGenJet)
 }
 
@@ -702,8 +720,6 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
 
         // Should be very careful with dropping low-pT jets
         if (recoJetPt < 15.) continue; // Skip low-pT jets
-
-        
 
         RecoJet recoJet{recoJetPtRaw[iRecoJet], recoJetPt, recoJetPtExtraCorr,
                         recoJetEta[iRecoJet], recoJetPhi[iRecoJet],
@@ -828,6 +844,8 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
 void processForestSimple( const char* input = "", const char* output = "", 
                           int mcType = 2, int isPbGoingDir = 1, int ptHatSample = 30, int jeuSyst = 0,
                           int jerSyst = -99, int triggerId = 0, int recoJetSelMethod = 2 ) {
+
+    const char *path2auxFiles = "./aux_files/pPb_8160";
 #else
 int main(int argc, char* argv[]) {
 
@@ -841,36 +859,50 @@ int main(int argc, char* argv[]) {
     int triggerId = 0;
     int recoJetSelMethod = 2;
 
-    if (argc <= 1) {
+    if (argc <= 1 || argc != 10) {
         std::cerr << RED << "No input parameters provided. Terminating." << RESET << std::endl;
-        std::cout << GREEN << "Usage: " << argv[0] << " [options]\n"
-                  << "Options:\n"
-                  << "  <input_file_or_list>  Input ROOT file or file list (default: empty)\n"
-                  << "  <output_file>         Output ROOT file name (default: empty)\n"
-                  << "  <0|1|2>               MC type (default 2): 0 - data, 1 - embedding, 2 - pythia\n"
-                  << "  <0|1>                 Direction (default 1): 0 - p-going, 1 - Pb-going\n"
-                  << "  <value>               pT hat sample for MC (default: 30)\n"
-                  << "  <-1|0|1>              JEU systematic variation (default 0): -1 - JEU-, 0 - not applied, 1 - JEU+\n"
-                  << "  <-99|0|1|-1>          JER systematic variation (default -99): -99 - only JEC applied, -1 - JER-, 0 - std.JER, 1 - JER+ \n"
-                  << "  <value>               Trigger ID (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100\n"
-                  << "  <value>               Reco jet selection method (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose\n"
-                  << RESET;
-        return 0;
+        usage();
     }
 
     input = argv[1];
     output = argv[2];
-    mcType = std::atoi(argv[3]);
+    mcType = std::atoi(argv[3]); 
     isPbGoingDir = std::atoi(argv[4]);
     ptHatSample = std::atoi(argv[5]);
     jeuSyst = std::atoi(argv[6]);
     jerSyst = std::atoi(argv[7]);
     triggerId = std::atoi(argv[8]);
     recoJetSelMethod = std::atoi(argv[9]);
+
+    const char *path2auxFiles = "../aux_files/pPb_8160";
 #endif
 
-    gStyle->SetOptStat(0);
-    gStyle->SetOptTitle(0);
+    // Validate input parameters
+    if (mcType < 0 || mcType > 2) {
+        std::cerr << RED << "Invalid mcType parameter. Must be 0 (data), 1 (embedding), or 2 (pythia). Terminating." << RESET << std::endl;
+        usage();
+    }
+    if (isPbGoingDir < 0 || isPbGoingDir > 1) {
+        std::cerr << RED << "Invalid isPbGoingDir parameter. Must be 0 (p-going) or 1 (Pb-going). Terminating." << RESET << std::endl;
+        usage();
+    }
+    if (jeuSyst < -1 || jeuSyst > 1) {
+        std::cerr << RED << "Invalid jeuSyst parameter. Must be -1 (JEU-), 0 (default), or 1 (JEU+). Terminating." << RESET << std::endl;
+        usage();
+    }
+    if ( jerSyst != -99 && (jerSyst < -1 || jerSyst > 1) ) {
+        std::cerr << RED << "Invalid jerSyst parameter. Must be -1 (JER-), 0 (std.JER), 1 (JER+), or -99 (only JEC, no smearing). Terminating." << RESET << std::endl;
+        usage();
+    }
+    if (triggerId < 0 || triggerId > 3) {
+        std::cerr << RED << "Invalid triggerId parameter. Must be 0 (no trigger/MB), 1 (jet60), 2 (jet80), or 3 (jet100). Terminating." << RESET << std::endl;
+        usage();
+    }
+    if (recoJetSelMethod < 0 || recoJetSelMethod > 3) {
+        std::cerr << RED << "Invalid recoJetSelMethod parameter. Must be 0 (no selection), 1 (trkMaxPt/RawPt), 2 (jetIdTightLeptVeto), or 3 (jetIdLoose). Terminating." << RESET << std::endl;
+        usage();
+    }
+
 
     bool isMc = (mcType != 0);
     bool isPythia = ((mcType != 0) && (mcType == 2));
@@ -888,35 +920,35 @@ int main(int argc, char* argv[]) {
         if (isPbGoingDir) {
             if (isEmbedding) {
                 // PYTHIA+EPOS
-                fJECFileNames.push_back("../aux_files/pPb_8160/JEC/Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt");
+                fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
             }
             else {
                 // PYTHIA
-                fJECFileNames.push_back("../aux_files/pPb_8160/JEC/Autumn16_HI_pPb_Pbgoing_Unembedded_MC_L2Relative_AK4PF.txt");
+                fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_Pbgoing_Unembedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
             }
         }
         else {
             if (isEmbedding) {
                 // PYTHIA+EPOS
-                fJECFileNames.push_back("../aux_files/pPb_8160/JEC/Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt");
+                fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
             }
             else {
                 // PYTHIA
-                fJECFileNames.push_back("../aux_files/pPb_8160/JEC/Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF.txt");
+                fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_pgoing_Unembedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
             }
         }
     }
     else {
         if (isPbGoingDir) { // Remember to flip to p-going for data
-            fJECFileNames.push_back("../aux_files/pPb_8160/JEC/Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt");
+            fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
         }
         else {
-            fJECFileNames.push_back("../aux_files/pPb_8160/JEC/Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt");
+            fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
         }
         // Old correction
         // JECFileDataName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt";
         // New correction (with updated residuals)
-        fJECFileNames.push_back("../aux_files/pPb_8160/JEC/Summer16_07Aug2017GH_V11_DATA_L2L3Residual_AK4PF.txt");
+        fJECFileNames.push_back( Form("%s/JEC/Summer16_07Aug2017GH_V11_DATA_L2L3Residual_AK4PF.txt", path2auxFiles) );
         
         // JEUFileName = "../aux_files/pPb_8160/JEC/Summer16_23Sep2016HV4_DATA_Uncertainty_AK4PF.txt";
     } // else
@@ -1019,7 +1051,7 @@ int main(int argc, char* argv[]) {
             Long64_t etaMinutes = etaTotalSeconds / 60;
             Long64_t etaRemainingSeconds = etaTotalSeconds % 60;
 
-            std::cout << Form("Processed %lld / %lld entries | elapsed %lld m %lld s | ETA %lld m %lld s",
+            std::cout << Form("Processed %lld / %lld entries | elapsed %lldm:%llds | ETA %lldm:%llds",
                               entriesPassed, nEntries,
                               elapsedMinutes, elapsedRemainingSeconds,
                               etaMinutes, etaRemainingSeconds) << std::endl;

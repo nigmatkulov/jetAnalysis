@@ -35,7 +35,14 @@
 *.DS_Store
 
 # build directory
-build/*
+build/
+
+# Python cache directories
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.vscode/
 
 # histograms
 macro/202*
