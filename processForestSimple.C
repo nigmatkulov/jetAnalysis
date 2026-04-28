@@ -7,7 +7,6 @@
 #include "TTree.h"
 #include "TStyle.h"
 #include "TString.h"
-#include "TLegend.h"
 
 #include "JetCorrector.h"
 
@@ -64,11 +63,11 @@ float recoJetPfNEF[maxJets];      // reconstructed jet neutral electromagnetic f
 float recoJetPfCHF[maxJets];      // reconstructed jet charged hadron fraction
 float recoJetPfMUF[maxJets];      // reconstructed jet muon fraction
 float recoJetPfCEF[maxJets];      // reconstructed jet charged electromagnetic fraction
-float recoJetPfCHM[maxJets];      // reconstructed jet charged muon fraction
-float recoJetPfCEM[maxJets];      // reconstructed jet charged electromagnetic fraction
-float recoJetPfNHM[maxJets];      // reconstructed jet neutral hadron fraction
-float recoJetPfNEM[maxJets];      // reconstructed jet neutral electromagnetic fraction
-float recoJetPfMUM[maxJets];      // reconstructed jet muon fraction
+int   recoJetPfCHM[maxJets];      // reconstructed jet charged muon fraction
+int   recoJetPfCEM[maxJets];      // reconstructed jet charged electromagnetic fraction
+int   recoJetPfNHM[maxJets];      // reconstructed jet neutral hadron fraction
+int   recoJetPfNEM[maxJets];      // reconstructed jet neutral electromagnetic fraction
+int   recoJetPfMUM[maxJets];      // reconstructed jet muon fraction
 
 float refJetPt[maxJets];   // reference jet pT
 float refJetEta[maxJets];  // reference jet eta
@@ -102,7 +101,6 @@ struct GenJet {
 struct RecoJet {
     float recoPtRaw;
     float recoPt;
-    float recoPtExtra;
     float recoEta;
     float recoPhi;
     float recoPfNHF;
@@ -110,11 +108,11 @@ struct RecoJet {
     float recoPfCHF;
     float recoPfMUF;
     float recoPfCEF;
-    float recoPfCHM;
-    float recoPfCEM;
-    float recoPfNHM;
-    float recoPfNEM;
-    float recoPfMUM;
+    int  recoPfCHM;
+    int  recoPfCEM;
+    int  recoPfNHM;
+    int  recoPfNEM;
+    int  recoPfMUM;
     float refPt;
     float refEta;
 };
@@ -141,6 +139,7 @@ struct Histograms {
     std::unique_ptr<TH1D> hGenInclusiveJetEtaCMShiftedUnweighted[nEtaShifts];
     std::unique_ptr<TH1D> hGenInclusiveJetEtaCMShifted[nEtaShifts];
     std::unique_ptr<TH2D> hGenInclusiveJetPtEtaStdBins;
+    std::unique_ptr<TH2D> hGenInclusiveJetPtPtHat;
 
     // Gen dijet histograms
     std::unique_ptr<TH1D> hGenDijetPtAve;
@@ -162,13 +161,15 @@ struct Histograms {
     std::unique_ptr<TH1D> hRecoInclusiveJetEtaCMShifted[nEtaShifts];
     std::unique_ptr<TH2D> hRecoInclusiveJetPtEtaStdBins;
     std::unique_ptr<TH3D> hRecoInclusiveJetJESPtEtaStdBins;
-    std::unique_ptr<TH3D> hRecoInclusiveJetJESExtraPtEtaStdBins;
-    std::unique_ptr<TH3D> hRecoInclusiveJetJECPtEtaStdBins;
 
     //
     // Ref level histograms
     //
-
+    std::unique_ptr<TH2D> hRefInclusiveJetPtEtaLabUnflipped;
+    std::unique_ptr<TH1D> hRefInclusiveJetEtaLabUnflipped;
+    std::unique_ptr<TH1D> hRefInclusiveJetEtaLab;
+    std::unique_ptr<TH1D> hRefInclusiveJetPt;
+    std::unique_ptr<TH2D> hRefInclusiveJetPtEtaStdBins;
 
 };
 
@@ -296,38 +297,71 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                                 nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hGenInclusiveJetEtaCMShiftedUnweighted[0]->Sumw2();
         hs.hGenInclusiveJetEtaCMShifted[0] = std::make_unique<TH1D>(Form("hGenInclusiveJetEtaCMShifted_%.3f", etaShift[0]), 
-                                                Form("Gen jet eta (CM frame, shifted by %.3f);#eta_{CM};dN/d#eta_{CM}", etaShift[0]), 
-                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+                                                                    Form("Gen jet eta (CM frame, shifted by %.3f);#eta_{CM};dN/d#eta_{CM}", etaShift[0]), 
+                                                                    nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hGenInclusiveJetEtaCMShifted[0]->Sumw2();
         hs.hGenInclusiveJetPtEtaStdBins = std::make_unique<TH2D>("hGenInclusiveJetPtEtaStdBins", 
-                                                "Gen jet pT vs eta (standard bins);#eta;p_{T} (GeV)",
-                                                jetEtaL2L3StdBins, jetEtaL2L3StdVals,
-                                                nJetPtBins, jetPtBins[0], jetPtBins[1]);
+                                                                "Gen jet pT vs eta (standard bins);#eta;p_{T} (GeV)",
+                                                                jetEtaL2L3StdBins, jetEtaL2L3StdVals,
+                                                                nJetPtBins, jetPtBins[0], jetPtBins[1]);
         hs.hGenInclusiveJetPtEtaStdBins->Sumw2();
+        hs.hGenInclusiveJetPtPtHat = std::make_unique<TH2D>("hGenInclusiveJetPtPtHat", 
+                                                            "Gen jet #hat{p}_{T} vs p_{T};p_{T} (GeV);#hat{p}_{T} (GeV)",
+                                                            nJetPtBins, jetPtBins[0], jetPtBins[1],
+                                                            nJetPtBins, jetPtBins[0], jetPtBins[1]);
+        hs.hGenInclusiveJetPtPtHat->Sumw2();
 
         // Gen dijet histograms
         hs.hGenDijetPtAve = std::make_unique<TH1D>("hGenDijetPtAve", 
-                                                "Gen dijet pT average;p_{T}^{ave} (GeV);dN/dp_{T}^{ave}", 
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1]);
+                                                    "Gen dijet pT average;p_{T}^{ave} (GeV);dN/dp_{T}^{ave}", 
+                                                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1]);
         hs.hGenDijetPtAve->Sumw2();
         for (int iShift{0}; iShift < nEtaShifts; ++iShift) {
             hs.hGenDijetEtaCMShiftedUnweighted[iShift] = std::make_unique<TH1D>(Form("hGenDijetEtaCMShiftedUnweighted_%d", iShift), 
-                                                Form("Gen dijet eta (CM frame, shifted by %.3f, unweighted);#eta;dN/d#eta", etaShift[iShift]), 
-                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                                                                                Form("Gen dijet eta (CM frame, shifted by %.3f, unweighted);#eta;dN/d#eta", etaShift[iShift]), 
+                                                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
             hs.hGenDijetEtaCMShiftedUnweighted[iShift]->Sumw2();
             hs.hGenDijetEtaCMShifted[iShift] = std::make_unique<TH1D>(Form("hGenDijetEtaCMShifted_%d", iShift), 
-                                                Form("Gen dijet eta (CM frame, shifted by %.3f);#eta;dN/d#eta", etaShift[iShift]), 
-                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                                                                        Form("Gen dijet eta (CM frame, shifted by %.3f);#eta;dN/d#eta", etaShift[iShift]), 
+                                                                        nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
             hs.hGenDijetEtaCMShifted[iShift]->Sumw2();
             hs.hGenDijetEtaCMForwardShifted[iShift] = std::make_unique<TH1D>(Form("hGenDijetEtaCMForwardShifted_%d", iShift), 
-                                                Form("Gen dijet eta (CM frame, forward shifted by %.3f);#eta;dN/d#eta", etaShift[iShift]), 
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+                                                                            Form("Gen dijet eta (CM frame, forward shifted by %.3f);#eta;dN/d#eta", etaShift[iShift]), 
+                                                                            nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hGenDijetEtaCMForwardShifted[iShift]->Sumw2();
             hs.hGenDijetEtaCMBackwardShifted[iShift] = std::make_unique<TH1D>(Form("hGenDijetEtaCMBackwardShifted_%d", iShift), 
-                                                Form("Gen dijet eta (CM frame, backward shifted by %.3f);#eta;dN/d#eta", etaShift[iShift]), 
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+                                                                            Form("Gen dijet eta (CM frame, backward shifted by %.3f);#eta;dN/d#eta", etaShift[iShift]), 
+                                                                            nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hGenDijetEtaCMBackwardShifted[iShift]->Sumw2();
         } // for (int iShift{0}; iShift < nEtaShifts; ++iShift)
+
+        //
+        // Ref level histograms
+        //
+
+        // Ref jet histograms
+        hs.hRefInclusiveJetPtEtaLabUnflipped = std::make_unique<TH2D>("hRefInclusiveJetPtEtaLabUnflipped", 
+                                                                    "Ref jet pT vs eta (lab frame, unflipped);#eta;p_{T} (GeV)", 
+                                                                    nJetEtaBins, jetEtaBins[0], jetEtaBins[1], 
+                                                                    nJetPtBins, jetPtBins[0], jetPtBins[1]);
+        hs.hRefInclusiveJetPtEtaLabUnflipped->Sumw2();
+        hs.hRefInclusiveJetEtaLabUnflipped = std::make_unique<TH1D>("hRefInclusiveJetEtaLabUnflipped", 
+                                                                    "Ref jet eta (lab frame, unflipped);#eta;dN/d#eta", 
+                                                                    nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+        hs.hRefInclusiveJetEtaLabUnflipped->Sumw2();
+        hs.hRefInclusiveJetEtaLab = std::make_unique<TH1D>("hRefInclusiveJetEtaLab", 
+                                              "Ref jet eta (lab frame);#eta;dN/d#eta", 
+                                              nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+        hs.hRefInclusiveJetEtaLab->Sumw2();
+        hs.hRefInclusiveJetPt = std::make_unique<TH1D>("hRefInclusiveJetPt", 
+                                                        "Ref jet p_{T};p_{T} (GeV);dN/dp_{T}", 
+                                                        nJetPtBins, jetPtBins[0], jetPtBins[1]);
+        hs.hRefInclusiveJetPt->Sumw2();
+        hs.hRefInclusiveJetPtEtaStdBins = std::make_unique<TH2D>("hRefInclusiveJetPtEtaStdBins", 
+                                                                "Ref jet pT vs eta (standard bins);#eta;p_{T} (GeV)",
+                                                                jetEtaL2L3StdBins, jetEtaL2L3StdVals,
+                                                                nJetPtBins, jetPtBins[0], jetPtBins[1]);
+        hs.hRefInclusiveJetPtEtaStdBins->Sumw2();
 
     }
 
@@ -336,21 +370,21 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
     //
 
     hs.hRecoInclusiveJetPtEtaLabUnflipped = std::make_unique<TH2D>("hRecoInclusiveJetPtEtaLabUnflipped", 
-                                              "Reco jet pT vs eta (lab frame, unflipped);#eta;p_{T} (GeV)", 
-                                              nJetEtaBins, jetEtaBins[0], jetEtaBins[1], 
-                                              nJetPtBins, jetPtBins[0], jetPtBins[1]);
+                                                                    "Reco jet pT vs eta (lab frame, unflipped);#eta;p_{T} (GeV)", 
+                                                                    nJetEtaBins, jetEtaBins[0], jetEtaBins[1], 
+                                                                    nJetPtBins, jetPtBins[0], jetPtBins[1]);
     hs.hRecoInclusiveJetPtEtaLabUnflipped->Sumw2();
     hs.hRecoInclusiveJetEtaLabUnflipped = std::make_unique<TH1D>("hRecoInclusiveJetEtaLabUnflipped", 
-                                              "Reco jet eta (lab frame, unflipped);#eta;dN/d#eta", 
-                                              nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+                                                                "Reco jet eta (lab frame, unflipped);#eta;dN/d#eta", 
+                                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
     hs.hRecoInclusiveJetEtaLabUnflipped->Sumw2();
     hs.hRecoInclusiveJetEtaLab = std::make_unique<TH1D>("hRecoInclusiveJetEtaLab", 
-                                              "Reco jet eta (lab frame);#eta;dN/d#eta", 
-                                              nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+                                                        "Reco jet eta (lab frame);#eta;dN/d#eta", 
+                                                        nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
     hs.hRecoInclusiveJetEtaLab->Sumw2();
     hs.hRecoInclusiveJetPt = std::make_unique<TH1D>("hRecoInclusiveJetPt", 
-                                              "Reco jet p_{T};p_{T} (GeV);dN/dp_{T}", 
-                                              nJetPtBins, jetPtBins[0], jetPtBins[1]);
+                                                    "Reco jet p_{T};p_{T} (GeV);dN/dp_{T}", 
+                                                    nJetPtBins, jetPtBins[0], jetPtBins[1]);
     hs.hRecoInclusiveJetPt->Sumw2();
     for (int iShift{0}; iShift < nEtaShifts; ++iShift) {
         hs.hRecoInclusiveJetEtaCMShiftedUnweighted[iShift] = std::make_unique<TH1D>(Form("hRecoInclusiveJetEtaCMShiftedUnweighted_%d", iShift), 
@@ -364,30 +398,18 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
     } // for (int iShift{0}; iShift < nEtaShifts; ++iShift)
 
     hs.hRecoInclusiveJetPtEtaStdBins = std::make_unique<TH2D>("hRecoInclusiveJetPtEtaStdBins", 
-                                              "Reco jet pT vs eta (standard bins);#eta;p_{T} (GeV)",
-                                              jetEtaL2L3StdBins, jetEtaL2L3StdVals,
-                                              nJetPtBins, jetPtBins[0], jetPtBins[1]);
+                                                            "Reco jet pT vs eta (standard bins);#eta;p_{T} (GeV)",
+                                                            jetEtaL2L3StdBins, jetEtaL2L3StdVals,
+                                                            nJetPtBins, jetPtBins[0], jetPtBins[1]);
     hs.hRecoInclusiveJetPtEtaStdBins->Sumw2();
 
     if (isMc) {
         hs.hRecoInclusiveJetJESPtEtaStdBins = std::make_unique<TH3D>("hRecoInclusiveJetJESPtEtaStdBins", 
-                                                "Reco jet JES (reco/ref) vs pT vs eta (standard bins);JES;p_{T} (GeV);#eta",
-                                                nJetJESBins, jetJESBins[0], jetJESBins[1],
-                                                nJetPtBins, jetPtBins[0], jetPtBins[1],
-                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+                                                                    "Reco jet JES (reco/ref) vs pT vs eta (standard bins);JES;p_{T} (GeV);#eta",
+                                                                    nJetJESBins, jetJESBins[0], jetJESBins[1],
+                                                                    nJetPtBins, jetPtBins[0], jetPtBins[1],
+                                                                    nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hRecoInclusiveJetJESPtEtaStdBins->Sumw2();
-        hs.hRecoInclusiveJetJESExtraPtEtaStdBins = std::make_unique<TH3D>("hRecoInclusiveJetJESExtraPtEtaStdBins", 
-                                                "Reco jet JES (reco/ref) vs pT vs eta (standard bins, extra);JES;p_{T} (GeV);#eta",
-                                                nJetJESBins, jetJESBins[0], jetJESBins[1],
-                                                nJetPtBins, jetPtBins[0], jetPtBins[1],
-                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-        hs.hRecoInclusiveJetJESExtraPtEtaStdBins->Sumw2();
-        hs.hRecoInclusiveJetJECPtEtaStdBins = std::make_unique<TH3D>("hRecoInclusiveJetJECPtEtaStdBins",
-                                                "Reco jet JEC (recoCorr/recoRaw) vs pT vs eta (standard bins, corrected);JEC;p_{T} (GeV);#eta",
-                                                nJetJESBins, jetJESBins[0], jetJESBins[1],
-                                                nJetPtBins, jetPtBins[0], jetPtBins[1],
-                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-        hs.hRecoInclusiveJetJECPtEtaStdBins->Sumw2();
     }
 
     std::cout << GREEN << "\t[DONE]" << RESET << std::endl;
@@ -630,7 +652,7 @@ bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &ptHatSample
 
 //________________
 void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weight, 
-                    std::vector<GenJet> &genJets, Histograms &hs) {
+                    std::vector<GenJet> &genJets, Histograms &hs, const double &ptHat) {
 
     float genJetEtaLabFlipped{0.};
     float genJetEtaCM{0.};
@@ -649,6 +671,7 @@ void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weigh
         } // for (int iShift{0}; iShift < nEtaShifts; ++iShift)
 
         hs.hGenInclusiveJetPtEtaStdBins->Fill(genJetEta[iGenJet], genJetPt[iGenJet], weight);
+        hs.hGenInclusiveJetPtPtHat->Fill(genJetPt[iGenJet], ptHat, weight);
     } // for (int iGenJet{0}; iGenJet < nGenJets; ++iGenJet)
 }
 
@@ -692,11 +715,112 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
 }
 
 //________________
+bool isGoodRecoJet(const int &jetIndex, const int &jetSelectionMethod) {
+    // jetIndex: corresponds to the index of the jet in the original arrays (e.g., recoJetPtRaw[jetIndex], recoJetEta[jetIndex], etc.)
+    // jetSelectionMethod: 0 - no selection, 1 - trackMax, 2 - jetIdTightLept, 3 - jetIdLoose
+
+    bool isGood = false;
+    if (jetSelectionMethod == 0) {
+        isGood = true; // No selection, all jets are good
+    }
+    else if (jetSelectionMethod == 1) {
+        isGood = true;
+        if ( std::abs(recoJetEta[jetIndex]) < 2.4 ) {
+            if ( recoJetTrackMaxPt[jetIndex] / recoJetPtRaw[jetIndex] < 0.01 ) {
+                isGood = false;
+                // if ( fVerbose ) {
+                //     std::cout << Form("--> trackMaxPt/RawPt: %5.2f <= %5.2f \t [failed]\n",
+                //                       recoJetTrackMaxPt[jetIndex], recoJetPtRaw[jetIndex]);
+                // }
+            }
+            if ( recoJetTrackMaxPt[jetIndex] / recoJetPtRaw[jetIndex] > 0.98 ) {
+                isGood = false;
+                // if ( fVerbose ) {
+                //     std::cout << Form("--> trackMaxPt/RawPt: %5.2f >= %5.2f \t [failed]\n",
+                //                       recoJetTrackMaxPt[jetIndex], recoJetPtRaw[jetIndex]);
+                // }
+            }
+        }
+    }
+    else if (jetSelectionMethod == 2 || jetSelectionMethod == 3) {
+        
+        isGood = true;
+        int chargedMult = recoJetPfCHM[jetIndex] + recoJetPfCEM[jetIndex] + recoJetPfMUM[jetIndex];
+        int neutralMult = recoJetPfNHM[jetIndex] + recoJetPfNEM[jetIndex];
+        int numberOfConstituents = chargedMult + neutralMult;
+ 
+        float chargedEmFracCut{1.}, neutFracCut{1.};
+        if ( jetSelectionMethod == 2 ) { 
+            chargedEmFracCut = {0.9f};
+            neutFracCut = {0.9f};
+        }
+        else {
+            chargedEmFracCut = {0.99f};
+            neutFracCut = {0.99f};
+        }
+
+        bool passNHF{false};
+        bool passNEF{false};
+        bool passNumOfConstituents{true};
+        bool passMuonFrac{true};
+        bool passChargedFrac{true};
+        bool passChargedMult{true};
+        bool passChargedEmFrac{true};
+        bool passNeutralMult{true};
+
+        // std::cout << Form("\n---------\nJet %d: eta = %.2f, NHF = %.3f, NEF = %.3f, CHF = %.3f, MUF = %.3f, CEF = %.3f, CHM = %d, CEM = %d, NHM = %d, NEM = %d, MUM = %d \t [chargedMult: %d, neutralMult: %d]\n",
+        //                   jetIndex, recoJetEta[jetIndex], recoJetPfNHF[jetIndex], recoJetPfNEF[jetIndex], 
+        //                   recoJetPfCHF[jetIndex], recoJetPfMUF[jetIndex], recoJetPfCEF[jetIndex], 
+        //                   recoJetPfCHM[jetIndex], recoJetPfCEM[jetIndex], recoJetPfNHM[jetIndex], 
+        //                   recoJetPfNEM[jetIndex], recoJetPfMUM[jetIndex], chargedMult, neutralMult);
+
+        // Check cuts depending on jet pseudorapdity
+        if ( std::abs( recoJetEta[jetIndex] ) <= 2.7 ) {
+            
+            passNHF = ( recoJetPfNHF[jetIndex] < neutFracCut ) ? true : false;
+            passNEF = ( recoJetPfNEF[jetIndex] < neutFracCut ) ? true : false;
+            passNumOfConstituents = ( numberOfConstituents > 1 ) ? true : false;
+
+            if ( jetSelectionMethod == 2 ) { 
+                passMuonFrac = ( recoJetPfMUF[jetIndex] < 0.8 ) ? true : false; 
+            } // if ( jetSelectionMethod == 2 )
+
+            if( std::abs( recoJetEta[jetIndex] ) <= 2.4 ) {
+                passChargedFrac = ( recoJetPfCHF[jetIndex] > 0 ) ? true : false;
+                passChargedMult = ( chargedMult > 0 ) ? true : false;
+                passChargedEmFrac = ( recoJetPfCEF[jetIndex] < chargedEmFracCut ) ? true : false;
+            } // if( std::abs( recoJetEta[jetIndex] ) <= 2.4 )
+
+        } // if ( std::abs( recoJetEta[jetIndex] ) <= 2.7 )
+        else if ( std::abs( recoJetEta[jetIndex] ) <= 3.0) {
+
+            passNEF = ( recoJetPfNEF[jetIndex] > 0.01 ) ? true : false;
+            passNHF = ( recoJetPfNHF[jetIndex] < 0.98 ) ? true : false;
+            passNeutralMult = ( neutralMult > 2 ) ? true : false;
+
+        } // else if ( std::abs( recoJetEta[jetIndex] ) <= 3.0)
+        else  {
+            passNEF = ( recoJetPfNEF[jetIndex] < 0.9 ) ? true : false;
+            passNeutralMult = (neutralMult > 10 ) ? true : false; // CAUTION: JET MET says it should be >10
+        } // else 
+
+        isGood = passNHF && passNEF && passNumOfConstituents && passMuonFrac && passChargedFrac && 
+                 passChargedMult && passChargedEmFrac && passNeutralMult;
+
+        // std::cout << Form("Jet %d: passNHF: %d, passNEF: %d, passNumOfConstituents: %d, passMuonFrac: %d, passChargedFrac: %d, passChargedMult: %d, passChargedEmFrac: %d, passNeutralMult: %d \t [isGood: %d]\n",
+        //                   jetIndex, passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
+        //                   passChargedMult, passChargedEmFrac, passNeutralMult, isGood);
+    } // else if (jetSelectionMethod == 2 || jetSelectionMethod == 3)
+
+    return isGood;
+}
+
+//________________
 void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weight, 
-                     std::vector<RecoJet> &recoJets, Histograms &hs, JetCorrector &jec) {
+                     std::vector<RecoJet> &recoJets, Histograms &hs, JetCorrector &jec, 
+                     const int &jetSelectionMethod) {
     
     float recoJetPt{0.};
-    float recoJetPtExtraCorr{0.};
     float recoJetEtaLabFlipped{0.};
     float recoJetEtaCM{0.};
     float recoJetJECFactor{0.};
@@ -706,11 +830,12 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
     for (int iRecoJet = 0; iRecoJet < nRecoJets; iRecoJet++) {
 
         recoJetPt = {0.};
-        recoJetPtExtraCorr = {0.};
         recoJetEtaLabFlipped = {0.};
         recoJetEtaCM = {0.};
         recoJetJECFactor = {0.};
         recoJetJES = {0.};
+
+        if ( !isGoodRecoJet(iRecoJet, jetSelectionMethod) ) continue;
 
         jec.SetJetPT( recoJetPtRaw[iRecoJet] );
         jec.SetJetEta( recoJetEta[iRecoJet] );
@@ -721,7 +846,10 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
         // Should be very careful with dropping low-pT jets
         if (recoJetPt < 15.) continue; // Skip low-pT jets
 
-        RecoJet recoJet{recoJetPtRaw[iRecoJet], recoJetPt, recoJetPtExtraCorr,
+        // std::cout << Form("Reco jet %d: raw pT = %.1f GeV, corrected pT = %.1f GeV, extra corr factor = %.3f, corrected pT with extra corr = %.1f GeV, ref pT: %.1f, eta = %.2f", 
+        //                   iRecoJet, recoJetPtRaw[iRecoJet], recoJetPt, extraCorrFactor, recoJetPtExtraCorr, refJetPt[iRecoJet], recoJetEta[iRecoJet]) << std::endl;
+
+        RecoJet recoJet{recoJetPtRaw[iRecoJet], recoJetPt, 
                         recoJetEta[iRecoJet], recoJetPhi[iRecoJet],
                         recoJetPfNHF[iRecoJet], recoJetPfNEF[iRecoJet], recoJetPfCHF[iRecoJet], 
                         recoJetPfMUF[iRecoJet], recoJetPfCEF[iRecoJet], recoJetPfCHM[iRecoJet], 
@@ -743,14 +871,19 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
         // hs.hRecoInclusiveJetEtaCMShifted[nEtaShifts];
 
         hs.hRecoInclusiveJetPtEtaStdBins->Fill(recoJetEta[iRecoJet], recoJetPt, weight);
-        hs.hRecoInclusiveJetJECPtEtaStdBins->Fill(recoJetJECFactor, recoJetPt, recoJetEta[iRecoJet], weight);
 
         if (isMc) {
             if ( refJetPt[iRecoJet] < 0.) continue;
             recoJetJECFactor = recoJetPt / recoJetPtRaw[iRecoJet];
             recoJetJES = recoJetPt / refJetPt[iRecoJet];
-            hs.hRecoInclusiveJetJESPtEtaStdBins->Fill(recoJetJES, recoJetPt, recoJetEta[iRecoJet], weight);
-            // hs.hRecoInclusiveJetJESExtraPtEtaStdBins;
+            hs.hRecoInclusiveJetJESPtEtaStdBins->Fill(recoJetJES, refJetPt[iRecoJet], refJetEta[iRecoJet], weight);
+
+            // Fill ref jet information
+            hs.hRefInclusiveJetPtEtaLabUnflipped->Fill(refJetEta[iRecoJet], refJetPt[iRecoJet], weight);
+            hs.hRefInclusiveJetEtaLabUnflipped->Fill(refJetEta[iRecoJet], weight);
+            hs.hRefInclusiveJetEtaLab->Fill(etaLab(refJetEta[iRecoJet], isPbGoing, isMc), weight);
+            hs.hRefInclusiveJetPt->Fill(refJetPt[iRecoJet], weight);
+            hs.hRefInclusiveJetPtEtaStdBins->Fill(refJetEta[iRecoJet], refJetPt[iRecoJet], weight);
         } // if (isMc)
 
     } // for (int iRecoJet = 0; iRecoJet < nRecoJets; iRecoJet++)
@@ -793,6 +926,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
             hs.hGenInclusiveJetEtaCMShifted[iShift]->Write();
         }
         hs.hGenInclusiveJetPtEtaStdBins->Write();
+        hs.hGenInclusiveJetPtPtHat->Write();
 
         // Gen dijets
         hs.hGenDijetPtAve->Write();
@@ -802,7 +936,19 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
             hs.hGenDijetEtaCMForwardShifted[iShift]->Write();
             hs.hGenDijetEtaCMBackwardShifted[iShift]->Write();
         }
-    }
+
+        //
+        // Ref level histograms
+        //
+        
+        // Ref jets
+        hs.hRefInclusiveJetPtEtaLabUnflipped->Write();
+        hs.hRefInclusiveJetEtaLabUnflipped->Write();
+        hs.hRefInclusiveJetEtaLab->Write();
+        hs.hRefInclusiveJetPt->Write();
+        hs.hRefInclusiveJetPtEtaStdBins->Write();
+
+    } // if (isMc)
 
     //
     // Reco level histograms
@@ -816,14 +962,107 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
         hs.hRecoInclusiveJetEtaCMShifted[iShift]->Write();
     }
     hs.hRecoInclusiveJetPtEtaStdBins->Write();
-    hs.hRecoInclusiveJetJECPtEtaStdBins->Write();
     if (isMc) {
         hs.hRecoInclusiveJetJESPtEtaStdBins->Write();
-        hs.hRecoInclusiveJetJESExtraPtEtaStdBins->Write();
     }
 
     fOut->Close();
     std::cout << GREEN << "\t[DONE]" << RESET << std::endl;
+}
+
+//________________
+void processEvents(const bool &isPbGoing, const bool &isMc, TChain &mainTree, 
+                   JetCorrector &jec, Histograms &hs, const int &ptHatSample,
+                   const int &jetSelectionMethod) {
+
+    std::cout << "Start event processing..." << std::endl;
+
+    // Vz weight function for MC, derived from data/MC ratio of vz distribution in minimum bias events
+    auto fVzWeight = std::make_unique<TF1>("fVzWeight", "pol8", -15.1, 15.1);
+    fVzWeight->SetParameters(0.856516,-0.0159813,0.00436628,-0.00012862,2.61129e-05,-4.16965e-07,1.73711e-08,-3.11953e-09,6.24993e-10);
+
+    int nEventsProcessed{0};
+    int nGoodEvents{0};
+    double weight{0.};
+
+    std::vector<GenJet> genJets;
+    std::vector<RecoJet> recoJets;
+
+    int printEvery{50000};
+    Long64_t nextPrintAt{printEvery};
+    auto startTime = std::chrono::steady_clock::now();
+
+    Long64_t nEntries = mainTree.GetEntries();
+    for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry) {
+
+        mainTree.GetEntry(iEntry);
+        nEventsProcessed++;
+        Long64_t entriesPassed = iEntry + 1;
+        if ((entriesPassed >= nextPrintAt) || (entriesPassed == nEntries)) {
+            auto now = std::chrono::steady_clock::now();
+            std::chrono::duration<double> elapsed = now - startTime;
+            double elapsedSeconds = elapsed.count();
+            double etaSeconds = 0.0;
+            if (entriesPassed > 0 && entriesPassed < nEntries) {
+                etaSeconds = elapsedSeconds * static_cast<double>(nEntries - entriesPassed) / static_cast<double>(entriesPassed);
+            }
+
+            Long64_t elapsedTotalSeconds = static_cast<Long64_t>(std::llround(elapsedSeconds));
+            Long64_t elapsedMinutes = elapsedTotalSeconds / 60;
+            Long64_t elapsedRemainingSeconds = elapsedTotalSeconds % 60;
+
+            Long64_t etaTotalSeconds = static_cast<Long64_t>(std::llround(etaSeconds));
+            Long64_t etaMinutes = etaTotalSeconds / 60;
+            Long64_t etaRemainingSeconds = etaTotalSeconds % 60;
+
+            std::cout << Form("Processed %lld / %lld entries | elapsed %lldm:%llds | ETA %lldm:%llds",
+                              entriesPassed, nEntries,
+                              elapsedMinutes, elapsedRemainingSeconds,
+                              etaMinutes, etaRemainingSeconds) << std::endl;
+
+            nextPrintAt += printEvery;
+        }
+
+        // std::cout << "\n========================================\n";
+        // std::cout << Form("Event: %d ptHat = %.1f GeV, vz = %.2f cm", iEntry, ptHat, vz) << std::endl;
+        // std::cout << Form("%.1f <= ptHat <= %.1f ? %s", ptHatRange[0], ptHatRange[1], 
+        //                  (ptHat >= ptHatRange[0] && ptHat <= ptHatRange[1]) ? "true" : "false") << std::endl;
+        // std::cout << Form("|vz| <= 15 cm ? %s", (std::abs(vz) <= 15.) ? "true" : "false") << std::endl;
+
+        // Check the event is satisfies basic event selection
+
+        if (!isGoodEvent(isPbGoing, isMc, ptHatSample)) continue;
+
+        nGoodEvents++;
+
+        if (isPbGoing) vz = -vz; 
+        weight = eventWeight(ptHat, vz, *fVzWeight, nEntries);
+
+        hs.hPtHatUnweighted->Fill(ptHat);
+        hs.hPtHat->Fill(ptHat, weight);
+        hs.hVzUnweighted->Fill(vz);
+        hs.hVz->Fill(vz, weight);
+
+        //
+        // Gen level processing
+        //
+        if (isMc) {
+            if ( !genJets.empty() ) genJets.clear();
+            processGenJets(isPbGoing, isMc, weight, genJets, hs, ptHat);
+            processGenDijets(isPbGoing, isMc, weight, genJets, hs);
+            if ( !genJets.empty() ) genJets.clear();
+        }
+
+        //
+        // Reco level processing
+        //
+        if ( !recoJets.empty() ) recoJets.clear();
+        processRecoJets(isPbGoing, isMc, weight, recoJets, hs, jec, jetSelectionMethod);
+        processRecoDijets(isPbGoing, isMc, weight, recoJets, hs);
+        if ( !recoJets.empty() ) recoJets.clear();
+    } // for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry)
+
+    std::cout << Form("Processed %d events, of which %d passed selection.", nEventsProcessed, nGoodEvents) << std::endl;
 }
 
 //________________
@@ -874,7 +1113,7 @@ int main(int argc, char* argv[]) {
     triggerId = std::atoi(argv[8]);
     recoJetSelMethod = std::atoi(argv[9]);
 
-    const char *path2auxFiles = "../aux_files/pPb_8160";
+    const char *path2auxFiles = "./aux_files/pPb_8160";
 #endif
 
     // Validate input parameters
@@ -984,16 +1223,7 @@ int main(int argc, char* argv[]) {
     auto eventTree = std::make_unique<TChain>("hiEvtAnalyzer/HiTree");
     auto skimTree = std::make_unique<TChain>("skimanalysis/HltTree");
     auto jetTree = std::make_unique<TChain>("ak4PFJetAnalyzer/t");
-
-    // TChain *mainTree = new TChain("hltanalysis/HltTree");
-    // TChain *eventTree = new TChain("hiEvtAnalyzer/HiTree");
-    // TChain *skimTree = new TChain("skimanalysis/HltTree");
-    // TChain *jetTree = new TChain("ak4PFJetAnalyzer/t");
     setupInput(fname, *mainTree, *eventTree, *skimTree, *jetTree, isMc);
-    // setupChain(fname.Data(), mainTree, eventTree, skimTree, jetTree);
-
-    auto fVzWeight = std::make_unique<TF1>("fVzWeight", "pol8", -15.1, 15.1);
-    fVzWeight->SetParameters(0.856516,-0.0159813,0.00436628,-0.00012862,2.61129e-05,-4.16965e-07,1.73711e-08,-3.11953e-09,6.24993e-10);
 
     ///////////////////////
     // Create histograms //
@@ -1006,105 +1236,20 @@ int main(int argc, char* argv[]) {
     //////////////////////////////////
     auto jec = std::make_unique<JetCorrector>(fJECFileNames);
 
-    double weight{0.};
 
     //////////////////////////////
     //        Processing        //
     //////////////////////////////
 
-    Long64_t nEntries = mainTree->GetEntries();
     std::cout << Form("%s%s%s %s%s%s direction, ptHat%d sample, number of entries:%s %lld %s", 
                        GREEN, (mcType ? ( (isPythia) ? "Pythia" : "Embedding") : "Data" ), RESET,
                        GREEN, (isPbGoing ? "Pb-going" : "p-going"), RESET,
                        ptHatSample, 
-                       GREEN, nEntries, RESET) << std::endl;
+                       GREEN, mainTree->GetEntries(), RESET) << std::endl;
 
-    int nEventsProcessed{0};
-    int nGoodEvents{0};
-
-    std::vector<GenJet> genJets;
-    std::vector<RecoJet> recoJets;
-
-    int printEvery{50000};
-    Long64_t nextPrintAt{printEvery};
-    auto startTime = std::chrono::steady_clock::now();
-
-    for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry) {
-
-        mainTree->GetEntry(iEntry);
-        nEventsProcessed++;
-        Long64_t entriesPassed = iEntry + 1;
-        if ((entriesPassed >= nextPrintAt) || (entriesPassed == nEntries)) {
-            auto now = std::chrono::steady_clock::now();
-            std::chrono::duration<double> elapsed = now - startTime;
-            double elapsedSeconds = elapsed.count();
-            double etaSeconds = 0.0;
-            if (entriesPassed > 0 && entriesPassed < nEntries) {
-                etaSeconds = elapsedSeconds * static_cast<double>(nEntries - entriesPassed) / static_cast<double>(entriesPassed);
-            }
-
-            Long64_t elapsedTotalSeconds = static_cast<Long64_t>(std::llround(elapsedSeconds));
-            Long64_t elapsedMinutes = elapsedTotalSeconds / 60;
-            Long64_t elapsedRemainingSeconds = elapsedTotalSeconds % 60;
-
-            Long64_t etaTotalSeconds = static_cast<Long64_t>(std::llround(etaSeconds));
-            Long64_t etaMinutes = etaTotalSeconds / 60;
-            Long64_t etaRemainingSeconds = etaTotalSeconds % 60;
-
-            std::cout << Form("Processed %lld / %lld entries | elapsed %lldm:%llds | ETA %lldm:%llds",
-                              entriesPassed, nEntries,
-                              elapsedMinutes, elapsedRemainingSeconds,
-                              etaMinutes, etaRemainingSeconds) << std::endl;
-
-            nextPrintAt += printEvery;
-        }
-
-        // std::cout << "\n========================================\n";
-        // std::cout << Form("Event: %d ptHat = %.1f GeV, vz = %.2f cm", iEntry, ptHat, vz) << std::endl;
-        // std::cout << Form("%.1f <= ptHat <= %.1f ? %s", ptHatRange[0], ptHatRange[1], 
-        //                  (ptHat >= ptHatRange[0] && ptHat <= ptHatRange[1]) ? "true" : "false") << std::endl;
-        // std::cout << Form("|vz| <= 15 cm ? %s", (std::abs(vz) <= 15.) ? "true" : "false") << std::endl;
-
-        // Check the event is satisfies basic event selection
-
-        if (!isGoodEvent(isPbGoing, isMc, ptHatSample)) continue;
-
-        nGoodEvents++;
-
-        if (isPbGoing) vz = -vz; 
-        weight = eventWeight(ptHat, vz, *fVzWeight, nEntries);
-
-        hs.hPtHatUnweighted->Fill(ptHat);
-        hs.hPtHat->Fill(ptHat, weight);
-        hs.hVzUnweighted->Fill(vz);
-        hs.hVz->Fill(vz, weight);
-
-        //
-        // Gen level processing
-        //
-        if (isMc) {
-            if ( !genJets.empty() ) genJets.clear();
-            processGenJets(isPbGoing, isMc, weight, genJets, hs);
-            processGenDijets(isPbGoing, isMc, weight, genJets, hs);
-            if ( !genJets.empty() ) genJets.clear();
-        }
-
-        //
-        // Reco level processing
-        //
-        if ( !recoJets.empty() ) recoJets.clear();
-        processRecoJets(isPbGoing, isMc, weight, recoJets, hs, *jec);
-        processRecoDijets(isPbGoing, isMc, weight, recoJets, hs);
-        if ( !recoJets.empty() ) recoJets.clear();
-    } // for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry)
-
-    std::cout << Form("Processed %d events, of which %d passed selection.", nEventsProcessed, nGoodEvents) << std::endl;
-    
+    processEvents(isPbGoing, isMc, *mainTree, *jec, hs, ptHatSample, recoJetSelMethod);
     // Write output
     writeOutput(oFileName, hs, isMc);
 
-    // if (eventTree) { delete eventTree; eventTree = nullptr;}
-    // if (skimTree)  { delete skimTree;  skimTree = nullptr; }
-    // if (jetTree)   { delete jetTree;   jetTree = nullptr;  }
-    // if (mainTree)  { delete mainTree;  mainTree = nullptr; }
+
 }
