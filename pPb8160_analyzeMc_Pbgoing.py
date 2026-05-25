@@ -3,7 +3,7 @@
 
 This script is intentionally simple:
 - no command-line options
-- fixed pPb/Pythia, p-going settings
+- fixed pPb/Pythia, Pb-going settings
 - runs all ptHat samples one after another
 """
 
@@ -21,19 +21,24 @@ EXECUTABLE = ROOT_DIR / "build" / "processForestSimple"
 MC_TYPE = 2  # 0=data, 1=embedding, 2=pythia
 IS_PB_GOING_DIR = 1
 JEU_SYST = 0
-JER_SYST = -99
+JER_SYST = 1
 TRIGGER_ID = 0
-RECO_JET_SEL_METHOD = 0
-
-PT_HAT_SAMPLES = [15, 30, 50, 80, 120, 170, 220, 280, 370, 460, 540]
-# PT_HAT_SAMPLES = [30]
+RECO_JET_SEL_METHOD = 2
+# PT_HAT_SAMPLES = [15, 30, 50, 80, 120, 170, 220, 280, 370, 460, 540]
+PT_HAT_SAMPLES = [50]
 
 INPUT_BASE = Path.home() / "cernbox" / "ana" / "pPb8160"
 OUTPUT_DIR = ROOT_DIR / "macro" / "eta_shift"
-GENERATOR = "pythia"
-DIRECTION = "Pbgoing"
-TAG = "unembedded"
-
+if (MC_TYPE == 2):
+     GENERATOR = "pythia"
+     TAG = "unembedded"
+else:     
+     GENERATOR = "embedding"
+     TAG = "embedded"
+if (IS_PB_GOING_DIR == 1):
+     DIRECTION = "Pbgoing"
+else:
+     DIRECTION = "pgoing"
 
 def build_input_file(pt_hat_sample: int) -> Path:
     return (
