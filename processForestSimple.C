@@ -419,9 +419,10 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                               100, 0., 1000.);
     hs.hPtHatUnweighted->Sumw2();
     hs.hPtHat = std::make_unique<TH1D>("hPtHat", 
-                                              "#hat{p}_{T};#hat{p}_{T} (GeV);dN/d#hat{p}_{T}", 
-                                              100, 0., 1000.);
+                                        "#hat{p}_{T};#hat{p}_{T} (GeV);dN/d#hat{p}_{T}", 
+                                        100, 0., 1000.);
     hs.hPtHat->Sumw2();
+    
 
     hs.hVzUnweighted = std::make_unique<TH1D>("hVzUnweighted", 
                                            "vz unweighted;vz (cm);dN/dvz", 
