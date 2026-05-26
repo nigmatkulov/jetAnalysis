@@ -422,7 +422,7 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                         "#hat{p}_{T};#hat{p}_{T} (GeV);dN/d#hat{p}_{T}", 
                                         100, 0., 1000.);
     hs.hPtHat->Sumw2();
-    
+
 
     hs.hVzUnweighted = std::make_unique<TH1D>("hVzUnweighted", 
                                            "vz unweighted;vz (cm);dN/dvz", 
@@ -1187,23 +1187,45 @@ void loadRecoJets(std::vector<RecoJet> &recoJets, JetCorrector &jec) {
 
 //________________
 void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet> &recoJets, 
-                              const double &weight, Histograms &hs,
+                              const double &weight, Histograms &hs, const bool &isPythia,
                               bool &isGenOverweight, bool &isRecoOverweight) {
     
-    isGenOverweight = {true};
-    isRecoOverweight = {true};
+    isGenOverweight = {false};
+    isRecoOverweight = {false};
+
+    double c0{0.}, c1{0.}, c2{0.}, c3{0.};
 
     float dijetPtAve{0.};
     if ( genJets.size() >= 2 ) {
         dijetPtAve = 0.5 * (genJets[0].pt + genJets[1].pt);
         hs.hGenDijetPtAveOverPtHatVsPtHat->Fill(ptHat, dijetPtAve / ptHat, weight);
         hs.hGenLeadJetPtOverPtHatVsPtHat->Fill(ptHat, genJets[0].pt / ptHat, weight);
+        if (isPythia) { // >0.01% overweight
+            c0 = 1.4209; c1 = 0.0001; c2 = 0.2551; c3 = -0.0112;
+        }
+        else { // >0.05% overweight
+            c0 = 1.4478; c1 = 0.0002; c2 = 0.2740; c3 = -0.0160;
+        }
+        
+        if (dijetPtAve / ptHat > (c0 + c1 * ptHat + c2 * std::exp(c3 * ptHat))) {
+            isGenOverweight = {true};
+        }
     }
 
     if ( recoJets.size() >= 2 ) {
         dijetPtAve = 0.5 * (recoJets[0].recoPt + recoJets[1].recoPt);
         hs.hRecoDijetPtAveOverPtHatVsPtHat->Fill(ptHat, dijetPtAve / ptHat, weight);
         hs.hRecoLeadJetPtOverPtHatVsPtHat->Fill(ptHat, recoJets[0].recoPt / ptHat, weight);
+        if (isPythia) { // >0.01% overweight
+            c0 = 1.4280; c1 = 0.0001; c2 = 0.3493; c3 = -0.0106;
+        }
+        else { // >0.05% overweight
+            c0 = 1.4749; c1 = 0.0002; c2 = 0.4283; c3 = -0.0163;
+        }
+
+        if (dijetPtAve / ptHat > (c0 + c1 * ptHat + c2 * std::exp(c3 * ptHat))) {
+            isRecoOverweight = {true};
+        }
     }
 }
 
@@ -1298,6 +1320,20 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
 bool isGoodRecoJet(const RecoJet &recoJet, const int &jetSelectionMethod) {
     // jetSelectionMethod: 0 - no selection, 1 - trackMax, 2 - jetIdTightLept, 3 - jetIdLoose
 
+    bool debug = {false};
+    if (debug) {
+        std::cout << Form("\nJet parameters: ptRaw = %.2f, ptCorr = %.2f, eta = %.2f, phi = %.2f, NHF = %.3f, NEF = %.3f, CHF = %.3f, MUF = %.3f, CEF = %.3f, CHM = %d, PfCEM = %d, PfNHM = %d, PfNEM = %d, PfMUM = %d, trackMaxPt = %.2f, refPt = %.2f, refEta = %.2f jeuUp = %.2f, jeuDown = %.2f, jerDef = %.2f, jerUp = %.2f, jerDown = %.2f\n",
+                        recoJet.recoPtRaw, recoJet.recoPt, recoJet.recoEta, recoJet.recoPhi,
+                        recoJet.recoPfNHF, recoJet.recoPfNEF, recoJet.recoPfCHF,
+                        recoJet.recoPfMUF, recoJet.recoPfCEF, recoJet.recoPfCHM,
+                        recoJet.recoPfCEM, recoJet.recoPfNHM, recoJet.recoPfNEM,
+                        recoJet.recoPfMUM, recoJet.recoTrackMaxPt,
+                        recoJet.refPt, recoJet.refEta, 
+                        recoJet.recoPtJeuUp, recoJet.recoPtJeuDown, 
+                        recoJet.recoPtJerDef, recoJet.recoPtJerUp, recoJet.recoPtJerDown);
+        std::cout << Form("Jet selection method: %d\n", jetSelectionMethod);
+    }
+
     bool isGood = false;
     if (jetSelectionMethod == 0) {
         isGood = true; // No selection, all jets are good
@@ -1338,29 +1374,54 @@ bool isGoodRecoJet(const RecoJet &recoJet, const int &jetSelectionMethod) {
         bool passChargedEmFrac{true};
         bool passNeutralMult{true};
 
-        // std::cout << Form("\n---------\nJet eta = %.2f, NHF = %.3f, NEF = %.3f, CHF = %.3f, MUF = %.3f, CEF = %.3f, CHM = %d, CEM = %d, NHM = %d, NEM = %d, MUM = %d \t [chargedMult: %d, neutralMult: %d]\n",
-        //                   recoJet.recoEta, recoJet.recoPfNHF, recoJet.recoPfNEF, 
-        //                   recoJet.recoPfCHF, recoJet.recoPfMUF, recoJet.recoPfCEF, 
-        //                   recoJet.recoPfCHM, recoJet.recoPfCEM, recoJet.recoPfNHM, 
-        //                   recoJet.recoPfNEM, recoJet.recoPfMUM, chargedMult, neutralMult);
+        if (debug) {
+            std::cout << Form("chargedMult: %d, neutralMult: %d\n", chargedMult, neutralMult);
+        }
 
-
-                // Check cuts depending on jet pseudorapdity
+        // Check cuts depending on jet pseudorapdity
         if ( std::abs( recoJet.recoEta ) <= 2.7 ) {
             
             passNHF = ( recoJet.recoPfNHF < neutFracCut ) ? true : false;
             passNEF = ( recoJet.recoPfNEF < neutFracCut ) ? true : false;
             passNumOfConstituents = ( numberOfConstituents > 1 ) ? true : false;
 
+            if (debug) {
+                std::cout << Form("|eta|<=2.7 NHF < neutHadronFrac: %4.3f < %4.3f -> %s\n", 
+                                  recoJet.recoPfNHF, neutFracCut, 
+                                  (passNHF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|<=2.7 NEF < neutEMFrac: %4.3f < %4.3f -> %s\n", 
+                                  recoJet.recoPfNEF, neutFracCut, 
+                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|<=2.7 numOfConstituents > 1: %d > 1 -> %s\n", 
+                                  numberOfConstituents, 
+                                  (passNumOfConstituents)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+            }
+
             if ( jetSelectionMethod == 2 ) { 
-                passMuonFrac = ( recoJet.recoPfMUF < 0.8 ) ? true : false; 
+                passMuonFrac = ( recoJet.recoPfMUF < 0.8 ) ? true : false;
+                if (debug) {
+                    std::cout << Form("tightJetId |eta|<=2.7 MUF < 0.8: %4.3f < 0.8 -> %s\n", recoJet.recoPfMUF, (passMuonFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                }
             } // if ( jetSelectionMethod == 2 )
 
             if( std::abs( recoJet.recoEta ) <= 2.4 ) {
                 passChargedFrac = ( recoJet.recoPfCHF > 0 ) ? true : false;
                 passChargedMult = ( chargedMult > 0 ) ? true : false;
                 passChargedEmFrac = ( recoJet.recoPfCEF < chargedEmFracCut ) ? true : false;
+                if (debug) {
+                    std::cout << Form("|eta|<=2.4 CHF > 0: %4.3f > 0 -> %s\n", 
+                                      recoJet.recoPfCHF, 
+                                      (passChargedFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                    std::cout << Form("|eta|<=2.4 chargedMult > 0: %d > 0 -> %s\n", 
+                                      chargedMult, 
+                                      (passChargedMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                    std::cout << Form("|eta|<=2.4 CEF < chargedEmFracCut: %4.3f < %4.3f -> %s\n", 
+                                      recoJet.recoPfCEF, chargedEmFracCut, 
+                                      (passChargedEmFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                }
             } // if( std::abs( recoJetEta[jetIndex] ) <= 2.4 )
+
+            
 
         } // if ( std::abs( recoJetEta[jetIndex] ) <= 2.7 )
         else if ( std::abs( recoJet.recoEta ) <= 3.0) {
@@ -1369,19 +1430,49 @@ bool isGoodRecoJet(const RecoJet &recoJet, const int &jetSelectionMethod) {
             passNHF = ( recoJet.recoPfNHF < 0.98 ) ? true : false;
             passNeutralMult = ( neutralMult > 2 ) ? true : false;
 
+            if (debug) {
+                std::cout << Form("|eta|<=3.0 NEF > 0.01: %4.3f > 0.01 -> %s\n", 
+                                  recoJet.recoPfNEF, 
+                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|<=3.0 NHF < 0.98: %4.3f < 0.98 -> %s\n", 
+                                  recoJet.recoPfNHF, 
+                                  (passNHF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|<=3.0 neutralMult > 2: %d > 2 -> %s\n", 
+                                  neutralMult, 
+                                  (passNeutralMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+            }
+
         } // else if ( std::abs( recoJetEta[jetIndex] ) <= 3.0)
         else  {
             passNEF = ( recoJet.recoPfNEF < 0.9 ) ? true : false;
             passNeutralMult = (neutralMult > 10 ) ? true : false; // CAUTION: JET MET says it should be >10
+            if (debug) {
+                std::cout << Form("|eta|>3.0 NEF < 0.9: %4.3f < 0.9 -> %s\n", 
+                                  recoJet.recoPfNEF, 
+                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|>3.0 neutralMult > 10: %d > 10 -> %s\n", 
+                                  neutralMult, 
+                                  (passNeutralMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+            }
         } // else 
 
         isGood = passNHF && passNEF && passNumOfConstituents && passMuonFrac && passChargedFrac && 
                  passChargedMult && passChargedEmFrac && passNeutralMult;
 
+        if (debug) {
+            std::cout << Form("Jet selection method: %d, isGood: %s\n", 
+                              jetSelectionMethod, 
+                              (isGood)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+        }
+
         // std::cout << Form("Jet %d: passNHF: %d, passNEF: %d, passNumOfConstituents: %d, passMuonFrac: %d, passChargedFrac: %d, passChargedMult: %d, passChargedEmFrac: %d, passNeutralMult: %d \t [isGood: %d]\n",
         //                   jetIndex, passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
         //                   passChargedMult, passChargedEmFrac, passNeutralMult, isGood);
     } // else if (jetSelectionMethod == 2 || jetSelectionMethod == 3)
+    else {
+        std::cerr << RED << Form("Invalid jet selection method: %d. No selection will be applied.", jetSelectionMethod) << RESET << std::endl;
+        isGood = true;
+    }
 
     return isGood;
 }
@@ -1925,7 +2016,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
 }
 
 //________________
-void processEvents(const bool &isPbGoing, const bool &isMc, TChain &mainTree, 
+void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia, TChain &mainTree, 
                    JetCorrector &jec, JetUncertainty &jeu,
                    Histograms &hs, const int &ptHatSample,
                    const bool &doJeuSyst, const bool &doJerSyst,
@@ -2014,7 +2105,7 @@ void processEvents(const bool &isPbGoing, const bool &isMc, TChain &mainTree,
         if ( isMc ) {
             if (isPbGoing) vz = -vz; 
             weight = eventWeight(ptHat, vz, *fVzWeight, nEntries);
-            fillOverweightHistograms(genJets, recoJets, weight, hs, isGenOverweight, isRecoOverweight);
+            fillOverweightHistograms(genJets, recoJets, weight, hs, isPythia, isGenOverweight, isRecoOverweight);
             if (isGenOverweight) continue;
             if (isRecoOverweight) continue;
         } // if ( isMc )
@@ -2260,7 +2351,7 @@ int main(int argc, char* argv[]) {
                        GREEN, mainTree->GetEntries(), RESET) << std::endl;
 
     // Process the events
-    processEvents(isPbGoing, isMc, *mainTree, *jec, *jeu, hs, ptHatSample, 
+    processEvents(isPbGoing, isMc, isPythia, *mainTree, *jec, *jeu, hs, ptHatSample, 
                   jeuSyst, jerSyst, triggerId, recoJetSelMethod);
 
     // Write output
