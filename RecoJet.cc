@@ -87,7 +87,7 @@ bool RecoJet::isGoodJetId(const bool& useLooseJetIdCut) const {
     if ( TMath::Abs( eta ) <= 2.7 ) {
         
         passNHF = ( nhf < neutFracCut ) ? true : false;
-        passNEF = ( nhf < neutFracCut ) ? true : false;
+        passNEF = ( nef < neutFracCut ) ? true : false;
         passNumOfConstituents = ( numberOfConstituents > 1 ) ? true : false;
 
         if ( !useLooseJetIdCut ) { 

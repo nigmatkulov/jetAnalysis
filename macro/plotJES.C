@@ -138,7 +138,7 @@ void retrieveJESandJER(TH2D *h2D, TH1D*& hJES, TH1D*& hJER, int type = 0, bool p
     }
     
     // Retrieve JES and JER
-    h2D->RebinX(2); // Rebin for better statistics
+    h2D->RebinX(1); // Rebin for better statistics
     h2D->FitSlicesY();
 
     // Jet energy scale
@@ -675,12 +675,6 @@ void plotSimpleJES(TFile *f, int collSystem = 0, double energy = 5.02) {
 
 //________________
 void plotJES() {
-
-    // Base style
-    // gStyle->SetOptStat(0);
-    gStyle->SetOptTitle(0);
-    gStyle->SetPalette(kBird);
-
 
     // Base style
     gStyle->SetOptStat(0);

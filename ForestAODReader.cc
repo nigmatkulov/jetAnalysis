@@ -199,8 +199,7 @@ double ForestAODReader::extraJERCorr(const double &ptCorr, const double &eta) {
     double extraCorr = fRndm->Gaus( 1., sigmaSmear );
 
     if ( fVerbose ) {
-        std::cout << "Resolution factor: " << res << " sigma: " << sigmaSmear 
-                  << " correction factor: " << extraCorr << std::endl;
+        std::cout << Form("refPt: %f SF: %f, sigma: %f, correction factor: %f, extra pt: %f smeared pt: %f", ptCorr, res, sigmaSmear, extraCorr, ptCorr * (extraCorr - 1.), ptCorr * extraCorr) << std::endl;
         std::cout << "\t[DONE]\n";
     }
     return extraCorr;
@@ -1662,11 +1661,11 @@ Event* ForestAODReader::returnEvent() {
 
                 // To check JEC fUseJECSystematics should be outside [-1, 1] range
                 if ( fIsMc && ( TMath::Abs( fUseJERSystematics ) <= 1 ) ) {
-                    // pTcorr *= extraJERCorr( pTcorr, fRecoJetEta[iJet]);
                     if ( jet->hasMatching() ) {
                         pTcorr *= extraJERCorr( fEvent->genJetCollection()->at( fRecoJet2GenJetId.at(iJet) )->pt(), 
                                                 fRecoJetEta[iJet]);
                     }
+
                 }
 
                 // JEU correction for the real data for systematic uncertainty calculation

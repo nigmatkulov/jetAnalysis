@@ -18,6 +18,7 @@
 // C++ headers
 #include <iostream>
 #include <vector>
+#include <fstream>
 #include <sys/stat.h>
 
 //________________
@@ -56,36 +57,23 @@ void set1DStyle(TH1 *h, Int_t type = 0, Bool_t doRenorm = kFALSE) {
     Double_t markerSize = 1.3;
     Int_t lineWidth = 2;
     Int_t color = 2;
-    if (type == 0) {
-        color = 2;        // red
-        markerStyle = 20; // filled circle
-    }
-    else if (type == 1) {
-        color = 4;        // blue
-        markerStyle = 24; // open circle
-    }
-    else if (type == 2) {
-        color = 1;        // black
-        markerStyle = 20; // filled triangle
-    }
-    else if (type == 3) {
-        color = 2;        // red
-        markerStyle = 24; // open circle
-    }
-    else if (type == 4) {
-        color = 4;        // blue
-        markerStyle = 20; // filled circle
+    static constexpr std::array<int, 13> markerStyles{20, 21, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32};
+    static constexpr std::array<const char*, 13> p8Colors {"kRed", "kBlue", "kBlack", "kMagenta", "kP8Orange", "kP8Green", "kP8Azure", "kPink", "kCyan", "kTeal", "kGray", "kSpring", "kViolet"};
+
+    if (type < 13) {
+        h->SetLineColor( p8Colors[type] );
+        h->SetMarkerColor( p8Colors[type] );
+        h->SetMarkerStyle( markerStyles[type] );
     }
     else {
         color = 6;        // magenta
-        markerStyle = 30; // open star
+        markerStyle = 45; 
+        h->SetMarkerColor( color );
+        h->SetLineColor( color );
+        h->SetMarkerStyle( markerStyle );
     }
 
-    h->SetLineWidth( lineWidth );
-    h->SetLineColor( color );
-    
-    h->SetMarkerStyle( markerStyle );
-    h->SetMarkerColor( color );
+    h->SetLineWidth( lineWidth );    
     h->SetMarkerSize( markerSize );
 
     h->GetYaxis()->SetTitleSize(0.05);
@@ -248,7 +236,6 @@ void recalculateUncertaintyOfNpdf(TH1D *h) {
         h->SetBinError(iBin, newUnc);
     }
 }
-
 
 //________________
 // Function calculates forward, backward and ratio of forward/backward distribution from
@@ -1516,33 +1503,6 @@ void dijetDistributionsForData(TFile *f, int collisionSystem = 1, double collisi
 }
 
 //________________
-void usefullDistributions(TFile *f, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
-    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
-    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
-
-    // Determine the direction based on the filename
-    TString directionStr;
-    TString filename = f->GetName();
-    if (filename.Contains("pbgoing", TString::kIgnoreCase)) {
-        directionStr = "Pbgoing";
-    } else if (filename.Contains("pgoing", TString::kIgnoreCase)) {
-        directionStr = "pgoing";
-    } else {
-        directionStr = "combined";
-    }
-
-    // Dijet ptAve binning
-    // int dijetPtNewVals[17] {  50,  60,   70,  80,  90,
-    //                          100, 110,  120, 130, 140,
-    //                          150, 160,  180, 200, 250, 
-    //                          300, 500 };
-    int dijetPtNewVals[9] {  50,  90,   120,  180, 200, 250, 300, 350, 500 };
-    int sizeOfPtVals = sizeof(dijetPtNewVals)/sizeof(dijetPtNewVals[0]);
-
-
-}
-
-//________________
 void plotSingleJetData2McComparison(TFile *fExp, TFile *fMc, int collisionSystem = 1, double collisionEnergy = 8.16, TString date = "20250129") {
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
@@ -2510,32 +2470,32 @@ void plotNpdfToDataComparison(int collisionSystem, double collisionEnergy, TStri
     const double dijetEtaCMMax = 3.2;
     const int dijetEtaCMBins = 64;
 
-    // nPDF and PDF histograms
-    TH1D *hNpdfEtaCMForward[etaCMCutSize];
-    TH1D *hNpdfEtaCMBackward[etaCMCutSize];
-    TH1D *hNpdfEtaCMForwardBackwardRatio[etaCMCutSize];
-    TH1D *hNpdfEtaCMFull[etaCMCutSize];
+    // nPDF and PDF histograms (use vectors sized at runtime)
+    std::vector<TH1D*> hNpdfEtaCMForward(etaCMCutSize);
+    std::vector<TH1D*> hNpdfEtaCMBackward(etaCMCutSize);
+    std::vector<TH1D*> hNpdfEtaCMForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hNpdfEtaCMFull(etaCMCutSize);
 
-    TH1D *hPdfEtaCMForward[etaCMCutSize];
-    TH1D *hPdfEtaCMBackward[etaCMCutSize];
-    TH1D *hPdfEtaCMForwardBackwardRatio[etaCMCutSize];
-    TH1D *hPdfEtaCMFull[etaCMCutSize];
+    std::vector<TH1D*> hPdfEtaCMForward(etaCMCutSize);
+    std::vector<TH1D*> hPdfEtaCMBackward(etaCMCutSize);
+    std::vector<TH1D*> hPdfEtaCMForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hPdfEtaCMFull(etaCMCutSize);
 
-    TH1D *hNpdfToPdfEtaCMFullRatio[etaCMCutSize];
-    TH1D *hNpdfToPdfEtaCMForwardBackwardRatio[etaCMCutSize];
+    std::vector<TH1D*> hNpdfToPdfEtaCMFullRatio(etaCMCutSize);
+    std::vector<TH1D*> hNpdfToPdfEtaCMForwardBackwardRatio(etaCMCutSize);
 
     // Data histograms
-    TH2D *hData2DEtaCMForward[etaCMCutSize];
-    TH2D *hData2DEtaCMBackward[etaCMCutSize];
+    std::vector<TH2D*> hData2DEtaCMForward(etaCMCutSize);
+    std::vector<TH2D*> hData2DEtaCMBackward(etaCMCutSize);
 
-    TH1D *hDataEtaCMForward[etaCMCutSize];
-    TH1D *hDataEtaCMBackward[etaCMCutSize];
-    TH1D *hDataEtaCMForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataEtaCMFull[etaCMCutSize];
+    std::vector<TH1D*> hDataEtaCMForward(etaCMCutSize);
+    std::vector<TH1D*> hDataEtaCMBackward(etaCMCutSize);
+    std::vector<TH1D*> hDataEtaCMForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hDataEtaCMFull(etaCMCutSize);
 
     // Data to nPDF ratios
-    TH1D *hDataToNpdfForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataToNpdfFullEtaRatio[etaCMCutSize];
+    std::vector<TH1D*> hDataToNpdfForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hDataToNpdfFullEtaRatio(etaCMCutSize);
 
     TFile *fNpdf = TFile::Open( Form("./npdf/epps21_pPb8160_dijet_eta_dset.root" ) );
     if ( !fNpdf || fNpdf->IsZombie() ) {
@@ -2794,7 +2754,7 @@ void plotNpdfToDataComparison(int collisionSystem, double collisionEnergy, TStri
     } // for (int i{0}; i<etaCMCutSize; i++)
 
 
-    TGraphErrors *grNpdfToPdfForwardBackwardRatio[etaCMCutSize];
+    std::vector<TGraphErrors*> grNpdfToPdfForwardBackwardRatio(etaCMCutSize);
     for (int iEta{0}; iEta<etaCMCutSize; ++iEta) {
         int nPoints = hNpdfToPdfEtaCMForwardBackwardRatio[iEta]->GetNbinsX();
         grNpdfToPdfForwardBackwardRatio[iEta] = new TGraphErrors(nPoints);
@@ -2894,19 +2854,19 @@ void plotNpdfToPdfComparison(int collisionSystem, double collisionEnergy, TStrin
     const double ptLow = 60.;
     const double ptHigh = 80.;
 
-    TH1D *hNpdfEtaCMForward[etaCMCutSize];
-    TH1D *hNpdfEtaCMBackward[etaCMCutSize];
-    TH1D *hNpdfEtaCMForwardBackwardRatio[etaCMCutSize];
-    TH1D *hNpdfEtaCMFull[etaCMCutSize];
+    std::vector<TH1D*> hNpdfEtaCMForward(etaCMCutSize);
+    std::vector<TH1D*> hNpdfEtaCMBackward(etaCMCutSize);
+    std::vector<TH1D*> hNpdfEtaCMForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hNpdfEtaCMFull(etaCMCutSize);
 
-    TH1D *hPdfEtaCMForward[etaCMCutSize];
-    TH1D *hPdfEtaCMBackward[etaCMCutSize];
-    TH1D *hPdfEtaCMForwardBackwardRatio[etaCMCutSize];
-    TH1D *hPdfEtaCMFull[etaCMCutSize];
+    std::vector<TH1D*> hPdfEtaCMForward(etaCMCutSize);
+    std::vector<TH1D*> hPdfEtaCMBackward(etaCMCutSize);
+    std::vector<TH1D*> hPdfEtaCMForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hPdfEtaCMFull(etaCMCutSize);
 
-    TH1D *hNpdfToPdfEtaCMFullRatio[etaCMCutSize];
-    TH1D *hNpdfToPdfEtaCMForwardBackwardRatio[etaCMCutSize];
-    TH1D *hNpdfToPdfEtaCMForwardBackwardRatioTo25[etaCMCutSize - 1];
+    std::vector<TH1D*> hNpdfToPdfEtaCMFullRatio(etaCMCutSize);
+    std::vector<TH1D*> hNpdfToPdfEtaCMForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hNpdfToPdfEtaCMForwardBackwardRatioTo25(etaCMCutSize - 1);
 
     // Read histograms from files and make comparisons
     for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
@@ -3225,37 +3185,33 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
     const double ptHigh = 80.;
 
     // PDF histograms
-    TH1D *hPdfForwardCMEta[etaCMCutSize];
-    TH1D *hPdfBackwardCMEta[etaCMCutSize];
-    TH1D *hPdfForwardBackwardRatio[etaCMCutSize];
-    TH1D *hPdfFullCMEta[etaCMCutSize];
+    std::vector<TH1D*> hPdfForwardCMEta(etaCMCutSize);
+    std::vector<TH1D*> hPdfBackwardCMEta(etaCMCutSize);
+    std::vector<TH1D*> hPdfForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hPdfFullCMEta(etaCMCutSize);
+    
+    std::vector<TH2D*> hData2DForwardCMEta(etaCMCutSize);
+    std::vector<TH2D*> hData2DBackwardCMEta(etaCMCutSize);
+    
+    std::vector<TH1D*> hDataForwardCMEta(etaCMCutSize);
+    std::vector<TH1D*> hDataBackwardCMEta(etaCMCutSize);
+    std::vector<TH1D*> hDataForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hDataFullCMEta(etaCMCutSize);
+    std::vector<TH1D*> hDataToPdfForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hDataToPdfFullEtaRatio(etaCMCutSize);
+    std::vector<TH1D*> hDataToPythiaForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hDataToPythiaFullEtaRatio(etaCMCutSize);
+    std::vector<TH1D*> hPDFToPythiaFullEtaRatio(etaCMCutSize);
 
-    // Data histograms
-    TH2D *hData2DForwardCMEta[etaCMCutSize];
-    TH2D *hData2DBackwardCMEta[etaCMCutSize];
+    // PYTHIA histograms
+    std::vector<TH2D*> hPythia2DForwardCMEta(etaCMCutSize);
+    std::vector<TH2D*> hPythia2DBackwardCMEta(etaCMCutSize);
+    std::vector<TH1D*> hPythiaForwardCMEta(etaCMCutSize);
+    std::vector<TH1D*> hPythiaBackwardCMEta(etaCMCutSize);
+    std::vector<TH1D*> hPythiaForwardBackwardRatio(etaCMCutSize);
+    std::vector<TH1D*> hPythiaFullCMEta(etaCMCutSize);
 
-    TH1D *hDataForwardCMEta[etaCMCutSize];
-    TH1D *hDataBackwardCMEta[etaCMCutSize];
-    TH1D *hDataForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataFullCMEta[etaCMCutSize];
-
-    TH1D *hDataToPdfForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataToPdfFullEtaRatio[etaCMCutSize];
-
-    // Pythia histograms
-    TH2D *hPythia2DForwardCMEta[etaCMCutSize];
-    TH2D *hPythia2DBackwardCMEta[etaCMCutSize];
-
-    TH1D *hPythiaForwardCMEta[etaCMCutSize];
-    TH1D *hPythiaBackwardCMEta[etaCMCutSize];
-    TH1D *hPythiaForwardBackwardRatio[etaCMCutSize];
-    TH1D *hPythiaFullCMEta[etaCMCutSize];
-
-    TH1D *hDataToPythiaForwardBackwardRatio[etaCMCutSize];
-    TH1D *hDataToPythiaFullEtaRatio[etaCMCutSize];
-
-    // Pythia to PDF ratios
-    TH1D *hPDFToPythiaFullEtaRatio[etaCMCutSize];
+    // Data and Pythia histograms use the vectors declared above
 
     // Read histograms from files
     for (int iEta{0}; iEta<etaCMCutSize; iEta++) {
@@ -3688,6 +3644,130 @@ void setHistogramStyle(TH1D *h, int color, int lineWidth = 2, double markerSize 
 }
 
 //________________
+void plotSingleJESCheck(int collisionSystem, double collisionEnergy, TString date) {
+
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    // pT bin selection
+    double etaLabMax = 2.4;
+    double etaCMMax = 2.0;
+    double yAxisRatio2Gen[2] = {0.85, 1.15};
+
+    auto fMC = std::make_unique<TFile>( Form("/Users/gnigmat/work/cms/soft/tmp/jetAnalysis/macro/eta_shift/pythia_Pbgoing_jetId.root") );
+    auto hGenJetEtaPt80To120 = dynamic_cast<TH1D *>( fMC->Get("hGenInclusiveJetEtaPt80To120") );
+    auto hRecoJetEtaPt80To120 = dynamic_cast<TH1D *>( fMC->Get("hRecoInclusiveJetEtaPt80To120") );
+    auto hRecoJetEtaPtMatched80To120 = dynamic_cast<TH1D *>( fMC->Get("hRecoInclusiveJetEtaPtMatched80To120") );
+    auto hRecoJetEtaPtDefNoSF80To120 = dynamic_cast<TH1D *>( fMC->Get("hRecoInclusiveJetEtaPtDefNoSF80To120") );
+    auto hRecoJetEtaPtDef80To120 = dynamic_cast<TH1D *>( fMC->Get("hRecoInclusiveJetEtaPtDef80To120") );
+    auto hRecoJetEtaPtDefExtraNoSF80To120 = dynamic_cast<TH1D *>( fMC->Get("hRecoInclusiveJetEtaPtDefExtraNoSF80To120") );
+    auto hRecoJetEtaPtDefExtra80To120 = dynamic_cast<TH1D *>( fMC->Get("hRecoInclusiveJetEtaPtDefExtra80To120") );
+    auto hRefJetEtaPt80To120 = dynamic_cast<TH1D *>( fMC->Get("hRefInclusiveJetEtaPt80To120") );
+
+    if ( !hGenJetEtaPt80To120 || !hRecoJetEtaPt80To120 || !hRecoJetEtaPtMatched80To120 || !hRecoJetEtaPtDef80To120 || !hRecoJetEtaPtDefExtra80To120 || !hRecoJetEtaPtDefExtraNoSF80To120 || !hRefJetEtaPt80To120 ) {
+        std::cerr << "Error: One or more histograms not found in MC file." << std::endl;
+        return;
+    }
+    hGenJetEtaPt80To120->SetDirectory(0);
+    hRecoJetEtaPt80To120->SetDirectory(0);
+    hRecoJetEtaPtMatched80To120->SetDirectory(0);
+    hRecoJetEtaPtDefNoSF80To120->SetDirectory(0);
+    hRecoJetEtaPtDef80To120->SetDirectory(0);
+    hRecoJetEtaPtDefExtraNoSF80To120->SetDirectory(0);
+    hRecoJetEtaPtDefExtra80To120->SetDirectory(0);
+    hRefJetEtaPt80To120->SetDirectory(0);
+
+    auto binLow = hGenJetEtaPt80To120->FindBin(-0.79);
+    auto binHigh = hGenJetEtaPt80To120->FindBin(0.79);
+    hGenJetEtaPt80To120->Scale( (binHigh - binLow + 1) / hGenJetEtaPt80To120->Integral(binLow, binHigh) );
+    hRecoJetEtaPt80To120->Scale( (binHigh - binLow + 1) / hRecoJetEtaPt80To120->Integral(binLow, binHigh) );
+    hRecoJetEtaPtMatched80To120->Scale( (binHigh - binLow + 1) / hRecoJetEtaPtMatched80To120->Integral(binLow, binHigh) );
+    hRecoJetEtaPtDefNoSF80To120->Scale( (binHigh - binLow + 1) / hRecoJetEtaPtDefNoSF80To120->Integral(binLow, binHigh) );
+    hRecoJetEtaPtDef80To120->Scale( (binHigh - binLow + 1) / hRecoJetEtaPtDef80To120->Integral(binLow, binHigh) );
+    hRecoJetEtaPtDefExtraNoSF80To120->Scale( (binHigh - binLow + 1) / hRecoJetEtaPtDefExtraNoSF80To120->Integral(binLow, binHigh) );
+    hRecoJetEtaPtDefExtra80To120->Scale( (binHigh - binLow + 1) / hRecoJetEtaPtDefExtra80To120->Integral(binLow, binHigh) );
+    hRefJetEtaPt80To120->Scale( (binHigh - binLow + 1) / hRefJetEtaPt80To120->Integral(binLow, binHigh) );
+
+    auto c = std::make_unique<TCanvas>("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+
+    set1DStyle(hGenJetEtaPt80To120, 2);
+    set1DStyle(hRecoJetEtaPt80To120, 0);
+    set1DStyle(hRecoJetEtaPtMatched80To120, 7);
+    set1DStyle(hRecoJetEtaPtDefNoSF80To120, 1);
+    set1DStyle(hRecoJetEtaPtDef80To120, 4);
+    set1DStyle(hRecoJetEtaPtDefExtraNoSF80To120, 5);
+    set1DStyle(hRecoJetEtaPtDefExtra80To120, 6);
+    set1DStyle(hRefJetEtaPt80To120, 3);
+
+    hGenJetEtaPt80To120->Draw();
+    hRecoJetEtaPt80To120->Draw("same");
+    // hRecoJetEtaPtMatched80To120->Draw("same");
+    hRecoJetEtaPtDefNoSF80To120->Draw("same");
+    // hRecoJetEtaPtDef80To120->Draw("same");
+    // hRecoJetEtaPtDefExtra80To120->Draw("same");
+    // hRecoJetEtaPtDefExtraNoSF80To120->Draw("same");
+    // hRefJetEtaPt80To120->Draw("same");
+    hGenJetEtaPt80To120->GetYaxis()->SetRangeUser(0.2, 1.4);
+    hGenJetEtaPt80To120->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    auto leg = std::make_unique<TLegend>(0.35, 0.2, 0.6, 0.4);
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenJetEtaPt80To120, "Gen", "p");
+    leg->AddEntry(hRecoJetEtaPt80To120, "Reco (orig)", "p");
+    // leg->AddEntry(hRecoJetEtaPtMatched80To120, "Reco matched (orig)", "p");
+    leg->AddEntry(hRecoJetEtaPtDefNoSF80To120, "Reco smeared (w/o #eta, w/o SF)", "p");
+    // leg->AddEntry(hRecoJetEtaPtDef80To120, "Reco smeared (w/o #eta, w/ SF)", "p");
+    // leg->AddEntry(hRecoJetEtaPtDefExtraNoSF80To120, "Reco smeared (w/ #eta, w/o SF)", "p");
+    // leg->AddEntry(hRecoJetEtaPtDefExtra80To120, "Reco (w/ #eta, w/ SF)", "p");
+    // leg->AddEntry(hRefJetEtaPt80To120, "Ref (orig)", "p");
+    leg->Draw("same");
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.16, 0.85, "80 < p_{T}^{jet} < 120 GeV");
+    c->SaveAs(Form("%s/%s_JESCheck_eta_comparison.pdf", date.Data(), collSystemStr.Data()) );
+
+    hRecoJetEtaPt80To120->Divide(hGenJetEtaPt80To120);
+    hRecoJetEtaPtMatched80To120->Divide(hGenJetEtaPt80To120);
+    hRecoJetEtaPtDefNoSF80To120->Divide(hGenJetEtaPt80To120);
+    hRecoJetEtaPtDef80To120->Divide(hGenJetEtaPt80To120);
+    hRecoJetEtaPtDefExtraNoSF80To120->Divide(hGenJetEtaPt80To120);
+    hRecoJetEtaPtDefExtra80To120->Divide(hGenJetEtaPt80To120);
+    hRefJetEtaPt80To120->Divide(hGenJetEtaPt80To120);
+
+    hRecoJetEtaPt80To120->Draw();
+    // hRecoJetEtaPtMatched80To120->Draw("same");
+    // hRecoJetEtaPtDef80To120->Draw("same");
+    // hRecoJetEtaPtDefExtra80To120->Draw("same");
+    // hRecoJetEtaPtDefExtraNoSF80To120->Draw("same");
+    // hRefJetEtaPt80To120->Draw("same");
+    hRecoJetEtaPtDefNoSF80To120->Draw("same");
+    hRecoJetEtaPt80To120->SetTitle(";#eta^{jet};Ratio to Gen");
+    hRecoJetEtaPt80To120->GetYaxis()->SetRangeUser(yAxisRatio2Gen[0]-0.2, yAxisRatio2Gen[1]+0.2);
+    hRecoJetEtaPt80To120->GetXaxis()->SetRangeUser(-etaLabMax, etaLabMax);
+    auto leg2 = std::make_unique<TLegend>(0.35, 0.2, 0.65, 0.4);
+    leg2->SetTextSize(0.03);
+    leg2->SetFillColor(0);
+    leg2->SetBorderSize(0);
+    leg2->AddEntry(hRecoJetEtaPt80To120, "Reco (orig) / Gen", "p");
+    // leg2->AddEntry(hRecoJetEtaPtMatched80To120, "Reco matched (orig) / Gen", "p");
+    leg2->AddEntry(hRecoJetEtaPtDefNoSF80To120, "Reco smeared (w/o #eta, w/o SF) / Gen", "p");
+    // leg2->AddEntry(hRecoJetEtaPtDef80To120, "Reco smeared (w/o #eta, w/ SF) / Gen", "p");
+    // leg2->AddEntry(hRecoJetEtaPtDefExtraNoSF80To120, "Reco smeared (w/ #eta, w/o SF) / Gen", "p");
+    // leg2->AddEntry(hRecoJetEtaPtDefExtra80To120, "Reco (w/ #eta, w/ SF) / Gen", "p");
+    // leg2->AddEntry(hRefJetEtaPt80To120, "Ref (orig) / Gen", "p");
+    leg2->Draw("same");
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.SetTextSize(0.04);
+    t.DrawLatexNDC(0.16, 0.85, "80 < p_{T}^{jet} < 120 GeV");
+    c->SaveAs(Form("%s/%s_JESCheck_eta_comparison_ratio.pdf", date.Data(), collSystemStr.Data()) );
+}
+
+//________________
 void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString date) {
 
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
@@ -3712,6 +3792,7 @@ void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString 
     mcTypeLower.ToLower();
 
     TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/pgoing/oPythia_pgoing_def_ak4_jetId_eta19.root") );
+    // TFile *fMC = TFile::Open( Form("/Users/gnigmat/work/cms/soft/tmp/jetAnalysis/macro/eta_shift/pythia_Pbgoing_ptHat50_noExtraSmearing.root") );
     // TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_jetId_eta19.root") );
     // TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_jetId_eta19.root") );
 
@@ -4064,7 +4145,7 @@ void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString 
     // Lab frame
     TH1D *hGenInclusiveJetEta;
     TH1D *hGenInclusiveJetEtaStdBins;
-    TH1D *hGenInclusiveJetEtaStdBinsPtBins[nPtBins];
+    std::vector<TH1D*> hGenInclusiveJetEtaStdBinsPtBins(nPtBins);
     TH1D *hGenLeadJetEta;
     TH1D *hGenSubLeadJetEta;
 
@@ -4073,7 +4154,7 @@ void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString 
     TH1D *hGenInclusiveJetEtaCMForward;
     TH1D *hGenInclusiveJetEtaCMBackward;
     TH1D *hGenInclusiveJetForwardBackwardRatioCM;
-    TH1D *hGenInclusiveJetEtaCMPtBins[nPtBins];
+    std::vector<TH1D*> hGenInclusiveJetEtaCMPtBins(nPtBins);
 
     TH1D *hGenLeadJetEtaCM;
     TH1D *hGenLeadJetEtaCMForward;
@@ -4103,13 +4184,13 @@ void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString 
     // Lab frame
     TH1D *hRecoInclusiveJetEta;
     TH1D *hRecoInclusiveJetEtaStdBins;
-    TH1D *hRecoInclusiveJetEtaStdBinsPtBins[nPtBins];
+    std::vector<TH1D*> hRecoInclusiveJetEtaStdBinsPtBins(nPtBins);
     TH1D *hRecoLeadJetEta;
     TH1D *hRecoSubLeadJetEta;
 
     TH1D *hInclusiveJetReco2GenEta;
     TH1D *hInclusiveJetReco2GenEtaStdBins;
-    TH1D *hInclusiveJetReco2GenEtaStdBinsPtBins[nPtBins];
+    std::vector<TH1D*> hInclusiveJetReco2GenEtaStdBinsPtBins(nPtBins);
     TH1D *hLeadJetReco2GenEta;
     TH1D *hSubLeadJetReco2GenEta;
 
@@ -4118,7 +4199,7 @@ void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString 
     TH1D *hRecoInclusiveJetEtaCMForward;
     TH1D *hRecoInclusiveJetEtaCMBackward;
     TH1D *hRecoInclusiveJetForwardBackwardRatioCM;
-    TH1D *hRecoInclusiveJetEtaCMPtBins[nPtBins];
+    std::vector<TH1D*> hRecoInclusiveJetEtaCMPtBins(nPtBins);
 
     TH1D *hRecoLeadJetEtaCM;
     TH1D *hRecoLeadJetEtaCMForward;
@@ -5706,7 +5787,6 @@ void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString 
     if ( leg ) { delete leg; leg = nullptr; }
 }
 
-
 //________________
 void plotDiJetClosures(int collisionSystem, double collisionEnergy, TString date) {
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
@@ -5765,11 +5845,11 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    bool isPythia = false; // Set to false for embedding
+    bool isPythia = true; // Set to false for embedding
     TString generatorType = isPythia ? "pythia" : "embedding";
-    TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
-    // TString inputFileName = Form("eta_shift/%s_%s.root", generatorType.Data(), direction.Data() );
-    TString inputFileName = Form("eta_shift/%s_%s_ptHat30.root", generatorType.Data(), direction.Data() );
+    TString direction = "combined"; // "pgoing", "Pbgoing", "combined"
+    TString inputFileName = Form("eta_shift/%s_%s.root", generatorType.Data(), direction.Data() );
+    // TString inputFileName = Form("eta_shift/%s_%s_ptHat220.root", generatorType.Data(), direction.Data() );
     const int nEtaShifts = 13;
     static constexpr std::array<float, nEtaShifts> etaShift{0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470, 0.475, 0.480, 0.485, 0.490, 0.495 };
     static constexpr std::array<int, nEtaShifts> markerStyles{20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32};
@@ -5791,6 +5871,11 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
     TH1D *hGenEtaCMForward[nEtaShifts]{nullptr};
     TH1D *hGenEtaCMBackward[nEtaShifts]{nullptr};
     TH1D *hGenEtaCMForwardBackwardRatio[nEtaShifts]{nullptr};
+
+    TH1D *hGenDijetEtaCMShifted[nEtaShifts]{nullptr};
+    TH1D *hGenDijetEtaCMForwardShifted[nEtaShifts]{nullptr};
+    TH1D *hGenDijetEtaCMBackwardShifted[nEtaShifts]{nullptr};
+    TH1D *hGenDijetEtaCMForwardBackwardRatio[nEtaShifts]{nullptr};
 
     for ( int iEta = 0; iEta < nEtaShifts; ++iEta ) {
         hGenEtaCM[iEta] = dynamic_cast<TH1D*>( f->Get( Form("hGenJetEtaCMShifted_%d", iEta) ) );
@@ -5845,6 +5930,61 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
         hGenEtaCMForwardBackwardRatio[iEta]->SetLineWidth(lineWidth);
         hGenEtaCMForwardBackwardRatio[iEta]->SetMarkerSize(markerSize);
 
+        // Dijet eta cm distributions for different eta shifts
+        hGenDijetEtaCMShifted[iEta] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMShifted_%d", iEta) ) );
+        if ( !hGenDijetEtaCMShifted[iEta] ) {
+            std::cerr << Form("Error: Could not retrieve hGenDijetEtaCMShifted_%d from file.", iEta) << std::endl;
+            return;
+        }
+        hGenDijetEtaCMShifted[iEta]->SetDirectory(0);
+        set1DStyle(hGenDijetEtaCMShifted[iEta], 0);
+        hGenDijetEtaCMShifted[iEta]->Scale(1./hGenDijetEtaCMShifted[iEta]->Integral(hGenDijetEtaCMShifted[iEta]->GetXaxis()->FindBin(-1.899), hGenDijetEtaCMShifted[iEta]->GetXaxis()->FindBin(1.8999)) );
+        hGenDijetEtaCMShifted[iEta]->SetName( Form("hGenDijetEtaCMShifted_%d", iEta) );
+        hGenDijetEtaCMShifted[iEta]->Rebin(rebin);
+        hGenDijetEtaCMShifted[iEta]->SetMarkerStyle(markerStyles[iEta]);
+        hGenDijetEtaCMShifted[iEta]->SetMarkerColor(p8Colors[iEta]);
+        hGenDijetEtaCMShifted[iEta]->SetLineColor(p8Colors[iEta]);
+        hGenDijetEtaCMShifted[iEta]->SetLineWidth(lineWidth);
+        hGenDijetEtaCMShifted[iEta]->SetMarkerSize(markerSize);
+
+        hGenDijetEtaCMForwardShifted[iEta] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMForwardShifted_%d", iEta) ) );
+        if ( !hGenDijetEtaCMForwardShifted[iEta] ) {
+            std::cerr << Form("Error: Could not retrieve hGenDijetEtaCMForwardShifted_%d from file.", iEta) << std::endl;
+            return;
+        }
+        hGenDijetEtaCMForwardShifted[iEta]->SetDirectory(0);
+        set1DStyle(hGenDijetEtaCMForwardShifted[iEta], 0);
+        hGenDijetEtaCMForwardShifted[iEta]->SetName( Form("hGenDijetEtaCMForwardShifted_%d", iEta) );
+        hGenDijetEtaCMForwardShifted[iEta]->Rebin(rebin);
+        hGenDijetEtaCMForwardShifted[iEta]->SetMarkerStyle(markerStyles[iEta]);
+        hGenDijetEtaCMForwardShifted[iEta]->SetMarkerColor(p8Colors[iEta]);
+        hGenDijetEtaCMForwardShifted[iEta]->SetLineColor(p8Colors[iEta]);
+        hGenDijetEtaCMForwardShifted[iEta]->SetLineWidth(lineWidth);
+        hGenDijetEtaCMForwardShifted[iEta]->SetMarkerSize(markerSize);
+
+        hGenDijetEtaCMBackwardShifted[iEta] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMBackwardShifted_%d", iEta) ) );
+        if ( !hGenDijetEtaCMBackwardShifted[iEta] ) {
+            std::cerr << Form("Error: Could not retrieve hGenDijetEtaCMBackwardShifted_%d from file.", iEta) << std::endl;
+            return;
+        }
+        hGenDijetEtaCMBackwardShifted[iEta]->SetDirectory(0);
+        set1DStyle(hGenDijetEtaCMBackwardShifted[iEta], 0);
+        hGenDijetEtaCMBackwardShifted[iEta]->SetName( Form("hGenDijetEtaCMBackwardShifted_%d", iEta) );
+        hGenDijetEtaCMBackwardShifted[iEta]->Rebin(rebin);
+        hGenDijetEtaCMBackwardShifted[iEta]->SetMarkerStyle(markerStyles[iEta]);
+        hGenDijetEtaCMBackwardShifted[iEta]->SetMarkerColor(p8Colors[iEta]);
+        hGenDijetEtaCMBackwardShifted[iEta]->SetLineColor(p8Colors[iEta]);
+        hGenDijetEtaCMBackwardShifted[iEta]->SetLineWidth(lineWidth);
+        hGenDijetEtaCMBackwardShifted[iEta]->SetMarkerSize(markerSize);
+
+        hGenDijetEtaCMForwardBackwardRatio[iEta] = dynamic_cast<TH1D*>( hGenDijetEtaCMForwardShifted[iEta]->Clone( Form("hGenDijetEtaCMForwardBackwardRatio_%d", iEta) ) );
+        if ( !hGenDijetEtaCMForwardBackwardRatio[iEta] ) {
+            std::cerr << Form("Error: Could not create hGenDijetEtaCMForwardBackwardRatio_%d by cloning hGenDijetEtaCMForwardShifted_%d.", iEta, iEta) << std::endl;
+            return;
+        }
+        hGenDijetEtaCMForwardBackwardRatio[iEta]->SetDirectory(0);
+        hGenDijetEtaCMForwardBackwardRatio[iEta]->Divide(hGenDijetEtaCMBackwardShifted[iEta]);
+
         recalculateFBRatioFromFullDistribution(hGenEtaCMForwardBackwardRatio[iEta], hGenEtaCMForward[iEta], 
                                                hGenEtaCMBackward[iEta], hGenEtaCM[iEta]);
     } // for ( int iEta = 0; iEta < nEtaShifts; ++iEta )
@@ -5872,7 +6012,7 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
             hGenEtaCM[iEta]->GetXaxis()->SetRangeUser(-4.8, 4.8);
         }
         plotCMSHeader(collisionSystem, collisionEnergy);
-        t.DrawLatexNDC(0.16, 0.85, Form("%s gen (inclusive jets)", generatorType.Data()));
+        t.DrawLatexNDC(0.16, 0.85, Form("%s gen (inclusive jets)", (isPythia ? "PYTHIA" : "Embedding") ) );
         leg->AddEntry(hGenEtaCM[iEta], Form("#Delta#eta = %.3f; #LT#eta_{CM}#GT = %.4f; #gamma_{1} = %.4f", etaShift[iEta], hGenEtaCM[iEta]->GetMean(), hGenEtaCM[iEta]->GetSkewness()), "p");
     }
     plotCMSHeader(collisionSystem, collisionEnergy);
@@ -5902,7 +6042,7 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
             hGenEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.0);
         }
         plotCMSHeader(collisionSystem, collisionEnergy);
-        t.DrawLatexNDC(0.16, 0.85, Form("%s gen (inclusive jets)", generatorType.Data()));
+        t.DrawLatexNDC(0.16, 0.85, Form("%s gen (inclusive jets)", (isPythia ? "PYTHIA" : "Embedding") ) );
         leg->AddEntry(hGenEtaCMForwardBackwardRatio[iEta], Form("#Delta#eta = %.3f; Offset = %.3f #pm %.3f", etaShift[iEta], fLine[iEta]->GetParameter(0), fLine[iEta]->GetParError(0)), "p");
     }
     plotCMSHeader(collisionSystem, collisionEnergy);
@@ -5913,7 +6053,908 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
     for ( int iEta = 0; iEta < nEtaShifts; ++iEta ) {
         if (fLine[iEta]) { delete fLine[iEta]; fLine[iEta] = nullptr; }
     }
+
+    // Overlay of gen dijet eta cm distributions for different eta shifts
+    leg = new TLegend(0.16, 0.55, 0.34, 0.83);
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    for ( int iEta = 0; iEta < nEtaShifts; ++iEta ) {
+        hGenDijetEtaCMShifted[iEta]->Draw( (iEta == 0) ? "" : "same" );
+        if (iEta == 0) {
+            hGenDijetEtaCMShifted[iEta]->GetXaxis()->SetTitle("#eta_{CM}");
+            hGenDijetEtaCMShifted[iEta]->GetYaxis()->SetTitle("dN/d#eta_{CM}");
+            hGenDijetEtaCMShifted[iEta]->GetYaxis()->SetRangeUser(0., 0.15);
+            hGenDijetEtaCMShifted[iEta]->GetXaxis()->SetRangeUser(-2.8, 2.8);
+        }
+        leg->AddEntry(hGenDijetEtaCMShifted[iEta], Form("#Delta#eta = %.3f; #LT#eta_{CM}#GT = %.4f; #gamma_{1} = %.4f", etaShift[iEta], hGenDijetEtaCMShifted[iEta]->GetMean(), hGenDijetEtaCMShifted[iEta]->GetSkewness()), "p");
+    }
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s gen (dijets)", (isPythia ? "PYTHIA" : "Embedding") ) );
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_gen_dijet_etaCM_etaShift_comparison.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data() ) );
+    if (leg) { delete leg; leg = nullptr; }
+
+    // Overlay of gen dijet forward/backward cm distributions for different eta shifts
+    leg = new TLegend(0.16, 0.55, 0.34, 0.83);
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    TF1 *fDijetLine[nEtaShifts]{nullptr};
+    for ( int iEta = 0; iEta < nEtaShifts; ++iEta ) {
+        hGenDijetEtaCMForwardBackwardRatio[iEta]->Draw( (iEta == 0) ? "" : "same" );
+        fDijetLine[iEta] = new TF1(Form("fDijetLine_%d", iEta), "pol0", 0., 1.9);
+        fDijetLine[iEta]->SetLineColor(p8Colors[iEta]);
+        fDijetLine[iEta]->SetLineWidth(lineWidth);
+        fDijetLine[iEta]->SetLineStyle(2);
+        hGenDijetEtaCMForwardBackwardRatio[iEta]->Fit( fDijetLine[iEta], "MRQE", "", 0., 1.9 );
+        if (iEta == 0) {
+            hGenDijetEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetTitle("#eta_{CM}");
+            hGenDijetEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetTitle("Forward / Backward");
+            hGenDijetEtaCMForwardBackwardRatio[iEta]->GetYaxis()->SetRangeUser(0.85, 1.25);
+            hGenDijetEtaCMForwardBackwardRatio[iEta]->GetXaxis()->SetRangeUser(0., 2.0);
+        }
+        leg->AddEntry(hGenDijetEtaCMForwardBackwardRatio[iEta], Form("#Delta#eta = %.3f; Offset = %.3f #pm %.3f", etaShift[iEta], fDijetLine[iEta]->GetParameter(0), fDijetLine[iEta]->GetParError(0)), "p");
+    }
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s gen (dijets)", (isPythia ? "PYTHIA" : "Embedding") ) );
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_gen_dijet_forwardBackwardRatio_etaCM_etaShift_comparison.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data() ) );
+    if (leg) { delete leg; leg = nullptr; }
+    for ( int iEta = 0; iEta < nEtaShifts; ++iEta ) {
+        if (fDijetLine[iEta]) { delete fDijetLine[iEta]; fDijetLine[iEta] = nullptr; }
+    }
+
     if ( c ) { delete c; c = nullptr; }
+}
+
+//________________
+void plotTurnOnCurves(int collisionSystem, double collisionEnergy, TString date) {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    bool isPythia = false; // Set to false for embedding
+    TString generatorType = isPythia ? "pythia" : "embedding";
+    TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
+    TString type = "Gen"; // "Gen" or "Reco"
+    double ptHatBins[] = { 15., 30., 50., 80., 120., 170., 220., 280., 370., 460., 540.};
+    int nPtHatBins = sizeof(ptHatBins)/sizeof(ptHatBins[0]);
+    TString inputFileName = Form("../../tmp/jetAnalysis/macro/eta_shift/%s_%s_jetId.root", generatorType.Data(), direction.Data());
+    int lineWidth = 3;
+    double markerSize = 1.3;
+
+    auto f = std::unique_ptr<TFile>(TFile::Open( inputFileName.Data() ));
+    if ( !f || f->IsZombie() ) {
+        std::cerr << Form("Error: Could not open %s", inputFileName.Data()) << std::endl;
+        return; 
+    }
+
+    auto hInclusiveJetPtPtHat = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( f->Get(Form("h%sInclusiveJetPtPtHat", type.Data())) ) );
+    if ( !hInclusiveJetPtPtHat ) {
+        std::cerr << "Error: Could not retrieve h" << type.Data() << "InclusiveJetPtPtHat from file." << std::endl;
+        return;
+    }
+    hInclusiveJetPtPtHat->SetDirectory(0);
+    f->Close();
+
+    std::vector<std::unique_ptr<TH1D>> hInclusiveJetPt(nPtHatBins + 1);
+    std::vector<std::unique_ptr<TH1D>> hInclusiveJetPtRatios(nPtHatBins + 1);
+    // Colors for plotting
+    static constexpr std::array<Color_t, 13> p8Colors {kBlue, kRed, kMagenta, kP8Orange, kP8Green, kP8Azure, kBlack, kPink, kCyan, kTeal, kGray, kSpring, kViolet};
+
+    auto c = std::make_unique<TCanvas>("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+    auto leg = std::make_unique<TLegend>(0.65, 0.45, 0.8, 0.8);
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    TLatex t;
+    t.SetTextSize(0.04);
+    t.SetTextFont(42);
+
+    hInclusiveJetPt[0] = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>(hInclusiveJetPtPtHat->ProjectionX(Form("h%sInclusiveJetPt_0", type.Data()), 1, hInclusiveJetPtPtHat->GetYaxis()->GetNbins() )) );
+    if (!hInclusiveJetPt[0]) {
+        std::cerr << "Error: failed to project inclusive spectrum for all pt-hat bins." << std::endl;
+        return;
+    }
+    hInclusiveJetPt[0]->SetDirectory(0);
+    set1DStyle(hInclusiveJetPt[0].get(), 0);
+    hInclusiveJetPt[0]->SetLineColor(p8Colors[0]);
+    hInclusiveJetPt[0]->SetMarkerColor(p8Colors[0]);
+    hInclusiveJetPt[0]->SetLineWidth(lineWidth);
+    hInclusiveJetPt[0]->SetMarkerStyle(20);
+    hInclusiveJetPt[0]->SetMarkerSize(markerSize);
+    hInclusiveJetPt[0]->GetXaxis()->SetTitle(Form("p_{T}^{%s} (GeV)", type.Data()));
+    hInclusiveJetPt[0]->GetYaxis()->SetTitle(Form("dN/dp_{T}^{%s}", type.Data()));
+
+    hInclusiveJetPt[0]->Draw();
+    leg->AddEntry(hInclusiveJetPt[0].get(), "All #hat{p}_{T}", "p");
+
+    double scalingFactor = 1.8;
+    // Make projections for different pt-hat bins with pt-hat > lower edge of the bin
+    for ( int iPtHatBin = 0; iPtHatBin < nPtHatBins; ++iPtHatBin ) {
+        double ptHatLow = ptHatBins[iPtHatBin]+0.1;
+        double ptHatHigh = hInclusiveJetPtPtHat->GetYaxis()->GetXmax()-0.1;
+        hInclusiveJetPt[iPtHatBin+1] = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>(hInclusiveJetPtPtHat->ProjectionX( Form("h%sInclusiveJetPt_%d", type.Data(), iPtHatBin),
+                                                                                hInclusiveJetPtPtHat->GetYaxis()->FindBin(ptHatLow), 
+                                                                                hInclusiveJetPtPtHat->GetYaxis()->FindBin(ptHatHigh) )) );
+        if (!hInclusiveJetPt[iPtHatBin+1]) {
+            std::cerr << Form("Error: failed to project pt-hat slice %d.", iPtHatBin) << std::endl;
+            continue;
+        }
+        hInclusiveJetPt[iPtHatBin+1]->SetDirectory(0);
+        set1DStyle(hInclusiveJetPt[iPtHatBin+1].get(), 0);
+        hInclusiveJetPt[iPtHatBin+1]->SetLineColor(p8Colors[iPtHatBin+1]);
+        hInclusiveJetPt[iPtHatBin+1]->SetMarkerColor(p8Colors[iPtHatBin+1]);
+        hInclusiveJetPt[iPtHatBin+1]->SetLineWidth(lineWidth);
+        // hInclusiveJetPt[iPtHatBin+1]->SetMarkerStyle(20 + iPtHatBin + 1);
+        hInclusiveJetPt[iPtHatBin+1]->SetMarkerSize(markerSize);
+        hInclusiveJetPt[iPtHatBin+1]->GetXaxis()->SetTitle(Form("p_{T}^{%s} (GeV)", type.Data()));
+        hInclusiveJetPt[iPtHatBin+1]->GetYaxis()->SetTitle(Form("dN/dp_{T}^{%s}", type.Data()));
+
+        hInclusiveJetPtRatios[iPtHatBin+1] = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hInclusiveJetPt[iPtHatBin+1]->Clone( Form("h%sInclusiveJetPtRatio_%d", type.Data(), iPtHatBin) ) ) );
+        if ( !hInclusiveJetPtRatios[iPtHatBin+1] ) {
+            std::cerr << Form("Error: failed to clone pt-hat ratio histogram %d.", iPtHatBin) << std::endl;
+            continue;
+        }
+        hInclusiveJetPtRatios[iPtHatBin+1]->SetDirectory(0);
+        
+        hInclusiveJetPt[iPtHatBin+1]->Draw("same");
+        int ptHatLowInt = std::round(ptHatBins[iPtHatBin]);
+        leg->AddEntry(hInclusiveJetPt[iPtHatBin+1].get(), Form("#hat{p}_{T} > %d GeV", ptHatLowInt), "p");
+    } // for ( int iPtHatBin = 0; iPtHatBin < nPtHatBins; ++iPtHatBin )
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets)", (isPythia ? "PYTHIA" : "Embedding"), type.Data() ) );
+    leg->Draw();
+    c->SetLogy(1);
+    c->SaveAs(Form("%s/%s_%s_%s_inclusiveJet_pt_forPtHat.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data(), type.Data() ) );
+    c->SetLogy(0);
+
+    leg.release();
+    leg = std::make_unique<TLegend>(0.15, 0.25, 0.35, 0.65);
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+
+    // Renormalize distributions and make ratios
+    for (int iPtHatBin = 0; iPtHatBin < nPtHatBins; ++iPtHatBin) {
+        
+        // Make ratio to total gen inclusive jet pt distribution
+        hInclusiveJetPtRatios[iPtHatBin+1]->Divide(hInclusiveJetPt[0].get());
+        hInclusiveJetPtRatios[iPtHatBin+1]->Draw( (iPtHatBin == 0) ? "" : "same" );
+        if (iPtHatBin == 0) {
+            hInclusiveJetPtRatios[iPtHatBin+1]->GetXaxis()->SetTitle(Form("p_{T}^{%s} (GeV)", type.Data()));
+            hInclusiveJetPtRatios[iPtHatBin+1]->GetYaxis()->SetTitle("Ratio to total");
+            hInclusiveJetPtRatios[iPtHatBin+1]->GetYaxis()->SetRangeUser(0.7, 1.05);
+            hInclusiveJetPtRatios[iPtHatBin+1]->GetXaxis()->SetRangeUser(0., 350.);
+        }
+        int ptHatLowInt = std::round(ptHatBins[iPtHatBin]);
+        leg->AddEntry(hInclusiveJetPtRatios[iPtHatBin+1].get(), Form("#hat{p}_{T} > %d GeV", ptHatLowInt), "p"); 
+        hInclusiveJetPtRatios[iPtHatBin+1].release();
+    }
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets)", (isPythia ? "PYTHIA" : "Embedding"), type.Data() ) );
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_%s_inclusiveJet_turnOnCurves.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data(), type.Data() ) );
+
+    hInclusiveJetPtPtHat.release();
+    for ( auto &hInclusivePt : hInclusiveJetPt ) {
+        hInclusivePt.release();
+    }
+    for ( auto &hInclusivePtRatio : hInclusiveJetPtRatios ) {
+        hInclusivePtRatio.release();
+    }
+    leg.release();
+    c.release();
+    f.release();
+}
+
+//________________
+void extractJESandJER(std::unique_ptr<TH2D> &h2D, std::unique_ptr<TH1D> &hJES, std::unique_ptr<TH1D> &hJER,
+                      const bool &etaSlices = true, const int &style = 0, TF1 *fFit = nullptr) {
+    // If eta slices is true, extract JES and JER as a function of pt for the given eta range (lowVal, highVal), 
+    // otherwise extract JES and JER as a function of eta for the given pt range (lowVal, highVal)
+
+    int rebinX = 2;
+    int rebinY = 1;
+    
+    if ( !h2D ) {
+        std::cerr << "Error: input 2D histogram is null." << std::endl;
+        return;
+    }
+
+    // Check if histogram has sufficient entries for fitting
+    if (h2D->GetEntries() == 0) {
+        std::cerr << "[WARNING] Histogram " << h2D->GetName() << " has insufficient entries (" 
+                  << h2D->GetEntries() << ") for fitting" << std::endl;
+        return;
+    }
+
+    // Retrieve JES and JER
+    h2D->RebinX( rebinX );    // Rebin for better statistics
+    h2D->RebinY( rebinY );    // Rebin for better statistics
+    h2D->FitSlicesY();
+
+    // Retrieve the JES histogram (mean values from the fits)
+    hJES.reset( dynamic_cast<TH1D*>( gDirectory->Get( Form( "%s_1", h2D->GetName() ) ) ) );
+    if ( !hJES ) {
+        std::cerr << "Error: failed to retrieve JES histogram from FitSlicesY." << std::endl;
+        return;
+    }
+    hJES->SetDirectory(0);
+    set1DStyle(hJES.get(), style);
+    hJES->SetName( Form("%s_JES", h2D->GetName()) );
+    hJES->GetYaxis()->SetTitle("JES");
+    if ( etaSlices ) {
+        hJES->GetXaxis()->SetTitle("p_{T} (GeV)");
+    } else {
+        hJES->GetXaxis()->SetTitle("#eta");
+    }
+
+
+    // Retrieve the JER histogram (sigma values from the fits)
+    hJER.reset( dynamic_cast<TH1D*>( gDirectory->Get( Form( "%s_2", h2D->GetName() ) ) ) );
+    if ( !hJER ) {
+        std::cerr << "Error: failed to retrieve JER histogram from FitSlicesY." << std::endl;
+        return;
+    }
+    hJER->SetDirectory(0);
+    hJER->SetName( Form("%s_JER", h2D->GetName()) );
+    hJER->GetYaxis()->SetTitle("JER");
+    if ( etaSlices ) {
+        hJER->GetXaxis()->SetTitle("p_{T} (GeV)");
+    } else {
+        hJER->GetXaxis()->SetTitle("#eta");
+    }
+    set1DStyle(hJER.get(), style);
+
+    // For eta slices, fit the JER to extract the parameters
+    if ( etaSlices) {
+        if (fFit != nullptr) {
+            hJER->Fit( fFit, "MRE0");
+        }
+    }
+}
+
+//________________
+void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date) {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    bool isPythia = true; // Set to false for embedding
+    TString generatorType = isPythia ? "pythia" : "embedding";
+    TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
+    int ptHatSample = 0; // if 0 - use integrated sample, otherwise use pt-hat binned sample
+    bool useJerSyst = true;
+
+    TString inputFileName;
+    if (ptHatSample == 0) {
+        inputFileName = Form("../../tmp/jetAnalysis/macro/eta_shift/%s_%s_jetId.root", generatorType.Data(), direction.Data() );
+    } else {
+        inputFileName = Form("../../tmp/jetAnalysis/macro/eta_shift/%s_%s_ptHat%d.root", generatorType.Data(), direction.Data(), ptHatSample);
+    }
+    int lineWidth = 3;
+    double markerSize = 1.3;
+
+    double etaLow = -0.8 + 1e-6;
+    double etaHigh = 0.8 - 1e-6;
+
+    // Colors for plotting
+    static constexpr std::array<Color_t, 13> p8Colors {kBlue, kRed, kMagenta, kP8Orange, kP8Green, kP8Azure, kBlack, kPink, kCyan, kTeal, kGray, kSpring, kViolet};
+
+    auto f = std::unique_ptr<TFile>(TFile::Open( inputFileName.Data() ));
+    if ( !f || f->IsZombie() ) {
+        std::cerr << Form("Error: Could not open %s", inputFileName.Data()) << std::endl;
+        return;
+    }
+
+    // 3D distributions (JES vs pt vs eta)
+    auto hRecoInclusiveJetJESPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESPtEtaStdBins") ) );
+    if ( !hRecoInclusiveJetJESPtEtaStdBins ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESPtEtaStdBins from file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetJESPtEtaStdBins->SetDirectory(0);
+    auto hRecoInclusiveJetJESDefPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDefPtEtaStdBins") ) );
+    if ( !hRecoInclusiveJetJESDefPtEtaStdBins ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDefPtEtaStdBins from file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetJESDefPtEtaStdBins->SetDirectory(0);
+    auto hRecoInclusiveJetJESUpPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESUpPtEtaStdBins") ) );
+    if ( !hRecoInclusiveJetJESUpPtEtaStdBins ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESUpPtEtaStdBins from file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetJESUpPtEtaStdBins->SetDirectory(0);
+    auto hRecoInclusiveJetJESDownPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDownPtEtaStdBins") ) );
+    if ( !hRecoInclusiveJetJESDownPtEtaStdBins ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDownPtEtaStdBins from file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetJESDownPtEtaStdBins->SetDirectory(0);
+    auto hRecoInclusiveJetJESDefNoSFPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDefNoSFPtEtaStdBins") ) );
+    if ( !hRecoInclusiveJetJESDefNoSFPtEtaStdBins ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDefNoSFPtEtaStdBins from file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetJESDefNoSFPtEtaStdBins->SetDirectory(0);
+    f->Close();
+
+    std::unique_ptr<TH2D> hRecoJESVsPtNoSmear;
+    std::unique_ptr<TH2D> hRecoJESVsPtSmearDef;
+    std::unique_ptr<TH2D> hRecoJESVsPtSmearUp;
+    std::unique_ptr<TH2D> hRecoJESVsPtSmearDown;
+    std::unique_ptr<TH2D> hRecoJESVsPtSmearDefNoSF;
+
+    auto fJERFitNoSmear = std::make_unique<TF1>("fJERFitNoSmear", "sqrt(max(0., [0] + [1]/x))", 30., 800.);
+    fJERFitNoSmear->SetParameter(0, 0.002);
+    fJERFitNoSmear->SetParameter(1, 1.0);
+    fJERFitNoSmear->SetLineColor(kBlack);    
+    auto fJERFitSmearDef = std::make_unique<TF1>("fJERFitSmearDef", "sqrt(max(0., [0] + [1]/x))", 30., 800.);
+    fJERFitSmearDef->SetParameter(0, 0.002);
+    fJERFitSmearDef->SetParameter(1, 1.0);
+    fJERFitSmearDef->SetLineColor(kRed);
+    auto fJERFitSmearUp = std::make_unique<TF1>("fJERFitSmearUp", "sqrt(max(0., [0] + [1]/x))", 30., 800.);
+    fJERFitSmearUp->SetParameter(0, 0.002);
+    fJERFitSmearUp->SetParameter(1, 1.0);
+    fJERFitSmearUp->SetLineColor(kBlue);
+    auto fJERFitSmearDown = std::make_unique<TF1>("fJERFitSmearDown", "sqrt(max(0., [0] + [1]/x))", 30., 800.);
+    fJERFitSmearDown->SetParameter(0, 0.002);
+    fJERFitSmearDown->SetParameter(1, 1.0);
+    fJERFitSmearDown->SetLineColor(kMagenta);
+    auto fJERFitSmearDefNoSF = std::make_unique<TF1>("fJERFitSmearDefNoSF", "sqrt(max(0., [0] + [1]/x))", 30., 800.);
+    fJERFitSmearDefNoSF->SetParameter(0, 0.002);
+    fJERFitSmearDefNoSF->SetParameter(1, 1.0);
+    fJERFitSmearDefNoSF->SetLineColor(kP8Azure);
+
+    // Retrieve 2D distributions by projecting the 3D histograms in the given eta range
+    hRecoInclusiveJetJESPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtNoSmear = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEtaStdBins->Project3D("xy") ) );
+    hRecoJESVsPtNoSmear->SetName("hRecoJESVsPtNoSmear");
+
+
+    hRecoInclusiveJetJESDefPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearDef = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDefPtEtaStdBins->Project3D("xy") ) );
+    hRecoJESVsPtSmearDef->SetName("hRecoJESVsPtSmearDef");
+
+    hRecoInclusiveJetJESUpPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearUp = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESUpPtEtaStdBins->Project3D("xy") ) );
+    hRecoJESVsPtSmearUp->SetName("hRecoJESVsPtSmearUp");
+
+    hRecoInclusiveJetJESDownPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearDown = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDownPtEtaStdBins->Project3D("xy") ) );
+    hRecoJESVsPtSmearDown->SetName("hRecoJESVsPtSmearDown");
+
+    hRecoInclusiveJetJESDefNoSFPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearDefNoSF = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDefNoSFPtEtaStdBins->Project3D("xy") ) );
+    hRecoJESVsPtSmearDefNoSF->SetName("hRecoJESVsPtSmearDefNoSF");
+
+    // Prepare 1D projections for JES and JER
+    std::unique_ptr<TH1D> hRecoJESNoSmear;
+    std::unique_ptr<TH1D> hRecoJESSmearDef;
+    std::unique_ptr<TH1D> hRecoJESSmearUp;
+    std::unique_ptr<TH1D> hRecoJESSmearDown;
+    std::unique_ptr<TH1D> hRecoJESSmearDefNoSF;
+    std::unique_ptr<TH1D> hRecoJERNoSmear;
+    std::unique_ptr<TH1D> hRecoJERSmearDef;
+    std::unique_ptr<TH1D> hRecoJERSmearUp;
+    std::unique_ptr<TH1D> hRecoJERSmearDown;
+    std::unique_ptr<TH1D> hRecoJERSmearDefNoSF;
+
+    // Extract JES and JER as a function of pt for the given eta range
+    extractJESandJER(hRecoJESVsPtNoSmear, hRecoJESNoSmear, hRecoJERNoSmear, true, 2, fJERFitNoSmear.get());
+    extractJESandJER(hRecoJESVsPtSmearDef, hRecoJESSmearDef, hRecoJERSmearDef, true, 0, fJERFitSmearDef.get());
+    extractJESandJER(hRecoJESVsPtSmearUp, hRecoJESSmearUp, hRecoJERSmearUp, true, 1, fJERFitSmearUp.get());
+    extractJESandJER(hRecoJESVsPtSmearDown, hRecoJESSmearDown, hRecoJERSmearDown, true, 3, fJERFitSmearDown.get());
+    extractJESandJER(hRecoJESVsPtSmearDefNoSF, hRecoJESSmearDefNoSF, hRecoJERSmearDefNoSF, true, 6, fJERFitSmearDefNoSF.get());
+
+    auto c = std::make_unique<TCanvas>("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+    hRecoJERNoSmear->Draw();
+    hRecoJERSmearDef->Draw("same");
+    hRecoJERSmearUp->Draw("same");
+    hRecoJERSmearDown->Draw("same");
+    hRecoJERSmearDefNoSF->Draw("same");
+    fJERFitNoSmear->Draw("same");
+    fJERFitSmearDef->Draw("same");
+    fJERFitSmearUp->Draw("same");
+    fJERFitSmearDown->Draw("same");
+    fJERFitSmearDefNoSF->Draw("same");
+    hRecoJERNoSmear->GetXaxis()->SetRangeUser(10., 400.);
+    hRecoJERNoSmear->GetYaxis()->SetRangeUser(0., 0.3);
+    TLatex t;
+    t.SetTextSize(0.03);
+    t.SetTextFont(42);
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JER)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
+    auto leg = std::make_unique<TLegend>(0.35, 0.6, 0.8, 0.8);
+    leg->SetTextSize(0.02);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    // std::cout << Form("Fit parameters for no smearing: [0] = %.3f, [1] = %.3f", fJERFitNoSmear->GetParameter(0), fJERFitNoSmear->GetParameter(1)) << std::endl;
+    leg->AddEntry(hRecoJERNoSmear.get(), Form("No smearing: #sqrt{%.5f + %.5f/x}", fJERFitNoSmear->GetParameter(0), fJERFitNoSmear->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERSmearDef.get(), Form("Smearing def: #sqrt{%.5f + %.5f/x}", fJERFitSmearDef->GetParameter(0), fJERFitSmearDef->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERSmearUp.get(), Form("Smearing up: #sqrt{%.5f + %.5f/x}", fJERFitSmearUp->GetParameter(0), fJERFitSmearUp->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERSmearDown.get(), Form("Smearing down: #sqrt{%.5f + %.5f/x}", fJERFitSmearDown->GetParameter(0), fJERFitSmearDown->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERSmearDefNoSF.get(), Form("Smearing def no SF: #sqrt{%.5f + %.5f/x}", fJERFitSmearDefNoSF->GetParameter(0), fJERFitSmearDefNoSF->GetParameter(1)), "p");
+    leg->Draw();
+
+    leg.release();
+    leg.reset(new TLegend(0.45, 0.65, 0.75, 0.8));
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+
+    c->SaveAs(Form("%s/%s_%s_JER_etaSlice_m08_08.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data()) );
+
+    hRecoJESNoSmear->Draw();
+    hRecoJESSmearDef->Draw("same");
+    hRecoJESSmearUp->Draw("same");
+    hRecoJESSmearDown->Draw("same");
+    hRecoJESSmearDefNoSF->Draw("same");
+    hRecoJESNoSmear->GetXaxis()->SetRangeUser(10., 400.);
+    hRecoJESNoSmear->GetYaxis()->SetRangeUser(0.9, 1.1);
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    leg->AddEntry(hRecoJESNoSmear.get(), "No smearing", "p");
+    leg->AddEntry(hRecoJESSmearDef.get(), "Smearing def", "p");
+    leg->AddEntry(hRecoJESSmearUp.get(), "Smearing up", "p");
+    leg->AddEntry(hRecoJESSmearDown.get(), "Smearing down", "p");
+    leg->AddEntry(hRecoJESSmearDefNoSF.get(), "Smearing def no SF", "p");
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JES)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_JES_etaSlice_m08_08.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data()) );
+}
+
+//________________
+void plotJESandJER(int collisionSystem, double collisionEnergy, TString date) {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    bool isPythia = true; // Set to false for embedding
+    TString generatorType = isPythia ? "pythia" : "embedding";
+    TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
+    int ptHatSample = 0; // if 0 - use integrated sample, otherwise use pt-hat binned sample
+    bool useJerSyst = true;
+
+    TString inputFileName;
+    if (ptHatSample == 0) {
+        inputFileName = Form("../../tmp/jetAnalysis/macro/eta_shift/%s_%s_jetId.root", generatorType.Data(), direction.Data() );
+    } else {
+        inputFileName = Form("../../tmp/jetAnalysis/macro/eta_shift/%s_%s_ptHat%d.root", generatorType.Data(), direction.Data(), ptHatSample);
+    }
+    int lineWidth = 3;
+    double markerSize = 1.3;
+
+    double ptRanges[] = { 30., 50., 80., 120., 180., 250., 540.};
+    // double ptRanges[] = { 30., 50., 80., 120., 170., 220., 280., 370., 460., 540., 800.};
+    int nPtRanges = sizeof(ptRanges)/sizeof(ptRanges[0]) - 1;
+    double etaRanges[] = { -3.0, -2.4, -1.9, -1.6, -1.3, -0.8, 0.0, 0.8, 1.3, 1.6, 1.9, 2.4, 3.0 };
+    int nEtaRanges = sizeof(etaRanges)/sizeof(etaRanges[0]) - 1;
+    // Colors for plotting
+    static constexpr std::array<Color_t, 13> p8Colors {kBlue, kRed, kMagenta, kP8Orange, kP8Green, kP8Azure, kBlack, kPink, kCyan, kTeal, kGray, kSpring, kViolet};
+
+    auto f = std::unique_ptr<TFile>(TFile::Open( inputFileName.Data() ));
+    if ( !f || f->IsZombie() ) {
+        std::cerr << Form("Error: Could not open %s", inputFileName.Data()) << std::endl;
+        return;
+    }
+
+    // 3D distributions (JES vs pt vs eta)
+    auto hRecoInclusiveJetJESPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESPtEtaStdBins") ) );
+    if ( !hRecoInclusiveJetJESPtEtaStdBins ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESPtEtaStdBins from file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetJESPtEtaStdBins->SetDirectory(0);
+    f->Close();
+
+    // Latex
+    TLatex t;
+    t.SetTextSize(0.03);
+    t.SetTextFont(42);
+
+    // Legends
+    auto leg = std::make_unique<TLegend>(0.65, 0.65, 0.8, 0.83);
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    auto legComp = std::make_unique<TLegend>(0.55, 0.55, 0.8, 0.8);
+    legComp->SetTextSize(0.03);
+    legComp->SetFillColor(0);
+    legComp->SetBorderSize(0);
+    
+
+    // Canvases
+    auto c = std::make_unique<TCanvas>("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+
+    auto cJesDep = std::make_unique<TCanvas>("cJesDep", "cJesDep", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+
+    auto cJerDep = std::make_unique<TCanvas>("cJerDep", "cJerDep", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid();
+
+    // Histograms and fit functions for JES and JER vs pt and eta
+    std::vector<std::unique_ptr<TH2D>> hRecoJetJESVsPt(nEtaRanges);
+    std::vector<std::unique_ptr<TH1D>> hRecoJetJESVsPtMean(nEtaRanges);
+    std::vector<std::unique_ptr<TH1D>> hRecoJetJESVsPtSigma(nEtaRanges);
+    std::vector<std::unique_ptr<TF1>>  fJERVsPt(nEtaRanges);
+    std::vector<std::unique_ptr<TH2D>> hRecoJetJESVsEta(nPtRanges+1);
+    std::vector<std::unique_ptr<TH1D>> hRecoJetJESVsEtaMean(nPtRanges+1);
+    std::vector<std::unique_ptr<TH1D>> hRecoJetJESVsEtaSigma(nPtRanges+1);
+
+
+    int rebinX = 1;
+    int rebinY = 2;
+    //
+    // Loop over eta ranges to create JES vs pT distributions and fit slices
+    //
+    for ( int i = 0; i < nEtaRanges; ++i ) {
+
+        double etaMin = etaRanges[i];   
+        int etaMinInt = std::round(etaMin*10.); // Round to 1 decimal place
+        double etaMax = etaRanges[i+1]; 
+        int etaMaxInt = std::round(etaMax*10.); // Round to 1 decimal place
+        TString etaMinStr = (etaMinInt >= 0) ? Form("%d", etaMinInt) : Form("m%d", std::abs(etaMinInt));
+        TString etaMaxStr = (etaMaxInt >= 0) ? Form("%d", etaMaxInt) : Form("m%d", std::abs(etaMaxInt));
+
+        // Set eta range and project to get JES vs pT distribution for this eta range
+        hRecoInclusiveJetJESPtEtaStdBins->GetZaxis()->SetRangeUser(etaMin, etaMax);
+        hRecoJetJESVsPt[i] = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEtaStdBins->Project3D("xy") ) );
+        hRecoInclusiveJetJESPtEtaStdBins->GetZaxis()->SetRange(0, 0);
+        hRecoJetJESVsPt[i]->SetDirectory(0);
+        hRecoJetJESVsPt[i]->SetName( Form("hRecoJetJESVsPt_etaRange_%s_%s", etaMinStr.Data(), etaMaxStr.Data()) );
+        if (hRecoJetJESVsPt[i]->GetEntries() == 0 || hRecoJetJESVsPt[i]->Integral() == 0) {
+            std::cerr << Form("Warning: hRecoJetJESVsPt for eta range %.1f-%.1f has no entries or zero integral. Skipping.", etaMin, etaMax) << std::endl;
+            continue;
+        }
+        fJERVsPt[i] = std::make_unique<TF1>( Form("fJERVsPt_etaRange_%s_%s", etaMinStr.Data(), etaMaxStr.Data()), 
+                                             "sqrt(max(0., [0]+[1] / x))", 30., 800. );
+        fJERVsPt[i]->SetParameters(0.002, 1.0);
+        fJERVsPt[i]->SetLineColor(p8Colors[i]);
+        fJERVsPt[i]->SetLineWidth(lineWidth);
+        extractJESandJER(hRecoJetJESVsPt[i], hRecoJetJESVsPtMean[i], hRecoJetJESVsPtSigma[i], true, 2, fJERVsPt[i].get());
+
+        // Plot 2D distribution of JES vs pT for this eta range
+        c->cd();
+        setPadStyle();
+        gPad->SetGrid();
+        set2DStyle(hRecoJetJESVsPt[i].get());
+        hRecoJetJESVsPt[i]->Draw("colz");
+        hRecoJetJESVsPt[i]->GetXaxis()->SetTitle("p_{T} (GeV)");
+        hRecoJetJESVsPt[i]->GetYaxis()->SetTitle("p_{T}^{reco} / p_{T}^{ref}");
+        hRecoJetJESVsPt[i]->GetYaxis()->SetRangeUser(0., 2.);
+        hRecoJetJESVsPt[i]->GetXaxis()->SetRangeUser(10., 400.);
+        t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d; %.1f < #eta < %.1f", 
+                                        (isPythia ? "PYTHIA" : "Embedding"), 
+                                        direction.Data(), ptHatSample, etaMin, etaMax) );
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_inclusiveJetJESVsPt_ptHatSample_%d_etaRange_%s_%s.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptHatSample, etaMinStr.Data(), etaMaxStr.Data() ) );
+
+        // Plot JES vs pT
+        c->cd();
+        setPadStyle();
+        hRecoJetJESVsPtMean[i]->Draw();
+        hRecoJetJESVsPtMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        hRecoJetJESVsPtMean[i]->GetXaxis()->SetRangeUser(10., 400.);
+        t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d; %.1f < #eta < %.1f", 
+                                        (isPythia ? "PYTHIA" : "Embedding"), 
+                                        direction.Data(), ptHatSample, etaMin, etaMax) );
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_inclusiveJetJESVsPt_JES_ptHatSample_%d_etaRange_%s_%s.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptHatSample, etaMinStr.Data(), etaMaxStr.Data() ) );
+
+        // Plot JER vs pT
+        c->cd();
+        setPadStyle();
+        hRecoJetJESVsPtSigma[i]->Draw();
+        fJERVsPt[i]->Draw("same");
+        hRecoJetJESVsPtSigma[i]->GetYaxis()->SetRangeUser(0., 0.3);
+        hRecoJetJESVsPtSigma[i]->GetXaxis()->SetRangeUser(30., 500.);
+        t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d; %.1f < #eta < %.1f", 
+                                        (isPythia ? "PYTHIA" : "Embedding"), 
+                                        direction.Data(), ptHatSample, etaMin, etaMax) );
+        t.DrawLatexNDC(0.16, 0.80, Form("Fit: #sigma = #sqrt{%.5f + %.5f / p_{T}}", fJERVsPt[i]->GetParameter(0), fJERVsPt[i]->GetParameter(1)) );
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_inclusiveJetJESVsPt_JER_ptHatSample_%d_etaRange_%s_%s.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptHatSample, etaMinStr.Data(), etaMaxStr.Data() ) );
+
+        //
+        // All JES vs pT curves on the same plot for comparison
+        //
+        cJesDep->cd();
+        hRecoJetJESVsPtMean[i]->SetLineColor(p8Colors[i]);
+        hRecoJetJESVsPtMean[i]->SetMarkerColor(p8Colors[i]);
+        hRecoJetJESVsPtMean[i]->SetMarkerStyle(20 + i);
+        hRecoJetJESVsPtMean[i]->Draw( i == 0 ? "" : "same" );
+        if (i == 0) {
+            hRecoJetJESVsPtMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+            hRecoJetJESVsPtMean[i]->GetXaxis()->SetRangeUser(10., 400.);
+        }
+        gPad->Update();
+        legComp->AddEntry(hRecoJetJESVsPtMean[i].get(), Form("%.1f < #eta < %.1f", etaMin, etaMax), "p");
+
+        //
+        // All JER vs pT curves on the same plot for comparison
+        //
+        cJerDep->cd();
+        hRecoJetJESVsPtSigma[i]->SetLineColor(p8Colors[i]);
+        hRecoJetJESVsPtSigma[i]->SetMarkerColor(p8Colors[i]);
+        hRecoJetJESVsPtSigma[i]->SetMarkerStyle(20 + i);
+        if ( i == 0 ) {
+            std::cout << "I should see this message only once." << std::endl;
+        }
+        hRecoJetJESVsPtSigma[i]->Draw( i == 0 ? "" : "same" );
+        fJERVsPt[i]->Draw("same");
+        if (i == 0) {
+            hRecoJetJESVsPtSigma[i]->GetYaxis()->SetRangeUser(0., 0.3);
+            hRecoJetJESVsPtSigma[i]->GetXaxis()->SetRangeUser(10., 400.);
+        }
+        gPad->Update();
+    } // end of eta range loop
+
+    cJesDep->cd();
+    setPadStyle();
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d", 
+                                    (isPythia ? "PYTHIA" : "Embedding"), 
+                                    direction.Data(), ptHatSample) );
+    legComp->Draw("same");
+    cJesDep->SaveAs(Form("%s/%s_%s_inclusiveJetJESVsPt_JES_ptHatSample_%d_etaComparison.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptHatSample) );
+
+    cJerDep->cd();
+    setPadStyle();
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d", 
+                                    (isPythia ? "PYTHIA" : "Embedding"), 
+                                    direction.Data(), ptHatSample) );
+    legComp->Draw("same");
+    cJerDep->SaveAs(Form("%s/%s_%s_inclusiveJetJESVsPt_JER_ptHatSample_%d_etaComparison.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptHatSample) );
+
+
+    // Clear legend for the next comparison plot
+    legComp.release();
+    legComp = std::make_unique<TLegend>(0.55, 0.55, 0.8, 0.8);
+    legComp->SetTextSize(0.03);
+    legComp->SetFillColor(0);
+    legComp->SetBorderSize(0);
+
+    //
+    // Loop over pt ranges and make projections on JES vs eta plane
+    //
+    rebinY = 2;
+    rebinX = 2;
+    for ( int i = 0; i <= nPtRanges; ++i ) {
+        double ptMin = ptRanges[i]+0.1;   // Adding a small offset to avoid bin edge issues
+        int ptMinInt = std::round(ptMin);
+        double ptMax = (i == nPtRanges) ? 
+            hRecoInclusiveJetJESPtEtaStdBins->GetYaxis()->GetXmax()  : 
+            ptRanges[i+1]-0.1; // Subtracting a small offset to avoid bin edge issues
+        int ptMaxInt = std::round(ptMax);
+
+        // Set pt range and project to get JES vs eta distribution for this pt range
+        hRecoInclusiveJetJESPtEtaStdBins->GetYaxis()->SetRangeUser(ptMin, ptMax);
+        hRecoJetJESVsEta[i] = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEtaStdBins->Project3D("xz") ) );
+        hRecoInclusiveJetJESPtEtaStdBins->GetYaxis()->SetRange(0, 0);
+        hRecoJetJESVsEta[i]->SetDirectory(0);
+        hRecoJetJESVsEta[i]->SetName( Form("hRecoJetJESVsEta_ptRange_%d_%d", ptMinInt, ptMaxInt) );
+        if (hRecoJetJESVsEta[i]->GetEntries() == 0 || hRecoJetJESVsEta[i]->Integral() == 0) {
+            std::cerr << Form("Warning: hRecoJetJESVsEta for pt range %d-%d has no entries or zero integral. Skipping.", ptMinInt, ptMaxInt) << std::endl;
+            continue;
+        }
+        extractJESandJER(hRecoJetJESVsEta[i], hRecoJetJESVsEtaMean[i], hRecoJetJESVsEtaSigma[i], false, 2, nullptr);
+
+        // Plot 2D distribution of JES vs eta for this pt range
+        c->cd();
+        setPadStyle();
+        gPad->SetGrid();
+        set2DStyle(hRecoJetJESVsEta[i].get());
+        hRecoJetJESVsEta[i]->Draw("colz");
+        hRecoJetJESVsEta[i]->GetXaxis()->SetTitle("#eta");
+        hRecoJetJESVsEta[i]->GetYaxis()->SetTitle("p_{T}^{reco} / p_{T}^{ref}");
+        hRecoJetJESVsEta[i]->GetYaxis()->SetRangeUser(0., 2.);
+        hRecoJetJESVsEta[i]->GetYaxis()->SetRangeUser(-3.2, 3.2);
+        t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d %d<p_{T}<%d GeV", 
+                                        (isPythia ? "PYTHIA" : "Embedding"), 
+                                        direction.Data(), ptHatSample,ptMinInt, ptMaxInt) );
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoJetJESVsEta_ptHatSample_%d_ptRange_%d_%d.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), 
+                        ptHatSample, ptMinInt, ptMaxInt ) );
+
+        c->cd();
+        hRecoJetJESVsEtaMean[i]->Draw();
+        hRecoJetJESVsEtaMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d %d<p_{T}<%d GeV", 
+                                        (isPythia ? "PYTHIA" : "Embedding"), 
+                                        direction.Data(), 
+                                        ptHatSample, ptMinInt, ptMaxInt) );
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoJetJESVsEta_JES_ptHatSample_%d_ptRange_%d_%d.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), 
+                        ptHatSample, ptMinInt, ptMaxInt ) );
+
+        c->cd();
+        hRecoJetJESVsEtaSigma[i]->Draw();
+        hRecoJetJESVsEtaSigma[i]->GetYaxis()->SetRangeUser(0., 0.3);
+        t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d %d<p_{T}<%d GeV", 
+                                        (isPythia ? "PYTHIA" : "Embedding"), 
+                                        direction.Data(), 
+                                        ptHatSample, ptMinInt, ptMaxInt) );
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        c->SaveAs(Form("%s/%s_%s_recoJetJESVsEta_JESResolution_ptHatSample_%d_ptRange_%d_%d.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), 
+                        ptHatSample, ptMinInt, ptMaxInt ) );
+
+        //
+        // All JES vs eta on same plot for comparison
+        //
+        cJesDep->cd();
+        hRecoJetJESVsEtaMean[i]->SetLineColor(p8Colors[i]);
+        hRecoJetJESVsEtaMean[i]->SetMarkerColor(p8Colors[i]);
+        hRecoJetJESVsEtaMean[i]->SetMarkerStyle(20 + i);
+        hRecoJetJESVsEtaMean[i]->Draw( i == 0 ? "" : "same" );
+        if (i == 0) {
+            hRecoJetJESVsEtaMean[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+            hRecoJetJESVsEtaMean[i]->GetXaxis()->SetRangeUser(-3.2, 3.2);
+        }
+        legComp->AddEntry(hRecoJetJESVsEtaMean[i].get(), Form("%d < p_{T} < %d GeV", ptMinInt, ptMaxInt), "p");
+
+        //
+        // All JER vs eta on same plot for comparison
+        //
+        cJerDep->cd();
+        hRecoJetJESVsEtaSigma[i]->SetLineColor(p8Colors[i]);
+        hRecoJetJESVsEtaSigma[i]->SetMarkerColor(p8Colors[i]);
+        hRecoJetJESVsEtaSigma[i]->SetMarkerStyle(20 + i);
+        hRecoJetJESVsEtaSigma[i]->Draw( i == 0 ? "" : "same" );
+        if (i == 0) {
+            hRecoJetJESVsEtaSigma[i]->GetYaxis()->SetRangeUser(0., 0.3);
+            hRecoJetJESVsEtaSigma[i]->GetXaxis()->SetRangeUser(-3.2, 3.2);
+        }
+    } // end of pt range loop
+
+
+    cJesDep->cd();
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d", 
+                                    (isPythia ? "PYTHIA" : "Embedding"), 
+                                    direction.Data(), ptHatSample) );
+    legComp->Draw("same");
+    cJesDep->SaveAs(Form("%s/%s_%s_inclusiveJetJESVsEta_JES_ptHatSample_%d_ptComparison.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptHatSample) );
+
+    cJerDep->cd();
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d", 
+                                    (isPythia ? "PYTHIA" : "Embedding"), 
+                                    direction.Data(), ptHatSample) );
+    legComp->Draw("same");
+    cJerDep->SaveAs(Form("%s/%s_%s_inclusiveJetJESVsEta_JER_ptHatSample_%d_ptComparison.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptHatSample) );
+
+    //
+    // Renormalize distributions to unity in the range (-0.8, 0.8) and re-plot for comparison
+    //
+    legComp.release();
+    legComp = std::make_unique<TLegend>(0.35, 0.2, 0.7, 0.35);
+    legComp->SetTextSize(0.03);
+    legComp->SetFillColor(0);
+    legComp->SetBorderSize(0);
+
+    // Ensure output directory exists before creating the ROOT file
+    gSystem->mkdir(Form("%s/root", date.Data()), kTRUE);
+    auto oFile = std::make_unique<TFile>( Form("%s/root/%s_%s_inclusiveJetJERVsEta_ptHatSample_%d.root", 
+                                                date.Data(), generatorType.Data(), direction.Data(), ptHatSample), "RECREATE" );
+    if ( oFile && !oFile->IsZombie() ) {
+        oFile->cd();
+    } else {
+        std::cerr << "Error: failed to create output ROOT file " << Form("%s/root/%s_%s_inclusiveJetJERVsEta_ptHatSample_%d.root", 
+                         date.Data(), generatorType.Data(), direction.Data(), ptHatSample) << std::endl;
+    }
+
+    cJerDep->cd();
+    for (int i = 0; i <= nPtRanges; ++i) {
+
+        if ( !hRecoJetJESVsEtaSigma[i] || hRecoJetJESVsEtaSigma[i]->Integral() == 0 ) {
+            std::cerr << Form("Warning: Skipping normalization for pt range %d-%d GeV due to missing or empty histogram.", 
+                                int(ptRanges[i]), int(ptRanges[i+1]) ) << std::endl;
+            continue;
+        }
+        // Find bins that correspond to the range [-0.8, 0.8]
+        int bin1 = hRecoJetJESVsEtaSigma[i]->FindBin(-0.8);
+        int bin2 = hRecoJetJESVsEtaSigma[i]->FindBin(0.8);
+        
+        // Adjust bins to ensure we're within [-0.8, 0.8] range
+        while (bin1 <= hRecoJetJESVsEtaSigma[i]->GetNbinsX() && 
+               hRecoJetJESVsEtaSigma[i]->GetXaxis()->GetBinLowEdge(bin1) < -0.8) {
+            bin1++;
+        }
+        while (bin2 > 1 && hRecoJetJESVsEtaSigma[i]->GetXaxis()->GetBinUpEdge(bin2) > 0.8) {
+            bin2--;
+        }
+        
+        double integral = hRecoJetJESVsEtaSigma[i]->Integral(bin1, bin2);
+        int numBins = bin2 - bin1 + 1;
+        // std::cout << Form("Integral for pt range %d-%d GeV (bins %d-%d, eta range [%.3f, %.3f]): %.6f (numBins: %d)", 
+        //                     int(ptRanges[i]), int(ptRanges[i+1]), bin1, bin2,
+        //                     hRecoJetJESVsEtaSigma[i]->GetXaxis()->GetBinLowEdge(bin1),
+        //                     hRecoJetJESVsEtaSigma[i]->GetXaxis()->GetBinUpEdge(bin2),
+        //                     integral, numBins) << std::endl;
+        if (integral > 0) {
+            hRecoJetJESVsEtaSigma[i]->Scale(numBins / integral);
+            // Verify normalization
+            double integralAfter = hRecoJetJESVsEtaSigma[i]->Integral(bin1, bin2);
+            // std::cout << Form("  After scaling: integral = %.6f", integralAfter) << std::endl;
+        } else {
+            std::cerr << Form("Warning: integral is zero for pt range %d-%d GeV", 
+                                int(ptRanges[i]), ((i!=int(nPtRanges)) ? int(ptRanges[i+1]) : 8160)) << std::endl;
+        }
+
+        // Print bin values to terminal
+        hRecoJetJESVsEtaSigma[i]->Draw( i == 0 ? "" : "same" );
+        std::cout << Form("pT range: %d-%d GeV", 
+                          int(ptRanges[i]), 
+                          ((i!=int(nPtRanges)) ? int(ptRanges[i+1]) : 8160)) << std::endl;
+        if (i == 0) {
+            hRecoJetJESVsEtaSigma[i]->GetXaxis()->SetTitle("#eta");
+            hRecoJetJESVsEtaSigma[i]->GetYaxis()->SetTitle("Normalized JER");
+            hRecoJetJESVsEtaSigma[i]->GetYaxis()->SetRangeUser(0.7, 1.4);
+            hRecoJetJESVsEtaSigma[i]->GetXaxis()->SetRangeUser(-3.2, 3.2);
+            for (int iBin = 1; iBin <= hRecoJetJESVsEtaSigma[i]->GetNbinsX(); ++iBin) {
+                if (iBin<hRecoJetJESVsEtaSigma[i]->GetNbinsX()) {
+                    std::cout << Form("%.3ff, ", hRecoJetJESVsEtaSigma[i]->GetXaxis()->GetBinLowEdge(iBin));
+                }
+                else {
+                    std::cout << Form("%.3ff", hRecoJetJESVsEtaSigma[i]->GetXaxis()->GetBinLowEdge(iBin)) << ", " 
+                              << Form("%.3ff", hRecoJetJESVsEtaSigma[i]->GetXaxis()->GetBinUpEdge(iBin)) << std::endl;
+                }
+            }
+        }
+        legComp->AddEntry(hRecoJetJESVsEtaSigma[i].get(), Form("%d < p_{T} < %d GeV", int(ptRanges[i]), (i==nPtRanges) ? 1000 : int(ptRanges[i+1])), "p");
+
+        for (int iBin = 1; iBin <= hRecoJetJESVsEtaSigma[i]->GetNbinsX(); ++iBin) {
+
+            std::cout << Form("%.3ff", hRecoJetJESVsEtaSigma[i]->GetBinContent(iBin));
+            if (iBin < hRecoJetJESVsEtaSigma[i]->GetNbinsX()) {
+                std::cout << ", ";
+            }
+             else {
+                std::cout << std::endl;
+            }
+        }
+
+
+        if ( oFile && !oFile->IsZombie() ) {
+            oFile->cd();
+        }
+        hRecoJetJESVsEtaSigma[i]->Write();
+    } // for (int i = 0; i < nPtRanges; ++i)
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (inclusive jets); #hat{p}_{T}: %d; Renormalized", 
+                                    (isPythia ? "PYTHIA" : "Embedding"), 
+                                    direction.Data(), ptHatSample) );
+    legComp->Draw("same");
+    cJerDep->SaveAs(Form("%s/%s_%s_inclusiveJetJESVsEta_JER_ptHatSample_%d_ptComparison_normalized.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptHatSample) );
+
+    oFile->Write();
+    oFile->Close();
 }
 
 //________________
@@ -6081,5 +7122,18 @@ void plotMcClosures() {
     // plotOverweightProtection(collisionSystem, collisionEnergy, date);
 
     // Plot check of gen eta shift in pPb collisions
-    plotGenEtaShiftCheck(collisionSystem, collisionEnergy, date);
+    // plotGenEtaShiftCheck(collisionSystem, collisionEnergy, date);
+
+
+    // Plot turn-on curves for different ptHat bins
+    // plotTurnOnCurves(collisionSystem, collisionEnergy, date);
+
+    // Plot JES and JER for different slices in eta and pT
+    // plotJESandJER(collisionSystem, collisionEnergy, date);
+
+    // 
+    plotSingleJESCheck(collisionSystem, collisionEnergy, date);
+
+    // Plot comparison of JES and JER for JER systematics
+    // plotJESandJERSyst(collisionSystem, collisionEnergy, date);
 }

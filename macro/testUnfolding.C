@@ -1,5 +1,7 @@
-#include "RooUnfoldResponse.h"
-#include "RooUnfoldBayes.h"
+R__LOAD_LIBRARY(/Users/gnigmat/work/RooUnfold/build/libRooUnfold.dylib)
+
+#include "/Users/gnigmat/work/RooUnfold/build/RooUnfoldResponse.h"
+#include "/Users/gnigmat/work/RooUnfold/build/RooUnfoldBayes.h"
 #include "TH1.h"
 #include "TRandom3.h"
 #include "TCanvas.h"
@@ -65,3 +67,11 @@ void testUnfolding() {
 
     //canvas->SaveAs("RooUnfoldExample.png");
 }
+
+// CMakeLists.txt
+// -find_package( ROOT COMPONENTS Tree Unfold Matrix Hist RIO MathCore Physics RooFitCore RooFit HistFactory Graf Postscript Gpad XMLParser REQUIRED)
+// +find_package( ROOT COMPONENTS Tree Matrix Hist RIO MathCore Physics RooFitCore RooFit HistFactory Graf Postscript Gpad XMLParser REQUIRED)
+
+// cmake/PlainROOT.cmake
+// -find_package( ROOT COMPONENTS Tree Unfold Matrix Hist RIO MathCore Physics RooFitCore RooFit HistFactory Graf Postscript Gpad XMLParser)
+// +find_package( ROOT COMPONENTS Tree Matrix Hist RIO MathCore Physics RooFitCore RooFit HistFactory Graf Postscript Gpad XMLParser)
