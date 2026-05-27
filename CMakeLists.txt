@@ -46,7 +46,6 @@ else()
 
 endif()
 
-#Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 include(${ROOT_USE_FILE})
 
 # Directories where to search for include files
@@ -54,6 +53,17 @@ include_directories(${CMAKE_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})
 # Add same CXX flags that were used to combile and build ROOT (including CXX standard)
 add_definitions(${ROOT_CXX_FLAGS})
 
-add_executable(processForestSimple processForestSimple.C)
+# Generate ROOT dictionary for helper classes that use ClassDef/ClassImp
+root_generate_dictionary(G__processForestSimple
+                         JetCorrector.h
+                         JetUncertainty.h
+                         LINKDEF LinkDef.h)
+
+add_executable(processForestSimple
+    processForestSimple.C
+    JetCorrector.cc
+    JetUncertainty.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/G__processForestSimple.cxx
+)
 target_link_libraries(processForestSimple ${ROOT_LIBRARIES})
 target_include_directories(processForestSimple PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS}) #${ROOT_INCLUDE_DIRS}

@@ -6,8 +6,9 @@ Guidance for agents working in this repository.
 
 - This is a CERN ROOT-based CMS jet analysis project.
 - The main analysis source is `processForestSimple.C`. It is both a ROOT macro, for CLING/CINT execution, and the compiled executable source.
-- `CMakeLists.txt` builds one executable, `processForestSimple`, and discovers ROOT through `ROOTSYS` and `find_package(ROOT CONFIG REQUIRED)`.
-- `JetCorrector.h` and `JetUncertainty.h` are header-only ROOT/C++ helpers for JEC and uncertainty text files.
+- `CMakeLists.txt` builds one executable, `processForestSimple`, and discovers ROOT through `ROOTSYS` and `find_package(ROOT REQUIRED COMPONENTS ...)`.
+- `JetCorrector.cc` and `JetUncertainty.cc` provide the helper implementations used by `processForestSimple`.
+- `LinkDef.h` plus `root_generate_dictionary(...)` are required so ROOT can generate the dictionary code for `JetCorrector`, `SingleJetCorrector`, and `JetUncertainty`.
 - `aux_files/` contains calibration/correction text inputs for pp, pPb, and PbPb workflows. Treat these as data files; do not reformat them.
 - `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py` are sequential Python 3 batch runners around the compiled executable.
 - Generated/local outputs currently live under `build/`, `macro/`, and ROOT files such as `*.root`; avoid committing or rewriting generated analysis outputs unless explicitly requested.
@@ -68,7 +69,7 @@ python3 pPb8160_analyzeMc_Pbgoing.py
 python3 pPb8160_analyzeMc_pgoing.py
 ```
 
-The Python runners expect the executable at `build/processForestSimple` and input forests under `~/cernbox/ana/pPb8160/...`. They create outputs in `macro/eta_shift/`.
+The Python runners expect the executable at `build/processForestSimple` and input forests under the directory specified by the `INPUT_FORESTS_DIR` environment variable (default: `$HOME/cernbox/ana/pPb8160/`). They create outputs in `macro/eta_shift/`.
 
 ## Runtime Arguments
 
@@ -88,6 +89,7 @@ The Python runners expect the executable at `build/processForestSimple` and inpu
 
 - Keep changes narrowly scoped. This repository is analysis code with hardcoded physics selections, binning, weights, and correction filenames.
 - Preserve the dual-use structure of `processForestSimple.C`: ROOT macro code inside `#if defined(__CINT__) || defined(__CLING__)`, compiled executable code in the `#else` branch.
+- Keep the `processForestSimple` target linked with `JetCorrector.cc`, `JetUncertainty.cc`, and the generated ROOT dictionary source from `LinkDef.h`.
 - Use ROOT types and local style consistently: `TString`, `TChain`, `TH1D`/`TH2D`/`TH3D`, `Form`, and the existing helper structs.
 - Avoid broad refactors of histogram definitions, branch setup, event selection, correction paths, or physics constants unless the task explicitly asks for them.
 - Do not reformat `aux_files/**/*.txt`; their spacing and content are external calibration inputs.
@@ -109,6 +111,8 @@ If CMake has not been configured yet, run:
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j
 ```
+
+The current `processForestSimple` build is verified to succeed with `cmake --build build -j` in this repository (run from the project root, e.g. `soft/tmp/jetAnalysis`).
 
 Check executable argument validation without needing data:
 

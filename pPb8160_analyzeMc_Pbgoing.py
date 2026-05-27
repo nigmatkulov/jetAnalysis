@@ -18,14 +18,14 @@ ROOT_DIR = Path(__file__).resolve().parent
 EXECUTABLE = ROOT_DIR / "build" / "processForestSimple"
 
 # Hardcoded analysis settings
-MC_TYPE = 2  # 0=data, 1=embedding, 2=pythia
+MC_TYPE = 2 # 0=data, 1=embedding, 2=pythia
 IS_PB_GOING_DIR = 1
 JEU_SYST = 0
 JER_SYST = 1
 TRIGGER_ID = 0
 RECO_JET_SEL_METHOD = 2
-# PT_HAT_SAMPLES = [15, 30, 50, 80, 120, 170, 220, 280, 370, 460, 540]
-PT_HAT_SAMPLES = [50]
+PT_HAT_SAMPLES = [15, 30, 50, 80, 120, 170, 220, 280, 370, 460, 540]
+# PT_HAT_SAMPLES = [50]
 
 INPUT_BASE = Path.home() / "cernbox" / "ana" / "pPb8160"
 OUTPUT_DIR = ROOT_DIR / "macro" / "eta_shift"
