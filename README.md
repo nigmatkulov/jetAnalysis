@@ -75,4 +75,11 @@ The repository also includes two sequential batch runners:
 - `pPb8160_analyzeMc_Pbgoing.py`
 - `pPb8160_analyzeMc_pgoing.py`
 
-Each script loops over all available `ptHat` samples and runs the compiled executable one sample at a time.
+Each script loops over all available `ptHat` samples and runs the compiled executable. By default the jobs run one at a time, but you can use multiple local cores with `--workers`:
+
+```bash
+python3 pPb8160_analyzeMc_Pbgoing.py --workers 4
+python3 pPb8160_analyzeMc_pgoing.py --workers 4
+```
+
+The runner keeps going after individual sample failures and prints a final summary of skipped and failed pt-hat jobs.
