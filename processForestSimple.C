@@ -2122,8 +2122,8 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         // Gen level processing
         //
         if (isMc) {
-            // processGenJets(isPbGoing, isMc, weight, genJets, hs, ptHat);
-            // processGenDijets(isPbGoing, isMc, weight, genJets, hs);
+            processGenJets(isPbGoing, isMc, weight, genJets, hs, ptHat);
+            processGenDijets(isPbGoing, isMc, weight, genJets, hs);
         }
 
         //
@@ -2131,7 +2131,7 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         //
         processRecoJets(isPbGoing, isMc, weight, recoJets, hs, jec, jeu, jetSelectionMethod, 
                         ptHat, fJERSmearFunc.get(), fRndm.get());
-        // processRecoDijets(isPbGoing, isMc, weight, recoJets, hs, doJerSyst, doJeuSyst);
+        processRecoDijets(isPbGoing, isMc, weight, recoJets, hs, doJerSyst, doJeuSyst);
     } // for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry)
 
     std::cout << Form("Processed %d events, of which %d passed selection.", nEventsProcessed, nGoodEvents) << std::endl;
