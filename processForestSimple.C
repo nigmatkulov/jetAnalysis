@@ -239,8 +239,10 @@ struct Histograms {
     std::unique_ptr<TH1D> hVz;
 
     std::unique_ptr<TH2D> hGenDijetPtAveOverPtHatVsPtHat;
+    std::unique_ptr<TH2D> hGenDijetPtAveOverPtHatVsPtHatPass;
     std::unique_ptr<TH2D> hGenLeadJetPtOverPtHatVsPtHat;
     std::unique_ptr<TH2D> hRecoDijetPtAveOverPtHatVsPtHat;
+    std::unique_ptr<TH2D> hRecoDijetPtAveOverPtHatVsPtHatPass;
     std::unique_ptr<TH2D> hRecoLeadJetPtOverPtHatVsPtHat;
 
     //
@@ -443,6 +445,11 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                             100, 15., 1015.,
                                             200, 0., 4.);
         hs.hGenDijetPtAveOverPtHatVsPtHat->Sumw2();
+        hs.hGenDijetPtAveOverPtHatVsPtHatPass = std::make_unique<TH2D>("hGenDijetPtAveOverPtHatVsPtHatPass", 
+                                            "Gen dijet p_{T}^{ave}/#hat{p}_{T} vs #hat{p}_{T} (pass selection);#hat{p}_{T} (GeV);Gen dijet p_{T}^{ave}/#hat{p}_{T}", 
+                                            100, 15., 1015.,
+                                            200, 0., 4.);
+        hs.hGenDijetPtAveOverPtHatVsPtHatPass->Sumw2();
         hs.hGenLeadJetPtOverPtHatVsPtHat = std::make_unique<TH2D>("hGenLeadJetPtOverPtHatVsPtHat", 
                                             "Gen leading jet p_{T}/#hat{p}_{T} vs #hat{p}_{T};#hat{p}_{T} (GeV);Gen p_{T}^{lead}/#hat{p}_{T}", 
                                             100, 15., 1015.,
@@ -453,6 +460,11 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                             100, 15., 1015.,
                                             200, 0., 4.);
         hs.hRecoDijetPtAveOverPtHatVsPtHat->Sumw2();
+        hs.hRecoDijetPtAveOverPtHatVsPtHatPass = std::make_unique<TH2D>("hRecoDijetPtAveOverPtHatVsPtHatPass", 
+                                            "Reco dijet p_{T}^{ave}/#hat{p}_{T} vs #hat{p}_{T} (pass selection);#hat{p}_{T} (GeV);Reco dijet p_{T}^{ave}/#hat{p}_{T}", 
+                                            100, 15., 1015.,
+                                            200, 0., 4.);
+        hs.hRecoDijetPtAveOverPtHatVsPtHatPass->Sumw2();
         hs.hRecoLeadJetPtOverPtHatVsPtHat = std::make_unique<TH2D>("hRecoLeadJetPtOverPtHatVsPtHat", 
                                             "Reco leading jet p_{T}/#hat{p}_{T} vs #hat{p}_{T};#hat{p}_{T} (GeV);Reco p_{T}^{lead}/#hat{p}_{T}", 
                                             100, 15., 1015.,
@@ -1195,10 +1207,10 @@ void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet>
 
     double c0{0.}, c1{0.}, c2{0.}, c3{0.};
 
-    float dijetPtAve{0.};
+    float genDijetPtAve{0.};
     if ( genJets.size() >= 2 ) {
-        dijetPtAve = 0.5 * (genJets[0].pt + genJets[1].pt);
-        hs.hGenDijetPtAveOverPtHatVsPtHat->Fill(ptHat, dijetPtAve / ptHat, weight);
+        genDijetPtAve = 0.5 * (genJets[0].pt + genJets[1].pt);
+        hs.hGenDijetPtAveOverPtHatVsPtHat->Fill(ptHat, genDijetPtAve / ptHat, weight);
         hs.hGenLeadJetPtOverPtHatVsPtHat->Fill(ptHat, genJets[0].pt / ptHat, weight);
         if (isPythia) { // >0.01% overweight
             c0 = 1.4209; c1 = 0.0001; c2 = 0.2551; c3 = -0.0112;
@@ -1207,14 +1219,15 @@ void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet>
             c0 = 1.4478; c1 = 0.0002; c2 = 0.2740; c3 = -0.0160;
         }
         
-        if (dijetPtAve / ptHat > (c0 + c1 * ptHat + c2 * std::exp(c3 * ptHat))) {
+        if (genDijetPtAve / ptHat > (c0 + c1 * ptHat + c2 * std::exp(c3 * ptHat))) {
             isGenOverweight = {true};
         }
     }
 
+    float recoDijetPtAve{0.};
     if ( recoJets.size() >= 2 ) {
-        dijetPtAve = 0.5 * (recoJets[0].recoPt + recoJets[1].recoPt);
-        hs.hRecoDijetPtAveOverPtHatVsPtHat->Fill(ptHat, dijetPtAve / ptHat, weight);
+        recoDijetPtAve = 0.5 * (recoJets[0].recoPt + recoJets[1].recoPt);
+        hs.hRecoDijetPtAveOverPtHatVsPtHat->Fill(ptHat, recoDijetPtAve / ptHat, weight);
         hs.hRecoLeadJetPtOverPtHatVsPtHat->Fill(ptHat, recoJets[0].recoPt / ptHat, weight);
         if (isPythia) { // >0.01% overweight
             c0 = 1.4280; c1 = 0.0001; c2 = 0.3493; c3 = -0.0106;
@@ -1223,10 +1236,21 @@ void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet>
             c0 = 1.4749; c1 = 0.0002; c2 = 0.4283; c3 = -0.0163;
         }
 
-        if (dijetPtAve / ptHat > (c0 + c1 * ptHat + c2 * std::exp(c3 * ptHat))) {
+        if (recoDijetPtAve / ptHat > (c0 + c1 * ptHat + c2 * std::exp(c3 * ptHat))) {
             isRecoOverweight = {true};
         }
     }
+
+    if (!isGenOverweight && !isRecoOverweight) {
+        if (genJets.size() >= 2) {
+            hs.hGenDijetPtAveOverPtHatVsPtHatPass->Fill(ptHat, genDijetPtAve / ptHat, weight);
+        }
+        if (recoJets.size() >= 2) {
+            hs.hRecoDijetPtAveOverPtHatVsPtHatPass->Fill(ptHat, recoDijetPtAve / ptHat, weight);
+        }   
+    }
+
+
 }
 
 //________________
@@ -1478,29 +1502,29 @@ bool isGoodRecoJet(const RecoJet &recoJet, const int &jetSelectionMethod) {
 }
 
 //________________
-/// Calculate smeared momentum addition due to JER (JER: defatul, up and down)
-/// @param ptDef: default pt (initial value is refPt), returned value is smeared pt component (not total smeared pt)
-/// @param ptUp: up pt (initial value is refPt), returned value is smeared pt component (not total smeared pt)
-/// @param ptDown: down pt (initial value is refPt), returned value is smeared pt component (not total smeared pt)
-/// @param ptDefNoScale: default pt without scaling (initial value is refPt), returned value is smeared pt component (not total smeared pt)
-/// @param eta: reco jet pseudorapidity
-/// @param fJERSmearFunc: JER smearing function vs pT
-/// @param fRndm: random number generator (can be nullptr to use std::random)
-void calculateResolutionSmearing(float &ptDef, float &ptUp, float &ptDown, float &ptDefNoScale, 
-                                 const float &eta, TF1 *fJERSmearFunc, TRandom3 *fRndm) {
+/// Calculate smeared momentum correction due to JER (JER: default, up and down).
+/// @param refPt: input reference pT used to compute smearing
+/// @param recoEta: reconstructed jet pseudorapidity used to select JER bin
+/// @param ptDefCorr: output smeared pT component for default JER (initial value is refPt)
+/// @param ptUpCorr: output smeared pT component for JER up variation (initial value is refPt)
+/// @param ptDownCorr: output smeared pT component for JER down variation (initial value is refPt)
+/// @param ptDefNoScaleCorr: output smeared pT component without additional scale (initial value is refPt)
+/// @param fJERSmearFunc: TF1 pointer to JER smearing function vs pT (can be nullptr)
+/// @param fRndm: TRandom3 pointer for random numbers (can be nullptr to use std::random)
+void calculateResolutionSmearing(const float &refPt, const float &recoEta, 
+                                 float &ptDefCorr, float &ptUpCorr, float &ptDownCorr, float &ptDefNoScaleCorr, 
+                                 TF1 *fJERSmearFunc, TRandom3 *fRndm) {
     // Find eta bin for JER constants: fJerEtaLow <= recoEta < fJerEtaHi
     int iEtaBin = -1;
-    float ptRef = ptDef; // Use default pt as reference for smearing
-
     for (size_t i = 0; i < fJerEtaLow.size(); ++i) {
-        if ( fJerEtaLow[i] <= eta && eta < fJerEtaHi[i] ) {
+        if ( fJerEtaLow[i] <= recoEta && recoEta < fJerEtaHi[i] ) {
             iEtaBin = static_cast<int>(i);
             break;
         }
     }
 
     if ( iEtaBin < 0 ) {
-        std::cerr << RED << Form("No JER bin found for eta = %f", eta) << RESET<< std::endl;
+        std::cerr << RED << Form("No JER bin found for eta = %f", recoEta) << RESET<< std::endl;
         return;
     }
 
@@ -1509,60 +1533,57 @@ void calculateResolutionSmearing(float &ptDef, float &ptUp, float &ptDown, float
     double scaleFactorDown = std::sqrt( std::max(fJerLow[iEtaBin] * fJerLow[iEtaBin] - 1., 0.) );
 
     // std::cout << Form("JER scale factors for eta = %f: etaBin: %d, sfDef = %f, sfUp = %f, sfDown = %f, fJerDef = %f, fJerHi = %f, fJerLow = %f", 
-    //                   eta, iEtaBin,
+    //                   recoEta, iEtaBin,
     //                   scaleFactorDef, scaleFactorUp, scaleFactorDown, 
     //                   fJerDef[iEtaBin], fJerHi[iEtaBin], fJerLow[iEtaBin]) << std::endl;
 
     // Temporarily set to 1
-    scaleFactorDef = 1.;
-    scaleFactorUp = 1.;
-    scaleFactorDown = 1.;
+    // scaleFactorDef = 1.;
+    // scaleFactorUp = 1.;
+    // scaleFactorDown = 1.;
 
     double sigmaSmearDef{0.};
     double sigmaSmearUp{0.};
     double sigmaSmearDown{0.};
     double sigmaSmearDefNoScale{0.};
+
     double evalValue{0.};
-    if ( ptDef <= 30.) {
-        evalValue = fJERSmearFunc->Eval( 30.1 );
+    if ( refPt <= 30.) {
+        evalValue = fJERSmearFunc->Eval( 31. );
     }
-    else if ( ptDef >= 800 ) {
-        evalValue = fJERSmearFunc->Eval( 799.9 );
+    else if ( refPt >= 800 ) {
+        evalValue = fJERSmearFunc->Eval( 799. );
     }
     else {
-        evalValue = fJERSmearFunc->Eval( ptDef );
+        evalValue = fJERSmearFunc->Eval( refPt );
     }
     sigmaSmearDef = scaleFactorDef * evalValue;
     sigmaSmearDefNoScale = evalValue;
     sigmaSmearUp = scaleFactorUp * evalValue;
     sigmaSmearDown = scaleFactorDown * evalValue;
 
-    double extraCorrDef = fRndm->Gaus( 1., sigmaSmearDef );
-    double extraCorrDefNoScale = fRndm->Gaus( 1., sigmaSmearDefNoScale );
-    double extraCorrUp = fRndm->Gaus( 1., sigmaSmearUp );
-    double extraCorrDown = fRndm->Gaus( 1., sigmaSmearDown );
+    double extraCorrDef = 1. + fRndm->Gaus( 0., sigmaSmearDef );
+    while ( extraCorrDef < 0. ) {
+        extraCorrDef = 1. + fRndm->Gaus( 0., sigmaSmearDef );
+    }
+    double extraCorrDefNoScale = 1. + fRndm->Gaus( 0., sigmaSmearDefNoScale );
+    while ( extraCorrDefNoScale < 0. ) {
+        extraCorrDefNoScale = 1. + fRndm->Gaus( 0., sigmaSmearDefNoScale );
+    }
+    double extraCorrUp = 1. + fRndm->Gaus( 0., sigmaSmearUp );
+    while ( extraCorrUp < 0. ) {
+        extraCorrUp = 1. + fRndm->Gaus( 0., sigmaSmearUp );
+    }
+    double extraCorrDown = 1. + fRndm->Gaus( 0., sigmaSmearDown );
+    while ( extraCorrDown < 0. ) {
+        extraCorrDown = 1. + fRndm->Gaus( 0., sigmaSmearDown );
+    }
 
-    if (fRndm) {
-        ptDef = ptDef * (extraCorrDef - 1.);
-        ptDefNoScale = ptDefNoScale * (extraCorrDefNoScale - 1.);
-        ptUp = ptUp * (extraCorrUp - 1.);
-        ptDown = ptDown * (extraCorrDown - 1.);
-    }
-    else {
-        // Use C++ std random as an alternative to ROOT TRandom3
-        static thread_local std::mt19937_64 rng(
-            static_cast<unsigned long long>(std::chrono::high_resolution_clock::now().time_since_epoch().count())
-        );
-        std::normal_distribution<double> gaus(1.0, sigmaSmearDef);
-        ptDef = ptDef * (gaus(rng) - 1.);
-        gaus.param(std::normal_distribution<double>::param_type(1.0, sigmaSmearDefNoScale));
-        ptDefNoScale = ptDefNoScale * (gaus(rng) - 1.);
-        gaus.param(std::normal_distribution<double>::param_type(1.0, sigmaSmearUp));
-        ptUp = ptUp * (gaus(rng) - 1.);
-        gaus.param(std::normal_distribution<double>::param_type(1.0, sigmaSmearDown));
-        std::normal_distribution<double> gDown(1.0, sigmaSmearDown);
-        ptDown = ptDown * (gDown(rng) - 1.);
-    }
+    ptDefCorr *= extraCorrDef;
+    ptDefNoScaleCorr *= extraCorrDefNoScale;
+    ptUpCorr *= extraCorrUp;
+    ptDownCorr *= extraCorrDown;
+
     // std::cout << Form("refPt: %f, eta: %f jerBin: %d eval: %f", ptRef, eta, iEtaBin, evalValue) << std::endl;
     // std::cout << Form("Default: %f sf: %f, sigma: %f, extraCorr: %f, ptSmeared: %f", fJerDef[iEtaBin], scaleFactorDef, sigmaSmearDef, extraCorrDef, ptDef) << std::endl;
     // std::cout << Form("Default no scale: %f sf: %f, sigma: %f, extraCorr: %f, ptSmeared: %f", fJerDef[iEtaBin], 1.f, sigmaSmearDefNoScale, extraCorrDefNoScale, ptDefNoScale) << std::endl;
@@ -1596,26 +1617,26 @@ void calculateScaleSmearing(float &ptDef, const float &eta) {
 /// @param eta: reco jet pseudorapidity
 /// @param fJERSmearFunc: JER smearing function vs pT
 /// @param fRndm: random number generator (can be nullptr to use std::random)
-void calculateSmearedMomentum(float &ptDef, float &ptUp, float &ptDown, float &ptDefNoScale, 
-                              float &eta, TF1 *fJERSmearFunc, TRandom3 *fRndm) {
+void calculateSmearedMomentum(const float &recoPtCorr, const float &refPt, const float &recoEta,
+                              float &ptDef, float &ptUp, float &ptDown, float &ptDefNoScale, 
+                              TF1 *fJERSmearFunc, TRandom3 *fRndm) {
 
     // The next variables will store only the smearing component (i.e., the additional momentum due to JER), 
     // which will be added to the scaled pt later
-    float ptSmearDef = ptDef;
-    float ptSmearUp = ptUp;
-    float ptSmearDown = ptDown;
-    float ptSmearDefNoScale = ptDefNoScale;
 
-    calculateResolutionSmearing(ptSmearDef, ptSmearUp, ptSmearDown, ptSmearDefNoScale, eta, fJERSmearFunc, fRndm);
-    calculateScaleSmearing(ptDef, eta);
-    calculateScaleSmearing(ptUp, eta);
-    calculateScaleSmearing(ptDown, eta);
-    calculateScaleSmearing(ptDefNoScale, eta);
+    ptDef = recoPtCorr;
+    ptUp = recoPtCorr;
+    ptDown = recoPtCorr;
+    ptDefNoScale = refPt;
 
-    ptDef += ptSmearDef;
-    ptUp += ptSmearUp;
-    ptDown += ptSmearDown;
-    ptDefNoScale += ptSmearDefNoScale;
+    // Apply the scale factor first
+    calculateScaleSmearing(ptDef, recoEta);
+    calculateScaleSmearing(ptUp, recoEta);
+    calculateScaleSmearing(ptDown, recoEta);
+    calculateScaleSmearing(ptDefNoScale, recoEta);
+
+    // Peform the resolution smearing
+    calculateResolutionSmearing(refPt, recoEta, ptDef, ptUp, ptDown, ptDefNoScale, fJERSmearFunc, fRndm);
 }
 
 //________________
@@ -1659,60 +1680,65 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
         }
 
         // Perform JES & JER smearing calculations
-        if (isMc && hasMatchingGenJet) {
-            recoJetPtJerDef = recoJet.refPt;
-            recoJetPtJerUp = recoJet.refPt;
-            recoJetPtJerDown = recoJet.refPt;
-            recoJerPtJerDefNoSF = recoJet.refPt;
-            calculateSmearedMomentum(recoJetPtJerDef, recoJetPtJerUp, 
-                                     recoJetPtJerDown, recoJerPtJerDefNoSF,
-                                     recoJet.recoEta, 
-                                     fJERSmearFunc, fRndm);
+        if (isMc ) {
+            if (hasMatchingGenJet) {
+                recoJetPtJerDef = recoJet.recoPt;
+                recoJetPtJerUp = recoJet.recoPt;
+                recoJetPtJerDown = recoJet.recoPt;
+                recoJerPtJerDefNoSF = recoJet.recoPt;
 
-            recoJet.recoPtJerDef = recoJetPtJerDef;
-            recoJet.recoPtJerUp = recoJetPtJerUp;
-            recoJet.recoPtJerDown = recoJetPtJerDown;
+                calculateSmearedMomentum(recoJet.recoPt, recoJet.refPt, recoJet.recoEta,
+                                        recoJetPtJerDef, recoJetPtJerUp, recoJetPtJerDown, recoJerPtJerDefNoSF, 
+                                        fJERSmearFunc, fRndm);
 
-            hs.hRecoInclusiveJetJESPtEtaStdBins->Fill(recoJet.recoPt / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-            hs.hRecoInclusiveJetJESDefNoSFPtEtaStdBins->Fill(recoJerPtJerDefNoSF / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-            hs.hRecoInclusiveJetJESDefPtEtaStdBins->Fill(recoJetPtJerDef / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-            hs.hRecoInclusiveJetJESUpPtEtaStdBins->Fill(recoJetPtJerUp / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-            hs.hRecoInclusiveJetJESDownPtEtaStdBins->Fill(recoJetPtJerDown / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                hs.hRecoInclusiveJetJESPtEtaStdBins->Fill(recoJet.recoPt / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                hs.hRecoInclusiveJetJESDefNoSFPtEtaStdBins->Fill(recoJerPtJerDefNoSF / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                hs.hRecoInclusiveJetJESDefPtEtaStdBins->Fill(recoJetPtJerDef / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                hs.hRecoInclusiveJetJESUpPtEtaStdBins->Fill(recoJetPtJerUp / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                hs.hRecoInclusiveJetJESDownPtEtaStdBins->Fill(recoJetPtJerDown / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
 
-            // Smeared, but without JER scaling factor (SF)
-            if (recoJerPtJerDefNoSF > 80.f && recoJerPtJerDefNoSF < 120.f) {
-                hs.hRecoInclusiveJetEtaPtDefNoSF80To120->Fill(recoJet.recoEta, weight);
+                // Smeared, but without JER scaling factor (SF)
+                if (recoJerPtJerDefNoSF > 80.f && recoJerPtJerDefNoSF < 120.f) {
+                    hs.hRecoInclusiveJetEtaPtDefNoSF80To120->Fill(recoJet.recoEta, weight);
+                }
+                // Smeared with JER scaling factor (SF), a.k.a. standard JER 
+                if (recoJetPtJerDef > 80.f && recoJetPtJerDef < 120.f) {
+                    hs.hRecoInclusiveJetEtaPtDef80To120->Fill(recoJet.recoEta, weight);
+                }
+
+                // if ( std::abs( recoJet.recoEta) > 0.8f && recoJetPtJerDef > 15.f) {
+                //     extraCorrFactor = jerExtraScalingForEta( recoJet.recoEta, recoJet.refPt, isMc);
+                //     // std::cout << Form("eta = %.2f, refPt = %.1f, recoJetPtJerDef = %.1f, extraCorrFactor: %.3f", 
+                //                          recoJet.recoEta, recoJet.refPt, recoJetPtJerDef, extraCorrFactor) << std::endl;
+                //     // recoJerPtJerDefNoSF *= extraCorrFactor;
+                //     // recoJetPtJerDef *= extraCorrFactor;
+                //     // recoJetPtJerUp *= extraCorrFactor;
+                //     // recoJetPtJerDown *= extraCorrFactor;
+                // }
+                // // Smeared + eta dependence, but without JER scaling factor (SF)
+                // if (recoJerPtJerDefNoSF * extraCorrFactor > 80.f && recoJerPtJerDefNoSF * extraCorrFactor < 120.f) {
+                //     hs.hRecoInclusiveJetEtaPtDefExtraNoSF80To120->Fill(recoJet.recoEta, weight);
+                // }
+                // // Smeared + eta dependence with JER scaling factor (SF)
+                // if (recoJetPtJerDef * extraCorrFactor > 80.f && recoJetPtJerDef * extraCorrFactor < 120.f) {
+                //     hs.hRecoInclusiveJetEtaPtDefExtra80To120->Fill(recoJet.recoEta, weight);
+                // }
+
+                // Fill reference jet histograms
+                hs.hRefInclusiveJetPtEtaLabUnflipped->Fill(recoJet.refEta, recoJet.refPt, weight);
+                hs.hRefInclusiveJetEtaLabUnflipped->Fill(recoJet.refEta, weight);
+                hs.hRefInclusiveJetEtaLab->Fill(etaLab(recoJet.refEta, isPbGoing, isMc), weight);
+                hs.hRefInclusiveJetPt->Fill(recoJet.refPt, weight);
+                hs.hRefInclusiveJetPtEtaStdBins->Fill(recoJet.refEta, recoJet.refPt, weight);
+            } // if (hasMatchingGenJet)
+            else { 
+                // If no matching gen jet, we cannot apply JER smearing, 
+                // so we will just set the JER variations to the reconstructed pT (i.e., no smearing)
+                recoJet.recoPtJerDef = recoJet.recoPt;
+                recoJet.recoPtJerUp = recoJet.recoPt;
+                recoJet.recoPtJerDown = recoJet.recoPt;
             }
-            // Smeared with JER scaling factor (SF), a.k.a. standard JER 
-            if (recoJetPtJerDef > 80.f && recoJetPtJerDef < 120.f) {
-                hs.hRecoInclusiveJetEtaPtDef80To120->Fill(recoJet.recoEta, weight);
-            }
-
-            // if ( std::abs( recoJet.recoEta) > 0.8f && recoJetPtJerDef > 15.f) {
-            //     extraCorrFactor = jerExtraScalingForEta( recoJet.recoEta, recoJet.refPt, isMc);
-            //     // std::cout << Form("eta = %.2f, refPt = %.1f, recoJetPtJerDef = %.1f, extraCorrFactor: %.3f", 
-            //                          recoJet.recoEta, recoJet.refPt, recoJetPtJerDef, extraCorrFactor) << std::endl;
-            //     // recoJerPtJerDefNoSF *= extraCorrFactor;
-            //     // recoJetPtJerDef *= extraCorrFactor;
-            //     // recoJetPtJerUp *= extraCorrFactor;
-            //     // recoJetPtJerDown *= extraCorrFactor;
-            // }
-            // // Smeared + eta dependence, but without JER scaling factor (SF)
-            // if (recoJerPtJerDefNoSF * extraCorrFactor > 80.f && recoJerPtJerDefNoSF * extraCorrFactor < 120.f) {
-            //     hs.hRecoInclusiveJetEtaPtDefExtraNoSF80To120->Fill(recoJet.recoEta, weight);
-            // }
-            // // Smeared + eta dependence with JER scaling factor (SF)
-            // if (recoJetPtJerDef * extraCorrFactor > 80.f && recoJetPtJerDef * extraCorrFactor < 120.f) {
-            //     hs.hRecoInclusiveJetEtaPtDefExtra80To120->Fill(recoJet.recoEta, weight);
-            // }
-
-            // Fill reference jet histograms
-            hs.hRefInclusiveJetPtEtaLabUnflipped->Fill(recoJet.refEta, recoJet.refPt, weight);
-            hs.hRefInclusiveJetEtaLabUnflipped->Fill(recoJet.refEta, weight);
-            hs.hRefInclusiveJetEtaLab->Fill(etaLab(recoJet.refEta, isPbGoing, isMc), weight);
-            hs.hRefInclusiveJetPt->Fill(recoJet.refPt, weight);
-            hs.hRefInclusiveJetPtEtaStdBins->Fill(recoJet.refEta, recoJet.refPt, weight);
-        } // if (isMc && hasMatchingGenJet)
+        } // if (isMc )
 
         // Perform JEU calculations
         if ( !isMc ) {
@@ -1903,8 +1929,10 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
     if (isMc) {
         // Event histograms
         hs.hGenDijetPtAveOverPtHatVsPtHat->Write();
+        hs.hGenDijetPtAveOverPtHatVsPtHatPass->Write();
         hs.hGenLeadJetPtOverPtHatVsPtHat->Write();
         hs.hRecoDijetPtAveOverPtHatVsPtHat->Write();
+        hs.hRecoDijetPtAveOverPtHatVsPtHatPass->Write();
         hs.hRecoLeadJetPtOverPtHatVsPtHat->Write();
 
         // Gen jets
@@ -2034,26 +2062,31 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
     fVzWeight->SetParameters(0.856516,-0.0159813,0.00436628,-0.00012862,2.61129e-05,-4.16965e-07,1.73711e-08,-3.11953e-09,6.24993e-10);
 
     // JER smearing function (parametrization of sigma_smear vs pT)
-    auto fJERSmearFunc = std::make_unique<TF1>("fJERSmearFunc", "sqrt(max(0., [0] + [1]/x))", 30., 800.);
+    auto fJERSmearFunc = std::make_unique<TF1>("fJERSmearFunc", "sqrt( [0]*[0] + [1]*[1]/x )", 30., 800.);
     if (isPythia) {
         if (isPbGoing) {
-            fJERSmearFunc->SetParameters(0.00232, 0.75679); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJERSmearFunc->SetParameters(0.04360, 0.81815); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
         }
         else {
-            fJERSmearFunc->SetParameters(0.00227, 0.76388); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJERSmearFunc->SetParameters(0.04305, 0.82470); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
         }
     }
     else { // Embdedding
         if (isPbGoing) {
-            fJERSmearFunc->SetParameters(0.00206, 0.87435); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJERSmearFunc->SetParameters(0.04360, 0.81815); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
         }
         else {
-            fJERSmearFunc->SetParameters(0.00206, 0.87262); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
-            
+            fJERSmearFunc->SetParameters(0.04181, 0.8614); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
         }
     }
 
     auto fRndm = std::make_unique<TRandom3>(0);
+    // for (int i=0; i<5; ++i) {
+    //     double randomPt = fRndm->Uniform(30., 800.);
+    //     std::cout << Form("Check randomizer: Gaussian %d: %f; pt: %f; jerSmeared: %f", 
+    //                       i, fRndm->Gaus(0., 1.), randomPt, fJERSmearFunc->Eval(randomPt)) << std::endl;
+    // }
+     
 
     int nEventsProcessed{0};
     int nGoodEvents{0};

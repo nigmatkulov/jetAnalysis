@@ -5975,7 +5975,6 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
 
     int rebin = 4;
 
-    // Histograms for different eta shifts
     TH1D *hGenEtaCM[nEtaShifts]{nullptr};
     TH1D *hGenEtaCMForward[nEtaShifts]{nullptr};
     TH1D *hGenEtaCMBackward[nEtaShifts]{nullptr};
@@ -6377,8 +6376,9 @@ void extractJESandJER(std::unique_ptr<TH2D> &h2D, std::unique_ptr<TH1D> &hJES, s
     // If eta slices is true, extract JES and JER as a function of pt for the given eta range (lowVal, highVal), 
     // otherwise extract JES and JER as a function of eta for the given pt range (lowVal, highVal)
 
-    int rebinX = 2;
-    int rebinY = 2;
+    int rebinX = 1;
+    int rebinY = 1;
+    bool storeFitResults = false; // Set to true to store fit results in a text file
     
     if ( !h2D ) {
         std::cerr << "Error: input 2D histogram is null." << std::endl;
@@ -6395,47 +6395,63 @@ void extractJESandJER(std::unique_ptr<TH2D> &h2D, std::unique_ptr<TH1D> &hJES, s
     // Retrieve JES and JER
     h2D->RebinX( rebinX );    // Rebin for better statistics
     h2D->RebinY( rebinY );    // Rebin for better statistics
-    if (etaSlices) {
-        h2D->FitSlicesY();
-        // h2D->FitSlicesY(0, h2D->GetYaxis()->FindBin(0.2), h2D->GetYaxis()->FindBin(1.8) );
-    }
-    else {
-        h2D->FitSlicesY();
-    }
-    h2D->GetYaxis()->SetTitle("p_{T}^{reco} / p_{T}^{ref}");
-    set2DStyle(h2D.get());
 
-    // Retrieve the JES histogram (mean values from the fits)
-    hJES.reset( dynamic_cast<TH1D*>( gDirectory->Get( Form( "%s_1", h2D->GetName() ) ) ) );
-    if ( !hJES ) {
-        std::cerr << "Error: failed to retrieve JES histogram from FitSlicesY." << std::endl;
-        return;
-    }
+    TString xAxisTitle = etaSlices ? "p_{T}^{ref} (GeV)" : "#eta";
+    hJES.reset( new TH1D(Form("%s_JES", h2D->GetName()), 
+                         Form("JES vs. %s;%s;JES", xAxisTitle.Data(), xAxisTitle.Data()), 
+                         h2D->GetNbinsX(), 
+                         h2D->GetXaxis()->GetBinLowEdge(1), h2D->GetXaxis()->GetBinUpEdge(h2D->GetNbinsX())) );
+    hJES->Sumw2();
     hJES->SetDirectory(0);
-    set1DStyle(hJES.get(), style);
-    hJES->SetName( Form("%s_JES", h2D->GetName()) );
-    hJES->GetYaxis()->SetTitle("JES");
-    if ( etaSlices ) {
-        hJES->GetXaxis()->SetTitle("p_{T} (GeV)");
-    } else {
-        hJES->GetXaxis()->SetTitle("#eta");
-    }
-
-
-    // Retrieve the JER histogram (sigma values from the fits)
-    hJER.reset( dynamic_cast<TH1D*>( gDirectory->Get( Form( "%s_2", h2D->GetName() ) ) ) );
-    if ( !hJER ) {
-        std::cerr << "Error: failed to retrieve JER histogram from FitSlicesY." << std::endl;
-        return;
-    }
+    hJER.reset( new TH1D(Form("%s_JER", h2D->GetName()), 
+                         Form("JER vs. %s;%s;JER", xAxisTitle.Data(), xAxisTitle.Data()), 
+                         h2D->GetNbinsX(), 
+                         h2D->GetXaxis()->GetBinLowEdge(1), h2D->GetXaxis()->GetBinUpEdge(h2D->GetNbinsX())) );
+    hJER->Sumw2();
     hJER->SetDirectory(0);
-    hJER->SetName( Form("%s_JER", h2D->GetName()) );
-    hJER->GetYaxis()->SetTitle("JER");
-    if ( etaSlices ) {
-        hJER->GetXaxis()->SetTitle("p_{T} (GeV)");
-    } else {
-        hJER->GetXaxis()->SetTitle("#eta");
+
+    int nBinsX = h2D->GetNbinsX();
+    TLatex t;
+    t.SetTextSize(0.04);
+    t.SetTextFont(42);
+    for (int iBinX = 1; iBinX <= nBinsX; ++iBinX) {
+        auto hProjY = std::unique_ptr<TH1D>(dynamic_cast<TH1D*>(h2D->ProjectionY(Form("hProjY_%d", iBinX), iBinX, iBinX)));
+        if ( !hProjY || hProjY->GetEntries() == 0 ) {
+            // std::cerr << Form("[WARNING] Projection for bin %d has insufficient entries for fitting.", iBinX) << std::endl;
+            continue;
+        }
+        hProjY->SetDirectory(0);
+        double histoMean = hProjY->GetMean();
+        double histoSigma = hProjY->GetRMS();
+        auto fGaus = std::make_unique<TF1>(Form("fGaus_%d", iBinX), "gaus", 
+                                           histoMean-2.*histoSigma, histoMean+2.*histoSigma);
+        fGaus->SetParameters(hProjY->GetMaximum(), histoMean, histoSigma);
+        hProjY->Fit(fGaus.get(), "MRQE0");
+        double mean = fGaus->GetParameter(1);
+        double meanError = fGaus->GetParError(1);
+        double sigma = fGaus->GetParameter(2);
+        double sigmaError = fGaus->GetParError(2);
+        hJES->SetBinContent(iBinX, mean);
+        hJES->SetBinError(iBinX, meanError);
+        hJER->SetBinContent(iBinX, sigma);
+        hJER->SetBinError(iBinX, sigmaError);
+
+        if (storeFitResults) {
+            gSystem->mkdir("fit_results", kTRUE);
+            auto cProjY = std::make_unique<TCanvas>(Form("cProjY"), Form("cProjY"), 800, 800);
+            setPadStyle();
+            set1DStyle(hProjY.get(), 2);
+            hProjY->Draw();
+            hProjY->GetYaxis()->SetRangeUser(0., hProjY->GetMaximum()*1.2);
+            fGaus->Draw("same");
+            t.DrawLatexNDC(0.15, 0.85, Form("%.1f < %s < %.1f", h2D->GetXaxis()->GetBinLowEdge(iBinX), xAxisTitle.Data(), h2D->GetXaxis()->GetBinUpEdge(iBinX)) );
+            t.DrawLatexNDC(0.15, 0.8, Form("#mu = %.4f #pm %.4f; #sigma = %.4f #pm %.4f", 
+                                           mean, meanError, sigma, sigmaError) );
+            cProjY->SaveAs(Form("tmp/%s_projY_bin%d.pdf", h2D->GetName(), iBinX));
+        }
     }
+
+    set1DStyle(hJES.get(), style);
     set1DStyle(hJER.get(), style);
 
     // For eta slices, fit the JER to extract the parameters
@@ -6451,9 +6467,9 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    bool isPythia = false; // Set to false for embedding
+    bool isPythia = true; // Set to false for embedding
     TString generatorType = isPythia ? "pythia" : "embedding";
-    TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
+    TString direction = "pgoing"; // "pgoing", "Pbgoing", "combined"
     int ptHatSample = 0; // if 0 - use integrated sample, otherwise use pt-hat binned sample
 
     TString inputFileName;
@@ -6476,8 +6492,8 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     int lineWidth = 3;
     double markerSize = 1.3;
 
-    double etaLow = -0.8 + 1e-6;
-    double etaHigh = 0.8 - 1e-6;
+    double etaLow = -0.8 + 0.001;
+    double etaHigh = 0.8 - 0.001;
     double fitPtLow = 30.;
     double fitPtHigh = 800.;
 
@@ -6532,23 +6548,23 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     std::unique_ptr<TH2D> hRecoJESVsPtSmearDown;
     std::unique_ptr<TH2D> hRecoJESVsPtSmearDefNoSF;
 
-    auto fJERFitNoSmear = std::make_unique<TF1>("fJERFitNoSmear", "sqrt(max(0., [0] + [1]/x))", fitPtLow, fitPtHigh);
+    auto fJERFitNoSmear = std::make_unique<TF1>("fJERFitNoSmear", "sqrt([0]*[0] + [1]*[1]/x)", fitPtLow, fitPtHigh);
     fJERFitNoSmear->SetParameter(0, 0.002);
     fJERFitNoSmear->SetParameter(1, 1.0);
     fJERFitNoSmear->SetLineColor(kBlack);    
-    auto fJERFitSmearDef = std::make_unique<TF1>("fJERFitSmearDef", "sqrt(max(0., [0] + [1]/x))", fitPtLow, fitPtHigh);
+    auto fJERFitSmearDef = std::make_unique<TF1>("fJERFitSmearDef", "sqrt([0]*[0] + [1]*[1]/x)", fitPtLow, fitPtHigh);
     fJERFitSmearDef->SetParameter(0, 0.002);
     fJERFitSmearDef->SetParameter(1, 1.0);
     fJERFitSmearDef->SetLineColor(kRed);
-    auto fJERFitSmearUp = std::make_unique<TF1>("fJERFitSmearUp", "sqrt(max(0., [0] + [1]/x))", fitPtLow, fitPtHigh);
+    auto fJERFitSmearUp = std::make_unique<TF1>("fJERFitSmearUp", "sqrt([0]*[0] + [1]*[1]/x)", fitPtLow, fitPtHigh);
     fJERFitSmearUp->SetParameter(0, 0.002);
     fJERFitSmearUp->SetParameter(1, 1.0);
     fJERFitSmearUp->SetLineColor(kBlue);
-    auto fJERFitSmearDown = std::make_unique<TF1>("fJERFitSmearDown", "sqrt(max(0., [0] + [1]/x))", fitPtLow, fitPtHigh);
+    auto fJERFitSmearDown = std::make_unique<TF1>("fJERFitSmearDown", "sqrt([0]*[0] + [1]*[1]/x)", fitPtLow, fitPtHigh);
     fJERFitSmearDown->SetParameter(0, 0.002);
     fJERFitSmearDown->SetParameter(1, 1.0);
     fJERFitSmearDown->SetLineColor(kMagenta);
-    auto fJERFitSmearDefNoSF = std::make_unique<TF1>("fJERFitSmearDefNoSF", "sqrt(max(0., [0] + [1]/x))", fitPtLow, fitPtHigh);
+    auto fJERFitSmearDefNoSF = std::make_unique<TF1>("fJERFitSmearDefNoSF", "sqrt([0]*[0] + [1]*[1]/x)", fitPtLow, fitPtHigh);
     fJERFitSmearDefNoSF->SetParameter(0, 0.002);
     fJERFitSmearDefNoSF->SetParameter(1, 1.0);
     fJERFitSmearDefNoSF->SetLineColor(kP8Azure);
@@ -6600,12 +6616,12 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     hRecoJERSmearDef->Draw("same");
     hRecoJERSmearUp->Draw("same");
     hRecoJERSmearDown->Draw("same");
-    hRecoJERSmearDefNoSF->Draw("same");
+    // hRecoJERSmearDefNoSF->Draw("same");
     fJERFitNoSmear->Draw("same");
     fJERFitSmearDef->Draw("same");
     fJERFitSmearUp->Draw("same");
     fJERFitSmearDown->Draw("same");
-    fJERFitSmearDefNoSF->Draw("same");
+    // fJERFitSmearDefNoSF->Draw("same");
     hRecoJERNoSmear->GetXaxis()->SetRangeUser(10., 400.);
     hRecoJERNoSmear->GetYaxis()->SetRangeUser(0., 0.3);
     TLatex t;
@@ -6613,16 +6629,17 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     t.SetTextFont(42);
     plotCMSHeader(collisionSystem, collisionEnergy);
     t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JER)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
-    auto leg = std::make_unique<TLegend>(0.35, 0.6, 0.8, 0.8);
-    leg->SetTextSize(0.02);
+    t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
+    auto leg = std::make_unique<TLegend>(0.3, 0.6, 0.7, 0.8);
+    leg->SetTextSize(0.03);
     leg->SetFillColor(0);
     leg->SetBorderSize(0);
     // std::cout << Form("Fit parameters for no smearing: [0] = %.3f, [1] = %.3f", fJERFitNoSmear->GetParameter(0), fJERFitNoSmear->GetParameter(1)) << std::endl;
-    leg->AddEntry(hRecoJERNoSmear.get(), Form("No smearing: #sqrt{%.5f + %.5f/x}", fJERFitNoSmear->GetParameter(0), fJERFitNoSmear->GetParameter(1)), "p");
-    leg->AddEntry(hRecoJERSmearDef.get(), Form("Smearing def: #sqrt{%.5f + %.5f/x}", fJERFitSmearDef->GetParameter(0), fJERFitSmearDef->GetParameter(1)), "p");
-    leg->AddEntry(hRecoJERSmearUp.get(), Form("Smearing up: #sqrt{%.5f + %.5f/x}", fJERFitSmearUp->GetParameter(0), fJERFitSmearUp->GetParameter(1)), "p");
-    leg->AddEntry(hRecoJERSmearDown.get(), Form("Smearing down: #sqrt{%.5f + %.5f/x}", fJERFitSmearDown->GetParameter(0), fJERFitSmearDown->GetParameter(1)), "p");
-    leg->AddEntry(hRecoJERSmearDefNoSF.get(), Form("Smearing def no SF: #sqrt{%.5f + %.5f/x}", fJERFitSmearDefNoSF->GetParameter(0), fJERFitSmearDefNoSF->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERNoSmear.get(), Form("No smearing: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitNoSmear->GetParameter(0), fJERFitNoSmear->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERSmearDef.get(), Form("JER Nominal: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitSmearDef->GetParameter(0), fJERFitSmearDef->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERSmearUp.get(), Form("JER Up: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitSmearUp->GetParameter(0), fJERFitSmearUp->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERSmearDown.get(), Form("JER Down: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitSmearDown->GetParameter(0), fJERFitSmearDown->GetParameter(1)), "p");
+    // leg->AddEntry(hRecoJERSmearDefNoSF.get(), Form("JER def no SF: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitSmearDefNoSF->GetParameter(0), fJERFitSmearDefNoSF->GetParameter(1)), "p");
     leg->Draw();
 
     leg.release();
@@ -6638,16 +6655,17 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     hRecoJESSmearDef->Draw("same");
     hRecoJESSmearUp->Draw("same");
     hRecoJESSmearDown->Draw("same");
-    hRecoJESSmearDefNoSF->Draw("same");
+    // hRecoJESSmearDefNoSF->Draw("same");
     hRecoJESNoSmear->GetXaxis()->SetRangeUser(10., 400.);
     hRecoJESNoSmear->GetYaxis()->SetRangeUser(0.9, 1.1);
     plotCMSHeader(collisionSystem, collisionEnergy);
     leg->AddEntry(hRecoJESNoSmear.get(), "No smearing", "p");
-    leg->AddEntry(hRecoJESSmearDef.get(), "Smearing def", "p");
-    leg->AddEntry(hRecoJESSmearUp.get(), "Smearing up", "p");
-    leg->AddEntry(hRecoJESSmearDown.get(), "Smearing down", "p");
-    leg->AddEntry(hRecoJESSmearDefNoSF.get(), "Smearing def no SF", "p");
+    leg->AddEntry(hRecoJESSmearDef.get(), "JER Nominal", "p");
+    leg->AddEntry(hRecoJESSmearUp.get(), "JER Up", "p");
+    leg->AddEntry(hRecoJESSmearDown.get(), "JER Down", "p");
+    // leg->AddEntry(hRecoJESSmearDefNoSF.get(), "JER def no SF", "p");
     t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JES)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
     leg->Draw();
     c->SaveAs(Form("%s/%s_%s_JES_etaSlice_m08_08.pdf", 
                     date.Data(), generatorType.Data(), direction.Data()) );
@@ -6805,7 +6823,7 @@ void plotJESandJER(int collisionSystem, double collisionEnergy, TString date) {
             continue;
         }
         fJERVsPt[i] = std::make_unique<TF1>( Form("fJERVsPt_etaRange_%s_%s", etaMinStr.Data(), etaMaxStr.Data()), 
-                                             "sqrt(max(0., [0]+[1] / x))", 30., 800. );
+                                             "sqrt([0]*[0]+[1]*[1]/x)", 30., 800. );
         fJERVsPt[i]->SetParameters(0.002, 1.0);
         fJERVsPt[i]->SetLineColor(p8Colors[i]);
         fJERVsPt[i]->SetLineWidth(lineWidth);
