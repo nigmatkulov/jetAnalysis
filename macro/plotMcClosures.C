@@ -5822,22 +5822,191 @@ void plotOverweightProtection(int collisionSystem, double collisionEnergy, TStri
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_jerDef_ak4_jetId_eta19.root") );
+    bool isPythia = false; // Set to false for embedding
+    TString generatorType = isPythia ? "pythia" : "embedding";
+    // TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
+    TString inputFileName;
+    // inputFileName = Form("../../tmp/jetAnalysis/macro/eta_shift/%s_%s_jetId.root", generatorType.Data(), direction.Data() );
+    inputFileName = Form("../../tmp/jetAnalysis/macro/eta_shift/%s_jetId.root", generatorType.Data() );
+    double cutFraction = 0.0001; // 0.01% upper tail
 
+    // Input file
+    auto fMC = std::unique_ptr<TFile>( TFile::Open( inputFileName.Data() ) );
     if ( !fMC || fMC->IsZombie() ) {
         std::cerr << "Error: Could not open pythia file." << std::endl;
         return;
     }
 
-    TH2D *hRecoDijetPtAveOverPtHatVsPtHatWeighted = dynamic_cast<TH2D*>( fMC->Get("hRecoDijetPtAveOverPtHatVsPtHatWeighted") );
-    hRecoDijetPtAveOverPtHatVsPtHatWeighted->SetDirectory(0);
+    // Retrieve overweight histograms
+    auto hGenDijetPtAveOverPtHatVsPtHat = std::unique_ptr<TH2D>(dynamic_cast<TH2D*>( fMC->Get("hGenDijetPtAveOverPtHatVsPtHat") ));
+    if ( !hGenDijetPtAveOverPtHatVsPtHat ) {
+        std::cerr << "Error: Could not retrieve hGenDijetPtAveOverPtHatVsPtHat from file." << std::endl;
+        return; 
+    }
+    hGenDijetPtAveOverPtHatVsPtHat->SetDirectory(0);
+    // auto hGenLeadJetPtOverPtHatVsPtHat = std::unique_ptr<TH2D>(dynamic_cast<TH2D*>( fMC->Get("hGenLeadJetPtOverPtHatVsPtHat") ));
+    // if ( !hGenLeadJetPtOverPtHatVsPtHat ) {
+    //     std::cerr << "Error: Could not retrieve hGenLeadJetPtOverPtHatVsPtHat from file." << std::endl;
+    //     return;
+    // }
+    // hGenLeadJetPtOverPtHatVsPtHat->SetDirectory(0);
+    auto hRecoDijetPtAveOverPtHatVsPtHat = std::unique_ptr<TH2D>(dynamic_cast<TH2D*>( fMC->Get("hRecoDijetPtAveOverPtHatVsPtHat") ));
+    if ( !hRecoDijetPtAveOverPtHatVsPtHat ) {
+        std::cerr << "Error: Could not retrieve hRecoDijetPtAveOverPtHatVsPtHat from file." << std::endl;
+        return;
+    }
+    hRecoDijetPtAveOverPtHatVsPtHat->SetDirectory(0);
+    // auto hRecoLeadJetPtOverPtHatVsPtHat = std::unique_ptr<TH2D>(dynamic_cast<TH2D*>( fMC->Get("hRecoLeadJetPtOverPtHatVsPtHat") ));
+    // if ( !hRecoLeadJetPtOverPtHatVsPtHat ) {
+    //     std::cerr << "Error: Could not retrieve hRecoLeadJetPtOverPtHatVsPtHat from file." << std::endl;
+    //     return;
+    // }
+    // hRecoLeadJetPtOverPtHatVsPtHat->SetDirectory(0);
 
     fMC->Close();
-    
-    TCanvas *c = new TCanvas("c", "c", 1000, 1000);
+
+    auto makeUpperTailThresholdHistogram = [](const TH2D *h2D, const char *histName, const char *histTitle, const double &cutFraction = 0.0005) -> std::unique_ptr<TH1D> {
+        const TAxis *xAxis = h2D->GetXaxis();
+        std::unique_ptr<TH1D> hThreshold;
+
+        if ( xAxis->GetXbins()->GetSize() > 0 ) {
+            const auto *xBins = xAxis->GetXbins()->GetArray();
+            hThreshold = std::make_unique<TH1D>(histName, histTitle, xAxis->GetNbins(), xBins);
+        } else {
+            hThreshold = std::make_unique<TH1D>(histName, histTitle, xAxis->GetNbins(), xAxis->GetXmin(), xAxis->GetXmax());
+        }
+
+        hThreshold->SetDirectory(nullptr);
+        hThreshold->SetStats(false);
+        hThreshold->SetLineWidth(3);
+        hThreshold->SetMarkerStyle(20);
+        hThreshold->SetMarkerSize(1.1);
+
+        for ( int xBin = 1; xBin <= xAxis->GetNbins(); ++xBin ) {
+            auto hYProjection = std::unique_ptr<TH1D>(dynamic_cast<TH1D *>( h2D->ProjectionY(
+                Form("%s_yProj_xBin_%d", histName, xBin), xBin, xBin) ));
+            if ( !hYProjection ) {
+                continue;
+            }
+
+            hYProjection->SetDirectory(nullptr);
+
+            const double totalIntegral = hYProjection->Integral(1, hYProjection->GetNbinsX());
+            if ( totalIntegral <= 0. ) {
+                continue;
+            }
+
+            const double targetTailIntegral = cutFraction * totalIntegral;
+            double accumulatedTailIntegral = 0.;
+            double thresholdY = hYProjection->GetXaxis()->GetBinCenter(1);
+
+            for ( int yBin = hYProjection->GetNbinsX(); yBin >= 1; --yBin ) {
+                accumulatedTailIntegral += hYProjection->GetBinContent(yBin);
+                thresholdY = hYProjection->GetXaxis()->GetBinCenter(yBin);
+                if ( accumulatedTailIntegral >= targetTailIntegral ) {
+                    break;
+                }
+            }
+
+            hThreshold->SetBinContent(xBin, thresholdY);
+            hThreshold->SetBinError(xBin, 0.05);
+        }
+
+        return hThreshold;
+    };
+
+    auto hGenDijetPtAveOverPtHatThreshold = makeUpperTailThresholdHistogram(
+        hGenDijetPtAveOverPtHatVsPtHat.get(),
+        "hGenDijetPtAveOverPtHatThreshold",
+        Form("Gen dijet upper-tail %.2f%% threshold;#hat{p}_{T};upper-tail %.2f%% threshold of p_{T}^{ave}/#hat{p}_{T}", cutFraction * 100., cutFraction * 100.)
+    );
+    auto hRecoDijetPtAveOverPtHatThreshold = makeUpperTailThresholdHistogram(
+        hRecoDijetPtAveOverPtHatVsPtHat.get(),
+        "hRecoDijetPtAveOverPtHatThreshold",
+        Form("Reco dijet upper-tail %.2f%% threshold;#hat{p}_{T};upper-tail %.2f%% threshold of p_{T}^{ave}/#hat{p}_{T}", cutFraction * 100., cutFraction * 100.)
+    );
+
+    set1DStyle(hGenDijetPtAveOverPtHatThreshold.get(), 1);
+    set1DStyle(hRecoDijetPtAveOverPtHatThreshold.get(), 0);
+
+    auto fGenDijetPtAveOverPtHatThreshold = std::make_unique<TF1>("fGenDijetPtAveOverPtHatThreshold", 
+                                                                  "[0]+[1]*x+[2]*exp(-[3]*x)", 
+                                                                  15., 1000.);
+    auto fRecoDijetPtAveOverPtHatThreshold = std::make_unique<TF1>("fRecoDijetPtAveOverPtHatThreshold", 
+                                                                   "[0]+[1]*x+[2]*exp(-[3]*x)", 
+                                                                   25., 1000.);
+    fGenDijetPtAveOverPtHatThreshold->SetParameters(1.0, 1.0, 1.0, 0.01);
+    fRecoDijetPtAveOverPtHatThreshold->SetParameters(1.0, 1.0, 1.0, 0.01);
+    fGenDijetPtAveOverPtHatThreshold->SetLineColor(kBlue + 1);
+    fRecoDijetPtAveOverPtHatThreshold->SetLineColor(kRed + 1);
+    fGenDijetPtAveOverPtHatThreshold->SetLineWidth(3);
+    fRecoDijetPtAveOverPtHatThreshold->SetLineWidth(3);
+    fGenDijetPtAveOverPtHatThreshold->SetNpx(1000);
+    fRecoDijetPtAveOverPtHatThreshold->SetNpx(1000);
+    hGenDijetPtAveOverPtHatThreshold->Fit(fGenDijetPtAveOverPtHatThreshold.get(), "MRE0" );
+    hRecoDijetPtAveOverPtHatThreshold->Fit(fRecoDijetPtAveOverPtHatThreshold.get(), "MRE0");
+
+    double yMax = std::max(hGenDijetPtAveOverPtHatThreshold->GetMaximum(), hRecoDijetPtAveOverPtHatThreshold->GetMaximum());
+    if ( yMax <= 0. ) {
+        yMax = 1.;
+    }
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.04);
+
+    auto c = std::make_unique<TCanvas>("c", "c", 1000, 1000);
     setPadStyle();
     gPad->SetGrid();
-    hRecoDijetPtAveOverPtHatVsPtHatWeighted->Draw("colz");
+
+    hGenDijetPtAveOverPtHatVsPtHat->Draw("colz");
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", generatorType.Data()));
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    c->SaveAs(Form("%s/%s_%s_genDijetPtAveOverPtHatVsPtHat.pdf", date.Data(), collSystemStr.Data(), generatorType.Data()));
+
+    hRecoDijetPtAveOverPtHatVsPtHat->Draw("colz");
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", generatorType.Data()));
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    c->SaveAs(Form("%s/%s_%s_recoDijetPtAveOverPtHatVsPtHat.pdf", date.Data(), collSystemStr.Data(), generatorType.Data()));
+
+    hGenDijetPtAveOverPtHatThreshold->SetMinimum(0.75);
+    hGenDijetPtAveOverPtHatThreshold->SetMaximum(1.2 * yMax);
+    hGenDijetPtAveOverPtHatThreshold->Draw("p");
+    hRecoDijetPtAveOverPtHatThreshold->Draw("p same");
+    fGenDijetPtAveOverPtHatThreshold->Draw("same");
+    fRecoDijetPtAveOverPtHatThreshold->Draw("same");
+    hGenDijetPtAveOverPtHatThreshold->GetXaxis()->SetTitle("#hat{p}_{T}");
+    hGenDijetPtAveOverPtHatThreshold->GetYaxis()->SetTitle(Form("upper-tail %.2f%% threshold of p_{T}^{ave}/#hat{p}_{T}", cutFraction * 100.));
+
+    TLegend *leg = new TLegend(0.18, 0.72, 0.42, 0.84);
+    leg->SetTextSize(0.04);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenDijetPtAveOverPtHatThreshold.get(), "Gen", "lep");
+    leg->AddEntry(hRecoDijetPtAveOverPtHatThreshold.get(), "Reco", "lep");
+    leg->Draw();
+
+    TLatex fitText;
+    fitText.SetTextFont(42);
+    fitText.SetTextSize(0.02);
+    fitText.SetTextColor(kBlue + 1);
+    fitText.DrawLatexNDC(0.52, 0.82, Form("Gen fit: %.4f+%.4fx+%.4f*exp(-%.4fx)",
+                                         fGenDijetPtAveOverPtHatThreshold->GetParameter(0),
+                                         fGenDijetPtAveOverPtHatThreshold->GetParameter(1),
+                                         fGenDijetPtAveOverPtHatThreshold->GetParameter(2),
+                                         fGenDijetPtAveOverPtHatThreshold->GetParameter(3)) );
+        fitText.SetTextColor(kRed + 1);
+        fitText.DrawLatexNDC(0.52, 0.78, Form("Reco fit: %.4f+%.4fx+%.4f*exp(-%.4fx)",
+                                         fRecoDijetPtAveOverPtHatThreshold->GetParameter(0),
+                                         fRecoDijetPtAveOverPtHatThreshold->GetParameter(1),
+                                         fRecoDijetPtAveOverPtHatThreshold->GetParameter(2),
+                                         fRecoDijetPtAveOverPtHatThreshold->GetParameter(3)) );
+
+    t.DrawLatexNDC(0.16, 0.85, Form("%s", generatorType.Data()));
+    plotCMSHeader(collisionSystem, collisionEnergy);
+
+    c->SaveAs(Form("%s/%s_%s_overweightProtection_upperTailThreshold.pdf", date.Data(), collSystemStr.Data(), generatorType.Data()));
+
+    if ( leg ) { delete leg; leg = nullptr; }
 }
 
 //________________
@@ -6326,7 +6495,7 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    bool isPythia = true; // Set to false for embedding
+    bool isPythia = false; // Set to false for embedding
     TString generatorType = isPythia ? "pythia" : "embedding";
     TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
     int ptHatSample = 0; // if 0 - use integrated sample, otherwise use pt-hat binned sample
@@ -7119,6 +7288,7 @@ void plotMcClosures() {
     // for inclusive, lead and sublead jets in CM frame
     // plotSingleJetClosures(collisionSystem, collisionEnergy, date);
 
+    // Plot distributions for to eliminate events with X-jets
     // plotOverweightProtection(collisionSystem, collisionEnergy, date);
 
     // Plot check of gen eta shift in pPb collisions
@@ -7132,8 +7302,8 @@ void plotMcClosures() {
     // plotJESandJER(collisionSystem, collisionEnergy, date);
 
     // 
-    plotSingleJESCheck(collisionSystem, collisionEnergy, date);
+    // plotSingleJESCheck(collisionSystem, collisionEnergy, date);
 
     // Plot comparison of JES and JER for JER systematics
-    // plotJESandJERSyst(collisionSystem, collisionEnergy, date);
+    plotJESandJERSyst(collisionSystem, collisionEnergy, date);
 }
