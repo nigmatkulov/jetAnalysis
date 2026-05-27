@@ -397,10 +397,10 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
 
     // Single jet pt binning
     const int nJetPtBins = 100;
-    double jetPtBins[] = { 0., 1000. };
+    double jetPtBins[] = { 10., 1010. };
     const int nJetEtaBins = 144;
     double jetEtaBins[] = { -3.6, 3.6 };
-    const int nJetJESBins = 100;
+    const int nJetJESBins = 50;
     double jetJESBins[] = { 0., 2. };
 
     // Dijet binning
@@ -1513,16 +1513,21 @@ void calculateResolutionSmearing(float &ptDef, float &ptUp, float &ptDown, float
     //                   scaleFactorDef, scaleFactorUp, scaleFactorDown, 
     //                   fJerDef[iEtaBin], fJerHi[iEtaBin], fJerLow[iEtaBin]) << std::endl;
 
+    // Temporarily set to 1
+    scaleFactorDef = 1.;
+    scaleFactorUp = 1.;
+    scaleFactorDown = 1.;
+
     double sigmaSmearDef{0.};
     double sigmaSmearUp{0.};
     double sigmaSmearDown{0.};
     double sigmaSmearDefNoScale{0.};
     double evalValue{0.};
     if ( ptDef <= 30.) {
-        evalValue = fJERSmearFunc->Eval( 31. );
+        evalValue = fJERSmearFunc->Eval( 30.1 );
     }
     else if ( ptDef >= 800 ) {
-        evalValue = fJERSmearFunc->Eval( 799. );
+        evalValue = fJERSmearFunc->Eval( 799.9 );
     }
     else {
         evalValue = fJERSmearFunc->Eval( ptDef );
@@ -2030,12 +2035,22 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
 
     // JER smearing function (parametrization of sigma_smear vs pT)
     auto fJERSmearFunc = std::make_unique<TF1>("fJERSmearFunc", "sqrt(max(0., [0] + [1]/x))", 30., 800.);
-    if (isPbGoing) {
-        fJERSmearFunc->SetParameters(0.0018, 0.9352); // -1.6 < eta < 1.6
-        // fJERSmearFunc->SetParameters(0.00183, 0.75500); // -0.8 < eta < 0.8
+    if (isPythia) {
+        if (isPbGoing) {
+            fJERSmearFunc->SetParameters(0.00232, 0.75679); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+        }
+        else {
+            fJERSmearFunc->SetParameters(0.00227, 0.76388); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+        }
     }
-    else {
-        fJERSmearFunc->SetParameters(0.00176, 0.76438); // -0.8 < eta < 0.8
+    else { // Embdedding
+        if (isPbGoing) {
+            fJERSmearFunc->SetParameters(0.00206, 0.87435); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+        }
+        else {
+            fJERSmearFunc->SetParameters(0.00206, 0.87262); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            
+        }
     }
 
     auto fRndm = std::make_unique<TRandom3>(0);
