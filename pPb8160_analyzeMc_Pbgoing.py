@@ -8,7 +8,7 @@ import sys
 from pPb8160_runner import RunnerConfig, main as run_batch
 
 
-MC_TYPE = 2  # 0=data, 1=embedding, 2=pythia
+MC_TYPE = 1  # 0=data, 1=embedding, 2=pythia
 IS_PB_GOING_DIR = 1
 JEU_SYST = 0
 JER_SYST = 1

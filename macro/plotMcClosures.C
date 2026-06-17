@@ -19,6 +19,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <memory>
 #include <sys/stat.h>
 
 //________________
@@ -105,7 +106,7 @@ void set2DStyle(TH2* h) {
 void setPadStyle() {
     gPad->SetTopMargin(0.1);
     gPad->SetBottomMargin(0.15);
-    gPad->SetRightMargin(0.1);
+    gPad->SetRightMargin(0.05);
     gPad->SetLeftMargin(0.15);
 }
 
@@ -5732,29 +5733,837 @@ void plotDiJetClosures(int collisionSystem, double collisionEnergy, TString date
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    // pT bin selection
-    double deltaPt = 0.001;
-    double ptLow = 60. + deltaPt;
-    double ptHigh = 119.999;
-    int ptLowInt = std::round(ptLow);
-    int ptHighInt = std::round(ptHigh);
-    double etaLabMax = 2.4;
-    double etaCMMax = 2.0;
-    double yAxisRatio2Gen[2] = {0.85, 1.15};
+    bool isPythia = false; // Set to false for embedding
+    TString generatorType = isPythia ? "pythia" : "embedding";
+    TString direction = "combined"; // "pgoing", "Pbgoing", "combined"
+    bool isCombined = (direction == "combined");
+    bool savePNG = false; // Set to true to save plots as PNG in addition to PDF
 
-    TString mcType = "PYTHIA"; // "pythia" or "embedding"
-    TString mcTypeLower = mcType;
-    mcTypeLower.ToLower();
+    // Colors for plotting
+    static constexpr std::array<Color_t, 13> p8Colors {kBlue, kRed, kMagenta, kP8Orange, kP8Green, kP8Azure, kBlack, kPink, 
+                                                       kCyan, kTeal, kGray, kSpring, kViolet};
+    constexpr int nEtaCuts = 7;
+    static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.5};
+    double ptAveLow = 400. + 0.001;
+    double ptAveHigh = 500. - 0.001;
 
-    TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_jetId_eta19.root") );
-    // TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/embedding/oEmbedding_pPb8160_def_ak4_jetId_eta19.root") );
+    TString inputFileName;
 
-    // TFile *fMC = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/Pbgoing/oPythia_pPb8160_Pbgoing_30.root") );
-    // TFile *fPythia = TFile::Open( Form("~/cernbox/ana/pPb8160/pythia/oPythia_pPb8160_def_ak4_jetId_eta19_ptHat_gt_30.root") );
-    if ( !fMC || fMC->IsZombie() ) {
-        std::cerr << "Error: Could not open pythia file." << std::endl;
+    if (isCombined) {
+        inputFileName = Form("$HOME/cernbox/ana/%s/%s/%s_jetId.root", 
+            collSystemStr.Data(), generatorType.Data(), generatorType.Data());
+    } 
+    else {
+            inputFileName = Form("$HOME/cernbox/ana/%s/%s/%s/%s_%s_jetId.root", 
+                collSystemStr.Data(), generatorType.Data(), direction.Data(), generatorType.Data(), direction.Data());
+    }
+
+    // Input file
+    auto f = std::unique_ptr<TFile>(TFile::Open( inputFileName.Data() ));
+    if ( !f || f->IsZombie() ) {
+        std::cerr << Form("Error: Could not open %s", inputFileName.Data()) << std::endl;
         return;
     }
+    else {
+        std::cout << "Successfully opened file: " << inputFileName.Data() << std::endl;
+    }
+
+    // Histograms to read from the input file
+    std::cout << "Loading histograms from file..." << std::endl;
+
+    // Gen
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetPtEtaCMArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetPtEtaForwardArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetPtEtaBackwardArr;
+    // Gen smeared (default JER smearing is applied)
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefPtEtaCMArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefPtEtaForwardArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefPtEtaBackwardArr;
+    // Gen smeared w/ eta-dependent SF applied 
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefExtraPtEtaCMArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefExtraPtEtaForwardArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefExtraPtEtaBackwardArr;
+    // Gen smeared w/ 1.5 SF applied
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefOneAndAHalfPtEtaCMArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefOneAndAHalfPtEtaForwardArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefOneAndAHalfPtEtaBackwardArr;
+    // Gen smeared w/ 2.0 SF applied
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefDoublePtEtaCMArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefDoublePtEtaForwardArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefDoublePtEtaBackwardArr;
+    // Gen smeared w/ 0.9 SF applied
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefNinetyPtEtaCMArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefNinetyPtEtaForwardArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hGenDijetDefNinetyPtEtaBackwardArr;
+
+
+    // Reco
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaCMArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaForwardArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArr;
+    // Ref
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRefDijetPtEtaCMArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRefDijetPtEtaForwardArr;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRefDijetPtEtaBackwardArr;
+    // Reco smeared w/ SF applied
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaCMArrJerDef;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaForwardArrJerDef;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArrJerDef;
+    // Reco smeared w/o SF applied
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaCMArrJerDefNoSF;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaForwardArrJerDefNoSF;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArrJerDefNoSF;
+    // Reco smeared w/ double SF applied
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaCMArrJerDefDoubleSF;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaForwardArrJerDefDoubleSF;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArrJerDefDoubleSF;
+    // Reco smeared w/ 0.9 SF applied
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaCMArrJerDefNinetySF;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaForwardArrJerDefNinetySF;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArrJerDefNinetySF;
+
+    auto loadHist2D = [&](const char *histName) -> std::unique_ptr<TH2D> {
+        TH2D *raw = dynamic_cast<TH2D*>(f->Get(histName));
+        if ( !raw || raw->IsZombie() ) {
+            std::cerr << "Error: Could not retrieve " << histName << " from file " << inputFileName.Data() << std::endl;
+            return nullptr;
+        }
+        // Clone to detach from the file's ownership and set no directory
+        TH2D *cl = dynamic_cast<TH2D*>( raw->Clone() );
+        if ( !cl ) {
+            std::cerr << "Error: Could not clone " << histName << std::endl;
+            return nullptr;
+        }
+        cl->SetDirectory(0);
+        return std::unique_ptr<TH2D>(cl);
+    };
+
+    for (int i = 0; i < nEtaCuts; ++i) {
+        // Gen
+        hGenDijetPtEtaCMArr[i] = loadHist2D( Form("hGenDijetPtEtaCM_%d", i) );
+        if ( !hGenDijetPtEtaCMArr[i] ) return;
+        hGenDijetPtEtaForwardArr[i] = loadHist2D( Form("hGenDijetPtEtaForward_%d", i) );
+        if ( !hGenDijetPtEtaForwardArr[i] ) return;
+        hGenDijetPtEtaBackwardArr[i] = loadHist2D( Form("hGenDijetPtEtaBackward_%d", i) );
+        if ( !hGenDijetPtEtaBackwardArr[i] ) return;
+        // Gen smeared w/ default JER smearing applied
+        hGenDijetDefPtEtaCMArr[i] = loadHist2D( Form("hGenDijetDefPtEtaCM_%d", i) );
+        if ( !hGenDijetDefPtEtaCMArr[i] ) return;
+        hGenDijetDefPtEtaForwardArr[i] = loadHist2D( Form("hGenDijetDefPtEtaForward_%d", i) );
+        if ( !hGenDijetDefPtEtaForwardArr[i] ) return;
+        hGenDijetDefPtEtaBackwardArr[i] = loadHist2D( Form("hGenDijetDefPtEtaBackward_%d", i) );
+        if ( !hGenDijetDefPtEtaBackwardArr[i] ) return;
+        // Gen smeared w/ eta-dependent SF applied
+        hGenDijetDefExtraPtEtaCMArr[i] = loadHist2D( Form("hGenDijetDefExtraPtEtaCM_%d", i) );
+        if ( !hGenDijetDefExtraPtEtaCMArr[i] ) return;
+        hGenDijetDefExtraPtEtaForwardArr[i] = loadHist2D( Form("hGenDijetDefExtraPtEtaForward_%d", i) );
+        if ( !hGenDijetDefExtraPtEtaForwardArr[i] ) return;
+        hGenDijetDefExtraPtEtaBackwardArr[i] = loadHist2D( Form("hGenDijetDefExtraPtEtaBackward_%d", i) );
+        if ( !hGenDijetDefExtraPtEtaBackwardArr[i] ) return;
+        // Gen smeared w/ 1.5 SF applied
+        hGenDijetDefOneAndAHalfPtEtaCMArr[i] = loadHist2D( Form("hGenDijetDefOneAndAHalfPtEtaCM_%d", i) );
+        if ( !hGenDijetDefOneAndAHalfPtEtaCMArr[i] ) return;
+        hGenDijetDefOneAndAHalfPtEtaForwardArr[i] = loadHist2D( Form("hGenDijetDefOneAndAHalfPtEtaForward_%d", i) );
+        if ( !hGenDijetDefOneAndAHalfPtEtaForwardArr[i] ) return;
+        hGenDijetDefOneAndAHalfPtEtaBackwardArr[i] = loadHist2D( Form("hGenDijetDefOneAndAHalfPtEtaBackward_%d", i) );
+        if ( !hGenDijetDefOneAndAHalfPtEtaBackwardArr[i] ) return;
+        // Gen smeared w/ 2.0 SF applied
+        hGenDijetDefDoublePtEtaCMArr[i] = loadHist2D( Form("hGenDijetDefDoublePtEtaCM_%d", i) );
+        if ( !hGenDijetDefDoublePtEtaCMArr[i] ) return;
+        hGenDijetDefDoublePtEtaForwardArr[i] = loadHist2D( Form("hGenDijetDefDoublePtEtaForward_%d", i) );
+        if ( !hGenDijetDefDoublePtEtaForwardArr[i] ) return;
+        hGenDijetDefDoublePtEtaBackwardArr[i] = loadHist2D( Form("hGenDijetDefDoublePtEtaBackward_%d", i) );
+        if ( !hGenDijetDefDoublePtEtaBackwardArr[i] ) return;
+        // Gen smeared w/ 0.9 SF applied
+        hGenDijetDefNinetyPtEtaCMArr[i] = loadHist2D( Form("hGenDijetDefNinetyPtEtaCM_%d", i) );
+        if ( !hGenDijetDefNinetyPtEtaCMArr[i] ) return;
+        hGenDijetDefNinetyPtEtaForwardArr[i] = loadHist2D( Form("hGenDijetDefNinetyPtEtaForward_%d", i) );
+        if ( !hGenDijetDefNinetyPtEtaForwardArr[i] ) return;
+        hGenDijetDefNinetyPtEtaBackwardArr[i] = loadHist2D( Form("hGenDijetDefNinetyPtEtaBackward_%d", i) );
+        if ( !hGenDijetDefNinetyPtEtaBackwardArr[i] ) return;
+
+        // Reco
+        hRecoDijetPtEtaCMArr[i] = loadHist2D( Form("hRecoDijetPtEtaCM_%d", i) );
+        if ( !hRecoDijetPtEtaCMArr[i] ) return;
+        hRecoDijetPtEtaForwardArr[i] = loadHist2D( Form("hRecoDijetPtEtaForward_%d", i) );
+        if ( !hRecoDijetPtEtaForwardArr[i] ) return;
+        hRecoDijetPtEtaBackwardArr[i] = loadHist2D( Form("hRecoDijetPtEtaBackward_%d", i) );
+        if ( !hRecoDijetPtEtaBackwardArr[i] ) return;
+        // Ref
+        hRefDijetPtEtaCMArr[i] = loadHist2D( Form("hRefDijetPtEtaCM_%d", i) );
+        if ( !hRefDijetPtEtaCMArr[i] ) return;
+        hRefDijetPtEtaForwardArr[i] = loadHist2D( Form("hRefDijetPtEtaForward_%d", i) );
+        if ( !hRefDijetPtEtaForwardArr[i] ) return;
+        hRefDijetPtEtaBackwardArr[i] = loadHist2D( Form("hRefDijetPtEtaBackward_%d", i) );
+        if ( !hRefDijetPtEtaBackwardArr[i] ) return;
+        // Reco smeared w/ SF applied
+        hRecoDijetPtEtaCMArrJerDef[i] = loadHist2D( Form("hRecoDijetPtEtaCMJerDef_%d", i) );
+        if ( !hRecoDijetPtEtaCMArrJerDef[i] ) return;
+        hRecoDijetPtEtaForwardArrJerDef[i] = loadHist2D( Form("hRecoDijetPtEtaForwardJerDef_%d", i) );
+        if ( !hRecoDijetPtEtaForwardArrJerDef[i] ) return;
+        hRecoDijetPtEtaBackwardArrJerDef[i] = loadHist2D( Form("hRecoDijetPtEtaBackwardJerDef_%d", i) );
+        if ( !hRecoDijetPtEtaBackwardArrJerDef[i] ) return;
+        // Reco smeared w/o SF applied
+        hRecoDijetPtEtaCMArrJerDefNoSF[i] = loadHist2D( Form("hRecoDijetPtEtaCMJerDefNoSF_%d", i) );
+        if ( !hRecoDijetPtEtaCMArrJerDefNoSF[i] ) return;
+        hRecoDijetPtEtaForwardArrJerDefNoSF[i] = loadHist2D( Form("hRecoDijetPtEtaForwardJerDefNoSF_%d", i) );
+        if ( !hRecoDijetPtEtaForwardArrJerDefNoSF[i] ) return;
+        hRecoDijetPtEtaBackwardArrJerDefNoSF[i] = loadHist2D( Form("hRecoDijetPtEtaBackwardJerDefNoSF_%d", i) );
+        if ( !hRecoDijetPtEtaBackwardArrJerDefNoSF[i] ) return;
+        // Reco smeared w/ double SF applied
+        hRecoDijetPtEtaCMArrJerDefDoubleSF[i] = loadHist2D( Form("hRecoDijetPtEtaCMJerDefDoubleSF_%d", i) );
+        if ( !hRecoDijetPtEtaCMArrJerDefDoubleSF[i] ) return;
+        hRecoDijetPtEtaForwardArrJerDefDoubleSF[i] = loadHist2D( Form("hRecoDijetPtEtaForwardJerDefDoubleSF_%d", i) );
+        if ( !hRecoDijetPtEtaForwardArrJerDefDoubleSF[i] ) return;
+        hRecoDijetPtEtaBackwardArrJerDefDoubleSF[i] = loadHist2D( Form("hRecoDijetPtEtaBackwardJerDefDoubleSF_%d", i) );
+        if ( !hRecoDijetPtEtaBackwardArrJerDefDoubleSF[i] ) return;
+        // Reco smeared w/ 0.9 SF applied
+        hRecoDijetPtEtaCMArrJerDefNinetySF[i] = loadHist2D( Form("hRecoDijetPtEtaCMJerDefNinetySF_%d", i) );
+        if ( !hRecoDijetPtEtaCMArrJerDefNinetySF[i] ) return;
+        hRecoDijetPtEtaForwardArrJerDefNinetySF[i] = loadHist2D( Form("hRecoDijetPtEtaForwardJerDefNinetySF_%d", i) );
+        if ( !hRecoDijetPtEtaForwardArrJerDefNinetySF[i] ) return;
+        hRecoDijetPtEtaBackwardArrJerDefNinetySF[i] = loadHist2D( Form("hRecoDijetPtEtaBackwardJerDefNinetySF_%d", i) );
+        if ( !hRecoDijetPtEtaBackwardArrJerDefNinetySF[i] ) return;
+    } // for (int i = 0; i < nEtaCuts; ++i)
+    std::cout << "Successfully loaded all histograms from file." << std::endl;
+
+    f->Close();
+
+
+    // Histogram projections on dijet eta for the specified ptAve range
+    // Gen
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaForward;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaBackward;
+    // Gen smeared w/ default JER smearing applied
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaCMJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaForwardJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaBackwardJerDef;
+    // Gen smeared w/ default JER smearing with eta-dependence applied
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaCMJerDefExtra;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaForwardJerDefExtra;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaBackwardJerDefExtra;
+    // Gen smeared w/ 1.5 SF applied
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaCMJerDefOneAndAHalfSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaForwardJerDefOneAndAHalfSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaBackwardJerDefOneAndAHalfSF;
+    // Gen smeared w/ 2.0 SF applied
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaCMJerDefDoubleSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaForwardJerDefDoubleSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaBackwardJerDefDoubleSF;
+    // Gen smeared w/ 0.9 SF applied
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaCMJerDefNinetySF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaForwardJerDefNinetySF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaBackwardJerDefNinetySF;
+
+    // Reco
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaForward;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaBackward;
+    // Ref
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRefDijetEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRefDijetEtaForward;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRefDijetEtaBackward;
+    // Reco smeared w/ SF applied
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaCMJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaForwardJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaBackwardJerDef;
+    // Reco smeared w/o SF applied
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaCMJerDefNoSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaForwardJerDefNoSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaBackwardJerDefNoSF;
+    // Reco smeared w/ double SF
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaCMJerDefDoubleSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaForwardJerDefDoubleSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaBackwardJerDefDoubleSF;
+    // Reco smeared w/ 0.9 SF applied
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaCMJerDefNinetySF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaForwardJerDefNinetySF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaBackwardJerDefNinetySF;
+
+    // Forward/backward ratios
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFB;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDefExtra;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDefOneAndAHalfSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDefDoubleSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDefNinetySF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaFB;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRefDijetEtaFB;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaFBJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaFBJerDefNoSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaFBJerDefDoubleSF;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoDijetEtaFBJerDefNinetySF;
+
+    // Ratios to gen for the full distributions
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hReco2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenJerDef2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenJerDefExtra2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenJerDefOneAndAHalfSF2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenJerDefDoubleSF2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenJerDefNinetySF2GenEtaCM;
+
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDef2GenEtaFB;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDefExtra2GenEtaFB;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDefOneAndAHalfSF2GenEtaFB;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDefDoubleSF2GenEtaFB;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hGenDijetEtaFBJerDefNinetySF2GenEtaFB;
+
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRef2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoJerDef2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoJerDefNoSF2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoJerDefDoubleSF2GenEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoJerDefNinetySF2GenEtaCM;
+
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hReco2RecoJerDefNoSFEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoJerDef2RecoJerDefNoSFEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoJerDefDoubleSF2RecoJerDefNoSFEtaCM;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hRecoJerDefNinetySF2RecoJerDefNoSFEtaCM;
+
+
+    auto project1D = [&](TH2D *h2, const char *name, double xLow, double xHigh, int style = -1, bool normalize = false) -> std::unique_ptr<TH1D> {
+        if (!h2) { std::cerr << "Error: input TH2D is null for " << name << std::endl; return nullptr; }
+        TH1D *raw = h2->ProjectionY(name, h2->GetXaxis()->FindBin(xLow), h2->GetXaxis()->FindBin(xHigh));
+        if (!raw) { std::cerr << "Error: Projection returned null for " << name << std::endl; return nullptr; }
+        raw->SetDirectory(0);
+        int rebinFactor = 2; // Adjust as needed for better visualization
+        raw->Rebin(rebinFactor);
+        if (normalize) { double integ = raw->Integral(); if (integ != 0.) raw->Scale(1. / integ); }
+        if (style >= 0) set1DStyle(raw, style);
+        return std::unique_ptr<TH1D>(raw);
+    };
+
+    // Helper: clone TH1D and divide by denom if provided
+    auto cloneAndDivide = [&](TH1D *num, TH1D *den, const char *name) -> std::unique_ptr<TH1D> {
+        if (!num) { std::cerr << "Error: numerator null for clone " << name << std::endl; return nullptr; }
+        TH1D *cl = dynamic_cast<TH1D*>(num->Clone(name));
+        if (!cl) { std::cerr << "Error: clone failed for " << name << std::endl; return nullptr; }
+        cl->SetDirectory(0);
+        if (den) cl->Divide(den);
+        return std::unique_ptr<TH1D>(cl);
+    };
+
+    for (int i = 0; i < nEtaCuts; ++i) {
+        // Gen
+        hGenDijetEtaCM[i] = project1D(hGenDijetPtEtaCMArr[i].get(), Form("hGenDijetEtaCM_etaCut_%d", i), ptAveLow, ptAveHigh, 2, true);
+        if ( !hGenDijetEtaCM[i] ) return;
+        hGenDijetEtaForward[i] = project1D(hGenDijetPtEtaForwardArr[i].get(), Form("hGenDijetEtaForward_etaCut_%d", i), ptAveLow, ptAveHigh, 2, false);
+        if ( !hGenDijetEtaForward[i] ) return;
+        hGenDijetEtaBackward[i] = project1D(hGenDijetPtEtaBackwardArr[i].get(), Form("hGenDijetEtaBackward_etaCut_%d", i), ptAveLow, ptAveHigh, 2, false);
+        if ( !hGenDijetEtaBackward[i] ) return;
+        // Gen smeared w/ default JER smearing applied
+        hGenDijetEtaCMJerDef[i] = project1D(hGenDijetDefPtEtaCMArr[i].get(), Form("hGenDijetEtaCMJerDef_etaCut_%d", i), ptAveLow, ptAveHigh, 0, true);
+        if ( !hGenDijetEtaCMJerDef[i] ) return;
+        hGenDijetEtaForwardJerDef[i] = project1D(hGenDijetDefPtEtaForwardArr[i].get(), Form("hGenDijetEtaForwardJerDef_etaCut_%d", i), ptAveLow, ptAveHigh, 0, false);
+        if ( !hGenDijetEtaForwardJerDef[i] ) return;
+        hGenDijetEtaBackwardJerDef[i] = project1D(hGenDijetDefPtEtaBackwardArr[i].get(), Form("hGenDijetEtaBackwardJerDef_etaCut_%d", i), ptAveLow, ptAveHigh, 0, false);
+        if ( !hGenDijetEtaBackwardJerDef[i] ) return;
+        // Gen smeared w/ default JER smearing with eta-dependence applied
+        hGenDijetEtaCMJerDefExtra[i] = project1D(hGenDijetDefExtraPtEtaCMArr[i].get(), Form("hGenDijetEtaCMJerDefExtra_etaCut_%d", i), ptAveLow, ptAveHigh, 3, true);
+        if ( !hGenDijetEtaCMJerDefExtra[i] ) return;
+        hGenDijetEtaForwardJerDefExtra[i] = project1D(hGenDijetDefExtraPtEtaForwardArr[i].get(), Form("hGenDijetEtaForwardJerDefExtra_etaCut_%d", i), ptAveLow, ptAveHigh, 3, false);
+        if ( !hGenDijetEtaForwardJerDefExtra[i] ) return;
+        hGenDijetEtaBackwardJerDefExtra[i] = project1D(hGenDijetDefExtraPtEtaBackwardArr[i].get(), Form("hGenDijetEtaBackwardJerDefExtra_etaCut_%d", i), ptAveLow, ptAveHigh, 3, false);
+        if ( !hGenDijetEtaBackwardJerDefExtra[i] ) return;
+        // Gen smeared w/ 1.5 SF applied
+        hGenDijetEtaCMJerDefOneAndAHalfSF[i] = project1D(hGenDijetDefOneAndAHalfPtEtaCMArr[i].get(), Form("hGenDijetEtaCMJerDefOneAndAHalfSF_etaCut_%d", i), ptAveLow, ptAveHigh, 1, true);
+        if ( !hGenDijetEtaCMJerDefOneAndAHalfSF[i] ) return;
+        hGenDijetEtaForwardJerDefOneAndAHalfSF[i] = project1D(hGenDijetDefOneAndAHalfPtEtaForwardArr[i].get(), Form("hGenDijetEtaForwardJerDefOneAndAHalfSF_etaCut_%d", i), ptAveLow, ptAveHigh, 1, false);
+        if ( !hGenDijetEtaForwardJerDefOneAndAHalfSF[i] ) return;
+        hGenDijetEtaBackwardJerDefOneAndAHalfSF[i] = project1D(hGenDijetDefOneAndAHalfPtEtaBackwardArr[i].get(), Form("hGenDijetEtaBackwardJerDefOneAndAHalfSF_etaCut_%d", i), ptAveLow, ptAveHigh, 1, false);
+        if ( !hGenDijetEtaBackwardJerDefOneAndAHalfSF[i] ) return;
+        // Gen smeared w/ 2.0 SF applied
+        hGenDijetEtaCMJerDefDoubleSF[i] = project1D(hGenDijetDefDoublePtEtaCMArr[i].get(), Form("hGenDijetEtaCMJerDefDoubleSF_etaCut_%d", i), ptAveLow, ptAveHigh, 6, true);
+        if ( !hGenDijetEtaCMJerDefDoubleSF[i] ) return;
+        hGenDijetEtaForwardJerDefDoubleSF[i] = project1D(hGenDijetDefDoublePtEtaForwardArr[i].get(), Form("hGenDijetEtaForwardJerDefDoubleSF_etaCut_%d", i), ptAveLow, ptAveHigh, 6, false);
+        if ( !hGenDijetEtaForwardJerDefDoubleSF[i] ) return;
+        hGenDijetEtaBackwardJerDefDoubleSF[i] = project1D(hGenDijetDefDoublePtEtaBackwardArr[i].get(), Form("hGenDijetEtaBackwardJerDefDoubleSF_etaCut_%d", i), ptAveLow, ptAveHigh, 6, false);
+        if ( !hGenDijetEtaBackwardJerDefDoubleSF[i] ) return;
+        // Gen smeared w/ 0.9 SF applied
+        hGenDijetEtaCMJerDefNinetySF[i] = project1D(hGenDijetDefNinetyPtEtaCMArr[i].get(), Form("hGenDijetEtaCMJerDefNinetySF_etaCut_%d", i), ptAveLow, ptAveHigh, 7, true);
+        if ( !hGenDijetEtaCMJerDefNinetySF[i] ) return;
+        hGenDijetEtaForwardJerDefNinetySF[i] = project1D(hGenDijetDefNinetyPtEtaForwardArr[i].get(), Form("hGenDijetEtaForwardJerDefNinetySF_etaCut_%d", i), ptAveLow, ptAveHigh, 7, false);
+        if ( !hGenDijetEtaForwardJerDefNinetySF[i] ) return;
+        hGenDijetEtaBackwardJerDefNinetySF[i] = project1D(hGenDijetDefNinetyPtEtaBackwardArr[i].get(), Form("hGenDijetEtaBackwardJerDefNinetySF_etaCut_%d", i), ptAveLow, ptAveHigh, 7, false);
+        if ( !hGenDijetEtaBackwardJerDefNinetySF[i] ) return;
+
+        // Reco
+        hRecoDijetEtaCM[i] = project1D(hRecoDijetPtEtaCMArr[i].get(), Form("hRecoDijetEtaCM_etaCut_%d", i), ptAveLow, ptAveHigh, 0, true);
+        if ( !hRecoDijetEtaCM[i] ) return;
+        hRecoDijetEtaForward[i] = project1D(hRecoDijetPtEtaForwardArr[i].get(), Form("hRecoDijetEtaForward_etaCut_%d", i), ptAveLow, ptAveHigh, 0, false);
+        if ( !hRecoDijetEtaForward[i] ) return;
+        hRecoDijetEtaBackward[i] = project1D(hRecoDijetPtEtaBackwardArr[i].get(), Form("hRecoDijetEtaBackward_etaCut_%d", i), ptAveLow, ptAveHigh, 0, false);
+        if ( !hRecoDijetEtaBackward[i] ) return;
+        // Ref
+        hRefDijetEtaCM[i] = project1D(hRefDijetPtEtaCMArr[i].get(), Form("hRefDijetEtaCM_etaCut_%d", i), ptAveLow, ptAveHigh, 1, true);
+        if ( !hRefDijetEtaCM[i] ) return;
+        hRefDijetEtaForward[i] = project1D(hRefDijetPtEtaForwardArr[i].get(), Form("hRefDijetEtaForward_etaCut_%d", i), ptAveLow, ptAveHigh, 1, false);
+        if ( !hRefDijetEtaForward[i] ) return;
+        hRefDijetEtaBackward[i] = project1D(hRefDijetPtEtaBackwardArr[i].get(), Form("hRefDijetEtaBackward_etaCut_%d", i), ptAveLow, ptAveHigh, 1, false);
+        if ( !hRefDijetEtaBackward[i] ) return;
+        // Reco smeared w/ SF applied
+        hRecoDijetEtaCMJerDef[i] = project1D(hRecoDijetPtEtaCMArrJerDef[i].get(), Form("hRecoDijetEtaCMJerDef_etaCut_%d", i), ptAveLow, ptAveHigh, 4, true);
+        if ( !hRecoDijetEtaCMJerDef[i] ) return;
+        hRecoDijetEtaForwardJerDef[i] = project1D(hRecoDijetPtEtaForwardArrJerDef[i].get(), Form("hRecoDijetEtaForwardJerDef_etaCut_%d", i), ptAveLow, ptAveHigh, 4, false);
+        if ( !hRecoDijetEtaForwardJerDef[i] ) return;
+        hRecoDijetEtaBackwardJerDef[i] = project1D(hRecoDijetPtEtaBackwardArrJerDef[i].get(), Form("hRecoDijetEtaBackwardJerDef_etaCut_%d", i), ptAveLow, ptAveHigh, 4, false);
+        if ( !hRecoDijetEtaBackwardJerDef[i] ) return;
+        // Reco smeared w/o SF applied
+        hRecoDijetEtaCMJerDefNoSF[i] = project1D(hRecoDijetPtEtaCMArrJerDefNoSF[i].get(), Form("hRecoDijetEtaCMJerDefNoSF_etaCut_%d", i), ptAveLow, ptAveHigh, 5, true);
+        if ( !hRecoDijetEtaCMJerDefNoSF[i] ) return;
+        hRecoDijetEtaForwardJerDefNoSF[i] = project1D(hRecoDijetPtEtaForwardArrJerDefNoSF[i].get(), Form("hRecoDijetEtaForwardJerDefNoSF_etaCut_%d", i), ptAveLow, ptAveHigh, 5, false);
+        if ( !hRecoDijetEtaForwardJerDefNoSF[i] ) return;
+        hRecoDijetEtaBackwardJerDefNoSF[i] = project1D(hRecoDijetPtEtaBackwardArrJerDefNoSF[i].get(), Form("hRecoDijetEtaBackwardJerDefNoSF_etaCut_%d", i), ptAveLow, ptAveHigh, 5, false);
+        if ( !hRecoDijetEtaBackwardJerDefNoSF[i] ) return;
+        // Reco smeared w/ double SF applied
+        hRecoDijetEtaCMJerDefDoubleSF[i] = project1D(hRecoDijetPtEtaCMArrJerDefDoubleSF[i].get(), Form("hRecoDijetEtaCMJerDefDoubleSF_etaCut_%d", i), ptAveLow, ptAveHigh, 6, true);
+        if ( !hRecoDijetEtaCMJerDefDoubleSF[i] ) return;
+        hRecoDijetEtaForwardJerDefDoubleSF[i] = project1D(hRecoDijetPtEtaForwardArrJerDefDoubleSF[i].get(), Form("hRecoDijetEtaForwardJerDefDoubleSF_etaCut_%d", i), ptAveLow, ptAveHigh, 6, false);
+        if ( !hRecoDijetEtaForwardJerDefDoubleSF[i] ) return;
+        hRecoDijetEtaBackwardJerDefDoubleSF[i] = project1D(hRecoDijetPtEtaBackwardArrJerDefDoubleSF[i].get(), Form("hRecoDijetEtaBackwardJerDefDoubleSF_etaCut_%d", i), ptAveLow, ptAveHigh, 6, false);
+        if ( !hRecoDijetEtaBackwardJerDefDoubleSF[i] ) return;
+        // Reco smeared w/ 0.9 SF applied
+        hRecoDijetEtaCMJerDefNinetySF[i] = project1D(hRecoDijetPtEtaCMArrJerDefNinetySF[i].get(), Form("hRecoDijetEtaCMJerDefNinetySF_etaCut_%d", i), ptAveLow, ptAveHigh, 7, true);
+        if ( !hRecoDijetEtaCMJerDefNinetySF[i] ) return;
+        hRecoDijetEtaForwardJerDefNinetySF[i] = project1D(hRecoDijetPtEtaForwardArrJerDefNinetySF[i].get(), Form("hRecoDijetEtaForwardJerDefNinetySF_etaCut_%d", i), ptAveLow, ptAveHigh, 7, false);
+        if ( !hRecoDijetEtaForwardJerDefNinetySF[i] ) return;
+        hRecoDijetEtaBackwardJerDefNinetySF[i] = project1D(hRecoDijetPtEtaBackwardArrJerDefNinetySF[i].get(), Form("hRecoDijetEtaBackwardJerDefNinetySF_etaCut_%d", i), ptAveLow, ptAveHigh, 7, false);
+        if ( !hRecoDijetEtaBackwardJerDefNinetySF[i] ) return;
+
+        // Forward/backward ratios
+        hGenDijetEtaFB[i] = cloneAndDivide(hGenDijetEtaForward[i].get(), hGenDijetEtaBackward[i].get(), Form("hGenDijetEtaFB_etaCut_%d", i) );
+        if ( !hGenDijetEtaFB[i] ) return;
+        hGenDijetEtaFBJerDef[i] = cloneAndDivide(hGenDijetEtaForwardJerDef[i].get(), hGenDijetEtaBackwardJerDef[i].get(), Form("hGenDijetEtaFBJerDef_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDef[i] ) return;
+        hGenDijetEtaFBJerDefExtra[i] = cloneAndDivide(hGenDijetEtaForwardJerDefExtra[i].get(), hGenDijetEtaBackwardJerDefExtra[i].get(), Form("hGenDijetEtaFBJerDefExtra_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDefExtra[i] ) return;
+        hGenDijetEtaFBJerDefOneAndAHalfSF[i] = cloneAndDivide(hGenDijetEtaForwardJerDefOneAndAHalfSF[i].get(), hGenDijetEtaBackwardJerDefOneAndAHalfSF[i].get(), Form("hGenDijetEtaFBJerDefOneAndAHalfSF_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDefOneAndAHalfSF[i] ) return;
+        hGenDijetEtaFBJerDefDoubleSF[i] = cloneAndDivide(hGenDijetEtaForwardJerDefDoubleSF[i].get(), hGenDijetEtaBackwardJerDefDoubleSF[i].get(), Form("hGenDijetEtaFBJerDefDoubleSF_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDefDoubleSF[i] ) return;
+        hGenDijetEtaFBJerDefNinetySF[i] = cloneAndDivide(hGenDijetEtaForwardJerDefNinetySF[i].get(), hGenDijetEtaBackwardJerDefNinetySF[i].get(), Form("hGenDijetEtaFBJerDefNinetySF_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDefNinetySF[i] ) return;
+
+        // Double ratios of gen smeared to gen for the forward/backward ratios
+        hGenDijetEtaFBJerDef2GenEtaFB[i] = cloneAndDivide(hGenDijetEtaFBJerDef[i].get(), hGenDijetEtaFB[i].get(), Form("hGenDijetEtaFBJerDef2GenEtaFB_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDef2GenEtaFB[i] ) return;
+        hGenDijetEtaFBJerDefExtra2GenEtaFB[i] = cloneAndDivide(hGenDijetEtaFBJerDefExtra[i].get(), hGenDijetEtaFB[i].get(), Form("hGenDijetEtaFBJerDefExtra2GenEtaFB_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDefExtra2GenEtaFB[i] ) return;
+        hGenDijetEtaFBJerDefOneAndAHalfSF2GenEtaFB[i] = cloneAndDivide(hGenDijetEtaFBJerDefOneAndAHalfSF[i].get(), hGenDijetEtaFB[i].get(), Form("hGenDijetEtaFBJerDefOneAndAHalfSF2GenEtaFB_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDefOneAndAHalfSF2GenEtaFB[i] ) return;
+        hGenDijetEtaFBJerDefDoubleSF2GenEtaFB[i] = cloneAndDivide(hGenDijetEtaFBJerDefDoubleSF[i].get(), hGenDijetEtaFB[i].get(), Form("hGenDijetEtaFBJerDefDoubleSF2GenEtaFB_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDefDoubleSF2GenEtaFB[i] ) return;
+        hGenDijetEtaFBJerDefNinetySF2GenEtaFB[i] = cloneAndDivide(hGenDijetEtaFBJerDefNinetySF[i].get(), hGenDijetEtaFB[i].get(), Form("hGenDijetEtaFBJerDefNinetySF2GenEtaFB_etaCut_%d", i) );
+        if ( !hGenDijetEtaFBJerDefNinetySF2GenEtaFB[i] ) return;
+
+        hRecoDijetEtaFB[i] = cloneAndDivide(hRecoDijetEtaForward[i].get(), hRecoDijetEtaBackward[i].get(), Form("hRecoDijetEtaFB_etaCut_%d", i) );
+        if ( !hRecoDijetEtaFB[i] ) return;
+        hRefDijetEtaFB[i] = cloneAndDivide(hRefDijetEtaForward[i].get(), hRefDijetEtaBackward[i].get(), Form("hRefDijetEtaFB_etaCut_%d", i) );
+        if ( !hRefDijetEtaFB[i] ) return;
+        hRecoDijetEtaFBJerDef[i] = cloneAndDivide(hRecoDijetEtaForwardJerDef[i].get(), hRecoDijetEtaBackwardJerDef[i].get(), Form("hRecoDijetEtaFBJerDef_etaCut_%d", i) );
+        if ( !hRecoDijetEtaFBJerDef[i] ) return;
+        hRecoDijetEtaFBJerDefNoSF[i] = cloneAndDivide(hRecoDijetEtaForwardJerDefNoSF[i].get(), hRecoDijetEtaBackwardJerDefNoSF[i].get(), Form("hRecoDijetEtaFBJerDefNoSF_etaCut_%d", i) );
+        if ( !hRecoDijetEtaFBJerDefNoSF[i] ) return;
+        hRecoDijetEtaFBJerDefDoubleSF[i] = cloneAndDivide(hRecoDijetEtaForwardJerDefDoubleSF[i].get(), hRecoDijetEtaBackwardJerDefDoubleSF[i].get(), Form("hRecoDijetEtaFBJerDefDoubleSF_etaCut_%d", i) );
+        if ( !hRecoDijetEtaFBJerDefDoubleSF[i] ) return;
+        hRecoDijetEtaFBJerDefNinetySF[i] = cloneAndDivide(hRecoDijetEtaForwardJerDefNinetySF[i].get(), hRecoDijetEtaBackwardJerDefNinetySF[i].get(), Form("hRecoDijetEtaFBJerDefNinetySF_etaCut_%d", i) );
+        if ( !hRecoDijetEtaFBJerDefNinetySF[i] ) return;
+
+        // Ratios to gen for the full distributions
+        hReco2GenEtaCM[i] = cloneAndDivide(hRecoDijetEtaCM[i].get(), hGenDijetEtaCM[i].get(), Form("hReco2GenEtaCM_etaCut_%d", i) );
+        if ( !hReco2GenEtaCM[i] ) return;
+        hGenJerDef2GenEtaCM[i] = cloneAndDivide(hGenDijetEtaCMJerDef[i].get(), hGenDijetEtaCM[i].get(), Form("hGenJerDef2GenEtaCM_etaCut_%d", i) );
+        if ( !hGenJerDef2GenEtaCM[i] ) return;
+        hGenJerDefExtra2GenEtaCM[i] = cloneAndDivide(hGenDijetEtaCMJerDefExtra[i].get(), hGenDijetEtaCM[i].get(), Form("hGenJerDefExtra2GenEtaCM_etaCut_%d", i) );
+        if ( !hGenJerDefExtra2GenEtaCM[i] ) return;
+        hGenJerDefOneAndAHalfSF2GenEtaCM[i] = cloneAndDivide(hGenDijetEtaCMJerDefOneAndAHalfSF[i].get(), hGenDijetEtaCM[i].get(), Form("hGenJerDefOneAndAHalfSF2GenEtaCM_etaCut_%d", i) );
+        if ( !hGenJerDefOneAndAHalfSF2GenEtaCM[i] ) return;
+        hGenJerDefDoubleSF2GenEtaCM[i] = cloneAndDivide(hGenDijetEtaCMJerDefDoubleSF[i].get(), hGenDijetEtaCM[i].get(), Form("hGenJerDefDoubleSF2GenEtaCM_etaCut_%d", i) );
+        if ( !hGenJerDefDoubleSF2GenEtaCM[i] ) return;
+        hGenJerDefNinetySF2GenEtaCM[i] = cloneAndDivide(hGenDijetEtaCMJerDefNinetySF[i].get(), hGenDijetEtaCM[i].get(), Form("hGenJerDefNinetySF2GenEtaCM_etaCut_%d", i) );
+        if ( !hGenJerDefNinetySF2GenEtaCM[i] ) return;
+
+        hRef2GenEtaCM[i] = cloneAndDivide(hRefDijetEtaCM[i].get(), hGenDijetEtaCM[i].get(), Form("hRef2GenEtaCM_etaCut_%d", i) );
+        if ( !hRef2GenEtaCM[i] ) return;
+        hRecoJerDef2GenEtaCM[i] = cloneAndDivide(hRecoDijetEtaCMJerDef[i].get(), hGenDijetEtaCM[i].get(), Form("hRecoJerDef2GenEtaCM_etaCut_%d", i) );
+        if ( !hRecoJerDef2GenEtaCM[i] ) return;
+        hRecoJerDefNoSF2GenEtaCM[i] = cloneAndDivide(hRecoDijetEtaCMJerDefNoSF[i].get(), hGenDijetEtaCM[i].get(), Form("hRecoJerDefNoSF2GenEtaCM_etaCut_%d", i) );
+        if ( !hRecoJerDefNoSF2GenEtaCM[i] ) return;
+        hRecoJerDefDoubleSF2GenEtaCM[i] = cloneAndDivide(hRecoDijetEtaCMJerDefDoubleSF[i].get(), hGenDijetEtaCM[i].get(), Form("hRecoJerDefDoubleSF2GenEtaCM_etaCut_%d", i) );
+        if ( !hRecoJerDefDoubleSF2GenEtaCM[i] ) return;
+        hRecoJerDefNinetySF2GenEtaCM[i] = cloneAndDivide(hRecoDijetEtaCMJerDefNinetySF[i].get(), hGenDijetEtaCM[i].get(), Form("hRecoJerDefNinetySF2GenEtaCM_etaCut_%d", i) );
+        if ( !hRecoJerDefNinetySF2GenEtaCM[i] ) return;
+
+        hReco2RecoJerDefNoSFEtaCM[i] = cloneAndDivide(hRecoDijetEtaCM[i].get(), hRecoDijetEtaCMJerDefNoSF[i].get(), Form("hReco2RecoJerDefNoSFEtaCM_etaCut_%d", i) );
+        if ( !hReco2RecoJerDefNoSFEtaCM[i] ) return;
+        hRecoJerDef2RecoJerDefNoSFEtaCM[i] = cloneAndDivide(hRecoDijetEtaCMJerDef[i].get(), hRecoDijetEtaCMJerDefNoSF[i].get(), Form("hRecoJerDef2RecoJerDefNoSFEtaCM_etaCut_%d", i) );
+        if ( !hRecoJerDef2RecoJerDefNoSFEtaCM[i] ) return;
+        hRecoJerDefDoubleSF2RecoJerDefNoSFEtaCM[i] = cloneAndDivide(hRecoDijetEtaCMJerDefDoubleSF[i].get(), hRecoDijetEtaCMJerDefNoSF[i].get(), Form("hRecoJerDefDoubleSF2RecoJerDefNoSFEtaCM_etaCut_%d", i) );
+        if ( !hRecoJerDefDoubleSF2RecoJerDefNoSFEtaCM[i] ) return;
+        hRecoJerDefNinetySF2RecoJerDefNoSFEtaCM[i] = cloneAndDivide(hRecoDijetEtaCMJerDefNinetySF[i].get(), hRecoDijetEtaCMJerDefNoSF[i].get(), Form("hRecoJerDefNinetySF2RecoJerDefNoSFEtaCM_etaCut_%d", i) );
+        if ( !hRecoJerDefNinetySF2RecoJerDefNoSFEtaCM[i] ) return;
+    } // for (int i = 0; i < nEtaCuts; ++i)
+
+    std::cout << "Successfully created all projections and ratios." << std::endl;
+
+    // Plotting the comparisons between the nominal (default), up, and down JER variations
+    // and ratios to the nominal
+
+    std::cout << "Creating plots for JER systematic variations." << std::endl;
+
+    auto c = std::make_unique<TCanvas>("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid(1, 1);
+
+    auto leg = std::make_unique<TLegend>(0.5, 0.7, 0.8, 0.85);
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.03);
+
+    int ptAveLowInt = std::round(ptAveLow);
+    int ptAveHighInt = std::round(ptAveHigh);
+    
+    for (int i = 0; i < nEtaCuts; ++i) {
+
+        // Compare the full distributions
+        c->cd();
+        hGenDijetEtaCM[i]->Draw();
+        hRecoDijetEtaCM[i]->Draw("same");
+        hRecoDijetEtaCMJerDef[i]->Draw("same");
+        hRecoDijetEtaCMJerDefNoSF[i]->Draw("same");
+        hRecoDijetEtaCMJerDefDoubleSF[i]->Draw("same");
+        hRecoDijetEtaCMJerDefNinetySF[i]->Draw("same");
+        // hRefDijetEtaCM[i]->Draw("same");
+        hGenDijetEtaCM[i]->GetXaxis()->SetTitle("#eta_{CM}^{dijet}");
+        hGenDijetEtaCM[i]->GetYaxis()->SetTitle("dN/d#eta_{CM}^{dijet}");
+        hGenDijetEtaCM[i]->GetYaxis()->SetRangeUser(0., 0.18);
+        hGenDijetEtaCM[i]->GetXaxis()->SetRangeUser(-etaCuts[i]-0.1, etaCuts[i]+0.1);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s ", generatorType.Data()));
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data()));
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Lead} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.7, "p_{T}^{SubLead} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta_{CM}^{jet}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, "|#Delta#phi^{Lead,SubLead}| > 2#pi/3");
+
+        leg->Clear();
+        leg->AddEntry(hGenDijetEtaCM[i].get(), "Gen", "p");
+        leg->AddEntry(hRecoDijetEtaCM[i].get(), "Reco", "p");
+        leg->AddEntry(hRecoDijetEtaCMJerDef[i].get(), "Reco JER def.", "p");
+        leg->AddEntry(hRecoDijetEtaCMJerDefNoSF[i].get(), "Reco JER (x1.0)", "p");
+        leg->AddEntry(hRecoDijetEtaCMJerDefDoubleSF[i].get(), "Reco JER (x2.0)", "p");
+        leg->AddEntry(hRecoDijetEtaCMJerDefNinetySF[i].get(), "Reco JER (x0.9)", "p");
+        // leg->AddEntry(hRefDijetEtaCM[i].get(), "Ref", "p");
+        leg->Draw();
+
+        c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_comparison_ptAve_%d_%d_etaCut_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                        ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_comparison_ptAve_%d_%d_etaCut_%d.png", 
+                            date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                            ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        }
+
+        // Compare the gen-level distributions with different JER variations applied
+        c->cd();
+        hGenDijetEtaCM[i]->Draw();
+        hGenDijetEtaCMJerDef[i]->Draw("same");
+        hGenDijetEtaCMJerDefExtra[i]->Draw("same");
+        // hGenDijetEtaCMJerDefOneAndAHalfSF[i]->Draw("same");
+        hGenDijetEtaCMJerDefDoubleSF[i]->Draw("same");
+        // hGenDijetEtaCMJerDefNinetySF[i]->Draw("same");
+        hGenDijetEtaCM[i]->GetXaxis()->SetTitle("#eta_{CM}^{dijet}");
+        hGenDijetEtaCM[i]->GetYaxis()->SetTitle("dN/d#eta_{CM}^{dijet}");
+        hGenDijetEtaCM[i]->GetYaxis()->SetRangeUser(0., 0.18);
+        hGenDijetEtaCM[i]->GetXaxis()->SetRangeUser(-etaCuts[i]-0.1, etaCuts[i]+0.1);
+        // hGenDijetEtaCM[i]->GetXaxis()->SetRangeUser(1.0, etaCuts[i]+0.1);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s ", generatorType.Data()));
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data()));
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Lead} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.7, "p_{T}^{SubLead} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta_{CM}^{jet}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, "|#Delta#phi^{Lead,SubLead}| > 2#pi/3");
+        leg->Clear();
+        leg->AddEntry(hGenDijetEtaCM[i].get(), "Gen", "p");
+        leg->AddEntry(hGenDijetEtaCMJerDef[i].get(), "Gen JER (x1.0)", "p");
+        leg->AddEntry(hGenDijetEtaCMJerDefExtra[i].get(), "Gen JER (x1.0+#eta-dep)", "p");
+        // leg->AddEntry(hGenDijetEtaCMJerDefOneAndAHalfSF[i].get(), "Gen JER (x1.5)", "p");
+        leg->AddEntry(hGenDijetEtaCMJerDefDoubleSF[i].get(), "Gen JER (x2.0)", "p");
+        // leg->AddEntry(hGenDijetEtaCMJerDefNinetySF[i].get(), "Gen JER (x0.9)", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_genJERComparison_ptAve_%d_%d_etaCut_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                        ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_genJERComparison_ptAve_%d_%d_etaCut_%d.png", 
+                            date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                            ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        }
+
+        // Compare ratios of gen-smeared distributions to the nominal gen distribution
+        c->cd();
+        hGenJerDef2GenEtaCM[i]->Draw();
+        hGenJerDefExtra2GenEtaCM[i]->Draw("same");
+        // hGenJerDefOneAndAHalfSF2GenEtaCM[i]->Draw("same");
+        hGenJerDefDoubleSF2GenEtaCM[i]->Draw("same");
+        // hGenJerDefNinetySF2GenEtaCM[i]->Draw("same");
+        hGenJerDef2GenEtaCM[i]->GetXaxis()->SetTitle("#eta_{CM}^{dijet}");
+        hGenJerDef2GenEtaCM[i]->GetYaxis()->SetTitle("Smeared Gen to Nominal Gen");
+        hGenJerDef2GenEtaCM[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
+        // hGenJerDef2GenEtaCM[i]->GetXaxis()->SetRangeUser(-etaCuts[i]-0.1, etaCuts[i]+0.1);
+        hGenJerDef2GenEtaCM[i]->GetXaxis()->SetRangeUser(-2.0, 2.0);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s ", generatorType.Data()));
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data()));
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Lead} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.7, "p_{T}^{SubLead} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta_{CM}^{jet}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, "|#Delta#phi^{Lead,SubLead}| > 2#pi/3");
+        leg->Clear();
+        leg->AddEntry(hGenJerDef2GenEtaCM[i].get(), "Gen JER (x1.0) / Gen", "p");
+        leg->AddEntry(hGenJerDefExtra2GenEtaCM[i].get(), "Gen JER (x1.0+#eta-dep) / Gen", "p");
+        // leg->AddEntry(hGenJerDefOneAndAHalfSF2GenEtaCM[i].get(), "Gen JER (x1.5) / Gen", "p");
+        leg->AddEntry(hGenJerDefDoubleSF2GenEtaCM[i].get(), "Gen JER (x2.0) / Gen", "p");
+        // leg->AddEntry(hGenJerDefNinetySF2GenEtaCM[i].get(), "Gen JER (x0.9) / Gen", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_genJERRatioToGen_ptAve_%d_%d_etaCut_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                        ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_genJERRatioToGen_ptAve_%d_%d_etaCut_%d.png", 
+                            date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                            ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        }
+
+        // Compare the forward/backward ratios for the nominal gen and the gen with different JER variations applied
+        c->cd();
+        hGenDijetEtaFB[i]->Draw();
+        hGenDijetEtaFBJerDef[i]->Draw("same");
+        hGenDijetEtaFBJerDefExtra[i]->Draw("same");
+        // hGenDijetEtaFBJerDefOneAndAHalfSF[i]->Draw("same");
+        hGenDijetEtaFBJerDefDoubleSF[i]->Draw("same");
+        // hGenDijetEtaFBJerDefNinetySF[i]->Draw("same");
+        // hRefDijetEtaFB[i]->Draw("same");
+        hGenDijetEtaFB[i]->GetXaxis()->SetTitle("#eta_{CM}^{dijet}");
+        hGenDijetEtaFB[i]->GetYaxis()->SetTitle("Forward / Backward");
+        hGenDijetEtaFB[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
+        // hGenDijetEtaFB[i]->GetXaxis()->SetRangeUser(0., etaCuts[i]);
+        hGenDijetEtaFB[i]->GetXaxis()->SetRangeUser(0., 2.0);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s ", generatorType.Data()));
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data()));
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Lead} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.7, "p_{T}^{SubLead} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta_{CM}^{jet}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, "|#Delta#phi^{Lead,SubLead}| > 2#pi/3");
+        leg->Clear();
+        leg->AddEntry(hGenDijetEtaFB[i].get(), "Gen", "p");
+        leg->AddEntry(hGenDijetEtaFBJerDef[i].get(), "Gen JER (x1.0)", "p");
+        leg->AddEntry(hGenDijetEtaFBJerDefExtra[i].get(), "Gen JER (x1.0+#eta-dep)", "p");
+        // leg->AddEntry(hGenDijetEtaFBJerDefOneAndAHalfSF[i].get(), "Gen JER (x1.5)", "p");
+        leg->AddEntry(hGenDijetEtaFBJerDefDoubleSF[i].get(), "Gen JER (x2.0)", "p");
+        // leg->AddEntry(hGenDijetEtaFBJerDefNinetySF[i].get(), "Gen JER (x0.9)", "p");
+        // leg->AddEntry(hRefDijetEtaFB[i].get(), "Ref", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_genJERComparison_FBRatio_ptAve_%d_%d_etaCut_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                        ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_genJERComparison_FBRatio_ptAve_%d_%d_etaCut_%d.png", 
+                            date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                            ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        }
+
+        // Compare double ratios of gen-smeared to gen for the forward/backward ratios
+        c->cd();
+        hGenDijetEtaFBJerDef2GenEtaFB[i]->Draw();
+        hGenDijetEtaFBJerDefExtra2GenEtaFB[i]->Draw("same");
+        // hGenDijetEtaFBJerDefOneAndAHalfSF2GenEtaFB[i]->Draw("same");
+        hGenDijetEtaFBJerDefDoubleSF2GenEtaFB[i]->Draw("same");
+        // hGenDijetEtaFBJerDefNinetySF2GenEtaFB[i]->Draw("same");
+        hGenDijetEtaFBJerDef2GenEtaFB[i]->GetXaxis()->SetTitle("#eta_{CM}^{dijet}");
+        hGenDijetEtaFBJerDef2GenEtaFB[i]->GetYaxis()->SetTitle("Smeared Gen F/B to Nominal Gen F/B");
+        hGenDijetEtaFBJerDef2GenEtaFB[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
+        // hGenDijetEtaFBJerDef2GenEtaFB[i]->GetXaxis()->SetRangeUser(0., etaCuts[i]);
+        hGenDijetEtaFBJerDef2GenEtaFB[i]->GetXaxis()->SetRangeUser(0., 2.0);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s ", generatorType.Data()));
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data()));
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Lead} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.7, "p_{T}^{SubLead} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta_{CM}^{jet}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, "|#Delta#phi^{Lead,SubLead}| > 2#pi/3");
+        leg->Clear();
+        leg->AddEntry(hGenDijetEtaFBJerDef2GenEtaFB[i].get(), "Gen JER (x1.0)/Gen", "p");
+        leg->AddEntry(hGenDijetEtaFBJerDefExtra2GenEtaFB[i].get(), "Gen JER (x1.0+#eta-dep)/Gen", "p");
+        // leg->AddEntry(hGenDijetEtaFBJerDefOneAndAHalfSF2GenEtaFB[i].get(), "Gen JER (x1.5)/Gen", "p");
+        leg->AddEntry(hGenDijetEtaFBJerDefDoubleSF2GenEtaFB[i].get(), "Gen JER (x2.0)/Gen", "p");
+        // leg->AddEntry(hGenDijetEtaFBJerDefNinetySF2GenEtaFB[i].get(), "Gen JER (x0.9)/Gen", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_genJERRatioToGen_FBRatio_ptAve_%d_%d_etaCut_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                        ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_genJERRatioToGen_FBRatio_ptAve_%d_%d_etaCut_%d.png", 
+                            date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                            ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        }
+
+        // Compare ratios of reco to gen for the different JER variations
+        c->cd();
+        hReco2GenEtaCM[i]->Draw();
+        hRecoJerDef2GenEtaCM[i]->Draw("same");
+        hRecoJerDefNoSF2GenEtaCM[i]->Draw("same");
+        hRecoJerDefDoubleSF2GenEtaCM[i]->Draw("same");
+        hRecoJerDefNinetySF2GenEtaCM[i]->Draw("same");
+        // hRef2GenEtaCM[i]->Draw("same");
+        hReco2GenEtaCM[i]->GetXaxis()->SetTitle("#eta_{CM}^{dijet}");
+        hReco2GenEtaCM[i]->GetYaxis()->SetTitle("Ratio to Gen");
+        hReco2GenEtaCM[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
+        hReco2GenEtaCM[i]->GetXaxis()->SetRangeUser(-etaCuts[i]-0.1, etaCuts[i]+0.1);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s ", generatorType.Data()));
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data()));
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Lead} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.7, "p_{T}^{SubLead} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta_{CM}^{jet}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, "|#Delta#phi^{Lead,SubLead}| > 2#pi/3");
+        leg->Clear();
+        leg->AddEntry(hReco2GenEtaCM[i].get(), "Reco / Gen", "p");
+        leg->AddEntry(hRecoJerDef2GenEtaCM[i].get(), "Reco JER def. / Gen", "p");
+        leg->AddEntry(hRecoJerDefNoSF2GenEtaCM[i].get(), "Reco JER (x1.0) / Gen", "p");
+        leg->AddEntry(hRecoJerDefDoubleSF2GenEtaCM[i].get(), "Reco JER (x2.0) / Gen", "p");
+        leg->AddEntry(hRecoJerDefNinetySF2GenEtaCM[i].get(), "Reco JER (x0.9) / Gen", "p");
+        // leg->AddEntry(hRef2GenEtaCM[i].get(), "Ref / Gen", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_ratioToGen_ptAve_%d_%d_etaCut_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                        ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_%s_dijetEtaCM_ratioToGen_ptAve_%d_%d_etaCut_%d.png", 
+                            date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                            ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        }
+
+        // Compare the forward/backward ratios for the different JER variations
+        c->cd();
+        hGenDijetEtaFB[i]->Draw();
+        hRecoDijetEtaFB[i]->Draw("same");
+        hRecoDijetEtaFBJerDef[i]->Draw("same");
+        hRecoDijetEtaFBJerDefNoSF[i]->Draw("same");
+        hRecoDijetEtaFBJerDefDoubleSF[i]->Draw("same");
+        hRecoDijetEtaFBJerDefNinetySF[i]->Draw("same");
+        // hRefDijetEtaFB[i]->Draw("same");
+        hGenDijetEtaFB[i]->GetXaxis()->SetTitle("#eta_{CM}^{dijet}");
+        hGenDijetEtaFB[i]->GetYaxis()->SetTitle("Forward / Backward");
+        hGenDijetEtaFB[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
+        hGenDijetEtaFB[i]->GetXaxis()->SetRangeUser(0., etaCuts[i]);
+
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s ", generatorType.Data()));
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data()));
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Lead} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.7, "p_{T}^{SubLead} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta_{CM}^{jet}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, "|#Delta#phi^{Lead,SubLead}| > 2#pi/3");
+        leg->Clear();
+        leg->AddEntry(hGenDijetEtaFB[i].get(), "Gen", "p");
+        leg->AddEntry(hRecoDijetEtaFB[i].get(), "Reco", "p");
+        leg->AddEntry(hRecoDijetEtaFBJerDef[i].get(), "Reco JER def.", "p");
+        leg->AddEntry(hRecoDijetEtaFBJerDefNoSF[i].get(), "Reco JER (x1.0)", "p");
+        leg->AddEntry(hRecoDijetEtaFBJerDefDoubleSF[i].get(), "Reco JER (x2.0)", "p");
+        leg->AddEntry(hRecoDijetEtaFBJerDefNinetySF[i].get(), "Reco JER (x0.9)", "p");
+        // leg->AddEntry(hRefDijetEtaFB[i].get(), "Ref", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_%s_%s_dijetEtaFB_comparison_ptAve_%d_%d_etaCut_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                        ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_%s_dijetEtaFB_comparison_ptAve_%d_%d_etaCut_%d.png", 
+                            date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), 
+                            ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        }
+
+        // Compare the ratios of the different JER variations to the nominal JER (SF applied)
+        c->cd();
+        set1DStyle(hReco2RecoJerDefNoSFEtaCM[i].get(), 0);
+        set1DStyle(hRecoJerDef2RecoJerDefNoSFEtaCM[i].get(), 1);
+        set1DStyle(hRecoJerDefDoubleSF2RecoJerDefNoSFEtaCM[i].get(), 2);
+        hReco2RecoJerDefNoSFEtaCM[i]->Draw();
+        hRecoJerDef2RecoJerDefNoSFEtaCM[i]->Draw("same");
+        hRecoJerDefDoubleSF2RecoJerDefNoSFEtaCM[i]->Draw("same");
+        hRecoJerDefNinetySF2RecoJerDefNoSFEtaCM[i]->Draw("same");
+        hReco2RecoJerDefNoSFEtaCM[i]->GetXaxis()->SetTitle("#eta_{CM}^{dijet}");
+        hReco2RecoJerDefNoSFEtaCM[i]->GetYaxis()->SetTitle("Ratio to Reco JER (no SF)");
+        hReco2RecoJerDefNoSFEtaCM[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
+        hReco2RecoJerDefNoSFEtaCM[i]->GetXaxis()->SetRangeUser(-etaCuts[i]-0.1, etaCuts[i]+0.1);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s ", generatorType.Data()));
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data()));
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, "p_{T}^{Lead} > 50 GeV");
+        t.DrawLatexNDC(0.2, 0.7, "p_{T}^{SubLead} > 40 GeV");
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta_{CM}^{jet}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, "|#Delta#phi^{Lead,SubLead}| > 2#pi/3");
+        leg->Clear();
+        leg->AddEntry(hReco2RecoJerDefNoSFEtaCM[i].get(), "Reco / Reco JER (x1.0)", "p");
+        leg->AddEntry(hRecoJerDef2RecoJerDefNoSFEtaCM[i].get(), "Reco JER def. / Reco JER (x1.0)", "p");
+        leg->AddEntry(hRecoJerDefDoubleSF2RecoJerDefNoSFEtaCM[i].get(), "Reco JER (x2.0) / Reco JER (x1.0)", "p");
+        leg->AddEntry(hRecoJerDefNinetySF2RecoJerDefNoSFEtaCM[i].get(), "Reco JER (x0.9) / Reco JER (x1.0)", "p");
+        leg->Draw();
+        c->SaveAs(Form("%s/%s_%s_%s_recoJERComparison_ptAve_%d_%d_etaCut_%d.pdf", 
+                        date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_%s_recoJERComparison_ptAve_%d_%d_etaCut_%d.png", 
+                            date.Data(), collSystemStr.Data(), generatorType.Data(), direction.Data(), ptAveLowInt, ptAveHighInt, int(etaCuts[i]*10) ) );
+        }
+    } // for (int i = 0; i < nEtaCuts; ++i)
+
 }
 
 //________________
@@ -6392,9 +7201,12 @@ void extractJESandJER(std::unique_ptr<TH2D> &h2D, std::unique_ptr<TH1D> &hJES, s
         return;
     }
 
+    std::cout << Form("Extracting JES and JER from %s as a function of %s", h2D->GetName(), etaSlices ? "p_{T}" : "#eta") << std::endl;
+
     // Retrieve JES and JER
     h2D->RebinX( rebinX );    // Rebin for better statistics
     h2D->RebinY( rebinY );    // Rebin for better statistics
+    h2D->GetYaxis()->SetTitle("p_{T}^{reco} / p_{T}^{ref}");
 
     TString xAxisTitle = etaSlices ? "p_{T}^{ref} (GeV)" : "#eta";
     hJES.reset( new TH1D(Form("%s_JES", h2D->GetName()), 
@@ -6467,10 +7279,11 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
     collSystemStr += Form("%d", int(collisionEnergy * 1000) );
 
-    bool isPythia = true; // Set to false for embedding
+    bool isPythia = false; // Set to false for embedding
     TString generatorType = isPythia ? "pythia" : "embedding";
-    TString direction = "pgoing"; // "pgoing", "Pbgoing", "combined"
+    TString direction = "Pbgoing"; // "pgoing", "Pbgoing", "combined"
     int ptHatSample = 0; // if 0 - use integrated sample, otherwise use pt-hat binned sample
+    bool savePNG = false; // Set to true to save plots as PNG in addition to PDF
 
     TString inputFileName;
 
@@ -6496,10 +7309,13 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     double etaHigh = 0.8 - 0.001;
     double fitPtLow = 30.;
     double fitPtHigh = 800.;
+    double ptLow = 350. + 0.001;
+    double ptHigh = 500. - 0.001;
 
     // Colors for plotting
     static constexpr std::array<Color_t, 13> p8Colors {kBlue, kRed, kMagenta, kP8Orange, kP8Green, kP8Azure, kBlack, kPink, kCyan, kTeal, kGray, kSpring, kViolet};
 
+    // Open the input file
     auto f = std::unique_ptr<TFile>(TFile::Open( inputFileName.Data() ));
     if ( !f || f->IsZombie() ) {
         std::cerr << Form("Error: Could not open %s", inputFileName.Data()) << std::endl;
@@ -6509,45 +7325,137 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
         std::cout << "Successfully opened file: " << inputFileName.Data() << std::endl;
     }
 
-    // 3D distributions (JES vs pt vs eta)
-    auto hRecoInclusiveJetJESPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESPtEtaStdBins") ) );
-    if ( !hRecoInclusiveJetJESPtEtaStdBins ) {
-        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESPtEtaStdBins from file." << std::endl;
+    //
+    // Retrieve histograms for JES/JER extraction
+    //
+    auto hRecoInclusiveJetJESPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESPtEta") ) );
+    if ( !hRecoInclusiveJetJESPtEta ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESPtEta from file." << std::endl;
         return;
     }
-    hRecoInclusiveJetJESPtEtaStdBins->SetDirectory(0);
-    auto hRecoInclusiveJetJESDefPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDefPtEtaStdBins") ) );
-    if ( !hRecoInclusiveJetJESDefPtEtaStdBins ) {
-        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDefPtEtaStdBins from file." << std::endl;
+    hRecoInclusiveJetJESPtEta->SetDirectory(0);
+    auto hRecoInclusiveJetJESDefPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDefPtEta") ) );
+    if ( !hRecoInclusiveJetJESDefPtEta ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDefPtEta from file." << std::endl;
         return;
     }
-    hRecoInclusiveJetJESDefPtEtaStdBins->SetDirectory(0);
-    auto hRecoInclusiveJetJESUpPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESUpPtEtaStdBins") ) );
-    if ( !hRecoInclusiveJetJESUpPtEtaStdBins ) {
-        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESUpPtEtaStdBins from file." << std::endl;
+    hRecoInclusiveJetJESDefPtEta->SetDirectory(0);
+    auto hRecoInclusiveJetJESUpPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESUpPtEta") ) );
+    if ( !hRecoInclusiveJetJESUpPtEta ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESUpPtEta from file." << std::endl;
         return;
     }
-    hRecoInclusiveJetJESUpPtEtaStdBins->SetDirectory(0);
-    auto hRecoInclusiveJetJESDownPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDownPtEtaStdBins") ) );
-    if ( !hRecoInclusiveJetJESDownPtEtaStdBins ) {
-        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDownPtEtaStdBins from file." << std::endl;
+    hRecoInclusiveJetJESUpPtEta->SetDirectory(0);
+    auto hRecoInclusiveJetJESDownPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDownPtEta") ) );
+    if ( !hRecoInclusiveJetJESDownPtEta ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDownPtEta from file." << std::endl;
         return;
     }
-    hRecoInclusiveJetJESDownPtEtaStdBins->SetDirectory(0);
-    auto hRecoInclusiveJetJESDefNoSFPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDefNoSFPtEtaStdBins") ) );
-    if ( !hRecoInclusiveJetJESDefNoSFPtEtaStdBins ) {
-        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDefNoSFPtEtaStdBins from file." << std::endl;
+    hRecoInclusiveJetJESDownPtEta->SetDirectory(0);
+    auto hRecoInclusiveJetJESDefNoSFPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDefNoSFPtEta") ) );
+    if ( !hRecoInclusiveJetJESDefNoSFPtEta ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDefNoSFPtEta from file." << std::endl;
         return;
     }
-    hRecoInclusiveJetJESDefNoSFPtEtaStdBins->SetDirectory(0);
+    hRecoInclusiveJetJESDefNoSFPtEta->SetDirectory(0);
+    auto hRecoInclusiveJetJESDefDoublePtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESDefDoublePtEta") ) );
+    if ( !hRecoInclusiveJetJESDefDoublePtEta ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESDefDoublePtEta from file." << std::endl;
+        return;
+    }
+    hRecoInclusiveJetJESDefDoublePtEta->SetDirectory(0);
+
+    auto hGenInclusiveJetJESDefPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hGenInclusiveJetJESDefPtEta") ) );
+    if ( !hGenInclusiveJetJESDefPtEta ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetJESDefPtEta from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetJESDefPtEta->SetDirectory(0);
+    auto hGenInclusiveJetJESDefExtraPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hGenInclusiveJetJESDefExtraPtEta") ) );
+    if ( !hGenInclusiveJetJESDefExtraPtEta ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetJESDefExtraPtEta from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetJESDefExtraPtEta->SetDirectory(0);
+    auto hGenInclusiveJetJESDefOneAndAHalfPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hGenInclusiveJetJESDefOneAndAHalfPtEta") ) );
+    if ( !hGenInclusiveJetJESDefOneAndAHalfPtEta ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetJESDefOneAndAHalfPtEta from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetJESDefOneAndAHalfPtEta->SetDirectory(0);
+    auto hGenInclusiveJetJESDefDoublePtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hGenInclusiveJetJESDefDoublePtEta") ) );
+    if ( !hGenInclusiveJetJESDefDoublePtEta ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetJESDefDoublePtEta from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetJESDefDoublePtEta->SetDirectory(0);
+    auto hGenInclusiveJetJESDefNinetyPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hGenInclusiveJetJESDefNinetyPtEta") ) );
+    if ( !hGenInclusiveJetJESDefNinetyPtEta ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetJESDefNinetyPtEta from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetJESDefNinetyPtEta->SetDirectory(0);
+
+    auto hGenInclusiveJetDefPtEtaFlipped = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetDefPtEtaFlipped") ) );
+    if ( !hGenInclusiveJetDefPtEtaFlipped ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetDefPtEtaFlipped from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetDefPtEtaFlipped->SetDirectory(0);
+    auto hGenInclusiveJetDefExtraPtEtaFlipped = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetDefExtraPtEtaFlipped") ) );
+    if ( !hGenInclusiveJetDefExtraPtEtaFlipped ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetDefExtraPtEtaFlipped from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetDefExtraPtEtaFlipped->SetDirectory(0);
+    auto hGenInclusiveJetDefOneAndAHalfPtEtaFlipped = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetDefOneAndAHalfPtEtaFlipped") ) );
+    if ( !hGenInclusiveJetDefOneAndAHalfPtEtaFlipped ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetDefOneAndAHalfPtEtaFlipped from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->SetDirectory(0);
+    auto hGenInclusiveJetDefDoublePtEtaFlipped = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetDefDoublePtEtaFlipped") ) );
+    if ( !hGenInclusiveJetDefDoublePtEtaFlipped ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetDefDoublePtEtaFlipped from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetDefDoublePtEtaFlipped->SetDirectory(0);
+    auto hGenInclusiveJetDefNinetyPtEtaFlipped = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( f->Get("hGenInclusiveJetDefNinetyPtEtaFlipped") ) );
+    if ( !hGenInclusiveJetDefNinetyPtEtaFlipped ) {
+        std::cerr << "Error: Could not retrieve hGenInclusiveJetDefNinetyPtEtaFlipped from file." << std::endl;
+        return;
+    }
+    hGenInclusiveJetDefNinetyPtEtaFlipped->SetDirectory(0);
+
     f->Close();
 
+    // Create 2D histograms for reco JES/JER vs pt by projecting the 3D histograms in the given eta range
     std::unique_ptr<TH2D> hRecoJESVsPtNoSmear;
     std::unique_ptr<TH2D> hRecoJESVsPtSmearDef;
     std::unique_ptr<TH2D> hRecoJESVsPtSmearUp;
     std::unique_ptr<TH2D> hRecoJESVsPtSmearDown;
     std::unique_ptr<TH2D> hRecoJESVsPtSmearDefNoSF;
+    std::unique_ptr<TH2D> hRecoJESVsPtSmearDefDouble;
 
+    // Check 2D and 1D histograms for gen-level JES/JER vs pt and eta
+    std::unique_ptr<TH2D> hGenJESVsPtSmearDef;
+    std::unique_ptr<TH2D> hGenJESVsPtSmearDefExtra;
+    std::unique_ptr<TH2D> hGenJESVsPtSmearDefOneAndAHalf;
+    std::unique_ptr<TH2D> hGenJESVsPtSmearDefDouble;
+    std::unique_ptr<TH2D> hGenJESVsPtSmearDefNinety;
+
+    std::unique_ptr<TH1D> hGenPtSmearDefEta08;
+    std::unique_ptr<TH1D> hGenPtSmearDefExtraEta08;
+    std::unique_ptr<TH1D> hGenPtSmearDefOneAndAHalfEta08;
+    std::unique_ptr<TH1D> hGenPtSmearDefDoubleEta08;
+    std::unique_ptr<TH1D> hGenPtSmearDefNinetyEta08;
+    std::unique_ptr<TH1D> hGenEtaPtSmearDefInRange;
+    std::unique_ptr<TH1D> hGenEtaPtSmearDefExtraInRange;
+    std::unique_ptr<TH1D> hGenEtaPtSmearDefOneAndAHalfInRange;
+    std::unique_ptr<TH1D> hGenEtaPtSmearDefDoubleInRange;
+    std::unique_ptr<TH1D> hGenEtaPtSmearDefNinetyInRange;
+
+    // Define fit functions for JER vs pt
     auto fJERFitNoSmear = std::make_unique<TF1>("fJERFitNoSmear", "sqrt([0]*[0] + [1]*[1]/x)", fitPtLow, fitPtHigh);
     fJERFitNoSmear->SetParameter(0, 0.002);
     fJERFitNoSmear->SetParameter(1, 1.0);
@@ -6568,39 +7476,126 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     fJERFitSmearDefNoSF->SetParameter(0, 0.002);
     fJERFitSmearDefNoSF->SetParameter(1, 1.0);
     fJERFitSmearDefNoSF->SetLineColor(kP8Azure);
+    auto fJERFitSmearDefDouble = std::make_unique<TF1>("fJERFitSmearDefDouble", "sqrt([0]*[0] + [1]*[1]/x)", fitPtLow, fitPtHigh);
+    fJERFitSmearDefDouble->SetParameter(0, 0.002);
+    fJERFitSmearDefDouble->SetParameter(1, 1.0);
+    fJERFitSmearDefDouble->SetLineColor(kP8Green);
 
-    // Retrieve 2D distributions by projecting the 3D histograms in the given eta range
-    hRecoInclusiveJetJESPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
-    hRecoJESVsPtNoSmear = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEtaStdBins->Project3D("xy") ) );
+    //
+    // Retrieve reco 2D distributions by projecting the 3D histograms in the given eta range
+    //
+    hRecoInclusiveJetJESPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtNoSmear = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEta->Project3D("xy") ) );
     hRecoJESVsPtNoSmear->SetName("hRecoJESVsPtNoSmear");
 
-    hRecoInclusiveJetJESDefPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
-    hRecoJESVsPtSmearDef = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDefPtEtaStdBins->Project3D("xy") ) );
+    hRecoInclusiveJetJESDefPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearDef = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDefPtEta->Project3D("xy") ) );
     hRecoJESVsPtSmearDef->SetName("hRecoJESVsPtSmearDef");
 
-    hRecoInclusiveJetJESUpPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
-    hRecoJESVsPtSmearUp = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESUpPtEtaStdBins->Project3D("xy") ) );
+    hRecoInclusiveJetJESUpPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearUp = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESUpPtEta->Project3D("xy") ) );
     hRecoJESVsPtSmearUp->SetName("hRecoJESVsPtSmearUp");
 
-    hRecoInclusiveJetJESDownPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
-    hRecoJESVsPtSmearDown = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDownPtEtaStdBins->Project3D("xy") ) );
+    hRecoInclusiveJetJESDownPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearDown = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDownPtEta->Project3D("xy") ) );
     hRecoJESVsPtSmearDown->SetName("hRecoJESVsPtSmearDown");
 
-    hRecoInclusiveJetJESDefNoSFPtEtaStdBins->GetZaxis()->SetRangeUser(etaLow, etaHigh);
-    hRecoJESVsPtSmearDefNoSF = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDefNoSFPtEtaStdBins->Project3D("xy") ) );
+    hRecoInclusiveJetJESDefNoSFPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearDefNoSF = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDefNoSFPtEta->Project3D("xy") ) );
     hRecoJESVsPtSmearDefNoSF->SetName("hRecoJESVsPtSmearDefNoSF");
 
+    hRecoInclusiveJetJESDefDoublePtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hRecoJESVsPtSmearDefDouble = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESDefDoublePtEta->Project3D("xy") ) );
+    hRecoJESVsPtSmearDefDouble->SetName("hRecoJESVsPtSmearDefDouble");
+
+    // Check gen-level 2D histograms for JES/JER vs pt and eta
+    hGenInclusiveJetJESDefPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hGenJESVsPtSmearDef = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hGenInclusiveJetJESDefPtEta->Project3D("xy") ) );
+    hGenJESVsPtSmearDef->SetName("hGenJESVsPtSmearDef");
+    hGenPtSmearDefEta08 = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefPtEtaFlipped->ProjectionY("hGenPtSmearDefEta08",  
+                                                                                                            hGenInclusiveJetDefPtEtaFlipped->GetXaxis()->FindBin(-0.8+0.001), 
+                                                                                                            hGenInclusiveJetDefPtEtaFlipped->GetXaxis()->FindBin(0.8-0.001)) ) );
+    hGenPtSmearDefEta08->SetDirectory(0);
+    hGenEtaPtSmearDefInRange = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefPtEtaFlipped->ProjectionX("hGenEtaPtSmearDefInRange", 
+                                                                                                            hGenInclusiveJetDefPtEtaFlipped->GetYaxis()->FindBin(ptLow), 
+                                                                                                            hGenInclusiveJetDefPtEtaFlipped->GetYaxis()->FindBin(ptHigh)) ) );
+    hGenEtaPtSmearDefInRange->SetDirectory(0);
+
+    hGenInclusiveJetJESDefExtraPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hGenJESVsPtSmearDefExtra = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hGenInclusiveJetJESDefExtraPtEta->Project3D("xy") ) );
+    hGenJESVsPtSmearDefExtra->SetName("hGenJESVsPtSmearDefExtra");
+
+    hGenPtSmearDefExtraEta08 = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefExtraPtEtaFlipped->ProjectionY("hGenPtSmearDefExtraEta08", 
+                                                                                                            hGenInclusiveJetDefExtraPtEtaFlipped->GetXaxis()->FindBin(-0.8+0.001), 
+                                                                                                            hGenInclusiveJetDefExtraPtEtaFlipped->GetXaxis()->FindBin(0.8-0.001)) ) );
+    hGenPtSmearDefExtraEta08->SetDirectory(0);
+    hGenEtaPtSmearDefExtraInRange = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefExtraPtEtaFlipped->ProjectionX("hGenEtaPtSmearDefExtraInRange", 
+                                                                                                            hGenInclusiveJetDefExtraPtEtaFlipped->GetYaxis()->FindBin(ptLow), 
+                                                                                                            hGenInclusiveJetDefExtraPtEtaFlipped->GetYaxis()->FindBin(ptHigh)) ) );
+    hGenEtaPtSmearDefExtraInRange->SetDirectory(0);
+
+    hGenInclusiveJetJESDefOneAndAHalfPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hGenJESVsPtSmearDefOneAndAHalf = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hGenInclusiveJetJESDefOneAndAHalfPtEta->Project3D("xy") ) );
+    hGenJESVsPtSmearDefOneAndAHalf->SetName("hGenJESVsPtSmearDefOneAndAHalf");
+    hGenPtSmearDefOneAndAHalfEta08 = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->ProjectionY("hGenPtSmearDefOneAndAHalfEta08", 
+                                                                                                            hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->GetXaxis()->FindBin(-0.8+0.001), 
+                                                                                                            hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->GetXaxis()->FindBin(0.8-0.001)) ) );
+    hGenPtSmearDefOneAndAHalfEta08->SetDirectory(0);
+    hGenEtaPtSmearDefOneAndAHalfInRange = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->ProjectionX("hGenEtaPtSmearDefOneAndAHalfInRange", 
+                                                                                                                hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->GetYaxis()->FindBin(ptLow), 
+                                                                                                                hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->GetYaxis()->FindBin(ptHigh)) ) );
+    hGenEtaPtSmearDefOneAndAHalfInRange->SetDirectory(0);
+
+    hGenInclusiveJetJESDefDoublePtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hGenJESVsPtSmearDefDouble = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hGenInclusiveJetJESDefDoublePtEta->Project3D("xy") ) );
+    hGenJESVsPtSmearDefDouble->SetName("hGenJESVsPtSmearDefDouble");
+    hGenPtSmearDefDoubleEta08 = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefDoublePtEtaFlipped->ProjectionY("hGenPtSmearDefDoubleEta08", 
+                                                                                                            hGenInclusiveJetDefDoublePtEtaFlipped->GetXaxis()->FindBin(-0.8+0.001), 
+                                                                                                            hGenInclusiveJetDefDoublePtEtaFlipped->GetXaxis()->FindBin(0.8-0.001)) ) );
+    hGenPtSmearDefDoubleEta08->SetDirectory(0);
+    hGenEtaPtSmearDefDoubleInRange = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefDoublePtEtaFlipped->ProjectionX("hGenEtaPtSmearDefDoubleInRange", 
+                                                                                                            hGenInclusiveJetDefDoublePtEtaFlipped->GetYaxis()->FindBin(ptLow), 
+                                                                                                            hGenInclusiveJetDefDoublePtEtaFlipped->GetYaxis()->FindBin(ptHigh)) ) );
+    hGenEtaPtSmearDefDoubleInRange->SetDirectory(0);
+
+    hGenInclusiveJetJESDefNinetyPtEta->GetZaxis()->SetRangeUser(etaLow, etaHigh);
+    hGenJESVsPtSmearDefNinety = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hGenInclusiveJetJESDefNinetyPtEta->Project3D("xy") ) );
+    hGenJESVsPtSmearDefNinety->SetName("hGenJESVsPtSmearDefNinety");
+    hGenPtSmearDefNinetyEta08 = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefNinetyPtEtaFlipped->ProjectionY("hGenPtSmearDefNinetyEta08", 
+                                                                                                            hGenInclusiveJetDefNinetyPtEtaFlipped->GetXaxis()->FindBin(-0.8+0.001), 
+                                                                                                            hGenInclusiveJetDefNinetyPtEtaFlipped->GetXaxis()->FindBin(0.8-0.001)) ) );
+    hGenPtSmearDefNinetyEta08->SetDirectory(0);
+    hGenEtaPtSmearDefNinetyInRange = std::unique_ptr<TH1D>( dynamic_cast<TH1D*>( hGenInclusiveJetDefNinetyPtEtaFlipped->ProjectionX("hGenEtaPtSmearDefNinetyInRange", 
+                                                                                                            hGenInclusiveJetDefNinetyPtEtaFlipped->GetYaxis()->FindBin(ptLow), 
+                                                                                                            hGenInclusiveJetDefNinetyPtEtaFlipped->GetYaxis()->FindBin(ptHigh)) ) );
+    hGenEtaPtSmearDefNinetyInRange->SetDirectory(0);
+
+    //
     // Prepare 1D projections for JES and JER
+    //
     std::unique_ptr<TH1D> hRecoJESNoSmear;
     std::unique_ptr<TH1D> hRecoJESSmearDef;
     std::unique_ptr<TH1D> hRecoJESSmearUp;
     std::unique_ptr<TH1D> hRecoJESSmearDown;
     std::unique_ptr<TH1D> hRecoJESSmearDefNoSF;
+    std::unique_ptr<TH1D> hRecoJESSmearDefDouble;
     std::unique_ptr<TH1D> hRecoJERNoSmear;
     std::unique_ptr<TH1D> hRecoJERSmearDef;
     std::unique_ptr<TH1D> hRecoJERSmearUp;
     std::unique_ptr<TH1D> hRecoJERSmearDown;
     std::unique_ptr<TH1D> hRecoJERSmearDefNoSF;
+    std::unique_ptr<TH1D> hRecoJERSmearDefDouble;
+
+    std::unique_ptr<TH1D> hGenJESSmearDef;
+    std::unique_ptr<TH1D> hGenJESSmearDefExtra;
+    std::unique_ptr<TH1D> hGenJESSmearDefOneAndAHalf;
+    std::unique_ptr<TH1D> hGenJESSmearDefDouble;
+    std::unique_ptr<TH1D> hGenJESSmearDefNinety;
+    std::unique_ptr<TH1D> hGenJERSmearDef;
+    std::unique_ptr<TH1D> hGenJERSmearDefExtra;
+    std::unique_ptr<TH1D> hGenJERSmearDefOneAndAHalf;
+    std::unique_ptr<TH1D> hGenJERSmearDefDouble;
+    std::unique_ptr<TH1D> hGenJERSmearDefNinety;
 
     // Extract JES and JER as a function of pt for the given eta range
     extractJESandJER(hRecoJESVsPtNoSmear, hRecoJESNoSmear, hRecoJERNoSmear, true, 2, fJERFitNoSmear.get());
@@ -6608,20 +7603,34 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     extractJESandJER(hRecoJESVsPtSmearUp, hRecoJESSmearUp, hRecoJERSmearUp, true, 1, fJERFitSmearUp.get());
     extractJESandJER(hRecoJESVsPtSmearDown, hRecoJESSmearDown, hRecoJERSmearDown, true, 3, fJERFitSmearDown.get());
     extractJESandJER(hRecoJESVsPtSmearDefNoSF, hRecoJESSmearDefNoSF, hRecoJERSmearDefNoSF, true, 6, fJERFitSmearDefNoSF.get());
+    extractJESandJER(hRecoJESVsPtSmearDefDouble, hRecoJESSmearDefDouble, hRecoJERSmearDefDouble, true, 7, fJERFitSmearDefDouble.get());
+
+    extractJESandJER(hGenJESVsPtSmearDef, hGenJESSmearDef, hGenJERSmearDef, true, 0);
+    extractJESandJER(hGenJESVsPtSmearDefExtra, hGenJESSmearDefExtra, hGenJERSmearDefExtra, true, 3);
+    extractJESandJER(hGenJESVsPtSmearDefOneAndAHalf, hGenJESSmearDefOneAndAHalf, hGenJERSmearDefOneAndAHalf, true, 2);
+    extractJESandJER(hGenJESVsPtSmearDefDouble, hGenJESSmearDefDouble, hGenJERSmearDefDouble, true, 6);
+    extractJESandJER(hGenJESVsPtSmearDefNinety, hGenJESSmearDefNinety, hGenJERSmearDefNinety, true, 7);
 
     auto c = std::make_unique<TCanvas>("c", "c", 1000, 1000);
     setPadStyle();
     gPad->SetGrid();
+
+    //
+    // Draw reco JER distributions and fits
+    //
     hRecoJERNoSmear->Draw();
     hRecoJERSmearDef->Draw("same");
     hRecoJERSmearUp->Draw("same");
     hRecoJERSmearDown->Draw("same");
     // hRecoJERSmearDefNoSF->Draw("same");
+    hRecoJERSmearDefDouble->Draw("same");
+
     fJERFitNoSmear->Draw("same");
     fJERFitSmearDef->Draw("same");
     fJERFitSmearUp->Draw("same");
     fJERFitSmearDown->Draw("same");
     // fJERFitSmearDefNoSF->Draw("same");
+    fJERFitSmearDefDouble->Draw("same");
     hRecoJERNoSmear->GetXaxis()->SetRangeUser(10., 400.);
     hRecoJERNoSmear->GetYaxis()->SetRangeUser(0., 0.3);
     TLatex t;
@@ -6640,6 +7649,7 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     leg->AddEntry(hRecoJERSmearUp.get(), Form("JER Up: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitSmearUp->GetParameter(0), fJERFitSmearUp->GetParameter(1)), "p");
     leg->AddEntry(hRecoJERSmearDown.get(), Form("JER Down: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitSmearDown->GetParameter(0), fJERFitSmearDown->GetParameter(1)), "p");
     // leg->AddEntry(hRecoJERSmearDefNoSF.get(), Form("JER def no SF: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitSmearDefNoSF->GetParameter(0), fJERFitSmearDefNoSF->GetParameter(1)), "p");
+    leg->AddEntry(hRecoJERSmearDefDouble.get(), Form("JER def double: #sqrt{%.5f^{2} + %.5f^{2}/x}", fJERFitSmearDefDouble->GetParameter(0), fJERFitSmearDefDouble->GetParameter(1)), "p");
     leg->Draw();
 
     leg.release();
@@ -6650,11 +7660,19 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
 
     c->SaveAs(Form("%s/%s_%s_JER_etaSlice_m08_08.pdf", 
                     date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_JER_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
 
+    //
+    // Draw reco JES distributions
+    //
     hRecoJESNoSmear->Draw();
     hRecoJESSmearDef->Draw("same");
     hRecoJESSmearUp->Draw("same");
     hRecoJESSmearDown->Draw("same");
+    // hRecoJESSmearDefDouble->Draw("same");
     // hRecoJESSmearDefNoSF->Draw("same");
     hRecoJESNoSmear->GetXaxis()->SetRangeUser(10., 400.);
     hRecoJESNoSmear->GetYaxis()->SetRangeUser(0.9, 1.1);
@@ -6664,46 +7682,227 @@ void plotJESandJERSyst(int collisionSystem, double collisionEnergy, TString date
     leg->AddEntry(hRecoJESSmearUp.get(), "JER Up", "p");
     leg->AddEntry(hRecoJESSmearDown.get(), "JER Down", "p");
     // leg->AddEntry(hRecoJESSmearDefNoSF.get(), "JER def no SF", "p");
+    leg->AddEntry(hRecoJESSmearDefDouble.get(), "JER def double", "p");
     t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JES)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
     t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
     leg->Draw();
     c->SaveAs(Form("%s/%s_%s_JES_etaSlice_m08_08.pdf", 
                     date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_JES_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
 
+    //
+    // Draw gen-level JER distributions
+    //
+    hGenJERSmearDef->Draw();
+    hGenJERSmearDefExtra->Draw("same");
+    hGenJERSmearDefOneAndAHalf->Draw("same");
+    hGenJERSmearDefDouble->Draw("same");
+    hGenJERSmearDefNinety->Draw("same");
+    hGenJERSmearDef->GetXaxis()->SetRangeUser(10., 400.);
+    hGenJERSmearDef->GetYaxis()->SetRangeUser(0., 0.3);
+    hGenJERSmearDef->GetYaxis()->SetTitle("JER");
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (smeared gen JER)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
+    leg->Clear();
+    leg->AddEntry(hGenJERSmearDef.get(), "JER Nominal", "p");
+    leg->AddEntry(hGenJERSmearDefExtra.get(), "JER (x1.0+#eta-dep)", "p");
+    leg->AddEntry(hGenJERSmearDefOneAndAHalf.get(), "JER  (x1.5)", "p");
+    leg->AddEntry(hGenJERSmearDefDouble.get(), "JER (x2.0)", "p");
+    leg->AddEntry(hGenJERSmearDefNinety.get(), "JER (x0.9)", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_genSmearedJER_etaSlice_m08_08.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_genSmearedJER_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
+
+    //
+    // Draw gen-level pt smeared distributions
+    //
+    set1DStyle(hGenPtSmearDefEta08.get(), 0, true);
+    set1DStyle(hGenPtSmearDefExtraEta08.get(), 3, true);
+    set1DStyle(hGenPtSmearDefOneAndAHalfEta08.get(), 1, true);
+    set1DStyle(hGenPtSmearDefDoubleEta08.get(), 6, true);
+    set1DStyle(hGenPtSmearDefNinetyEta08.get(), 7, true);
+    hGenPtSmearDefEta08->Draw();
+    hGenPtSmearDefExtraEta08->Draw("same");
+    hGenPtSmearDefOneAndAHalfEta08->Draw("same");
+    hGenPtSmearDefDoubleEta08->Draw("same");
+    // hGenPtSmearDefNinetyEta08->Draw("same");
+    hGenPtSmearDefEta08->GetXaxis()->SetRangeUser(10., 250.);
+    hGenPtSmearDefEta08->GetYaxis()->SetTitle("dN/dp_{T}");
+    hGenPtSmearDefEta08->GetYaxis()->SetRangeUser(0.000001, hGenPtSmearDefEta08->GetMaximum()*1.2);
+    c->SetLogy(1);
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (smeared gen)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
+    leg->Clear();
+    leg->AddEntry(hGenPtSmearDefEta08.get(), "JER Nominal", "p");
+    leg->AddEntry(hGenPtSmearDefExtraEta08.get(), "JER (x1.0+#eta-dep)", "p");
+    leg->AddEntry(hGenPtSmearDefOneAndAHalfEta08.get(), "JER (x1.5)", "p");
+    leg->AddEntry(hGenPtSmearDefDoubleEta08.get(), "JER (x2.0)", "p");
+    // leg->AddEntry(hGenPtSmearDefNinetyEta08.get(), "JER (x0.9)", "p");
+    leg->Draw();
+    c->SaveAs(Form("%s/%s_%s_genSmearedPt_etaSlice_m08_08.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_genSmearedPt_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
+    c->SetLogy(0);
+
+    //
+    // Draw gen-level eta distributions for jets in the given pt range
+    //
+    set1DStyle(hGenEtaPtSmearDefInRange.get(), 0, true);
+    set1DStyle(hGenEtaPtSmearDefExtraInRange.get(), 3, true);
+    set1DStyle(hGenEtaPtSmearDefOneAndAHalfInRange.get(), 1, true);
+    set1DStyle(hGenEtaPtSmearDefDoubleInRange.get(), 6, true);
+    set1DStyle(hGenEtaPtSmearDefNinetyInRange.get(), 7, true);
+    hGenEtaPtSmearDefInRange->Draw();
+    hGenEtaPtSmearDefExtraInRange->Draw("same");
+    hGenEtaPtSmearDefOneAndAHalfInRange->Draw("same");
+    hGenEtaPtSmearDefDoubleInRange->Draw("same");
+    hGenEtaPtSmearDefNinetyInRange->Draw("same");
+    hGenEtaPtSmearDefInRange->GetXaxis()->SetRangeUser(-3.6, 3.6);
+    hGenEtaPtSmearDefInRange->GetYaxis()->SetRangeUser(0., hGenEtaPtSmearDefInRange->GetMaximum()*1.2);
+    hGenEtaPtSmearDefInRange->GetYaxis()->SetTitle("dN/d#eta");
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (smeared gen)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%.1f < p_{T} < %.1f GeV", ptLow, ptHigh) );
+    // leg->Clear();
+    leg.release();
+    leg.reset(new TLegend(0.45, 0.25, 0.75, 0.4));
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+    leg->AddEntry(hGenEtaPtSmearDefInRange.get(), "JER Nominal", "p");
+    leg->AddEntry(hGenEtaPtSmearDefExtraInRange.get(), "JER (x1.0+#eta-dep)", "p");
+    leg->AddEntry(hGenEtaPtSmearDefOneAndAHalfInRange.get(), "JER (x1.5)", "p");
+    leg->AddEntry(hGenEtaPtSmearDefDoubleInRange.get(), "JER (x2.0)", "p");
+    leg->AddEntry(hGenEtaPtSmearDefNinetyInRange.get(), "JER (x0.9)", "p");
+    leg->Draw();
+    int ptLowInt = std::round(ptLow);
+    int ptHighInt = std::round(ptHigh);
+    c->SaveAs(Form("%s/%s_%s_genSmearedEta_ptRange_%d_%d.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data(), ptLowInt, ptHighInt) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_genSmearedEta_ptRange_%d_%d.png", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptLowInt, ptHighInt) );
+    }
+
+    //
+    // Draw gen-level ratio of eta distributions to default for jets in the given pt range
+    //
+    hGenEtaPtSmearDefExtraInRange->Divide(hGenEtaPtSmearDefExtraInRange.get(), hGenEtaPtSmearDefInRange.get(), 1., 1., "b");
+    hGenEtaPtSmearDefOneAndAHalfInRange->Divide(hGenEtaPtSmearDefOneAndAHalfInRange.get(), hGenEtaPtSmearDefInRange.get(), 1., 1., "b");
+    hGenEtaPtSmearDefDoubleInRange->Divide(hGenEtaPtSmearDefDoubleInRange.get(), hGenEtaPtSmearDefInRange.get(), 1., 1., "b");
+    hGenEtaPtSmearDefNinetyInRange->Divide(hGenEtaPtSmearDefNinetyInRange.get(), hGenEtaPtSmearDefInRange.get(), 1., 1., "b");
+
+    hGenEtaPtSmearDefExtraInRange->Draw();
+    hGenEtaPtSmearDefOneAndAHalfInRange->Draw("same");
+    hGenEtaPtSmearDefDoubleInRange->Draw("same");
+    hGenEtaPtSmearDefNinetyInRange->Draw("same");
+    hGenEtaPtSmearDefExtraInRange->GetXaxis()->SetRangeUser(-3.6, 3.6);
+    hGenEtaPtSmearDefExtraInRange->GetYaxis()->SetRangeUser(0.8, 1.5);
+    hGenEtaPtSmearDefExtraInRange->GetYaxis()->SetTitle("#eta (JER xN) / #eta (JER x1.0) ");
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (smeared gen)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%.1f < p_{T} < %.1f GeV", ptLow, ptHigh) );
+    leg.release();
+    leg.reset(new TLegend(0.45, 0.65, 0.75, 0.8));
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);  
+    // leg->AddEntry(hGenEtaPtSmearDefInRange.get(), "JER Nominal", "p");
+    leg->AddEntry(hGenEtaPtSmearDefExtraInRange.get(), "JER (x1.0+#eta-dep) / (x1.0)", "p");
+    leg->AddEntry(hGenEtaPtSmearDefOneAndAHalfInRange.get(), "JER (x1.5) / (x1.0)", "p");
+    leg->AddEntry(hGenEtaPtSmearDefDoubleInRange.get(), "JER (x2.0) / (x1.0)", "p");
+    leg->AddEntry(hGenEtaPtSmearDefNinetyInRange.get(), "JER (x0.9) / (x1.0)", "p");
+    leg->Draw();
+    ptLowInt = std::round(ptLow);
+    ptHighInt = std::round(ptHigh);
+    c->SaveAs(Form("%s/%s_%s_genSmearedEta_ratioToDefault_ptRange_%d_%d.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data(), ptLowInt, ptHighInt) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_genSmearedEta_ratioToDefault_ptRange_%d_%d.png", 
+                        date.Data(), generatorType.Data(), direction.Data(), ptLowInt, ptHighInt) );
+    }
+
+    //
+    // Draw 2D distributions of reco JES/JER vs pt for the given eta range
+    //
     hRecoJESVsPtNoSmear->Draw("colz");
     plotCMSHeader(collisionSystem, collisionEnergy);
-    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JES vs pt)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s", (isPythia ? "PYTHIA" : "Embedding"), direction.Data() ) );
     t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
     c->SaveAs(Form("%s/%s_%s_JESVsPt_etaSlice_m08_08.pdf", 
                     date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_JESVsPt_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
 
     hRecoJESVsPtSmearDef->Draw("colz");
     plotCMSHeader(collisionSystem, collisionEnergy);
-    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JES vs pt, smearing def)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JER nominal)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
     t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
     c->SaveAs(Form("%s/%s_%s_JESVsPtSmearDef_etaSlice_m08_08.pdf", 
                     date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_JESVsPtSmearDef_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
     
     hRecoJESVsPtSmearUp->Draw("colz");
     plotCMSHeader(collisionSystem, collisionEnergy);
-    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JES vs pt, smearing up)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JER up)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
     t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
     c->SaveAs(Form("%s/%s_%s_JESVsPtSmearUp_etaSlice_m08_08.pdf", 
                     date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_JESVsPtSmearUp_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
 
     hRecoJESVsPtSmearDown->Draw("colz");
     plotCMSHeader(collisionSystem, collisionEnergy);
-    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JES vs pt, smearing down)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JER down)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
     t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
     c->SaveAs(Form("%s/%s_%s_JESVsPtSmearDown_etaSlice_m08_08.pdf", 
                     date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_JESVsPtSmearDown_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
 
     hRecoJESVsPtSmearDefNoSF->Draw("colz");
     plotCMSHeader(collisionSystem, collisionEnergy);
-    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JES vs pt, smearing def no SF)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JER nominal, no SF)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
     t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
     c->SaveAs(Form("%s/%s_%s_JESVsPtSmearDefNoSF_etaSlice_m08_08.pdf", 
                     date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_JESVsPtSmearDefNoSF_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
+
+    hRecoJESVsPtSmearDefDouble->Draw("colz");
+    plotCMSHeader(collisionSystem, collisionEnergy);
+    t.DrawLatexNDC(0.16, 0.85, Form("%s %s (JER nominal, double SF)", (isPythia ? "PYTHIA" : "Embedding"), direction.Data()) );
+    t.DrawLatexNDC(0.16, 0.8, Form("%.1f < #eta < %.1f", etaLow, etaHigh) );
+    c->SaveAs(Form("%s/%s_%s_JESVsPtSmearDefDouble_etaSlice_m08_08.pdf", 
+                    date.Data(), generatorType.Data(), direction.Data()) );
+    if (savePNG) {
+        c->SaveAs(Form("%s/%s_%s_JESVsPtSmearDefDouble_etaSlice_m08_08.png", 
+                        date.Data(), generatorType.Data(), direction.Data()) );
+    }
+
 }
 
 //________________
@@ -6751,12 +7950,12 @@ void plotJESandJER(int collisionSystem, double collisionEnergy, TString date) {
     }
 
     // 3D distributions (JES vs pt vs eta)
-    auto hRecoInclusiveJetJESPtEtaStdBins = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESPtEtaStdBins") ) );
-    if ( !hRecoInclusiveJetJESPtEtaStdBins ) {
-        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESPtEtaStdBins from file." << std::endl;
+    auto hRecoInclusiveJetJESPtEta = std::unique_ptr<TH3D>( dynamic_cast<TH3D*>( f->Get("hRecoInclusiveJetJESPtEta") ) );
+    if ( !hRecoInclusiveJetJESPtEta ) {
+        std::cerr << "Error: Could not retrieve hRecoInclusiveJetJESPtEta from file." << std::endl;
         return;
     }
-    hRecoInclusiveJetJESPtEtaStdBins->SetDirectory(0);
+    hRecoInclusiveJetJESPtEta->SetDirectory(0);
     f->Close();
 
     // Latex
@@ -6813,9 +8012,9 @@ void plotJESandJER(int collisionSystem, double collisionEnergy, TString date) {
         TString etaMaxStr = (etaMaxInt >= 0) ? Form("%d", etaMaxInt) : Form("m%d", std::abs(etaMaxInt));
 
         // Set eta range and project to get JES vs pT distribution for this eta range
-        hRecoInclusiveJetJESPtEtaStdBins->GetZaxis()->SetRangeUser(etaMin, etaMax);
-        hRecoJetJESVsPt[i] = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEtaStdBins->Project3D("xy") ) );
-        hRecoInclusiveJetJESPtEtaStdBins->GetZaxis()->SetRange(0, 0);
+        hRecoInclusiveJetJESPtEta->GetZaxis()->SetRangeUser(etaMin, etaMax);
+        hRecoJetJESVsPt[i] = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEta->Project3D("xy") ) );
+        hRecoInclusiveJetJESPtEta->GetZaxis()->SetRange(0, 0);
         hRecoJetJESVsPt[i]->SetDirectory(0);
         hRecoJetJESVsPt[i]->SetName( Form("hRecoJetJESVsPt_etaRange_%s_%s", etaMinStr.Data(), etaMaxStr.Data()) );
         if (hRecoJetJESVsPt[i]->GetEntries() == 0 || hRecoJetJESVsPt[i]->Integral() == 0) {
@@ -6945,14 +8144,14 @@ void plotJESandJER(int collisionSystem, double collisionEnergy, TString date) {
         double ptMin = ptRanges[i]+0.1;   // Adding a small offset to avoid bin edge issues
         int ptMinInt = std::round(ptMin);
         double ptMax = (i == nPtRanges) ? 
-            hRecoInclusiveJetJESPtEtaStdBins->GetYaxis()->GetXmax()  : 
+            hRecoInclusiveJetJESPtEta->GetYaxis()->GetXmax()  : 
             ptRanges[i+1]-0.1; // Subtracting a small offset to avoid bin edge issues
         int ptMaxInt = std::round(ptMax);
 
         // Set pt range and project to get JES vs eta distribution for this pt range
-        hRecoInclusiveJetJESPtEtaStdBins->GetYaxis()->SetRangeUser(ptMin, ptMax);
-        hRecoJetJESVsEta[i] = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEtaStdBins->Project3D("xz") ) );
-        hRecoInclusiveJetJESPtEtaStdBins->GetYaxis()->SetRange(0, 0);
+        hRecoInclusiveJetJESPtEta->GetYaxis()->SetRangeUser(ptMin, ptMax);
+        hRecoJetJESVsEta[i] = std::unique_ptr<TH2D>( dynamic_cast<TH2D*>( hRecoInclusiveJetJESPtEta->Project3D("xz") ) );
+        hRecoInclusiveJetJESPtEta->GetYaxis()->SetRange(0, 0);
         hRecoJetJESVsEta[i]->SetDirectory(0);
         hRecoJetJESVsEta[i]->SetName( Form("hRecoJetJESVsEta_ptRange_%d_%d", ptMinInt, ptMaxInt) );
         if (hRecoJetJESVsEta[i]->GetEntries() == 0 || hRecoJetJESVsEta[i]->Integral() == 0) {
@@ -7160,6 +8359,423 @@ void plotJESandJER(int collisionSystem, double collisionEnergy, TString date) {
 }
 
 //________________
+void plotDijetJerSystematics(int collisionSystem, double collisionEnergy, TString date) {
+    TString collSystemStr = (collisionSystem == 0) ? "pp" : (collisionSystem == 1) ? "pPb" : "PbPb";
+    collSystemStr += Form("%d", int(collisionEnergy * 1000) );
+
+    bool isPythia = false; // Set to false for embedding
+    TString generatorType = isPythia ? "pythia" : "embedding";
+    TString direction = "combined"; // "pgoing", "Pbgoing", "combined"
+    bool isCombined = (direction == "combined");
+    bool savePNG = false; // Set to true to save plots as PNG in addition to PDF
+
+    // Colors for plotting
+    static constexpr std::array<Color_t, 13> p8Colors {kBlue, kRed, kMagenta, kP8Orange, kP8Green, kP8Azure, kBlack, kPink, 
+                                                       kCyan, kTeal, kGray, kSpring, kViolet};
+    constexpr int nEtaCuts = 7;
+    static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.5};
+    double ptAveLow = 120 + 0.001;
+    double ptAveHigh = 180 - 0.001;
+
+    TString inputFileName;
+
+    if (isCombined) {
+        inputFileName = Form("$HOME/cernbox/ana/%s/%s/%s_jetId.root", 
+            collSystemStr.Data(), generatorType.Data(), generatorType.Data());
+    } 
+    else {
+            inputFileName = Form("$HOME/cernbox/ana/%s/%s/%s/%s_%s_jetId.root", 
+                collSystemStr.Data(), generatorType.Data(), direction.Data(), generatorType.Data(), direction.Data());
+    }
+
+    // Input file
+    auto f = std::unique_ptr<TFile>(TFile::Open( inputFileName.Data() ));
+    if ( !f || f->IsZombie() ) {
+        std::cerr << Form("Error: Could not open %s", inputFileName.Data()) << std::endl;
+        return;
+    }
+    else {
+        std::cout << "Successfully opened file: " << inputFileName.Data() << std::endl;
+    }
+
+    // Histograms to read from the input file
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaCMArrJerDef;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaForwardArrJerDef;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArrJerDef;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaCMArrJerUp;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaForwardArrJerUp;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArrJerUp;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaCMArrJerDown;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaForwardArrJerDown;
+    std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArrJerDown;
+
+    std::cout << "Reading histograms from file: " << inputFileName.Data() << std::endl;
+    auto loadHist2D = [&](const char *histName) -> std::unique_ptr<TH2D> {
+        TH2D *raw = dynamic_cast<TH2D*>(f->Get(histName));
+        if ( !raw || raw->IsZombie() ) {
+            std::cerr << "Error: Could not retrieve " << histName << " from file " << inputFileName.Data() << std::endl;
+            return nullptr;
+        }
+        // Clone to detach from the file's ownership and set no directory
+        TH2D *cl = dynamic_cast<TH2D*>( raw->Clone() );
+        if ( !cl ) {
+            std::cerr << "Error: Could not clone " << histName << std::endl;
+            return nullptr;
+        }
+        cl->SetDirectory(0);
+        return std::unique_ptr<TH2D>(cl);
+    };
+
+    for (int i = 0; i < nEtaCuts; ++i) {
+        hRecoDijetPtEtaCMArrJerDef[i] = loadHist2D(Form("hRecoDijetPtEtaCMJerDef_%d", i));
+        if ( !hRecoDijetPtEtaCMArrJerDef[i] ) return;
+        hRecoDijetPtEtaForwardArrJerDef[i] = loadHist2D(Form("hRecoDijetPtEtaForwardJerDef_%d", i));
+        if ( !hRecoDijetPtEtaForwardArrJerDef[i] ) return;
+        hRecoDijetPtEtaBackwardArrJerDef[i] = loadHist2D(Form("hRecoDijetPtEtaBackwardJerDef_%d", i));
+        if ( !hRecoDijetPtEtaBackwardArrJerDef[i] ) return;
+
+        hRecoDijetPtEtaCMArrJerUp[i] = loadHist2D(Form("hRecoDijetPtEtaCMJerUp_%d", i));
+        if ( !hRecoDijetPtEtaCMArrJerUp[i] ) return;
+        hRecoDijetPtEtaForwardArrJerUp[i] = loadHist2D(Form("hRecoDijetPtEtaForwardJerUp_%d", i));
+        if ( !hRecoDijetPtEtaForwardArrJerUp[i] ) return;
+        hRecoDijetPtEtaBackwardArrJerUp[i] = loadHist2D(Form("hRecoDijetPtEtaBackwardJerUp_%d", i));
+        if ( !hRecoDijetPtEtaBackwardArrJerUp[i] ) return;
+
+        hRecoDijetPtEtaCMArrJerDown[i] = loadHist2D(Form("hRecoDijetPtEtaCMJerDown_%d", i));
+        if ( !hRecoDijetPtEtaCMArrJerDown[i] ) return;
+        hRecoDijetPtEtaForwardArrJerDown[i] = loadHist2D(Form("hRecoDijetPtEtaForwardJerDown_%d", i));
+        if ( !hRecoDijetPtEtaForwardArrJerDown[i] ) return;
+        hRecoDijetPtEtaBackwardArrJerDown[i] = loadHist2D(Form("hRecoDijetPtEtaBackwardJerDown_%d", i));
+        if ( !hRecoDijetPtEtaBackwardArrJerDown[i] ) return;
+    }
+
+    std::cout << "Successfully loaded all histograms from file." << std::endl;
+
+    // Close input file
+    f->Close();
+
+
+    // Define histogram projections on the dijet pseudorapidity axis for the specified ptAve range 
+    // for every variation (nominal, up, down) and for each of the three eta categories (CM, forward, backward)
+    // Projections are obtained for all single-jet pseudorapidity selections/cuts
+
+    std::cout << "Creating projections for dijet eta distributions in ptAve range [" << ptAveLow << ", " << ptAveHigh << "]" << std::endl;
+
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaCMJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaForwardJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaBackwardJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaCMJerUp;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaForwardJerUp;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaBackwardJerUp;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaCMJerDown;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaForwardJerDown;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaBackwardJerDown;
+
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaFBJerDef;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaFBJerUp;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaFBJerDown;
+
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaCMUpToDefRatio;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaCMDownToDefRatio;
+    std::array<std::unique_ptr<TF1>, nEtaCuts>  fDijetEtaCMUpToDefRatio;
+    std::array<std::unique_ptr<TF1>, nEtaCuts>  fDijetEtaCMDownToDefRatio;
+
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaFBUpToDefRatio;
+    std::array<std::unique_ptr<TH1D>, nEtaCuts> hDijetEtaFBDownToDefRatio;
+    std::array<std::unique_ptr<TF1>, nEtaCuts>  fDijetEtaFBUpToDefRatio;
+    std::array<std::unique_ptr<TF1>, nEtaCuts>  fDijetEtaFBDownToDefRatio;
+
+
+    // Helper: project TH2D -> unique_ptr<TH1D>, with optional normalization and style
+    auto project1D = [&](TH2D *h2, const char *name, double xLow, double xHigh, int style = -1, bool normalize = false) -> std::unique_ptr<TH1D> {
+        if (!h2) { std::cerr << "Error: input TH2D is null for " << name << std::endl; return nullptr; }
+        TH1D *raw = h2->ProjectionY(name, h2->GetXaxis()->FindBin(xLow), h2->GetXaxis()->FindBin(xHigh));
+        if (!raw) { std::cerr << "Error: Projection returned null for " << name << std::endl; return nullptr; }
+        raw->SetDirectory(0);
+        int rebinFactor = 2; // Adjust as needed for better statistics
+        if (rebinFactor > 1) raw->Rebin(rebinFactor);
+        if (normalize) { double integ = raw->Integral(); if (integ != 0.) raw->Scale(1. / integ); }
+        if (style >= 0) set1DStyle(raw, style);
+        return std::unique_ptr<TH1D>(raw);
+    };
+
+    // Helper: clone TH1D and divide by denom if provided
+    auto cloneAndDivide = [&](TH1D *num, TH1D *den, const char *name) -> std::unique_ptr<TH1D> {
+        if (!num) { std::cerr << "Error: numerator null for clone " << name << std::endl; return nullptr; }
+        TH1D *cl = dynamic_cast<TH1D*>(num->Clone(name));
+        if (!cl) { std::cerr << "Error: clone failed for " << name << std::endl; return nullptr; }
+        cl->SetDirectory(0);
+        if (den) cl->Divide(den);
+        return std::unique_ptr<TH1D>(cl);
+    };
+
+    for (int i = 0; i < nEtaCuts; ++i) {
+        int etaCut = (int)(etaCuts[i] * 10);
+        TString name;
+
+        name = Form("hDijetEtaCMJerDef_etaCut_%d", etaCut);
+        hDijetEtaCMJerDef[i] = project1D(hRecoDijetPtEtaCMArrJerDef[i].get(), name.Data(), ptAveLow, ptAveHigh, 2, true);
+        name = Form("hDijetEtaCMJerUp_etaCut_%d", etaCut);
+        hDijetEtaCMJerUp[i]  = project1D(hRecoDijetPtEtaCMArrJerUp[i].get(),  name.Data(), ptAveLow, ptAveHigh, 0, true);
+        name = Form("hDijetEtaCMJerDown_etaCut_%d", etaCut);
+        hDijetEtaCMJerDown[i]= project1D(hRecoDijetPtEtaCMArrJerDown[i].get(),name.Data(), ptAveLow, ptAveHigh, 1, true);
+
+        name = Form("hDijetEtaForwardJerDef_etaCut_%d", etaCut);
+        hDijetEtaForwardJerDef[i] = project1D(hRecoDijetPtEtaForwardArrJerDef[i].get(), name.Data(), ptAveLow, ptAveHigh, 2, false);
+        name = Form("hDijetEtaForwardJerUp_etaCut_%d", etaCut);
+        hDijetEtaForwardJerUp[i]  = project1D(hRecoDijetPtEtaForwardArrJerUp[i].get(),  name.Data(), ptAveLow, ptAveHigh, 0, false);
+        name = Form("hDijetEtaForwardJerDown_etaCut_%d", etaCut);
+        hDijetEtaForwardJerDown[i]= project1D(hRecoDijetPtEtaForwardArrJerDown[i].get(),name.Data(), ptAveLow, ptAveHigh, 1, false);
+
+        name = Form("hDijetEtaBackwardJerDef_etaCut_%d", etaCut);
+        hDijetEtaBackwardJerDef[i] = project1D(hRecoDijetPtEtaBackwardArrJerDef[i].get(), name.Data(), ptAveLow, ptAveHigh, 2, false);
+        name = Form("hDijetEtaBackwardJerUp_etaCut_%d", etaCut);
+        hDijetEtaBackwardJerUp[i]  = project1D(hRecoDijetPtEtaBackwardArrJerUp[i].get(),  name.Data(), ptAveLow, ptAveHigh, 0, false);
+        name = Form("hDijetEtaBackwardJerDown_etaCut_%d", etaCut);
+        hDijetEtaBackwardJerDown[i]= project1D(hRecoDijetPtEtaBackwardArrJerDown[i].get(),name.Data(), ptAveLow, ptAveHigh, 1, false);
+
+        name = Form("hDijetEtaFBJerDef_etaCut_%d", etaCut);
+        hDijetEtaFBJerDef[i] = cloneAndDivide(hDijetEtaForwardJerDef[i].get(),  hDijetEtaBackwardJerDef[i].get(),  name.Data());
+        name = Form("hDijetEtaFBJerUp_etaCut_%d", etaCut);
+        hDijetEtaFBJerUp[i]  = cloneAndDivide(hDijetEtaForwardJerUp[i].get(),   hDijetEtaBackwardJerUp[i].get(),   name.Data());
+        name = Form("hDijetEtaFBJerDown_etaCut_%d", etaCut);
+        hDijetEtaFBJerDown[i]= cloneAndDivide(hDijetEtaForwardJerDown[i].get(), hDijetEtaBackwardJerDown[i].get(), name.Data());
+
+        name = Form("hDijetEtaCMUpToDefRatio_etaCut_%d", etaCut);
+        hDijetEtaCMUpToDefRatio[i]   = cloneAndDivide(hDijetEtaCMJerUp[i].get(),   hDijetEtaCMJerDef[i].get(),   name.Data());
+        name = Form("hDijetEtaCMDownToDefRatio_etaCut_%d", etaCut);
+        hDijetEtaCMDownToDefRatio[i] = cloneAndDivide(hDijetEtaCMJerDown[i].get(), hDijetEtaCMJerDef[i].get(), name.Data());
+
+        name = Form("hDijetEtaFBUpToDefRatio_etaCut_%d", etaCut);
+        hDijetEtaFBUpToDefRatio[i]   = cloneAndDivide(hDijetEtaFBJerUp[i].get(),   hDijetEtaFBJerDef[i].get(),   name.Data());
+        name = Form("hDijetEtaFBDownToDefRatio_etaCut_%d", etaCut);
+        hDijetEtaFBDownToDefRatio[i] = cloneAndDivide(hDijetEtaFBJerDown[i].get(), hDijetEtaFBJerDef[i].get(), name.Data());
+    } // for (int i = 0; i < nEtaCuts; ++i)
+
+    std::cout << "Successfully created all projections and ratios." << std::endl;
+
+    // Plotting the comparisons between the nominal (default), up, and down JER variations
+    // and ratios to the nominal
+
+    std::cout << "Creating plots for JER systematic variations." << std::endl;
+
+    auto c = std::make_unique<TCanvas>("c", "c", 1000, 1000);
+    setPadStyle();
+    gPad->SetGrid(1, 1);
+
+    auto leg = std::make_unique<TLegend>(0.6, 0.7, 0.85, 0.85);
+    leg->SetTextSize(0.03);
+    leg->SetFillColor(0);
+    leg->SetBorderSize(0);
+
+    TLatex t;
+    t.SetTextFont(42);
+    t.SetTextSize(0.03);
+
+    int ptAveLowInt = std::round(ptAveLow);
+    int ptAveHighInt = std::round(ptAveHigh);
+
+    for (int i = 0; i < nEtaCuts; ++i) {
+
+        // Dijet eta in CM frame comparison for nominal, up, down JER variations
+        c->cd();
+        hDijetEtaCMJerDef[i]->Draw();
+        hDijetEtaCMJerUp[i]->Draw("same");
+        hDijetEtaCMJerDown[i]->Draw("same");
+        hDijetEtaCMJerDef[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+        hDijetEtaCMJerDef[i]->GetXaxis()->SetRangeUser(-etaCuts[i]-0.1, etaCuts[i]+0.1);
+        hDijetEtaCMJerDef[i]->GetYaxis()->SetTitle("dN/d#eta^{dijet}_{CM}");
+        hDijetEtaCMJerDef[i]->GetYaxis()->SetRangeUser(0., 0.2);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s", generatorType.Data() ) );
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data() ) );
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, Form("p_{T}^{Lead} > 50 GeV") );
+        t.DrawLatexNDC(0.2, 0.7, Form("p_{T}^{SubLead} > 40 GeV") );
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta^{jet}_{CM}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, Form("|#Delta#phi^{Lead,SubLead}| > #frac{2#pi}{3}") );
+        gPad->Update();
+
+        leg->Clear();
+        leg->AddEntry(hDijetEtaCMJerDef[i].get(), "JER nominal", "p");
+        leg->AddEntry(hDijetEtaCMJerUp[i].get(), "JER up", "p");
+        leg->AddEntry(hDijetEtaCMJerDown[i].get(), "JER down", "p");
+        leg->Draw("same");
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_JERSystematics_etaCut_%d_ptAve_%d_%d.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), (int)(etaCuts[i]*10), ptAveLowInt, ptAveHighInt) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_dijetEtaCM_JERSystematics_etaCut_%d_ptAve_%d_%d.png", 
+                            date.Data(), generatorType.Data(), direction.Data(), (int)(etaCuts[i]*10), ptAveLowInt, ptAveHighInt) );
+        }
+
+        // Dijet eta in FB frame comparison for nominal, up, down JER variations
+        c->cd();
+        hDijetEtaFBJerDef[i]->Draw();
+        hDijetEtaFBJerUp[i]->Draw("same");
+        hDijetEtaFBJerDown[i]->Draw("same");
+        hDijetEtaFBJerDef[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+        hDijetEtaFBJerDef[i]->GetXaxis()->SetRangeUser(0., etaCuts[i]);
+        hDijetEtaFBJerDef[i]->GetYaxis()->SetTitle("Forward/Backward");
+        hDijetEtaFBJerDef[i]->GetYaxis()->SetRangeUser(0.75, 1.25);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s", generatorType.Data() ) );
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data() ) );
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, Form("p_{T}^{Lead} > 50 GeV") );
+        t.DrawLatexNDC(0.2, 0.7, Form("p_{T}^{SubLead} > 40 GeV") );
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta^{jet}_{CM}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, Form("|#Delta#phi^{Lead,SubLead}| > #frac{2#pi}{3}") );
+        gPad->Update();
+
+        leg->Clear();
+        leg->AddEntry(hDijetEtaFBJerDef[i].get(), "JER nominal", "p");
+        leg->AddEntry(hDijetEtaFBJerUp[i].get(), "JER up", "p");
+        leg->AddEntry(hDijetEtaFBJerDown[i].get(), "JER down", "p");
+        leg->Draw("same");
+        c->SaveAs(Form("%s/%s_%s_dijetEtaFB_JERSystematics_etaCut_%d_ptAve_%d_%d.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), (int)(etaCuts[i]*10), ptAveLowInt, ptAveHighInt) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_dijetEtaFB_JERSystematics_etaCut_%d_ptAve_%d_%d.png", 
+                            date.Data(), generatorType.Data(), direction.Data(), (int)(etaCuts[i]*10), ptAveLowInt, ptAveHighInt) );
+        }
+
+        c->cd();
+
+        fDijetEtaCMUpToDefRatio[i] = std::make_unique<TF1>(Form("fDijetEtaCMUpToDefRatio_etaCut_%d", (int)(etaCuts[i]*10)), 
+                                                           "pol2", -etaCuts[i], etaCuts[i]);
+        fDijetEtaCMUpToDefRatio[i]->SetLineColor(hDijetEtaCMUpToDefRatio[i]->GetLineColor());
+        fDijetEtaCMUpToDefRatio[i]->SetLineWidth(2);
+        fDijetEtaCMUpToDefRatio[i]->SetParameters(1., 0., 0.01);
+        fDijetEtaCMDownToDefRatio[i] = std::make_unique<TF1>(Form("fDijetEtaCMDownToDefRatio_etaCut_%d", (int)(etaCuts[i]*10)), 
+                                                             "pol2", -etaCuts[i], etaCuts[i]);
+        fDijetEtaCMDownToDefRatio[i]->SetLineColor(hDijetEtaCMDownToDefRatio[i]->GetLineColor());
+        fDijetEtaCMDownToDefRatio[i]->SetLineWidth(2);
+        fDijetEtaCMDownToDefRatio[i]->SetParameters(1., 0., -0.01);
+
+        hDijetEtaCMUpToDefRatio[i]->Draw();
+        hDijetEtaCMDownToDefRatio[i]->Draw("same");
+        hDijetEtaCMUpToDefRatio[i]->Fit(fDijetEtaCMUpToDefRatio[i].get(), "MRQE");
+        hDijetEtaCMDownToDefRatio[i]->Fit(fDijetEtaCMDownToDefRatio[i].get(), "MRQE");
+        hDijetEtaCMUpToDefRatio[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+        hDijetEtaCMUpToDefRatio[i]->GetXaxis()->SetRangeUser(-etaCuts[i]-0.1, etaCuts[i]+0.1);
+        hDijetEtaCMUpToDefRatio[i]->GetYaxis()->SetTitle("Variation / Nominal");
+        hDijetEtaCMUpToDefRatio[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s", generatorType.Data() ) );
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data() ) );
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, Form("p_{T}^{Lead} > 50 GeV") );
+        t.DrawLatexNDC(0.2, 0.7, Form("p_{T}^{SubLead} > 40 GeV") );
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta^{jet}_{CM}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, Form("|#Delta#phi^{Lead,SubLead}| > #frac{2#pi}{3}") );
+        t.SetTextSize(0.02);
+        t.DrawLatexNDC(0.25, 0.3, Form("Up/Def fit: y = %.3f\\pm %.3f + (%.3f\\pm %.3f)x + (%.3f\\pm%.3f)x^{2}", 
+                                        fDijetEtaCMUpToDefRatio[i]->GetParameter(0),
+                                        fDijetEtaCMUpToDefRatio[i]->GetParError(0),
+                                        fDijetEtaCMUpToDefRatio[i]->GetParameter(1), 
+                                        fDijetEtaCMUpToDefRatio[i]->GetParError(1),
+                                        fDijetEtaCMUpToDefRatio[i]->GetParameter(2),
+                                        fDijetEtaCMUpToDefRatio[i]->GetParError(2) ));
+        t.DrawLatexNDC(0.25, 0.25, Form("Down/Def fit: y = %.3f\\pm %.3f + (%.3f \\pm %.3f)x + (%.3f\\pm%.3f)x^{2}", 
+                                        fDijetEtaCMDownToDefRatio[i]->GetParameter(0),
+                                        fDijetEtaCMDownToDefRatio[i]->GetParError(0),
+                                        fDijetEtaCMDownToDefRatio[i]->GetParameter(1), 
+                                        fDijetEtaCMDownToDefRatio[i]->GetParError(1),
+                                        fDijetEtaCMDownToDefRatio[i]->GetParameter(2),
+                                        fDijetEtaCMDownToDefRatio[i]->GetParError(2) ));
+        t.SetTextSize(0.03);
+        gPad->Update();
+        leg->Clear();
+        leg->AddEntry(hDijetEtaCMUpToDefRatio[i].get(), "JER up / nominal", "p");
+        leg->AddEntry(hDijetEtaCMDownToDefRatio[i].get(), "JER down / nominal", "p");
+        leg->Draw("same");
+        c->SaveAs(Form("%s/%s_%s_dijetEtaCM_JERSystematics_Ratio_etaCut_%d_ptAve_%d_%d.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), (int)(etaCuts[i]*10), ptAveLowInt, ptAveHighInt) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_dijetEtaCM_JERSystematics_Ratio_etaCut_%d_ptAve_%d_%d.png", 
+                            date.Data(), generatorType.Data(), direction.Data(), (int)(etaCuts[i]*10), ptAveLowInt, ptAveHighInt) );
+        }
+
+        c->cd();
+        fDijetEtaFBUpToDefRatio[i] = std::make_unique<TF1>(Form("fDijetEtaFBUpToDefRatio_etaCut_%d", (int)(etaCuts[i]*10)), 
+                                                           "pol0", 0., etaCuts[i]);
+        fDijetEtaFBUpToDefRatio[i]->SetLineColor(hDijetEtaFBUpToDefRatio[i]->GetLineColor());
+        fDijetEtaFBUpToDefRatio[i]->SetLineWidth(2);
+        fDijetEtaFBUpToDefRatio[i]->SetParameters(1.);
+        // fDijetEtaFBUpToDefRatio[i]->SetParameters(1., 0.);
+        fDijetEtaFBDownToDefRatio[i] = std::make_unique<TF1>(Form("fDijetEtaFBDownToDefRatio_etaCut_%d", (int)(etaCuts[i]*10)), 
+                                                             "pol0", 0., etaCuts[i]);
+        fDijetEtaFBDownToDefRatio[i]->SetLineColor(hDijetEtaFBDownToDefRatio[i]->GetLineColor());
+        fDijetEtaFBDownToDefRatio[i]->SetLineWidth(2);
+        // fDijetEtaFBDownToDefRatio[i]->SetParameters(1., 0.); 
+        fDijetEtaFBDownToDefRatio[i]->SetParameters(1.); 
+
+        hDijetEtaFBUpToDefRatio[i]->Draw();
+        hDijetEtaFBDownToDefRatio[i]->Draw("same");
+        hDijetEtaFBUpToDefRatio[i]->Fit(fDijetEtaFBUpToDefRatio[i].get(), "MRQE");
+        hDijetEtaFBDownToDefRatio[i]->Fit(fDijetEtaFBDownToDefRatio[i].get(), "MRQE");
+        hDijetEtaFBUpToDefRatio[i]->GetXaxis()->SetTitle("#eta^{dijet}_{CM}");
+        hDijetEtaFBUpToDefRatio[i]->GetXaxis()->SetRangeUser(0., etaCuts[i]);
+        hDijetEtaFBUpToDefRatio[i]->GetYaxis()->SetTitle("Variation / Nominal (Forward/Backward)");
+        hDijetEtaFBUpToDefRatio[i]->GetYaxis()->SetRangeUser(0.9, 1.1);
+        plotCMSHeader(collisionSystem, collisionEnergy);
+        if (isCombined) {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s", generatorType.Data() ) );
+        }
+        else {
+            t.DrawLatexNDC(0.2, 0.85, Form("%s %s", generatorType.Data(), direction.Data() ) );
+        }
+        t.DrawLatexNDC(0.2, 0.8, Form("%d < p_{T}^{ave} < %d GeV", ptAveLowInt, ptAveHighInt) );
+        t.DrawLatexNDC(0.2, 0.75, Form("p_{T}^{Lead} > 50 GeV") );
+        t.DrawLatexNDC(0.2, 0.7, Form("p_{T}^{SubLead} > 40 GeV") );
+        t.DrawLatexNDC(0.2, 0.65, Form("|#eta^{jet}_{CM}| < %.1f", etaCuts[i]) );
+        t.DrawLatexNDC(0.2, 0.6, Form("|#Delta#phi^{Lead,SubLead}| > #frac{2#pi}{3}") );
+        t.SetTextSize(0.02);
+        t.DrawLatexNDC(0.25, 0.3, Form("Up/Def fit: y = %.3f\\pm %.3f", 
+                                        fDijetEtaFBUpToDefRatio[i]->GetParameter(0),
+                                        fDijetEtaFBUpToDefRatio[i]->GetParError(0) ));
+        // t.DrawLatexNDC(0.25, 0.3, Form("Up/Def fit: y = %.3f\\pm %.3f + (%.3f\\pm %.3f)x", 
+        //                                 fDijetEtaFBUpToDefRatio[i]->GetParameter(0),
+        //                                 fDijetEtaFBUpToDefRatio[i]->GetParError(0),
+        //                                 fDijetEtaFBUpToDefRatio[i]->GetParameter(1),
+        //                                 fDijetEtaFBUpToDefRatio[i]->GetParError(1) ));
+        t.DrawLatexNDC(0.25, 0.25, Form("Down/Def fit: y = %.3f\\pm %.3f", 
+                                        fDijetEtaFBDownToDefRatio[i]->GetParameter(0),
+                                        fDijetEtaFBDownToDefRatio[i]->GetParError(0) ));
+        // t.DrawLatexNDC(0.25, 0.25, Form("Down/Def fit: y = %.3f\\pm %.3f + (%.3f \\pm %.3f)x", 
+        //                                 fDijetEtaFBDownToDefRatio[i]->GetParameter(0),
+        //                                 fDijetEtaFBDownToDefRatio[i]->GetParError(0),
+        //                                 fDijetEtaFBDownToDefRatio[i]->GetParameter(1),
+        //                                 fDijetEtaFBDownToDefRatio[i]->GetParError(1) ));
+        t.SetTextSize(0.03);
+        gPad->Update();
+        leg->Clear();
+        leg->AddEntry(hDijetEtaFBUpToDefRatio[i].get(), "JER up / nominal", "p");
+        leg->AddEntry(hDijetEtaFBDownToDefRatio[i].get(), "JER down / nominal", "p");
+        leg->Draw("same");
+        c->SaveAs(Form("%s/%s_%s_dijetEtaFB_JERSystematics_Ratio_etaCut_%d_ptAve_%d_%d.pdf", 
+                        date.Data(), generatorType.Data(), direction.Data(), (int)(etaCuts[i]*10), ptAveLowInt, ptAveHighInt) );
+        if (savePNG) {
+            c->SaveAs(Form("%s/%s_%s_dijetEtaFB_JERSystematics_Ratio_etaCut_%d_ptAve_%d_%d.png", 
+                            date.Data(), generatorType.Data(), direction.Data(), (int)(etaCuts[i]*10), ptAveLowInt, ptAveHighInt) );
+        }
+
+    } // for (int i = 0; i < nEtaCuts; ++i)
+}
+
+// Main entry point
 void plotMcClosures() {
 
     // Base style
@@ -7338,5 +8954,11 @@ void plotMcClosures() {
     // plotSingleJESCheck(collisionSystem, collisionEnergy, date);
 
     // Plot comparison of JES and JER for JER systematics
-    plotJESandJERSyst(collisionSystem, collisionEnergy, date);
+    // plotJESandJERSyst(collisionSystem, collisionEnergy, date);
+
+    // Plot comparison of dijet distributions for reco, ref and gen
+    plotDiJetClosures(collisionSystem, collisionEnergy, date);
+
+    // Plot comparison of dijet distributions for JER systematics
+    // plotDijetJerSystematics(collisionSystem, collisionEnergy, date);
 }
