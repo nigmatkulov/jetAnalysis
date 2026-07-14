@@ -7,6 +7,7 @@
 #include "TTree.h"
 #include "TString.h"
 #include "TRandom3.h"
+#include "THnSparse.h"
 
 #include "JetCorrector.h"
 #include "JetUncertainty.h"
@@ -24,110 +25,30 @@ const char* RED    = "\033[1;31m";
 const char* GREEN  = "\033[1;32m";
 const char* RESET  = "\033[0m";
 
+//________________
+void usage() {
+    std::cout << GREEN << "Usage: ./processForestSimple  [options]\n"
+                << "Options:\n"
+                << "  <input_file_or_list>  Input ROOT file or file list (default: empty)\n"
+                << "  <output_file>         Output ROOT file name (default: empty)\n"
+                << "  <0|1|2>               MC type (default 2): 0 - data, 1 - embedding, 2 - pythia\n"
+                << "  <0|1>                 Direction (default 1): 0 - p-going, 1 - Pb-going\n"
+                << "  <value>               pT hat sample for MC (default: 30)\n"
+                << "  <0|1>                 JEU systematics calculation (default 0): 0 - not perform, 1 - perform\n"
+                << "  <0|1>                 JER systematics calculation (default 0): 0 - not perform, 1 - perform \n"
+                << "  <value>               Trigger ID (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100\n"
+                << "  <value>               Reco jet selection method (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose\n"
+                << RESET;
+    exit (0);
+}
+
 // Eta shifts for pPb 8.16 TeV collisions, used for etaCM calculation
 const int nEtaShifts = 13;
 static constexpr std::array<float, nEtaShifts> etaShift{0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470, 0.475, 0.480, 0.485, 0.490, 0.495 };
 const int nEtaCuts = 7;
 static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.5};
 
-// JER correction factors
-std::vector<float> fJerEtaLow{-5.191, -3.139, -2.964, -2.853, -2.500, -2.322, -2.043, -1.930, -1.740, -1.305, -1.131, -0.783, -0.522, 0.000, 0.522, 0.783, 1.131, 1.305, 1.740, 1.930, 2.043, 2.322, 2.500, 2.853, 2.964, 3.139};
-std::vector<float> fJerEtaHi{-3.139, -2.964, -2.853, -2.500, -2.322, -2.043, -1.930, -1.740, -1.305, -1.131, -0.783, -0.522, 0.000, 0.522, 0.783, 1.131, 1.305, 1.740, 1.930, 2.043, 2.322, 2.500, 2.853, 2.964, 3.139, 5.191};
-std::vector<float> fJerDef{1.1922, 1.1869, 1.7788, 1.3418, 1.2963, 1.1512, 1.1426, 1.1000, 1.1278, 1.1609, 1.1464, 1.1948, 1.15958, 1.15958, 1.1948, 1.1464, 1.1609, 1.1278, 1.1000, 1.1426, 1.1512, 1.2963, 1.3418, 1.7788, 1.1869, 1.1922};
-std::vector<float> fJerLow{1.0434, 1.0626, 1.578, 1.1327, 1.0592, 1.0372, 1.0212, 0.9921, 1.0292, 1.0584, 1.0832, 1.1296, 1.095, 1.095, 1.1296, 1.0832, 1.0584, 1.0292, 0.9921, 1.0212, 1.0372, 1.0592, 1.1327, 1.578, 1.0626, 1.0434};
-std::vector<float> fJerHi{1.341, 1.3112, 1.9796, 1.5509, 1.5334, 1.2652, 1.264, 1.2079, 1.2264, 1.2634, 1.2096, 1.26, 1.224, 1.224, 1.26, 1.2096, 1.2634, 1.2264, 1.2079, 1.264, 1.2652, 1.5334, 1.5509, 1.9796, 1.3112, 1.341};
-
 std::vector<float> etaBinEdges = {-3.60f, -3.46f, -3.31f, -3.17f, -3.02f, -2.88f, -2.74f, -2.59f, -2.45f, -2.30f, -2.16f, -2.02f, -1.87f, -1.73f, -1.58f, -1.44f, -1.30f, -1.15f, -1.01f, -0.86f, -0.72f, -0.58f, -0.43f, -0.29f, -0.14f, 0.00f, 0.14f, 0.29f, 0.43f, 0.58f, 0.72f, 0.86f, 1.01f, 1.15f, 1.30f, 1.44f, 1.58f, 1.73f, 1.87f, 2.02f, 2.16f, 2.30f, 2.45f, 2.59f, 2.74f, 2.88f, 3.02f, 3.17f, 3.31f, 3.46f, 3.60f};
-std::vector<float> jerValues_pt_30_50;
-std::vector<float> jerValues_pt_50_80;
-std::vector<float> jerValues_pt_80_120;
-std::vector<float> jerValues_pt_120_180;
-std::vector<float> jerValues_pt_180_250;
-std::vector<float> jerValues_pt_250_540;
-std::vector<float> jerValues_pt_540_1000;
-
-//________________
-// forward declaration: simple JER smearing helper (defined later)
-void calculateResolutionSmearing(const float &refPt, const float &recoEta, float &ptReco, const float &extraScale,
-                                 TF1 *fJERSmearFunc, TRandom3 *fRndm);
-
-//________________
-void setValuesForExtraJerSmearing(const bool &isPythia, const bool &isPbGoing) {
-    if (isPythia) {
-        if (isPbGoing) {   
-            jerValues_pt_30_50   = {0.0000f, 0.0000f, 13.7345f, 1.3745f, 1.2328f, 1.1388f, 1.1334f, 1.1234f, 1.0900f, 1.0901f, 1.1103f, 1.1412f, 1.1773f, 1.2527f, 1.3295f, 1.2763f, 1.1989f, 1.1162f, 1.0561f, 1.0208f, 1.0130f, 0.9996f, 0.9934f, 1.0115f, 1.0008f, 0.9990f, 0.9960f, 1.0007f, 1.0033f, 0.9828f, 1.0066f, 1.0633f, 1.1404f, 1.2356f, 1.3077f, 1.3434f, 1.2351f, 1.2070f, 1.0926f, 1.0523f, 1.0200f, 1.0320f, 1.0592f, 1.0659f, 1.1426f, 1.2017f, 1.2244f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_50_80   = {0.0000f, 0.0000f, 0.0000f, 1.3350f, 1.2188f, 1.0559f, 0.9962f, 0.9962f, 0.9993f, 1.0202f, 1.0286f, 1.0638f, 1.0926f, 1.1791f, 1.2838f, 1.2706f, 1.1911f, 1.1229f, 1.0478f, 1.0224f, 1.0134f, 1.0070f, 0.9916f, 0.9932f, 1.0059f, 1.0171f, 0.9920f, 1.0057f, 0.9918f, 0.9824f, 1.0173f, 1.0547f, 1.1322f, 1.2136f, 1.2657f, 1.2993f, 1.1727f, 1.1202f, 1.0125f, 0.9830f, 0.9358f, 0.9371f, 0.9533f, 0.9597f, 1.0290f, 1.2117f, 1.6779f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_80_120  = {0.0000f, 0.0000f, 0.0000f, 1.1694f, 1.1969f, 1.0171f, 0.8922f, 0.9015f, 0.9247f, 0.9322f, 0.9726f, 0.9797f, 1.0343f, 1.1071f, 1.2688f, 1.2548f, 1.1693f, 1.1005f, 1.0609f, 1.0153f, 0.9981f, 1.0037f, 1.0055f, 1.0030f, 1.0084f, 1.0032f, 0.9974f, 0.9918f, 0.9901f, 0.9987f, 1.0044f, 1.0628f, 1.1322f, 1.1729f, 1.2624f, 1.2621f, 1.1252f, 1.0541f, 0.9627f, 0.9253f, 0.8844f, 0.8813f, 0.8627f, 0.8680f, 1.0044f, 1.2168f, 1.5782f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_120_180 = {0.0000f, 0.0000f, 0.0000f, 0.8883f, 1.3277f, 1.1296f, 0.9198f, 0.9107f, 0.9106f, 0.9154f, 0.9467f, 0.9408f, 0.9666f, 1.0231f, 1.2140f, 1.2396f, 1.1744f, 1.0822f, 1.0538f, 1.0345f, 0.9974f, 1.0006f, 1.0064f, 1.0111f, 1.0187f, 0.9923f, 0.9940f, 0.9944f, 0.9956f, 0.9894f, 1.0156f, 1.0568f, 1.1039f, 1.1542f, 1.2445f, 1.1984f, 1.0383f, 1.0049f, 0.9137f, 0.8678f, 0.8493f, 0.8473f, 0.8883f, 0.8660f, 0.9470f, 1.3471f, 0.0000f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_180_250 = {0.0000f, 0.0000f, 0.0000f, 1.4487f, 1.3431f, 1.1334f, 0.9285f, 0.8936f, 0.8987f, 0.8931f, 0.9289f, 0.9272f, 0.9495f, 1.0064f, 1.1732f, 1.2297f, 1.1701f, 1.0813f, 1.0572f, 1.0288f, 0.9966f, 1.0068f, 0.9998f, 1.0117f, 1.0077f, 1.0052f, 0.9837f, 0.9928f, 0.9972f, 0.9984f, 1.0066f, 1.0446f, 1.1084f, 1.1651f, 1.2555f, 1.1642f, 1.0002f, 0.9872f, 0.9008f, 0.8854f, 0.8356f, 0.8424f, 0.8525f, 0.9187f, 1.1300f, 1.3784f, 0.0000f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_250_540 = {0.0000f, 0.0000f, 0.0000f, 4.7637f, 1.4480f, 1.1482f, 0.9554f, 0.8845f, 0.8741f, 0.8996f, 0.9184f, 0.9192f, 0.9376f, 0.9782f, 1.1415f, 1.2620f, 1.1770f, 1.0821f, 1.0673f, 1.0421f, 1.0063f, 1.0028f, 0.9996f, 1.0121f, 1.0135f, 1.0033f, 0.9850f, 0.9879f, 0.9883f, 1.0012f, 1.0098f, 1.0675f, 1.1063f, 1.2033f, 1.2706f, 1.1560f, 0.9754f, 0.9611f, 0.9038f, 0.8594f, 0.8350f, 0.8536f, 0.8813f, 7.7637f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_540_1000 = {0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.8128f, 0.8985f, 0.8034f, 0.8353f, 0.8745f, 0.8878f, 0.8986f, 0.9261f, 0.9603f, 1.1329f, 1.3425f, 1.2176f, 1.1056f, 1.0734f, 1.0475f, 1.0021f, 1.0085f, 0.9956f, 1.0118f, 1.0130f, 0.9951f, 0.9791f, 0.9882f, 1.0011f, 1.0054f, 1.0338f, 1.0822f, 1.1335f, 1.2241f, 1.3479f, 1.1544f, 0.9906f, 1.0144f, 0.9211f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f};
-        }
-        else {
-            jerValues_pt_30_50   = {0.0000f, 0.0000f, 0.0000f, 1.3057f, 1.2777f, 1.1098f, 1.0934f, 1.0520f, 1.0481f, 1.0650f, 1.1003f, 1.1364f, 1.1688f, 1.2295f, 1.3074f, 1.2788f, 1.1880f, 1.1266f, 1.0505f, 1.0304f, 0.9879f, 1.0064f, 0.9979f, 1.0079f, 0.9996f, 1.0000f, 0.9952f, 1.0017f, 1.0021f, 1.0015f, 1.0125f, 1.0679f, 1.1485f, 1.2262f, 1.3013f, 1.3304f, 1.2411f, 1.1804f, 1.1131f, 1.0779f, 1.0332f, 1.0329f, 1.1035f, 1.1078f, 1.1595f, 1.2561f, 1.4631f, 14.4011f, 0.0000f, 0.0000f};
-            jerValues_pt_50_80   = {0.0000f, 0.0000f, 0.0000f, 1.2374f, 1.1827f, 1.0609f, 0.9603f, 0.9814f, 0.9795f, 0.9783f, 1.0200f, 1.0567f, 1.0951f, 1.1871f, 1.2997f, 1.2551f, 1.1685f, 1.1091f, 1.0676f, 1.0312f, 0.9934f, 1.0039f, 1.0033f, 0.9944f, 1.0174f, 1.0007f, 0.9853f, 0.9979f, 0.9889f, 1.0149f, 1.0288f, 1.0638f, 1.1256f, 1.2032f, 1.3000f, 1.2863f, 1.1855f, 1.1207f, 1.0487f, 0.9896f, 0.9766f, 0.9528f, 0.9896f, 0.9902f, 1.0771f, 1.2325f, 1.5838f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_80_120  = {0.0000f, 0.0000f, 0.0000f, 0.8003f, 1.1630f, 0.9473f, 0.8376f, 0.8730f, 0.8849f, 0.9438f, 0.9400f, 0.9723f, 1.0111f, 1.0796f, 1.2702f, 1.2451f, 1.1609f, 1.1025f, 1.0347f, 1.0257f, 0.9944f, 0.9890f, 1.0156f, 1.0097f, 1.0198f, 1.0107f, 0.9892f, 0.9847f, 0.9968f, 0.9900f, 1.0040f, 1.0557f, 1.1282f, 1.1964f, 1.2557f, 1.2756f, 1.1091f, 1.0371f, 0.9716f, 0.9176f, 0.8816f, 0.8826f, 0.8843f, 0.8860f, 1.0542f, 1.2131f, 1.3742f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_120_180 = {0.0000f, 0.0000f, 0.0000f, 0.0000f, 1.2451f, 1.0228f, 0.8464f, 0.8722f, 0.8682f, 0.8736f, 0.9120f, 0.9372f, 0.9575f, 1.0206f, 1.2075f, 1.2270f, 1.1465f, 1.0646f, 1.0586f, 1.0271f, 0.9979f, 1.0121f, 0.9950f, 1.0183f, 1.0095f, 1.0027f, 0.9872f, 0.9872f, 0.9888f, 1.0014f, 1.0079f, 1.0583f, 1.0964f, 1.1657f, 1.2337f, 1.2069f, 1.0516f, 1.0168f, 0.9275f, 0.8864f, 0.8736f, 0.8659f, 0.8813f, 0.9030f, 1.1733f, 1.4208f, 1.6644f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_180_250 = {0.0000f, 0.0000f, 0.0000f, 0.0000f, 1.8657f, 1.0699f, 0.9055f, 0.9014f, 0.8441f, 0.8694f, 0.8811f, 0.9018f, 0.9372f, 0.9800f, 1.1602f, 1.2364f, 1.1530f, 1.0751f, 1.0485f, 1.0292f, 0.9985f, 1.0036f, 0.9974f, 1.0125f, 1.0131f, 0.9983f, 1.0021f, 0.9905f, 0.9902f, 0.9937f, 1.0264f, 1.0515f, 1.0969f, 1.1647f, 1.2597f, 1.1992f, 1.0123f, 0.9921f, 0.9069f, 0.8885f, 0.8528f, 0.8535f, 0.8691f, 0.9238f, 1.1601f, 1.3991f, 2.4023f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_250_540 = {0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 1.4558f, 0.9426f, 0.8956f, 0.8674f, 0.8764f, 0.9144f, 0.9149f, 0.9739f, 1.1459f, 1.2684f, 1.1859f, 1.0912f, 1.0700f, 1.0306f, 1.0042f, 1.0080f, 1.0024f, 1.0146f, 1.0138f, 0.9977f, 0.9866f, 0.9809f, 0.9941f, 0.9976f, 1.0135f, 1.0768f, 1.1152f, 1.1865f, 1.2699f, 1.1495f, 0.9993f, 0.9786f, 0.9055f, 0.8844f, 0.8665f, 0.8623f, 0.8732f, 0.9463f, 1.1497f, 1.4829f, 1.6876f, 0.0000f, 0.0000f, 0.0000f};
-            jerValues_pt_540_1000 = {0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 1.0878f, 0.9699f, 0.9457f, 1.0988f, 1.3651f, 1.2052f, 1.1082f, 1.0793f, 1.0550f, 1.0039f, 1.0100f, 1.0017f, 1.0029f, 1.0054f, 1.0000f, 0.9883f, 0.9879f, 0.9945f, 1.0055f, 1.0317f, 1.0830f, 1.1328f, 1.2299f, 1.3554f, 1.1411f, 0.9855f, 0.9586f, 0.8950f, 0.8668f, 0.8396f, 0.8115f, 0.8223f, 0.8614f, 1.0673f, 0.0000f, 0.0000f, 0.0000f, 0.0000f, 0.0000f};
-        }
-    }
-    else {
-        if (isPbGoing) {
-
-        }
-        else {
-
-        }
-    }
-}
-
-//________________
-int findEtaBinInVectorOfEtaBins(const float &eta) {
-    for (size_t i = 0; i + 1 < etaBinEdges.size(); ++i) {
-        if (etaBinEdges[i] < eta && eta < etaBinEdges[i + 1]) {
-            return static_cast<int>(i);
-        }
-    }
-    return -1;
-}
-
-//________________
-float jerExtraScalingForEta(const float &eta, const float &pt, const bool &isMc) {
-    float extraScaling = 1.f;
-    if ( !isMc) {
-        return extraScaling;
-    }
-
-    // if ( std::abs(eta) > 0.8) {
-    //     int etaBin = findEtaBinInVectorOfEtaBins(eta);
-    //     if (etaBin >= 0 ) {
-    //         if (30.f <= pt && pt < 50.f) {
-    //             extraScaling = jerValues_pt_30_50[etaBin];
-    //         }
-    //         else if (50.f <= pt && pt < 80.f) {
-    //             extraScaling = jerValues_pt_50_80[etaBin];
-    //         }
-    //         else if (80.f <= pt && pt < 120.f) {
-    //             extraScaling = jerValues_pt_80_120[etaBin];
-    //         }
-    //         else if (120.f <= pt && pt < 180.f) {
-    //             extraScaling = jerValues_pt_120_180[etaBin];
-    //         }
-    //         else if (180.f <= pt && pt < 250.f) {
-    //             extraScaling = jerValues_pt_180_250[etaBin];
-    //         }
-    //         else if (250.f <= pt && pt < 540.f) {
-    //             extraScaling = jerValues_pt_250_540[etaBin];
-    //         }
-    //         else if (540.f <= pt && pt < 1000.f) {
-    //             extraScaling = jerValues_pt_540_1000[etaBin];
-    //         }
-    //     } // if (etaBin >= 0 )
-    // } // if ( std::abs(eta) > 0.8)
-    return extraScaling;
-}
 
 // Range for the selection
 float ptHatRange[2] { 0.f, 8160.f};
@@ -182,20 +103,201 @@ float refJetEta[maxJets];  // reference jet eta
 float refJetPhi[maxJets];  // reference jet phi
 
 //________________
-void usage() {
-    std::cout << GREEN << "Usage: ./processForestSimple  [options]\n"
-                << "Options:\n"
-                << "  <input_file_or_list>  Input ROOT file or file list (default: empty)\n"
-                << "  <output_file>         Output ROOT file name (default: empty)\n"
-                << "  <0|1|2>               MC type (default 2): 0 - data, 1 - embedding, 2 - pythia\n"
-                << "  <0|1>                 Direction (default 1): 0 - p-going, 1 - Pb-going\n"
-                << "  <value>               pT hat sample for MC (default: 30)\n"
-                << "  <-1|0|1>              JEU systematic variation (default 0): -1 - JEU-, 0 - not applied, 1 - JEU+\n"
-                << "  <-99|0|1|-1>          JER systematic variation (default -99): -99 - only JEC applied, -1 - JER-, 0 - std.JER, 1 - JER+ \n"
-                << "  <value>               Trigger ID (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100\n"
-                << "  <value>               Reco jet selection method (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose\n"
-                << RESET;
-    exit (0);
+struct JERSmearingFuncVsEta{
+    double fPtLow;
+    double fPtHigh;
+    std::unique_ptr<TF1> fJERSmearFuncVsEta;
+};
+
+//________________
+class JERSmearingHelper {
+    public:
+        /// Constructor
+        JERSmearingHelper() {
+            fJERSmearFuncVsPt = std::make_unique<TF1>("fJERSmearFuncVsPt", "sqrt( [0]*[0] + [1]*[1]/x )", 30., 800.);
+            fJERSmearFuncVsPt->SetParameters(0.04360, 0.81815); // Default parameters (Pb-going direction for pPb 8.16 TeV collisions)
+            fRndm = std::make_unique<TRandom3>(0); // Seed with 0 for random seed
+        }
+
+        /// Destructor
+        ~JERSmearingHelper() {
+            if (fJERSmearFuncVsPt) fJERSmearFuncVsPt.reset();
+            if (fRndm) fRndm.reset();
+        }
+
+        /// Set resolution smearing function parameters
+        void setJERSmearingFuncVsPtParams(const double &param0, const double &param1) {
+            if (!fJERSmearFuncVsPt) throw std::runtime_error("Invalid TF1 passed to JERSmearingHelper");
+            fJERSmearFuncVsPt->SetParameters(param0, param1);
+        }
+
+        /// Add a JER smearing function for a given pt range
+        void addJERSmearingFuncVsEta(const double &ptLow, const double &ptHigh, std::unique_ptr<TF1> fJERSmearFunc) {
+            if (!fJERSmearFunc) throw std::runtime_error("Invalid TF1 passed to JERSmearingHelper");
+            JERSmearingFuncVsEta jerFunc;
+            jerFunc.fPtLow = ptLow;
+            jerFunc.fPtHigh = ptHigh;
+            jerFunc.fJERSmearFuncVsEta = std::move(fJERSmearFunc);
+            fJERSmearFuncVsEtaVec.push_back(std::move(jerFunc));
+        }
+
+        /// Return the JER value for given pt and eta
+        double evalJERScalingFactorForPtEta(const double &pt, const double &eta) const {
+            if ( std::abs(eta) < 0.8 || std::abs(eta) > 2.6 ) {
+                return 1.0; // No smearing for |eta| < 0.8 or |eta| > 2.6
+            }
+            else {
+                for (const auto &jerFunc : fJERSmearFuncVsEtaVec) {
+                    if (pt >= jerFunc.fPtLow && pt < jerFunc.fPtHigh) {
+                        return jerFunc.fJERSmearFuncVsEta->Eval(eta);
+                    }
+                }                
+            }
+            return 1.0; // Return 1 if no matching pt range found
+        }
+        
+        /// Return JER scaling factor for the default, up and down variations. Default is -99 (return 1.0)
+        double JERScaleFactorSystematics(const float &eta, const int &variation = -99) const {
+            // Implementation for getting JER scaling factors
+            if (variation == 0) {
+                // Default JER scaling factor
+                for (size_t i = 0; i < fJerEtaLow.size(); ++i) {
+                    if (eta >= fJerEtaLow[i] && eta < fJerEtaHi[i]) {
+                        return fJerDef[i];
+                    }
+                }
+            } 
+            else if (variation == -1) {
+                // Down variation
+                for (size_t i = 0; i < fJerEtaLow.size(); ++i) {
+                    if (eta >= fJerEtaLow[i] && eta < fJerEtaHi[i]) {
+                        return fJerLow[i];
+                    }
+                }
+            } 
+            else if (variation == 1) {
+                // Up variation
+                for (size_t i = 0; i < fJerEtaLow.size(); ++i) {
+                    if (eta >= fJerEtaLow[i] && eta < fJerEtaHi[i]) {
+                        return fJerHi[i];
+                    }
+                }
+            }
+            else {
+                return 1.0; // No variation specified, return 1
+            }
+        }
+
+        /// @brief Returns the JER smeared pT for a given
+        /// @param ptOriginal The original pT of the jet
+        /// @param recoEta The reconstructed eta of the jet
+        /// @param ptSmeared The smeared pT of the jet (output)
+        /// @param variation The variation for JER scaling factor:
+        ///                  -99: default JER (SF = 1.0), 
+        ///                  -1: JER down with SF, 
+        ///                  0: default JER with SF, 
+        ///                  1: JER up with SF, 
+        ///                  2: use eta-dependent JER scaling factor
+        ///                  3: use provided scaling factor
+        /// @param scaleFactor The JER scaling factor to be used if variation is set to 2
+        void smearMomentum(const float &ptOriginal, const float &eta, float &ptSmeared, const int &variation = -99, const float &scaleFactor = 1.0) const {
+    
+            double sigmaSmear{0.};
+            double evalValue{0.};
+            double scaleFactorToUse{1.0};
+
+            if ( !fJERSmearFuncVsPt ) {
+                throw std::runtime_error("JERSmearingHelper: JER smearing function not set.");
+            }
+            if ( !fRndm ) {
+                throw std::runtime_error("JERSmearingHelper: Random number generator not set.");
+            }
+
+            if (variation == -99) { // Default JER (no scaling)
+                scaleFactorToUse = 1.0; 
+            }
+            else if (variation == -1) { // JER down with SF
+                scaleFactorToUse = JERScaleFactorSystematics(eta, -1); 
+            }
+            else if (variation == 0) {  // Default JER with SF
+                scaleFactorToUse = JERScaleFactorSystematics(eta, 0); 
+            }
+            else if (variation == 1) { // JER up with SF
+                scaleFactorToUse = JERScaleFactorSystematics(eta, 1);
+            }
+            else if (variation == 2) { // Use eta-dependent JER scaling factor
+                scaleFactorToUse = evalJERScalingFactorForPtEta(ptOriginal, eta);
+            }
+            else if (variation == 3) { // Use provided scaling factor
+                scaleFactorToUse = scaleFactor; 
+            }
+            else {
+                throw std::invalid_argument("Invalid variation value for JER smearing.");
+            }
+
+
+            if ( ptOriginal <= 30.) {
+                evalValue = fJERSmearFuncVsPt->Eval( 31. );
+            }
+            else if ( ptOriginal >= 800 ) {
+                evalValue = fJERSmearFuncVsPt->Eval( 799. );
+            }
+            else {
+                evalValue = fJERSmearFuncVsPt->Eval( ptOriginal );
+            }
+            sigmaSmear = scaleFactorToUse * evalValue;
+
+            double smearFactor = 1. + fRndm->Gaus( 0., sigmaSmear );
+            while ( smearFactor < 0. ) {
+                smearFactor = 1. + fRndm->Gaus( 0., sigmaSmear );
+            }
+            ptSmeared = ptOriginal * smearFactor;
+        }
+
+    private:
+        // JER as a function of pt for -0.8 < eta < 0.8
+        std::unique_ptr<TF1> fJERSmearFuncVsPt;
+        // Random number generator for smearing
+        std::unique_ptr<TRandom3> fRndm;
+        // Vector to hold JER smearing functions for different pt and eta ranges
+        std::vector<JERSmearingFuncVsEta> fJERSmearFuncVsEtaVec;
+        // JER scaling factors for different eta ranges
+        std::vector<float> fJerEtaLow{-5.191, -3.139, -2.964, -2.853, -2.500, -2.322, -2.043, -1.930, -1.740, -1.305, -1.131, -0.783, -0.522, 0.000, 0.522, 0.783, 1.131, 1.305, 1.740, 1.930, 2.043, 2.322, 2.500, 2.853, 2.964, 3.139};
+        std::vector<float> fJerEtaHi{-3.139, -2.964, -2.853, -2.500, -2.322, -2.043, -1.930, -1.740, -1.305, -1.131, -0.783, -0.522, 0.000, 0.522, 0.783, 1.131, 1.305, 1.740, 1.930, 2.043, 2.322, 2.500, 2.853, 2.964, 3.139, 5.191};
+        std::vector<float> fJerDef{1.1922, 1.1869, 1.7788, 1.3418, 1.2963, 1.1512, 1.1426, 1.1000, 1.1278, 1.1609, 1.1464, 1.1948, 1.15958, 1.15958, 1.1948, 1.1464, 1.1609, 1.1278, 1.1000, 1.1426, 1.1512, 1.2963, 1.3418, 1.7788, 1.1869, 1.1922};
+        std::vector<float> fJerLow{1.0434, 1.0626, 1.578, 1.1327, 1.0592, 1.0372, 1.0212, 0.9921, 1.0292, 1.0584, 1.0832, 1.1296, 1.095, 1.095, 1.1296, 1.0832, 1.0584, 1.0292, 0.9921, 1.0212, 1.0372, 1.0592, 1.1327, 1.578, 1.0626, 1.0434};
+        std::vector<float> fJerHi{1.341, 1.3112, 1.9796, 1.5509, 1.5334, 1.2652, 1.264, 1.2079, 1.2264, 1.2634, 1.2096, 1.26, 1.224, 1.224, 1.26, 1.2096, 1.2634, 1.2264, 1.2079, 1.264, 1.2652, 1.5334, 1.5509, 1.9796, 1.3112, 1.341};
+};
+
+//________________
+/// Function to calculate the resolution smearing for a given reference pT and reconstructed eta
+/// @param refPt The reference pT of the jet
+/// @param recoEta The reconstructed eta of the jet
+/// @param ptReco The reconstructed pT of the jet
+/// @param scaleFactor The scaling factor for the JER
+/// @param fJERSmearFunc The JER smearing function
+/// @param fRndm The random number generator
+void calculateResolutionSmearing(const float &refPt, const float &recoEta, float &ptReco, const float &scaleFactor,
+                                 TF1 *fJERSmearFunc, TRandom3 *fRndm) {
+    
+    double sigmaSmear{0.};
+    double evalValue{0.};
+    if ( refPt <= 30.) {
+        evalValue = fJERSmearFunc->Eval( 31. );
+    }
+    else if ( refPt >= 800 ) {
+        evalValue = fJERSmearFunc->Eval( 799. );
+    }
+    else {
+        evalValue = fJERSmearFunc->Eval( refPt );
+    }
+    sigmaSmear = scaleFactor * evalValue;
+
+    double smearFactor = 1. + fRndm->Gaus( 0., sigmaSmear );
+    while ( smearFactor < 0. ) {
+        smearFactor = 1. + fRndm->Gaus( 0., sigmaSmear );
+    }
+    ptReco *= smearFactor;
 }
 
 //________________
@@ -225,15 +327,12 @@ struct RecoJet {
     float recoTrackMaxPt;
     float refPt;
     float refEta;
+    float refPhi;
 
     float recoPtJeuUp;
     float recoPtJeuDown;
-    float recoPtJerDef;
-    float recoPtJerUp;
-    float recoPtJerDown;
-    float recoPtJerDefNoSF;
-    float recoPtJerDefDoubleSF;
-    float recoPtJerDefNinetySF;
+
+    float refPtSmeared; // reference jet pT after smearing
 };
 
 //________________
@@ -267,17 +366,14 @@ struct Histograms {
     std::unique_ptr<TH1D> hGenInclusiveJetEtaCMShifted[nEtaShifts];
     std::unique_ptr<TH2D> hGenInclusiveJetPtEtaStdBins;
     std::unique_ptr<TH2D> hGenInclusiveJetPtPtHat;
-    std::unique_ptr<TH1D> hGenInclusiveJetEtaPt80To120;
 
     std::unique_ptr<TH3D> hGenInclusiveJetJESDefPtEta;
     std::unique_ptr<TH3D> hGenInclusiveJetJESDefExtraPtEta;
-    std::unique_ptr<TH3D> hGenInclusiveJetJESDefOneAndAHalfPtEta;
     std::unique_ptr<TH3D> hGenInclusiveJetJESDefDoublePtEta;
     std::unique_ptr<TH3D> hGenInclusiveJetJESDefNinetyPtEta;
 
     std::unique_ptr<TH2D> hGenInclusiveJetDefPtEtaFlipped;
     std::unique_ptr<TH2D> hGenInclusiveJetDefExtraPtEtaFlipped;
-    std::unique_ptr<TH2D> hGenInclusiveJetDefOneAndAHalfPtEtaFlipped;
     std::unique_ptr<TH2D> hGenInclusiveJetDefDoublePtEtaFlipped;
     std::unique_ptr<TH2D> hGenInclusiveJetDefNinetyPtEtaFlipped;
 
@@ -287,6 +383,7 @@ struct Histograms {
     std::unique_ptr<TH1D> hGenDijetEtaCMShifted[nEtaShifts];
     std::unique_ptr<TH1D> hGenDijetEtaCMForwardShifted[nEtaShifts];
     std::unique_ptr<TH1D> hGenDijetEtaCMBackwardShifted[nEtaShifts];
+
     std::unique_ptr<TH2D> hGenDijetPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetPtEtaForwardArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetPtEtaBackwardArr[nEtaCuts];
@@ -298,15 +395,24 @@ struct Histograms {
     std::unique_ptr<TH2D> hGenDijetDefExtraPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefExtraPtEtaForwardArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefExtraPtEtaBackwardArr[nEtaCuts];
-    std::unique_ptr<TH2D> hGenDijetDefOneAndAHalfPtEtaCMArr[nEtaCuts];
-    std::unique_ptr<TH2D> hGenDijetDefOneAndAHalfPtEtaForwardArr[nEtaCuts];
-    std::unique_ptr<TH2D> hGenDijetDefOneAndAHalfPtEtaBackwardArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefDoublePtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefDoublePtEtaForwardArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefDoublePtEtaBackwardArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefNinetyPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefNinetyPtEtaForwardArr[nEtaCuts];
-    std::unique_ptr<TH2D> hGenDijetDefNinetyPtEtaBackwardArr[nEtaCuts];
+    std::unique_ptr<TH2D> hGenDijetDefNinetyPtEtaBackwardArr[nEtaCuts]; 
+
+    // Unfolding histograms (response matrices and missing histograms)
+    std::unique_ptr<THnSparseF> hGenDijetPtEtaCMVsRecoPtEtaCMArr[nEtaCuts];
+    std::unique_ptr<THnSparseF> hRefDijetPtEtaCMVsRecoPtEtaCMArr[nEtaCuts];
+    std::unique_ptr<TH2D> hGenDijetPtEtaCMMissArr[nEtaCuts];
+
+    //
+    // Ref-selected level histograms
+    //
+    std::unique_ptr<TH2D> hRefSelDijetPtEtaCMArr[nEtaCuts];
+    std::unique_ptr<TH2D> hRefSelDijetPtEtaForwardArr[nEtaCuts];
+    std::unique_ptr<TH2D> hRefSelDijetPtEtaBackwardArr[nEtaCuts];
 
     //
     // Reco level histograms
@@ -328,12 +434,6 @@ struct Histograms {
     std::unique_ptr<TH3D> hRecoInclusiveJetJESUpPtEta;    // JER up variation for reco inclusive jet histograms
     std::unique_ptr<TH3D> hRecoInclusiveJetJESDownPtEta;  // JER down variation for reco inclusive jet histograms
     std::unique_ptr<TH2D> hRecoInclusiveJetPtPtHat;
-    std::unique_ptr<TH1D> hRecoInclusiveJetEtaPt80To120;
-    std::unique_ptr<TH1D> hRecoInclusiveJetEtaPtMatched80To120;
-    std::unique_ptr<TH1D> hRecoInclusiveJetEtaPtDefNoSF80To120;
-    std::unique_ptr<TH1D> hRecoInclusiveJetEtaPtDef80To120;
-    std::unique_ptr<TH1D> hRecoInclusiveJetEtaPtDefExtraNoSF80To120;
-    std::unique_ptr<TH1D> hRecoInclusiveJetEtaPtDefExtra80To120;
 
     // Reco dijet histograms
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMArr[nEtaCuts];
@@ -377,7 +477,6 @@ struct Histograms {
     std::unique_ptr<TH1D> hRefInclusiveJetEtaLab;
     std::unique_ptr<TH1D> hRefInclusiveJetPt;
     std::unique_ptr<TH2D> hRefInclusiveJetPtEtaStdBins;
-    std::unique_ptr<TH1D> hRefInclusiveJetEtaPt80To120;
 
     // Ref dijet histograms
     std::unique_ptr<TH2D> hRefDijetPtEtaCMArr[nEtaCuts];
@@ -393,6 +492,7 @@ struct Histograms {
     std::unique_ptr<TH2D> hRefDijetPtEtaCMArrJerDef[nEtaCuts];        // JER default variation for ref dijet histograms
     std::unique_ptr<TH2D> hRefDijetPtEtaForwardArrJerDef[nEtaCuts];   // JER default variation for ref dijet histograms
     std::unique_ptr<TH2D> hRefDijetPtEtaBackwardArrJerDef[nEtaCuts];  // JER default variation for ref dijet histograms
+
 };
 
 //________________
@@ -423,7 +523,171 @@ double eventWeight(const float &ptHat, const float &vz, TF1 &fVzWeight, Long64_t
 
     return genWeight * vzWeight;
 }
-bool isGoodRecoJet(const RecoJet &recoJet, const int &jetSelectionMethod);
+
+//________________
+/// Check if a reconstructed jet passes the selection criteria
+/// @param recoJet: the reconstructed jet object
+/// @param jetSelectionMethod: the jet selection method (0 - no selection, 1 - trackMax, 2 - jetIdTightLept, 3 - jetIdLoose)
+/// @return true if the jet is good, false otherwise
+bool isGoodRecoJet(const RecoJet &recoJet, const int &jetSelectionMethod) {
+    // jetSelectionMethod: 0 - no selection, 1 - trackMax, 2 - jetIdTightLept, 3 - jetIdLoose
+
+    bool debug = {false};
+    if (debug) {
+        std::cout << Form("\nJet parameters: ptRaw = %.2f, ptCorr = %.2f, eta = %.2f, phi = %.2f, NHF = %.3f, NEF = %.3f, CHF = %.3f, MUF = %.3f, CEF = %.3f, CHM = %d, PfCEM = %d, PfNHM = %d, PfNEM = %d, PfMUM = %d, trackMaxPt = %.2f, refPt = %.2f, refEta = %.2f jeuUp = %.2f, jeuDown = %.2f, refPtSmeared = %.2f\n",
+                        recoJet.recoPtRaw, recoJet.recoPt, recoJet.recoEta, recoJet.recoPhi,
+                        recoJet.recoPfNHF, recoJet.recoPfNEF, recoJet.recoPfCHF,
+                        recoJet.recoPfMUF, recoJet.recoPfCEF, recoJet.recoPfCHM,
+                        recoJet.recoPfCEM, recoJet.recoPfNHM, recoJet.recoPfNEM,
+                        recoJet.recoPfMUM, recoJet.recoTrackMaxPt,
+                        recoJet.refPt, recoJet.refEta, 
+                        recoJet.recoPtJeuUp, recoJet.recoPtJeuDown, 
+                        recoJet.refPtSmeared);
+        std::cout << Form("Jet selection method: %d\n", jetSelectionMethod);
+    }
+
+    bool isGood = false;
+    if (jetSelectionMethod == 0) {
+        isGood = true; // No selection, all jets are good
+    }
+    else if (jetSelectionMethod == 1) {
+        isGood = true;
+        if ( std::abs(recoJet.recoEta) < 2.4 ) {
+            if ( recoJet.recoTrackMaxPt / recoJet.recoPtRaw < 0.01 ) {
+                isGood = false;
+            }
+            if ( recoJet.recoTrackMaxPt / recoJet.recoPtRaw > 0.98 ) {
+                isGood = false;
+            }
+        }
+    }
+    else if (jetSelectionMethod == 2 || jetSelectionMethod == 3) {
+        isGood = true;
+        int chargedMult = recoJet.recoPfCHM + recoJet.recoPfCEM + recoJet.recoPfMUM;
+        int neutralMult = recoJet.recoPfNHM + recoJet.recoPfNEM;
+        int numberOfConstituents = chargedMult + neutralMult;
+
+        float chargedEmFracCut{1.}, neutFracCut{1.};
+        if ( jetSelectionMethod == 2 ) { 
+            chargedEmFracCut = {0.9f};
+            neutFracCut = {0.9f};
+        }
+        else {
+            chargedEmFracCut = {0.99f};
+            neutFracCut = {0.99f};
+        }
+
+        bool passNHF{false};
+        bool passNEF{false};
+        bool passNumOfConstituents{true};
+        bool passMuonFrac{true};
+        bool passChargedFrac{true};
+        bool passChargedMult{true};
+        bool passChargedEmFrac{true};
+        bool passNeutralMult{true};
+
+        if (debug) {
+            std::cout << Form("chargedMult: %d, neutralMult: %d\n", chargedMult, neutralMult);
+        }
+
+        // Check cuts depending on jet pseudorapdity
+        if ( std::abs( recoJet.recoEta ) <= 2.7 ) {
+            
+            passNHF = ( recoJet.recoPfNHF < neutFracCut ) ? true : false;
+            passNEF = ( recoJet.recoPfNEF < neutFracCut ) ? true : false;
+            passNumOfConstituents = ( numberOfConstituents > 1 ) ? true : false;
+
+            if (debug) {
+                std::cout << Form("|eta|<=2.7 NHF < neutHadronFrac: %4.3f < %4.3f -> %s\n", 
+                                  recoJet.recoPfNHF, neutFracCut, 
+                                  (passNHF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|<=2.7 NEF < neutEMFrac: %4.3f < %4.3f -> %s\n", 
+                                  recoJet.recoPfNEF, neutFracCut, 
+                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|<=2.7 numOfConstituents > 1: %d > 1 -> %s\n", 
+                                  numberOfConstituents, 
+                                  (passNumOfConstituents)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+            }
+
+            if ( jetSelectionMethod == 2 ) { 
+                passMuonFrac = ( recoJet.recoPfMUF < 0.8 ) ? true : false;
+                if (debug) {
+                    std::cout << Form("tightJetId |eta|<=2.7 MUF < 0.8: %4.3f < 0.8 -> %s\n", recoJet.recoPfMUF, (passMuonFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                }
+            } // if ( jetSelectionMethod == 2 )
+
+            if( std::abs( recoJet.recoEta ) <= 2.4 ) {
+                passChargedFrac = ( recoJet.recoPfCHF > 0 ) ? true : false;
+                passChargedMult = ( chargedMult > 0 ) ? true : false;
+                passChargedEmFrac = ( recoJet.recoPfCEF < chargedEmFracCut ) ? true : false;
+                if (debug) {
+                    std::cout << Form("|eta|<=2.4 CHF > 0: %4.3f > 0 -> %s\n", 
+                                      recoJet.recoPfCHF, 
+                                      (passChargedFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                    std::cout << Form("|eta|<=2.4 chargedMult > 0: %d > 0 -> %s\n", 
+                                      chargedMult, 
+                                      (passChargedMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                    std::cout << Form("|eta|<=2.4 CEF < chargedEmFracCut: %4.3f < %4.3f -> %s\n", 
+                                      recoJet.recoPfCEF, chargedEmFracCut, 
+                                      (passChargedEmFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                }
+            } // if( std::abs( recoJetEta[jetIndex] ) <= 2.4 )
+
+            
+
+        } // if ( std::abs( recoJetEta[jetIndex] ) <= 2.7 )
+        else if ( std::abs( recoJet.recoEta ) <= 3.0) {
+
+            passNEF = ( recoJet.recoPfNEF > 0.01 ) ? true : false;
+            passNHF = ( recoJet.recoPfNHF < 0.98 ) ? true : false;
+            passNeutralMult = ( neutralMult > 2 ) ? true : false;
+
+            if (debug) {
+                std::cout << Form("|eta|<=3.0 NEF > 0.01: %4.3f > 0.01 -> %s\n", 
+                                  recoJet.recoPfNEF, 
+                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|<=3.0 NHF < 0.98: %4.3f < 0.98 -> %s\n", 
+                                  recoJet.recoPfNHF, 
+                                  (passNHF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|<=3.0 neutralMult > 2: %d > 2 -> %s\n", 
+                                  neutralMult, 
+                                  (passNeutralMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+            }
+
+        } // else if ( std::abs( recoJetEta[jetIndex] ) <= 3.0)
+        else  {
+            passNEF = ( recoJet.recoPfNEF < 0.9 ) ? true : false;
+            passNeutralMult = (neutralMult > 10 ) ? true : false; // CAUTION: JET MET says it should be >10
+            if (debug) {
+                std::cout << Form("|eta|>3.0 NEF < 0.9: %4.3f < 0.9 -> %s\n", 
+                                  recoJet.recoPfNEF, 
+                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+                std::cout << Form("|eta|>3.0 neutralMult > 10: %d > 10 -> %s\n", 
+                                  neutralMult, 
+                                  (passNeutralMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+            }
+        } // else 
+
+        isGood = passNHF && passNEF && passNumOfConstituents && passMuonFrac && passChargedFrac && 
+                 passChargedMult && passChargedEmFrac && passNeutralMult;
+
+        if (debug) {
+            std::cout << Form("Jet selection method: %d, isGood: %s\n", 
+                              jetSelectionMethod, 
+                              (isGood)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
+        }
+
+        // std::cout << Form("Jet %d: passNHF: %d, passNEF: %d, passNumOfConstituents: %d, passMuonFrac: %d, passChargedFrac: %d, passChargedMult: %d, passChargedEmFrac: %d, passNeutralMult: %d \t [isGood: %d]\n",
+        //                   jetIndex, passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
+        //                   passChargedMult, passChargedEmFrac, passNeutralMult, isGood);
+    } // else if (jetSelectionMethod == 2 || jetSelectionMethod == 3)
+    else {
+        std::cerr << RED << Form("Invalid jet selection method: %d. No selection will be applied.", jetSelectionMethod) << RESET << std::endl;
+        isGood = true;
+    }
+
+    return isGood;
+}
 
 
 //________________
@@ -467,6 +731,11 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
     double dijetEtaBins[] = { -3.0, 3.0 };
     const int nDijetEtaFBBins = 30;
     double dijetEtaFBBins[] = { 0., 3. };
+
+    const int nDimResponse = 4;
+    int responseBins[nDimResponse] = { nDijetPtBins, nDijetEtaBins, nDijetPtBins, nDijetEtaBins };
+    double responseBinsMin[nDimResponse] = { dijetPtBins[0], dijetEtaBins[0], dijetPtBins[0], dijetEtaBins[0] };
+    double responseBinsMax[nDimResponse] = { dijetPtBins[1], dijetEtaBins[1], dijetPtBins[1], dijetEtaBins[1] };
 
     //
     // Event level histograms
@@ -578,10 +847,6 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                             nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                             nJetPtBins, jetPtBins[0], jetPtBins[1]);
         hs.hGenInclusiveJetPtPtHat->Sumw2();
-        hs.hGenInclusiveJetEtaPt80To120 = std::make_unique<TH1D>("hGenInclusiveJetEtaPt80To120", 
-                                                                "Gen jet eta (p_{T} 80-120 GeV);#eta;dN/d#eta",
-                                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-        hs.hGenInclusiveJetEtaPt80To120->Sumw2();
 
         hs.hGenInclusiveJetJESDefPtEta = std::make_unique<TH3D>("hGenInclusiveJetJESDefPtEta", 
                                                                 "Gen jet JES default variation pT vs eta;p_{T}^{gen.smeared}/p_{T};p_{T}^{gen} (GeV);#eta",
@@ -595,12 +860,6 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                                 nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                                 nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hGenInclusiveJetJESDefExtraPtEta->Sumw2();
-        hs.hGenInclusiveJetJESDefOneAndAHalfPtEta = std::make_unique<TH3D>("hGenInclusiveJetJESDefOneAndAHalfPtEta", 
-                                                                "Gen jet JES default variation with 1.5x SF pT vs eta;p_{T}^{gen.smeared}/p_{T};p_{T}^{gen} (GeV);#eta",
-                                                                nJetJESBins, jetJESBins[0], jetJESBins[1],
-                                                                nJetPtBins, jetPtBins[0], jetPtBins[1],
-                                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-        hs.hGenInclusiveJetJESDefOneAndAHalfPtEta->Sumw2();
         hs.hGenInclusiveJetJESDefDoublePtEta = std::make_unique<TH3D>("hGenInclusiveJetJESDefDoublePtEta", 
                                                                 "Gen jet JES default variation with double SF pT vs eta;p_{T}^{gen.smeared}/p_{T};p_{T}^{gen} (GeV);#eta",
                                                                 nJetJESBins, jetJESBins[0], jetJESBins[1],
@@ -624,11 +883,6 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                 nJetEtaBins, jetEtaBins[0], jetEtaBins[1], 
                                                 nJetPtBins, jetPtBins[0], jetPtBins[1]);
         hs.hGenInclusiveJetDefExtraPtEtaFlipped->Sumw2();
-        hs.hGenInclusiveJetDefOneAndAHalfPtEtaFlipped = std::make_unique<TH2D>("hGenInclusiveJetDefOneAndAHalfPtEtaFlipped", 
-                                                "Gen jet pT vs eta (flipped, 1.5x SF);#eta;p_{T} (GeV)", 
-                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1], 
-                                                nJetPtBins, jetPtBins[0], jetPtBins[1]);
-        hs.hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->Sumw2();
         hs.hGenInclusiveJetDefDoublePtEtaFlipped = std::make_unique<TH2D>("hGenInclusiveJetDefDoublePtEtaFlipped", 
                                                 "Gen jet pT vs eta (flipped, double SF);#eta;p_{T} (GeV)", 
                                                 nJetEtaBins, jetEtaBins[0], jetEtaBins[1], 
@@ -716,21 +970,6 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                     nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hGenDijetDefExtraPtEtaBackwardArr[iCut]->Sumw2();
 
-            hs.hGenDijetDefOneAndAHalfPtEtaCMArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetDefOneAndAHalfPtEtaCM_%d", iCut), 
-                                                Form("Gen dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (def 1.5x smearing);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
-            hs.hGenDijetDefOneAndAHalfPtEtaCMArr[iCut]->Sumw2();
-            hs.hGenDijetDefOneAndAHalfPtEtaForwardArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetDefOneAndAHalfPtEtaForward_%d", iCut), 
-                                                Form("Gen dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (def 1.5x smearing);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
-            hs.hGenDijetDefOneAndAHalfPtEtaForwardArr[iCut]->Sumw2();
-            hs.hGenDijetDefOneAndAHalfPtEtaBackwardArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetDefOneAndAHalfPtEtaBackward_%d", iCut), 
-                                                    Form("Gen dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave} (def 1.5x smearing);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                    nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
-            hs.hGenDijetDefOneAndAHalfPtEtaBackwardArr[iCut]->Sumw2();
             hs.hGenDijetDefDoublePtEtaCMArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetDefDoublePtEtaCM_%d", iCut), 
                                                 Form("Gen dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (def 2x smearing);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
                                                 nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
@@ -761,7 +1000,20 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                     nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                                     nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hGenDijetDefNinetyPtEtaBackwardArr[iCut]->Sumw2();
+
+            // Response matrix and missing dijets histograms
+            hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut] = std::make_unique<THnSparseF>(Form("hGenDijetPtEtaCMVsRecoPtEtaCM_%d", iCut), 
+                                                            Form("Gen dijet #eta_{CM} vs Reco dijet #eta_{CM} vs Gen dijet p_{T}^{ave} vs Reco dijet p_{T}^{ave};Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM}"), 
+                                                            nDimResponse, responseBins, responseBinsMin, responseBinsMax);
+            hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Sumw2();
+            hs.hGenDijetPtEtaCMMissArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetPtEtaCMMiss_%d", iCut), 
+                                                                Form("Gen dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
+                                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hGenDijetPtEtaCMMissArr[iCut]->Sumw2();
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
+
+
 
         //
         // Ref level histograms
@@ -790,10 +1042,6 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                                 jetEtaL2L3StdBins, jetEtaL2L3StdVals,
                                                                 nJetPtBins, jetPtBins[0], jetPtBins[1]);
         hs.hRefInclusiveJetPtEtaStdBins->Sumw2();
-        hs.hRefInclusiveJetEtaPt80To120 = std::make_unique<TH1D>("hRefInclusiveJetEtaPt80To120", 
-                                                                "Ref jet eta (p_{T} 80-120 GeV);#eta;dN/d#eta",
-                                                                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-        hs.hRefInclusiveJetEtaPt80To120->Sumw2();
 
         // Ref dijet histograms
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
@@ -862,6 +1110,32 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
             }
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
     }
+
+    //
+    // Ref-selected level histograms
+    //
+
+    if (isMc) {
+        // Loop over eta cuts for dijet histograms
+        for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+            hs.hRefSelDijetPtEtaCMArr[iCut] = std::make_unique<TH2D>(Form("hRefSelDijetPtEtaCM_%d", iCut), 
+                                                Form("Ref-selected dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
+                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefSelDijetPtEtaCMArr[iCut]->Sumw2();
+            hs.hRefSelDijetPtEtaForwardArr[iCut] = std::make_unique<TH2D>(Form("hRefSelDijetPtEtaForward_%d", iCut), 
+                                                Form("Ref-selected dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
+                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+            hs.hRefSelDijetPtEtaForwardArr[iCut]->Sumw2();
+            hs.hRefSelDijetPtEtaBackwardArr[iCut] = std::make_unique<TH2D>(Form("hRefSelDijetPtEtaBackward_%d", iCut), 
+                                                    Form("Ref-selected dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
+                                                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                                    nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+            hs.hRefSelDijetPtEtaBackwardArr[iCut]->Sumw2();
+        } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
+    }
+
 
     //
     // Reco level histograms
@@ -953,30 +1227,6 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
             hs.hRecoInclusiveJetJESDownPtEta->Sumw2();
         }
     }
-    hs.hRecoInclusiveJetEtaPt80To120 = std::make_unique<TH1D>("hRecoInclusiveJetEtaPt80To120", 
-                                                            "Reco jet eta (p_{T} 80-120 GeV);#eta;dN/d#eta",
-                                                            nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-    hs.hRecoInclusiveJetEtaPt80To120->Sumw2();
-    hs.hRecoInclusiveJetEtaPtMatched80To120 = std::make_unique<TH1D>("hRecoInclusiveJetEtaPtMatched80To120", 
-                                                            "Reco jet eta (p_{T} 80-120 GeV, gen-reco matched);#eta;dN/d#eta",
-                                                            nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-    hs.hRecoInclusiveJetEtaPtMatched80To120->Sumw2();
-    hs.hRecoInclusiveJetEtaPtDefNoSF80To120 = std::make_unique<TH1D>("hRecoInclusiveJetEtaPtDefNoSF80To120", 
-                                                            "Reco jet eta (p_{T} 80-120 GeV, JER default, no scaling);#eta;dN/d#eta",
-                                                            nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-    hs.hRecoInclusiveJetEtaPtDefNoSF80To120->Sumw2();
-    hs.hRecoInclusiveJetEtaPtDef80To120 = std::make_unique<TH1D>("hRecoInclusiveJetEtaPtDef80To120", 
-                                                            "Reco jet eta (p_{T} 80-120 GeV, JER default);#eta;dN/d#eta",
-                                                            nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-    hs.hRecoInclusiveJetEtaPtDef80To120->Sumw2();
-    hs.hRecoInclusiveJetEtaPtDefExtraNoSF80To120 = std::make_unique<TH1D>("hRecoInclusiveJetEtaPtDefExtraNoSF80To120", 
-                                                            "Reco jet eta (p_{T} 80-120 GeV, JER default, no scaling);#eta;dN/d#eta",
-                                                            nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-    hs.hRecoInclusiveJetEtaPtDefExtraNoSF80To120->Sumw2();
-    hs.hRecoInclusiveJetEtaPtDefExtra80To120 = std::make_unique<TH1D>("hRecoInclusiveJetEtaPtDefExtra80To120", 
-                                                            "Reco jet eta (p_{T} 80-120 GeV, JER default);#eta;dN/d#eta",
-                                                            nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-    hs.hRecoInclusiveJetEtaPtDefExtra80To120->Sumw2();
 
     // Reco dijet histograms
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
@@ -1373,7 +1623,7 @@ void setPtHatRange(const int &ptHatSample) {
     else if (ptHatSample == 280) { ptHatRange[0] = 280.; ptHatRange[1] = 370.; }
     else if (ptHatSample == 370) { ptHatRange[0] = 370.; ptHatRange[1] = 460.; }
     else if (ptHatSample == 460) { ptHatRange[0] = 460.; ptHatRange[1] = 540.; }
-    else if (ptHatSample == 540) { ptHatRange[0] = 540.; ptHatRange[1] = std::numeric_limits<float>::max(); }
+    else if (ptHatSample == 540) { ptHatRange[0] = 540.; ptHatRange[1] = 8160.; }
     std::cout << Form(": [%.1f, %.1f]", ptHatRange[0], ptHatRange[1]) << std::endl;
 }
 
@@ -1407,7 +1657,6 @@ bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &ptHatSample
             goodTrigger = {true};
         }
     }
-
 
     return ( ( std::abs(vz) <= 15. ) && 
              ( pBeamScrapingFilter == 1 ) && 
@@ -1460,9 +1709,9 @@ void loadRecoJets(std::vector<RecoJet> &recoJets, JetCorrector &jec, const int &
                         recoJetPfMUF[iRecoJet], recoJetPfCEF[iRecoJet], recoJetPfCHM[iRecoJet], 
                         recoJetPfCEM[iRecoJet], recoJetPfNHM[iRecoJet], recoJetPfNEM[iRecoJet], 
                         recoJetPfMUM[iRecoJet], recoJetTrackMaxPt[iRecoJet], 
-                        refJetPt[iRecoJet], refJetEta[iRecoJet],
+                        refJetPt[iRecoJet], refJetEta[iRecoJet], refJetPhi[iRecoJet],
                         -1., -1.,                  // JeuUp, JeuDown
-                        -1., -1., -1., -1., -1., -1.    // JerDef, JerUp, JerDown, JerDefNoSF, JerDefDoubleSF, JerDefNinetySF
+                        -1.,                       // refPtSmeared
                         };
 
         if ( !isGoodRecoJet(recoJet, jetSelectionMethod) ) {
@@ -1530,8 +1779,22 @@ void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet>
             hs.hRecoDijetPtAveOverPtHatVsPtHatPass->Fill(ptHat, recoDijetPtAve / ptHat, weight);
         }   
     }
+}
 
-
+//________________
+void calculateScaleSmearing(float &ptDef, const float &eta) {
+    float scaleFactor = 1.f;
+    // if ( 30.f < ptDef && ptDef < 50.f ) {
+    //     // Find bin for the given eta
+    //     // scaleFactor = jesValues_pt_30_50(iBin)
+    // }
+    // else if ( 50.f <= ptDef && ptDef < 80.f ) {
+    //     // scaleFactor = 1.01f; // 1% up
+    // }
+    // else if ( 80.f <= ptDef && ptDef < 120.f ) {
+    //     // scaleFactor = 1.005f; // 0.5% up
+    // }
+    ptDef *= scaleFactor;
 }
 
 //________________
@@ -1549,9 +1812,6 @@ void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weigh
         hs.hGenInclusiveJetEtaLabUnflipped->Fill(genJet.eta, weight);
         hs.hGenInclusiveJetEtaLab->Fill(genJetEtaLabFlipped, weight);
         hs.hGenInclusiveJetPt->Fill(genJet.pt, weight);
-        if (genJet.pt > 80. && genJet.pt < 120.) {
-            hs.hGenInclusiveJetEtaPt80To120->Fill(genJet.eta, weight);
-        }
 
         for (int iShift{0}; iShift < nEtaShifts; ++iShift) {
             genJetEtaCM = etaCM(genJet.eta, etaShift[iShift], isPbGoing, isMc);
@@ -1567,7 +1827,7 @@ void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weigh
 //________________
 void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &weight, 
                       std::vector<GenJet> &genJets, Histograms &hs,
-                      TF1 *fJERSmearFunc, TRandom3 *fRndm, TF1 *fJERSmearVsEtaFunc) {
+                      JERSmearingHelper *fJERSmearingHelper) {
 
     // Must be at least 2 jets to form a dijet system
     if (genJets.size() < 2) return;
@@ -1630,12 +1890,11 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
 
     // Smear gen jets and fill smeared-gen histograms for several extraScale factors.
     // Number of smearing iterations (runs) per scale.
-    int nSmearRuns = 10; // adjust as needed
+    int nSmearRuns = 20; // adjust as needed
 
-    // Scale index map: 0=0.9f (Ninety), 1=1.0f (Default), 2=1.5f (OneAndHalf), 
-    //                  3=2.0f (Double), 4=3.0f (Extra/eta-dependent)
-    const std::array<float, 5> extraScales = {0.9f, 1.0f, 1.5f, 2.0f, 3.0f};
-    // const std::array<float, 1> extraScales = {3.0f};
+    // Scale index map: 0: 1.0f (Default), 1: 2.0f (Double), 2: 0.9f (Ninety), 3: 1.0f (Extra/eta-dependent)
+    const std::array<float, 5> extraScales = {1.0f, 2.0f, 0.9f, 1.0f};
+
     for (int iScale = 0; iScale < static_cast<int>(extraScales.size()); ++iScale) {
         float extraScale = extraScales[iScale];
         // Choose the target histogram arrays based on the scale index
@@ -1644,27 +1903,22 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
         std::unique_ptr<TH2D> *backwardArr{nullptr};
         float genJetEtaLabFlipped = {-999.f};
 
-        if (iScale == 1) {  // 1.0f (Default)
+        if (iScale == 0) {  // x1.0f (Default)
             fullArr = hs.hGenDijetDefPtEtaCMArr;
             forwardArr = hs.hGenDijetDefPtEtaForwardArr;
             backwardArr = hs.hGenDijetDefPtEtaBackwardArr;
         }
-        else if (iScale == 2) {  // 1.5f (OneAndHalf)
-            fullArr = hs.hGenDijetDefOneAndAHalfPtEtaCMArr;
-            forwardArr = hs.hGenDijetDefOneAndAHalfPtEtaForwardArr;
-            backwardArr = hs.hGenDijetDefOneAndAHalfPtEtaBackwardArr;
-        }
-        else if (iScale == 3) {  // 2.0f (Double)
+        else if (iScale == 1) {  // x2.0f (Double)
             fullArr = hs.hGenDijetDefDoublePtEtaCMArr;
             forwardArr = hs.hGenDijetDefDoublePtEtaForwardArr;
             backwardArr = hs.hGenDijetDefDoublePtEtaBackwardArr;
         }
-        else if (iScale == 0) {  // 0.9f (Ninety)
+        else if (iScale == 2) {  // x0.9f (Ninety)
             fullArr = hs.hGenDijetDefNinetyPtEtaCMArr;
             forwardArr = hs.hGenDijetDefNinetyPtEtaForwardArr;
             backwardArr = hs.hGenDijetDefNinetyPtEtaBackwardArr;
         }
-        else if (iScale == 4) {  // 3.0f (Extra/eta-dependent)
+        else if (iScale == 3) {  // x1.0f (Extra/eta-dependent)
             fullArr = hs.hGenDijetDefExtraPtEtaCMArr;
             forwardArr = hs.hGenDijetDefExtraPtEtaForwardArr;
             backwardArr = hs.hGenDijetDefExtraPtEtaBackwardArr;
@@ -1678,52 +1932,40 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
             for (auto &jet : genJets) {
                 jet.smearedPt = jet.pt;
                 genJetEtaLabFlipped = etaLab(jet.eta, isPbGoing, isMc);
-                if (iScale == 4) {  // 3.0f (Extra/eta-dependent) 
+
+                // std::cout << "gen jet pt: " << jet.pt << ", eta: " << jet.eta << ", smeared pt: " << jet.smearedPt;
+
+                if (iScale == 3) {  // x1.0f (Extra/eta-dependent) 
                     // Eta-dependent smearing: only smear jets with |eta| > 0.8, and use the fJERSmearVsEtaFunc to get 
                     // the scale factor for smearing based on eta
-                    float newScale = 1.0f;
-                    if ( std::abs(jet.eta) > 0.8 && std::abs(jet.eta) < 2.6 ) {
-                        newScale = fJERSmearVsEtaFunc->Eval( jet.eta );
-                    }
-                    else {
-                        newScale = 1.0f;
-                    }
-
-                    if (newScale < 0.f) {
-                        newScale = 1.0f; // Ensure we don't apply negative smearing
-                    }
-
-                    // std::cout << "Jet eta: " << jet.eta << ", applying extraScale: " << newScale << std::endl;
-                    calculateResolutionSmearing(jet.pt, jet.eta, jet.smearedPt, newScale, fJERSmearFunc, fRndm);
+                    fJERSmearingHelper->smearMomentum(jet.pt, jet.eta, jet.smearedPt, 2);
                 }
                 else {
                     // Constant smearing: apply the same extraScale factor to all jets regardless of eta 
-                    calculateResolutionSmearing(jet.pt, jet.eta, jet.smearedPt, extraScale, fJERSmearFunc, fRndm);
+                    fJERSmearingHelper->smearMomentum(jet.pt, jet.eta, jet.smearedPt, 3, extraScale);
                 }
 
-                // Fill JES and JER for gen jets two times (just to increase statistics in these histograms)
-                if (iRun < 10) {
-                    if (iScale == 1 && hs.hGenInclusiveJetJESDefPtEta) {  // 1.0f (Default)
-                        hs.hGenInclusiveJetJESDefPtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
-                        hs.hGenInclusiveJetDefPtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
-                    }
-                    else if (iScale == 2 && hs.hGenInclusiveJetJESDefOneAndAHalfPtEta) {  // 1.5f (OneAndHalf)
-                        hs.hGenInclusiveJetJESDefOneAndAHalfPtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
-                        hs.hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
-                    }
-                    else if (iScale == 3 && hs.hGenInclusiveJetJESDefDoublePtEta) {  // 2.0f (Double)
-                        hs.hGenInclusiveJetJESDefDoublePtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
-                        hs.hGenInclusiveJetDefDoublePtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
-                    }
-                    else if (iScale == 0 && hs.hGenInclusiveJetJESDefNinetyPtEta) {  // 0.9f (Ninety)
-                        hs.hGenInclusiveJetJESDefNinetyPtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
-                        hs.hGenInclusiveJetDefNinetyPtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
-                    }
-                    else if (iScale == 4 && hs.hGenInclusiveJetJESDefExtraPtEta) {  // 3.0f (Extra/eta-dependent)
-                        hs.hGenInclusiveJetJESDefExtraPtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
-                        hs.hGenInclusiveJetDefExtraPtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
-                    }
-                } // if (iRun < 2)
+                // std::cout << ", smeared pt after smearing: " << jet.smearedPt << std::endl;
+
+                // Fill histograms for the first 10 smearing runs to avoid overfilling
+                if (iRun > 9) continue;
+
+                if (iScale == 0 && hs.hGenInclusiveJetJESDefPtEta) {  // x1.0f (Default)
+                    hs.hGenInclusiveJetJESDefPtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
+                    hs.hGenInclusiveJetDefPtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
+                }
+                else if (iScale == 1 && hs.hGenInclusiveJetJESDefDoublePtEta) {  // x2.0f (Double)
+                    hs.hGenInclusiveJetJESDefDoublePtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
+                    hs.hGenInclusiveJetDefDoublePtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
+                }
+                else if (iScale == 2 && hs.hGenInclusiveJetJESDefNinetyPtEta) {  // x0.9f (Ninety)
+                    hs.hGenInclusiveJetJESDefNinetyPtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
+                    hs.hGenInclusiveJetDefNinetyPtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
+                }
+                else if (iScale == 3 && hs.hGenInclusiveJetJESDefExtraPtEta) {  // x1.0f (Extra/eta-dependent)
+                    hs.hGenInclusiveJetJESDefExtraPtEta->Fill(jet.smearedPt / jet.pt, jet.pt, jet.eta, weight);
+                    hs.hGenInclusiveJetDefExtraPtEtaFlipped->Fill(genJetEtaLabFlipped, jet.smearedPt, weight);
+                }
             } // for (auto &jet : genJets)
 
             // Fill histograms using smeared pT accessor
@@ -1770,350 +2012,13 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
     //     (dijetEtaCMShifted >= 0.) ? hs.hGenDijetEtaCMForwardShifted[iShift]->Fill(dijetEtaCMShifted, weight) : 
     //                                 hs.hGenDijetEtaCMBackwardShifted[iShift]->Fill( std::abs(dijetEtaCMShifted), weight);
     // } // for (int iShift = 0; iShift < nEtaShifts; ++iShift)
-
-
-
-    // std::unique_ptr<TH3D> hGenInclusiveJetJESDefPtEta;
-    // std::unique_ptr<TH3D> hGenInclusiveJetJESDefOneAndAHalfPtEta;
-    // std::unique_ptr<TH3D> hGenInclusiveJetJESDefDoublePtEta;
-    // std::unique_ptr<TH3D> hGenInclusiveJetJESDefNinetyPtEta;
-}
-
-
-//________________
-/// Check if a reconstructed jet passes the selection criteria
-/// @param recoJet: the reconstructed jet object
-/// @param jetSelectionMethod: the jet selection method (0 - no selection, 1 - trackMax, 2 - jetIdTightLept, 3 - jetIdLoose)
-/// @return true if the jet is good, false otherwise
-bool isGoodRecoJet(const RecoJet &recoJet, const int &jetSelectionMethod) {
-    // jetSelectionMethod: 0 - no selection, 1 - trackMax, 2 - jetIdTightLept, 3 - jetIdLoose
-
-    bool debug = {false};
-    if (debug) {
-        std::cout << Form("\nJet parameters: ptRaw = %.2f, ptCorr = %.2f, eta = %.2f, phi = %.2f, NHF = %.3f, NEF = %.3f, CHF = %.3f, MUF = %.3f, CEF = %.3f, CHM = %d, PfCEM = %d, PfNHM = %d, PfNEM = %d, PfMUM = %d, trackMaxPt = %.2f, refPt = %.2f, refEta = %.2f jeuUp = %.2f, jeuDown = %.2f, jerDef = %.2f, jerUp = %.2f, jerDown = %.2f\n",
-                        recoJet.recoPtRaw, recoJet.recoPt, recoJet.recoEta, recoJet.recoPhi,
-                        recoJet.recoPfNHF, recoJet.recoPfNEF, recoJet.recoPfCHF,
-                        recoJet.recoPfMUF, recoJet.recoPfCEF, recoJet.recoPfCHM,
-                        recoJet.recoPfCEM, recoJet.recoPfNHM, recoJet.recoPfNEM,
-                        recoJet.recoPfMUM, recoJet.recoTrackMaxPt,
-                        recoJet.refPt, recoJet.refEta, 
-                        recoJet.recoPtJeuUp, recoJet.recoPtJeuDown, 
-                        recoJet.recoPtJerDef, recoJet.recoPtJerUp, recoJet.recoPtJerDown);
-        std::cout << Form("Jet selection method: %d\n", jetSelectionMethod);
-    }
-
-    bool isGood = false;
-    if (jetSelectionMethod == 0) {
-        isGood = true; // No selection, all jets are good
-    }
-    else if (jetSelectionMethod == 1) {
-        isGood = true;
-        if ( std::abs(recoJet.recoEta) < 2.4 ) {
-            if ( recoJet.recoTrackMaxPt / recoJet.recoPtRaw < 0.01 ) {
-                isGood = false;
-            }
-            if ( recoJet.recoTrackMaxPt / recoJet.recoPtRaw > 0.98 ) {
-                isGood = false;
-            }
-        }
-    }
-    else if (jetSelectionMethod == 2 || jetSelectionMethod == 3) {
-        isGood = true;
-        int chargedMult = recoJet.recoPfCHM + recoJet.recoPfCEM + recoJet.recoPfMUM;
-        int neutralMult = recoJet.recoPfNHM + recoJet.recoPfNEM;
-        int numberOfConstituents = chargedMult + neutralMult;
-
-        float chargedEmFracCut{1.}, neutFracCut{1.};
-        if ( jetSelectionMethod == 2 ) { 
-            chargedEmFracCut = {0.9f};
-            neutFracCut = {0.9f};
-        }
-        else {
-            chargedEmFracCut = {0.99f};
-            neutFracCut = {0.99f};
-        }
-
-        bool passNHF{false};
-        bool passNEF{false};
-        bool passNumOfConstituents{true};
-        bool passMuonFrac{true};
-        bool passChargedFrac{true};
-        bool passChargedMult{true};
-        bool passChargedEmFrac{true};
-        bool passNeutralMult{true};
-
-        if (debug) {
-            std::cout << Form("chargedMult: %d, neutralMult: %d\n", chargedMult, neutralMult);
-        }
-
-        // Check cuts depending on jet pseudorapdity
-        if ( std::abs( recoJet.recoEta ) <= 2.7 ) {
-            
-            passNHF = ( recoJet.recoPfNHF < neutFracCut ) ? true : false;
-            passNEF = ( recoJet.recoPfNEF < neutFracCut ) ? true : false;
-            passNumOfConstituents = ( numberOfConstituents > 1 ) ? true : false;
-
-            if (debug) {
-                std::cout << Form("|eta|<=2.7 NHF < neutHadronFrac: %4.3f < %4.3f -> %s\n", 
-                                  recoJet.recoPfNHF, neutFracCut, 
-                                  (passNHF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                std::cout << Form("|eta|<=2.7 NEF < neutEMFrac: %4.3f < %4.3f -> %s\n", 
-                                  recoJet.recoPfNEF, neutFracCut, 
-                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                std::cout << Form("|eta|<=2.7 numOfConstituents > 1: %d > 1 -> %s\n", 
-                                  numberOfConstituents, 
-                                  (passNumOfConstituents)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-            }
-
-            if ( jetSelectionMethod == 2 ) { 
-                passMuonFrac = ( recoJet.recoPfMUF < 0.8 ) ? true : false;
-                if (debug) {
-                    std::cout << Form("tightJetId |eta|<=2.7 MUF < 0.8: %4.3f < 0.8 -> %s\n", recoJet.recoPfMUF, (passMuonFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                }
-            } // if ( jetSelectionMethod == 2 )
-
-            if( std::abs( recoJet.recoEta ) <= 2.4 ) {
-                passChargedFrac = ( recoJet.recoPfCHF > 0 ) ? true : false;
-                passChargedMult = ( chargedMult > 0 ) ? true : false;
-                passChargedEmFrac = ( recoJet.recoPfCEF < chargedEmFracCut ) ? true : false;
-                if (debug) {
-                    std::cout << Form("|eta|<=2.4 CHF > 0: %4.3f > 0 -> %s\n", 
-                                      recoJet.recoPfCHF, 
-                                      (passChargedFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                    std::cout << Form("|eta|<=2.4 chargedMult > 0: %d > 0 -> %s\n", 
-                                      chargedMult, 
-                                      (passChargedMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                    std::cout << Form("|eta|<=2.4 CEF < chargedEmFracCut: %4.3f < %4.3f -> %s\n", 
-                                      recoJet.recoPfCEF, chargedEmFracCut, 
-                                      (passChargedEmFrac)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                }
-            } // if( std::abs( recoJetEta[jetIndex] ) <= 2.4 )
-
-            
-
-        } // if ( std::abs( recoJetEta[jetIndex] ) <= 2.7 )
-        else if ( std::abs( recoJet.recoEta ) <= 3.0) {
-
-            passNEF = ( recoJet.recoPfNEF > 0.01 ) ? true : false;
-            passNHF = ( recoJet.recoPfNHF < 0.98 ) ? true : false;
-            passNeutralMult = ( neutralMult > 2 ) ? true : false;
-
-            if (debug) {
-                std::cout << Form("|eta|<=3.0 NEF > 0.01: %4.3f > 0.01 -> %s\n", 
-                                  recoJet.recoPfNEF, 
-                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                std::cout << Form("|eta|<=3.0 NHF < 0.98: %4.3f < 0.98 -> %s\n", 
-                                  recoJet.recoPfNHF, 
-                                  (passNHF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                std::cout << Form("|eta|<=3.0 neutralMult > 2: %d > 2 -> %s\n", 
-                                  neutralMult, 
-                                  (passNeutralMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-            }
-
-        } // else if ( std::abs( recoJetEta[jetIndex] ) <= 3.0)
-        else  {
-            passNEF = ( recoJet.recoPfNEF < 0.9 ) ? true : false;
-            passNeutralMult = (neutralMult > 10 ) ? true : false; // CAUTION: JET MET says it should be >10
-            if (debug) {
-                std::cout << Form("|eta|>3.0 NEF < 0.9: %4.3f < 0.9 -> %s\n", 
-                                  recoJet.recoPfNEF, 
-                                  (passNEF)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-                std::cout << Form("|eta|>3.0 neutralMult > 10: %d > 10 -> %s\n", 
-                                  neutralMult, 
-                                  (passNeutralMult)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-            }
-        } // else 
-
-        isGood = passNHF && passNEF && passNumOfConstituents && passMuonFrac && passChargedFrac && 
-                 passChargedMult && passChargedEmFrac && passNeutralMult;
-
-        if (debug) {
-            std::cout << Form("Jet selection method: %d, isGood: %s\n", 
-                              jetSelectionMethod, 
-                              (isGood)?Form("%sPASS%s",GREEN,RESET):Form("%sFAIL%s",RED,RESET));
-        }
-
-        // std::cout << Form("Jet %d: passNHF: %d, passNEF: %d, passNumOfConstituents: %d, passMuonFrac: %d, passChargedFrac: %d, passChargedMult: %d, passChargedEmFrac: %d, passNeutralMult: %d \t [isGood: %d]\n",
-        //                   jetIndex, passNHF, passNEF, passNumOfConstituents, passMuonFrac, passChargedFrac, 
-        //                   passChargedMult, passChargedEmFrac, passNeutralMult, isGood);
-    } // else if (jetSelectionMethod == 2 || jetSelectionMethod == 3)
-    else {
-        std::cerr << RED << Form("Invalid jet selection method: %d. No selection will be applied.", jetSelectionMethod) << RESET << std::endl;
-        isGood = true;
-    }
-
-    return isGood;
-}
-
-
-//________________
-void calculateResolutionSmearing(const float &refPt, const float &recoEta, float &ptReco, const float &extraScale,
-                                 TF1 *fJERSmearFunc, TRandom3 *fRndm) {
-    
-    double sigmaSmear{0.};
-    double evalValue{0.};
-    if ( refPt <= 30.) {
-        evalValue = fJERSmearFunc->Eval( 31. );
-    }
-    else if ( refPt >= 800 ) {
-        evalValue = fJERSmearFunc->Eval( 799. );
-    }
-    else {
-        evalValue = fJERSmearFunc->Eval( refPt );
-    }
-    sigmaSmear = extraScale * evalValue;
-
-    double smearFactor = 1. + fRndm->Gaus( 0., sigmaSmear );
-    while ( smearFactor < 0. ) {
-        smearFactor = 1. + fRndm->Gaus( 0., sigmaSmear );
-    }
-    ptReco *= smearFactor;
-}
-
-//________________
-/// Calculate smeared momentum correction due to JER (JER: default, up and down).
-/// @param refPt: input reference pT used to compute smearing
-/// @param recoEta: reconstructed jet pseudorapidity used to select JER bin
-/// @param ptDefCorr: output smeared pT component for default JER (initial value is refPt)
-/// @param ptUpCorr: output smeared pT component for JER up variation (initial value is refPt)
-/// @param ptDownCorr: output smeared pT component for JER down variation (initial value is refPt)
-/// @param ptDefNoScaleCorr: output smeared pT component without additional scale (initial value is refPt)
-/// @param fJERSmearFunc: TF1 pointer to JER smearing function vs pT (can be nullptr)
-/// @param fRndm: TRandom3 pointer for random numbers (can be nullptr to use std::random)
-void calculateResolutionSmearing(const float &refPt, const float &recoEta, 
-                                 float &ptDefCorr, float &ptUpCorr, float &ptDownCorr, float &ptDefNoScaleCorr, 
-                                 TF1 *fJERSmearFunc, TRandom3 *fRndm) {
-    // Find eta bin for JER constants: fJerEtaLow <= recoEta < fJerEtaHi
-    int iEtaBin = -1;
-    for (size_t i = 0; i < fJerEtaLow.size(); ++i) {
-        if ( fJerEtaLow[i] <= recoEta && recoEta < fJerEtaHi[i] ) {
-            iEtaBin = static_cast<int>(i);
-            break;
-        }
-    }
-
-    if ( iEtaBin < 0 ) {
-        std::cerr << RED << Form("No JER bin found for eta = %f", recoEta) << RESET<< std::endl;
-        return;
-    }
-
-    double scaleFactorDef = std::sqrt( std::max(fJerDef[iEtaBin] * fJerDef[iEtaBin] - 1., 0.) );
-    double scaleFactorUp = std::sqrt( std::max(fJerHi[iEtaBin] * fJerHi[iEtaBin] - 1., 0.) );
-    double scaleFactorDown = std::sqrt( std::max(fJerLow[iEtaBin] * fJerLow[iEtaBin] - 1., 0.) );
-
-    // std::cout << Form("JER scale factors for eta = %f: etaBin: %d, sfDef = %f, sfUp = %f, sfDown = %f, fJerDef = %f, fJerHi = %f, fJerLow = %f", 
-    //                   recoEta, iEtaBin,
-    //                   scaleFactorDef, scaleFactorUp, scaleFactorDown, 
-    //                   fJerDef[iEtaBin], fJerHi[iEtaBin], fJerLow[iEtaBin]) << std::endl;
-
-    // Temporarily set to 1
-    // scaleFactorDef = 1.;
-    // scaleFactorUp = 1.;
-    // scaleFactorDown = 1.;
-
-    double sigmaSmearDef{0.};
-    double sigmaSmearUp{0.};
-    double sigmaSmearDown{0.};
-    double sigmaSmearDefNoScale{0.};
-
-    double evalValue{0.};
-    if ( refPt <= 30.) {
-        evalValue = fJERSmearFunc->Eval( 31. );
-    }
-    else if ( refPt >= 800 ) {
-        evalValue = fJERSmearFunc->Eval( 799. );
-    }
-    else {
-        evalValue = fJERSmearFunc->Eval( refPt );
-    }
-    sigmaSmearDef = scaleFactorDef * evalValue;
-    sigmaSmearDefNoScale = evalValue;
-    sigmaSmearUp = scaleFactorUp * evalValue;
-    sigmaSmearDown = scaleFactorDown * evalValue;
-
-    double extraCorrDef = 1. + fRndm->Gaus( 0., sigmaSmearDef );
-    while ( extraCorrDef < 0. ) {
-        extraCorrDef = 1. + fRndm->Gaus( 0., sigmaSmearDef );
-    }
-    double extraCorrDefNoScale = 1. + fRndm->Gaus( 0., sigmaSmearDefNoScale );
-    while ( extraCorrDefNoScale < 0. ) {
-        extraCorrDefNoScale = 1. + fRndm->Gaus( 0., sigmaSmearDefNoScale );
-    }
-    double extraCorrUp = 1. + fRndm->Gaus( 0., sigmaSmearUp );
-    while ( extraCorrUp < 0. ) {
-        extraCorrUp = 1. + fRndm->Gaus( 0., sigmaSmearUp );
-    }
-    double extraCorrDown = 1. + fRndm->Gaus( 0., sigmaSmearDown );
-    while ( extraCorrDown < 0. ) {
-        extraCorrDown = 1. + fRndm->Gaus( 0., sigmaSmearDown );
-    }
-
-    ptDefCorr *= extraCorrDef;
-    ptDefNoScaleCorr *= extraCorrDefNoScale;
-    ptUpCorr *= extraCorrUp;
-    ptDownCorr *= extraCorrDown;
-
-    // std::cout << Form("refPt: %f, eta: %f jerBin: %d eval: %f", ptRef, eta, iEtaBin, evalValue) << std::endl;
-    // std::cout << Form("Default: %f sf: %f, sigma: %f, extraCorr: %f, ptSmeared: %f", fJerDef[iEtaBin], scaleFactorDef, sigmaSmearDef, extraCorrDef, ptDef) << std::endl;
-    // std::cout << Form("Default no scale: %f sf: %f, sigma: %f, extraCorr: %f, ptSmeared: %f", fJerDef[iEtaBin], 1.f, sigmaSmearDefNoScale, extraCorrDefNoScale, ptDefNoScale) << std::endl;
-    // std::cout << Form("Up: %f sf: %f, sigma: %f, extraCorr: %f, ptSmeared: %f", fJerHi[iEtaBin], scaleFactorUp, sigmaSmearUp, extraCorrUp, ptUp) << std::endl;
-    // std::cout << Form("Down: %f sf: %f, sigma: %f, extraCorr: %f, ptSmeared: %f", fJerLow[iEtaBin], scaleFactorDown, sigmaSmearDown, extraCorrDown, ptDown) << std::endl;
-    // std::cout << Form("refPt: %f, smeared ptDef: %f, ptDefNoScale: %f, ptUp: %f, ptDown: %f", ptRef, ptRef+ptDef, ptRef+ptDefNoScale, ptRef+ptUp, ptRef+ptDown) << std::endl;
-}
-
-//________________
-void calculateScaleSmearing(float &ptDef, const float &eta) {
-    float scaleFactor = 1.f;
-    // if ( 30.f < ptDef && ptDef < 50.f ) {
-    //     // Find bin for the given eta
-    //     // scaleFactor = jesValues_pt_30_50(iBin)
-    // }
-    // else if ( 50.f <= ptDef && ptDef < 80.f ) {
-    //     // scaleFactor = 1.01f; // 1% up
-    // }
-    // else if ( 80.f <= ptDef && ptDef < 120.f ) {
-    //     // scaleFactor = 1.005f; // 0.5% up
-    // }
-    ptDef *= scaleFactor;
-}
-
-//________________
-/// Calculate momentum smearing (JER: defatul, up and down)
-/// @param ptDef: default pt (initial value is refPt)
-/// @param ptUp: up pt (initial value is refPt)
-/// @param ptDown: down pt (initial value is refPt)
-/// @param ptDefNoScale: default pt without scaling (initial value is refPt)
-/// @param eta: reco jet pseudorapidity
-/// @param fJERSmearFunc: JER smearing function vs pT
-/// @param fRndm: random number generator (can be nullptr to use std::random)
-void calculateSmearedMomentum(const float &recoPtCorr, const float &refPt, const float &recoEta, 
-                              float &ptDef, float &ptUp, float &ptDown, float &ptDefNoScale, 
-                              TF1 *fJERSmearFunc, TRandom3 *fRndm) {
-
-    // The next variables will store only the smearing component (i.e., the additional momentum due to JER), 
-    // which will be added to the scaled pt later
-
-    ptDef = recoPtCorr;
-    ptUp = recoPtCorr;
-    ptDown = recoPtCorr;
-    ptDefNoScale = refPt;
-
-    // Apply the scale factor first
-    calculateScaleSmearing(ptDef, recoEta);
-    calculateScaleSmearing(ptUp, recoEta);
-    calculateScaleSmearing(ptDown, recoEta);
-    calculateScaleSmearing(ptDefNoScale, recoEta);
-
-    // Peform the resolution smearing
-    calculateResolutionSmearing(refPt, recoEta, ptDef, ptUp, ptDown, ptDefNoScale, fJERSmearFunc, fRndm);
 }
 
 //________________
 void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weight, 
                      std::vector<RecoJet> &recoJets, Histograms &hs,
                      JetUncertainty &jeu,
-                     const int &jetSelectionMethod, const double &ptHat,
-                     TF1 *fJERSmearFunc, TRandom3 *fRndm) {
+                     const int &jetSelectionMethod, const double &ptHat) {
     
     float recoJetEtaLabFlipped{0.};
     bool  hasMatchingGenJet{false};
@@ -2133,64 +2038,12 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
         // std::cout << Form("Jet: eta = %.2f, phi = %.2f, rawPt = %.1f, recoPt = %.1f", 
         //                   recoJet.recoEta, recoJet.recoPhi, recoJet.recoRawPt, recoJet.recoPt) << std::endl;
 
-        // Original correction
-        if (recoJet.recoPt > 80.f && recoJet.recoPt < 120.f) {
-            hs.hRecoInclusiveJetEtaPt80To120->Fill(recoJet.recoEta, weight);
-            if (recoJet.refPt > 0) {
-                hs.hRecoInclusiveJetEtaPtMatched80To120->Fill(recoJet.recoEta, weight);
-                hs.hRefInclusiveJetEtaPt80To120->Fill(recoJet.refEta, weight);
-            }
-        }
-
         // Perform JES & JER smearing calculations
         if (isMc ) {
             if (hasMatchingGenJet) {
 
-                calculateSmearedMomentum(recoJet.recoPt, recoJet.refPt, recoJet.recoEta,
-                                         recoJet.recoPtJerDef , recoJet.recoPtJerUp, recoJet.recoPtJerDown, recoJet.recoPtJerDefNoSF, 
-                                         fJERSmearFunc, fRndm);
-                recoJet.recoPtJerDefDoubleSF = recoJet.refPt;
-                recoJet.recoPtJerDefNinetySF = recoJet.refPt;
-                calculateResolutionSmearing(recoJet.refPt, recoJet.recoEta, recoJet.recoPtJerDefDoubleSF, 2.f, fJERSmearFunc, fRndm);
-                calculateResolutionSmearing(recoJet.refPt, recoJet.recoEta, recoJet.recoPtJerDefNinetySF, 0.9f, fJERSmearFunc, fRndm);
-
                 hs.hRecoInclusiveJetJESPtEta->Fill(recoJet.recoPt / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-                hs.hRecoInclusiveJetJESDefNoSFPtEta->Fill(recoJet.recoPtJerDefNoSF / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-                hs.hRecoInclusiveJetJESDefDoublePtEta->Fill(recoJet.recoPtJerDefDoubleSF / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-                hs.hRecoInclusiveJetJESDefNinetyPtEta->Fill(recoJet.recoPtJerDefNinetySF / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-                hs.hRecoInclusiveJetJESDefPtEta->Fill(recoJet.recoPtJerDef / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-                hs.hRecoInclusiveJetJESUpPtEta->Fill(recoJet.recoPtJerUp / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-                hs.hRecoInclusiveJetJESDownPtEta->Fill(recoJet.recoPtJerDown / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
-
-                
-
-                // Smeared, but without JER scaling factor (SF)
-                if (recoJet.recoPtJerDefNoSF > 80.f && recoJet.recoPtJerDefNoSF < 120.f) {
-                    hs.hRecoInclusiveJetEtaPtDefNoSF80To120->Fill(recoJet.recoEta, weight);
-                }
-                // Smeared with JER scaling factor (SF), a.k.a. standard JER 
-                if (recoJet.recoPtJerDef > 80.f && recoJet.recoPtJerDef < 120.f) {
-                    hs.hRecoInclusiveJetEtaPtDef80To120->Fill(recoJet.recoEta, weight);
-                }
-
-                // if ( std::abs( recoJet.recoEta) > 0.8f && recoJet.recoPtJerDef > 15.f) {
-                //     extraCorrFactor = jerExtraScalingForEta( recoJet.recoEta, recoJet.refPt, isMc);
-                //     // std::cout << Form("eta = %.2f, refPt = %.1f, recoJetPtJerDef = %.1f, extraCorrFactor: %.3f", 
-                //                          recoJet.recoEta, recoJet.refPt, recoJet.recoPtJerDef, extraCorrFactor) << std::endl;
-                //     // recoJet.recoPtJerDefNoSF *= extraCorrFactor;
-                //     // recoJetPtJerDef *= extraCorrFactor;
-                //     // recoJetPtJerUp *= extraCorrFactor;
-                //     // recoJetPtJerDown *= extraCorrFactor;
-                // }
-                // // Smeared + eta dependence, but without JER scaling factor (SF)
-                // if (recoJet.recoPtJerDefNoSF * extraCorrFactor > 80.f && recoJet.recoPtJerDefNoSF * extraCorrFactor < 120.f) {
-                //     hs.hRecoInclusiveJetEtaPtDefExtraNoSF80To120->Fill(recoJet.recoEta, weight);
-                // }
-                // // Smeared + eta dependence with JER scaling factor (SF)
-                // if (recoJetPtJerDef * extraCorrFactor > 80.f && recoJetPtJerDef * extraCorrFactor < 120.f) {
-                //     hs.hRecoInclusiveJetEtaPtDefExtra80To120->Fill(recoJet.recoEta, weight);
-                // }
-
+              
                 // Fill reference jet histograms
                 hs.hRefInclusiveJetPtEtaLabUnflipped->Fill(recoJet.refEta, recoJet.refPt, weight);
                 hs.hRefInclusiveJetEtaLabUnflipped->Fill(recoJet.refEta, weight);
@@ -2198,13 +2051,6 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
                 hs.hRefInclusiveJetPt->Fill(recoJet.refPt, weight);
                 hs.hRefInclusiveJetPtEtaStdBins->Fill(recoJet.refEta, recoJet.refPt, weight);
             } // if (hasMatchingGenJet)
-            else { 
-                // If no matching gen jet, we cannot apply JER smearing, 
-                // so we will just set the JER variations to the reconstructed pT (i.e., no smearing)
-                recoJet.recoPtJerDef = -1.f; // Set to -1 to indicate no smearing applied
-                recoJet.recoPtJerUp = -1.f;
-                recoJet.recoPtJerDown = -1.f;
-            }
         } // if (isMc )
 
         // Perform JEU calculations
@@ -2235,8 +2081,88 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
 }
 
 //________________
+void processRefDijets(const bool &isPbGoing, const bool &isMc, const float &weight, 
+                       std::vector<RecoJet> &recoJets, Histograms &hs) {
+
+    // std::cout << "processRefDijets input parameters:" << std::endl;
+    // std::cout << "  isPbGoing: " << (isPbGoing ? "true" : "false") << std::endl;
+    // std::cout << "  isMc: " << (isMc ? "true" : "false") << std::endl;
+    // std::cout << "  weight: " << weight << std::endl;
+    // std::cout << "  recoJets.size(): " << recoJets.size() << std::endl;
+
+    // Must be at least 2 jets to form a dijet system
+    if (recoJets.size() < 2) return;
+
+    // fillRecoDijetSystematic:
+    // - `getPt`: callable taking `const RecoJet&` and returning the pT value
+    //   used for ordering and dijet pT calculations (float-like).
+    // - Makes a local copy of `recoJets` and sorts it descending by `getPt`
+    //   so the outer `recoJets` order is not mutated.
+    // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
+    //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
+    //   2D histograms (`recoFull/Forward/Backward`).
+    // - If optional ref arrays are provided and both jets have `refPt > 0`,
+    //   the corresponding reference histograms are filled using the ref pT.
+    // - Passing different accessors (e.g. `recoPt`, `recoPtJerUp`) lets this
+    //   lambda fill nominal and systematic variations without duplicating code.
+    auto fillRefDijetSystematic = [&](auto getPt,
+                                       std::unique_ptr<TH2D> *refFullArr,
+                                       std::unique_ptr<TH2D> *refForwardArr,
+                                       std::unique_ptr<TH2D> *refBackwardArr) {
+        std::vector<RecoJet> sortedJets = recoJets;
+        std::sort(sortedJets.begin(), sortedJets.end(), [&](const RecoJet &a, const RecoJet &b) {
+            return getPt(a) > getPt(b);
+        });
+
+        const auto &leadingJetSyst = sortedJets[0];
+        const auto &subleadingJetSyst = sortedJets[1];
+        // pT cuts for systematic variations (can be adjusted as needed)
+        if (getPt(leadingJetSyst) < 50.f || getPt(subleadingJetSyst) < 40.f) return; 
+        float systDphi = leadingJetSyst.refPhi - subleadingJetSyst.refPhi;
+        if (systDphi > TMath::Pi()) systDphi -= TMath::TwoPi();
+        if (systDphi < -TMath::Pi()) systDphi += TMath::TwoPi();
+        if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
+
+        float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
+
+        for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+            float leadEtaCM = etaCM(leadingJetSyst.refEta, 0.465f, isPbGoing, isMc);
+            float subleadEtaCM = etaCM(subleadingJetSyst.refEta, 0.465f, isPbGoing, isMc);
+            if (std::abs(leadEtaCM) > etaCuts[iCut] || std::abs(subleadEtaCM) > etaCuts[iCut]) continue;
+
+            float systDijetEtaCM = 0.5f * (leadEtaCM + subleadEtaCM);
+
+            refFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
+            if (refFullArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
+                refFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
+            }
+
+            if (systDijetEtaCM >= 0.) {
+                refForwardArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
+                if (refForwardArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
+                    refForwardArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
+                }
+            }
+            else {
+                refBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(systDijetEtaCM), weight);
+                if (refBackwardArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
+                    refBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(systDijetEtaCM), weight);
+                }
+            }
+        } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
+    };
+
+    // Fill nominal dijet histograms
+    fillRefDijetSystematic([](const RecoJet &jet) { return jet.refPt; },
+                           hs.hRefSelDijetPtEtaCMArr,
+                           hs.hRefSelDijetPtEtaForwardArr,
+                           hs.hRefSelDijetPtEtaBackwardArr);
+}
+
+//________________
 void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &weight, 
                        std::vector<RecoJet> &recoJets, Histograms &hs,
+                       JERSmearingHelper *fJERSmearingHelper,
                        const bool &doJerSyst = false, const bool &doJeuSyst = false) {
 
     // std::cout << "processRecoDijets input parameters:" << std::endl;
@@ -2332,40 +2258,342 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
 
     // Fill JER systematic dijet histograms if requested
     if (isMc && doJerSyst) {
-        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPtJerDef; },
-                                hs.hRecoDijetPtEtaCMArrJerDef,
-                                hs.hRecoDijetPtEtaForwardArrJerDef,
-                                hs.hRecoDijetPtEtaBackwardArrJerDef,
-                                hs.hRefDijetPtEtaCMArrJerDef,
-                                hs.hRefDijetPtEtaForwardArrJerDef,
-                                hs.hRefDijetPtEtaBackwardArrJerDef);
-        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPtJerUp; },
-                                hs.hRecoDijetPtEtaCMArrJerUp,
-                                hs.hRecoDijetPtEtaForwardArrJerUp,
-                                hs.hRecoDijetPtEtaBackwardArrJerUp,
-                                hs.hRefDijetPtEtaCMArrJerUp,
-                                hs.hRefDijetPtEtaForwardArrJerUp,
-                                hs.hRefDijetPtEtaBackwardArrJerUp);
-        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPtJerDown; },
-                                hs.hRecoDijetPtEtaCMArrJerDown,
-                                hs.hRecoDijetPtEtaForwardArrJerDown,
-                                hs.hRecoDijetPtEtaBackwardArrJerDown,
-                                hs.hRefDijetPtEtaCMArrJerDown,
-                                hs.hRefDijetPtEtaForwardArrJerDown,
-                                hs.hRefDijetPtEtaBackwardArrJerDown);
-        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPtJerDefNoSF; },
-                                hs.hRecoDijetPtEtaCMArrJerDefNoSF,
-                                hs.hRecoDijetPtEtaForwardArrJerDefNoSF,
-                                hs.hRecoDijetPtEtaBackwardArrJerDefNoSF);
-        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPtJerDefDoubleSF; },
-                                hs.hRecoDijetPtEtaCMArrJerDefDoubleSF,
-                                hs.hRecoDijetPtEtaForwardArrJerDefDoubleSF,
-                                hs.hRecoDijetPtEtaBackwardArrJerDefDoubleSF);
-        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPtJerDefNinetySF; },
-                                hs.hRecoDijetPtEtaCMArrJerDefNinetySF,
-                                hs.hRecoDijetPtEtaForwardArrJerDefNinetySF,
-                                hs.hRecoDijetPtEtaBackwardArrJerDefNinetySF);
+
+        // Number of iterations for smearing
+        const int nSmearRounds = 10;
+        // 1.0, double, and 90% scale factors, def down, jer def, jer up
+        std::array<float, 6> jerScaleFactors = {1.f, 2.f, 0.9f, 1.0f, 1.0f, 1.0f}; 
+
+        // Loop over smearing rounds
+        for (int iIter = 0; iIter < nSmearRounds; ++iIter) {
+
+            // Loop over the scale factors for JER smearing
+            for (int iScale = 0; iScale < static_cast<int>(jerScaleFactors.size()); ++iScale) {
+                
+                // Loop over reconstructed jets and apply JER smearing
+                for (auto &recoJet : recoJets) {
+                    // Skip jets without a matching gen jet
+                    if (recoJet.refPt < 0) continue;
+                    // Initialize smeared pT with the reference pT
+                    recoJet.refPtSmeared = recoJet.refPt;
+
+                    // Apply the resolution smearing with the specified scale factor
+                    if (iScale < 3) { // For the first three scales, apply smearing with the scale factor
+                        fJERSmearingHelper->smearMomentum(recoJet.refPt, recoJet.recoEta, recoJet.refPtSmeared, 3, jerScaleFactors[iScale]);
+                    } 
+                    else { // For the last three scales (jer down, def, up), use the default settings of the helper
+                        fJERSmearingHelper->smearMomentum(recoJet.refPt, recoJet.recoEta, recoJet.refPtSmeared, iScale - 4);
+                    }
+                    
+                    // Skip filling histograms for the first 10 iterations to avoid overfilling
+                    if (iIter > 9) continue; 
+
+                    if (iScale == 0) { // JER def no SF (x1.0)
+                        hs.hRecoInclusiveJetJESDefNoSFPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                    }
+                    if (iScale == 1) { // JER def double SF (x2.0)
+                        hs.hRecoInclusiveJetJESDefDoublePtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                    }
+                    if (iScale == 2) { // JER def ninety SF (x0.9)
+                        hs.hRecoInclusiveJetJESDefNinetyPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                    }
+                    if (iScale == 3) { // JER down
+                        hs.hRecoInclusiveJetJESDownPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                    }   
+                    if (iScale == 4) { // JER def
+                        hs.hRecoInclusiveJetJESDefPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                    }
+                    if (iScale == 5) { // JER up
+                        hs.hRecoInclusiveJetJESUpPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                    }
+                } // for (const auto &recoJet : recoJets)
+
+                if (iScale == 0) { // JER def no SF (x1.0)
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerDefNoSF,
+                                            hs.hRecoDijetPtEtaForwardArrJerDefNoSF,
+                                            hs.hRecoDijetPtEtaBackwardArrJerDefNoSF);
+                }
+                else if (iScale == 1) { // JER def double SF (x2.0)
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerDefDoubleSF,
+                                            hs.hRecoDijetPtEtaForwardArrJerDefDoubleSF,
+                                            hs.hRecoDijetPtEtaBackwardArrJerDefDoubleSF);
+                }
+                else if (iScale == 2) { // JER def ninety SF (x0.9)
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerDefNinetySF,
+                                            hs.hRecoDijetPtEtaForwardArrJerDefNinetySF,
+                                            hs.hRecoDijetPtEtaBackwardArrJerDefNinetySF);
+                }
+                else if (iScale == 3) { // JER down
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerDown,
+                                            hs.hRecoDijetPtEtaForwardArrJerDown,
+                                            hs.hRecoDijetPtEtaBackwardArrJerDown,
+                                            hs.hRefDijetPtEtaCMArrJerDown,
+                                            hs.hRefDijetPtEtaForwardArrJerDown,
+                                            hs.hRefDijetPtEtaBackwardArrJerDown);
+                }
+                else if (iScale == 4) { // JER def
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerDef,
+                                            hs.hRecoDijetPtEtaForwardArrJerDef,
+                                            hs.hRecoDijetPtEtaBackwardArrJerDef,
+                                            hs.hRefDijetPtEtaCMArrJerDef,
+                                            hs.hRefDijetPtEtaForwardArrJerDef,
+                                            hs.hRefDijetPtEtaBackwardArrJerDef);
+                }
+                else if (iScale == 5) { // JER up
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerUp,
+                                            hs.hRecoDijetPtEtaForwardArrJerUp,
+                                            hs.hRecoDijetPtEtaBackwardArrJerUp,
+                                            hs.hRefDijetPtEtaCMArrJerUp,
+                                            hs.hRefDijetPtEtaForwardArrJerUp,
+                                            hs.hRefDijetPtEtaBackwardArrJerUp);
+                }
+            } // for (int iScale = 0; iScale < static_cast<int>(jerScaleFactors.size()); ++iScale)
+        } // for (int iIter = 0; iIter < nSmearRounds; ++iIter)
+
+    } // if (isMc && doJerSyst)
+}
+
+//________________
+void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weight, 
+                      std::vector<GenJet> &genJets, std::vector<RecoJet> &recoJets, 
+                      Histograms &hs) {
+
+    if (!isMc) return; // Only prepare unfolding for MC
+    
+
+    auto wrapDeltaPhi = [](float dphi) {
+        if (dphi > TMath::Pi()) dphi -= TMath::TwoPi();
+        if (dphi < -TMath::Pi()) dphi += TMath::TwoPi();
+        return dphi;
+    };
+
+    auto deltaR2 = [&](float eta1, float phi1, float eta2, float phi2) {
+        float dEta = eta1 - eta2;
+        float dPhi = wrapDeltaPhi(phi1 - phi2);
+        return dEta * dEta + dPhi * dPhi;
+    };
+
+    auto goodPair = [](float leadPt, float subleadPt, float leadEtaCM, float subleadEtaCM, float dphi, float etaCut) {
+        return ( leadPt >= 50. && subleadPt >=50. && 
+                 std::abs(leadEtaCM) <= etaCut && std::abs(subleadEtaCM) <= etaCut &&
+                 std::abs(dphi) >= TMath::TwoPi() / 3.);
     }
+
+    // Sort gen jets by pT in descending order to identify leading and subleading jets
+    std::sort(genJets.begin(), genJets.end(), [&](const GenJet &a, const GenJet &b) {
+            return a.pt > b.pt;
+    });
+
+    // Sort reco jets by pT in descending order to identify leading and subleading jets
+    std::sort(recoJets.begin(), recoJets.end(), [&](const RecoJet &a, const RecoJet &b) {
+            return a.recoPt > b.recoPt;
+    });
+
+    //
+    // Get leading and subleading gen jets and dijet properties
+    //
+
+    GenJet genLeadingJet;
+    GenJet genSubleadingJet;
+
+    float genLeadingJetPt = {-99.f};
+    float genLeadingJetEtaCM = {-99.f};
+    float genLeadingJetPhi = {0.f};
+
+    float genSubleadingJetPt = {-99.f};
+    float genSubleadingJetEtaCM = {-99.f};
+    float genSubleadingJetPhi = {0.f};
+
+    float genDijetPtAve = {-99.f};
+    float genDijetEtaCM = {-99.f};
+    float genDijetDeltaPhi = {0.f};
+
+    bool has2genJets = (genJets.size() >= 2);
+    bool genPairPass = {false};
+
+    if (has2genJets) {
+        genLeadingJet = genJets[0];
+        genSubleadingJet = genJets[1];
+
+        genLeadingJetPt = genLeadingJet.pt;
+        genLeadingJetEtaCM = etaCM(genLeadingJet.eta, 0.465f, isPbGoing, isMc);
+        genLeadingJetPhi = genLeadingJet.phi;
+
+        genSubleadingJetPt = genSubleadingJet.pt;
+        genSubleadingJetEtaCM = etaCM(genSubleadingJet.eta, 0.465f, isPbGoing, isMc);
+        genSubleadingJetPhi = genSubleadingJet.phi;
+
+        genDijetPtAve = 0.5 * (genLeadingJetPt + genSubleadingJetPt);
+        genDijetEtaCM = 0.5 * (genLeadingJetEtaCM + genSubleadingJetEtaCM);
+        genDijetDeltaPhi = wrapDeltaPhi(genLeadingJetPhi - genSubleadingJetPhi);
+
+        genPairPass = ( genLeadingJetPt >= 50. && genSubleadingJetPt >= 40. &&
+                        std::abs(genLeadingJetEtaCM) <= etaCuts[iCut] &&
+                        std::abs(genSubleadingJetEtaCM) <= etaCuts[iCut] &&
+                        std::abs(genDijetDeltaPhi) >= twoPiOverThree );
+    } // if (has2genJets)
+
+    //
+    // Reco leading and subleading jets and dijet properties
+    //
+    RecoJet recoLeadingJet;
+    RecoJet recoSubleadingJet;
+
+    bool directMatching = {false};
+    bool swapMatching = {false};
+    bool goodMatching = {false};
+
+    bool has2recoJets = (recoJets.size() >= 2);
+    float recoLeadingJetPt = {-99.f};
+    float recoLeadingJetEtaCM = {-99.f};
+    float recoLeadingJetPhi = {0.f};
+    bool  recoLeadingJetMatchesLeadingGenJet = {false};
+    float refLeadingJetPt = {-99.f};
+    float refLeadingJetEtaCM = {-99.f};
+
+    float recoSubleadingJetPt = {-99.f};
+    float recoSubleadingJetEtaCM = {-99.f};
+    float recoSubleadingJetPhi = {0.f};
+    bool recoSubleadingJetMatchesSubleadingGenJet = {false};
+    float refSubleadingJetPt = {-99.f};
+    float refSubleadingJetEtaCM = {-99.f};
+
+    float recoDijetPtAve = {-99.f};
+    float recoDijetEtaCM = {-99.f};
+    float recoDijetDeltaPhi = {0.f};
+
+    float refDijetPtAve = {-99.f};
+    float refDijetEtaCM = {-99.f};
+
+    bool recoPairPass = {false};
+
+    if (has2recoJets) {
+        // Get leading and subleading reco jets
+        recoLeadingJet = recoJets[0];
+        recoSubleadingJet = recoJets[1];
+
+        recoLeadingJetPt = recoLeadingJet.recoPt;
+        recoLeadingJetEtaCM = etaCM(recoLeadingJet.recoEta, 0.465f, isPbGoing, isMc);
+        recoLeadingJetPhi = recoLeadingJet.recoPhi;
+
+        recoSubleadingJetPt = recoSubleadingJet.recoPt;
+        recoSubleadingJetEtaCM = etaCM(recoSubleadingJet.recoEta, 0.465f, isPbGoing, isMc);
+        recoSubleadingJetPhi = recoSubleadingJet.recoPhi;
+
+        recoDijetPtAve = 0.5 * (recoLeadingJetPt + recoSubleadingJetPt);
+        recoDijetEtaCM = 0.5 * (recoLeadingJetEtaCM + recoSubleadingJetEtaCM);
+        recoDijetDeltaPhi = wrapDeltaPhi(recoLeadingJetPhi - recoSubleadingJetPhi);
+
+        recoPairPass = ( recoLeadingJetPt >= 50. && recoSubleadingJetPt >= 40. &&
+                         std::abs(recoLeadingJetEtaCM) <= etaCuts[iCut] && 
+                         std::abs(recoSubleadingJetPt) <= etaCuts[iCut] &&
+                         std::abs(recoDijetDeltaPhi) >= twoPiOverThree );
+
+        // Define the deltaR cut for matching
+        if (has2genJets) {
+            const float deltaRCut2 = 0.2f * 0.2f;
+            if (recoLeadingJet.refPt > 0 && recoSubleadingJet.refPt > 0) {
+                directMatching = (deltaR2(recoLeadingJet.recoEta, recoLeadingJetPhi, genLeadingJet.eta, genLeadingJetPhi) < deltaRCut2) &&
+                                 (deltaR2(recoSubleadingJet.recoEta, recoSubleadingJetPhi, genSubleadingJet.eta, genSubleadingJetPhi) < deltaRCut2);
+                swapMatching = (deltaR2(recoLeadingJet.recoEta, recoLeadingJetPhi, genSubleadingJet.eta, genSubleadingJetPhi) < deltaRCut2) &&
+                               (deltaR2(recoSubleadingJet.recoEta, recoSubleadingJetPhi, genLeadingJet.eta, genLeadingJetPhi) < deltaRCut2);
+                goodMatching = directMatching || swapMatching;
+
+            } // if (recoLeadingJet.refPt > 0 && recoSubleadingJet.refPt > 0) 
+        } // if (has2genJets)
+    } // if (has2recoJets)
+
+    // Make this loop outside to simplify the code and avoid unnecessary computations for it later
+    for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+
+        genPairPass = goodPair(genLeadingJetPt, genSubleadingJetPt, genLeadingJetEtaCM, genSubleadingJetEtaCM, genDijetDeltaPhi, etaCuts[iCut]);
+        recoPairPass = goodPair(recoLeadingJetPt, recoSubleadingJetPt, recoLeadingJetEtaCM, recoSubleadingJetEtaCM, recoDijetDeltaPhi, etaCuts[iCut]);
+
+        if (genPairPass && recoPairPass && goodMatching) {
+
+        } // if (genPairPass && recoPairPass && goodMatching)
+        
+    } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
+
+
+    if (has2recoJets) {
+        // Get leading and subleading reco jets
+        recoLeadingJet = recoJets[0];
+        recoSubleadingJet = recoJets[1];
+
+        recoLeadingJetPt = recoLeadingJet.recoPt;
+        recoLeadingJetEtaCM = etaCM(recoLeadingJet.recoEta, 0.465f, isPbGoing, isMc);
+        recoLeadingJetPhi = recoLeadingJet.recoPhi;
+
+        recoSubleadingJetPt = recoSubleadingJet.recoPt;
+        recoSubleadingJetEtaCM = etaCM(recoSubleadingJet.recoEta, 0.465f, isPbGoing, isMc);
+        recoSubleadingJetPhi = recoSubleadingJet.recoPhi;
+
+        recoDijetPtAve = 0.5 * (recoLeadingJetPt + recoSubleadingJetPt);
+        recoDijetEtaCM = 0.5 * (recoLeadingJetEtaCM + recoSubleadingJetEtaCM);
+        recoDijetDeltaPhi = wrapDeltaPhi(recoLeadingJetPhi - recoSubleadingJetPhi);
+
+
+
+
+
+
+        if (recoLeadingJetPt > 50. && recoSubleadingJetPt > 40. && 
+            recoDijetDeltaPhi > TMath::TwoPi() / 3. &&
+            recoLeadingJet.refPt > 0 && recoSubleadingJet.refPt > 0) {
+
+            refLeadingJetPt = recoLeadingJet.refPt;
+            refLeadingJetEtaCM = etaCM(recoLeadingJet.refEta, 0.465f, isPbGoing, isMc);
+            
+            refSubleadingJetPt = recoSubleadingJet.refPt;
+            refSubleadingJetEtaCM = etaCM(recoSubleadingJet.refEta, 0.465f, isPbGoing, isMc);
+
+            refDijetPtAve = 0.5 * (refLeadingJetPt + refSubleadingJetPt);
+            refDijetEtaCM = 0.5 * (refLeadingJetEtaCM + refSubleadingJetEtaCM);
+
+            for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+                if (std::abs(recoLeadingJetEtaCM) > etaCuts[iCut] || std::abs(recoSubleadingJetEtaCM) > etaCuts[iCut]) continue;
+                hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Fill(refDijetPtAve, refDijetEtaCM, recoDijetPtAve, recoDijetEtaCM, weight);
+        }
+    }
+
+    //
+    // First check gen dijet selection cuts before filling histograms, to avoid unnecessary computation
+    //
+
+    // // Apply dijet selection cuts: leading jet pT > 50 GeV and subleading jet pT > 40 GeV 
+    // if (genLeadingJetPt < 50. || genSubleadingJetPt < 40.) return;
+    // // Apply a cut on the azimuthal angle difference: |Δφ| > 2π/3
+    // if (std::abs(genDijetDeltaPhi) < TMath::TwoPi() / 3.) return;
+
+    // Fill the gen dijet histograms for each eta cut
+    for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+        
+        if ( genLeadingJetPt >= 50. && genSubleadingJetPt >= 40. &&
+             std::abs(genDijetDeltaPhi) >= TMath::TwoPi() / 3. &&
+             std::abs(genLeadingJetEtaCM) <= etaCuts[iCut] && std::abs(genSubleadingJetEtaCM) <= etaCuts[iCut]) {
+
+        } 
+        
+        // Fill the response matrix histogram for the dijet system if reco dijet passes selection cuts and matches gen dijet
+        if (recoLeadingJetPt >= 50. && recoSubleadingJetPt >= 40. &&
+            std::abs(recoLeadingJetEtaCM) <= etaCuts[iCut] && std::abs(recoSubleadingJetEtaCM) <= etaCuts[iCut] &&
+            std::abs(recoDijetDeltaPhi) > TMath::TwoPi() / 3. &&
+            recoLeadingJetMatchesLeadingGenJet && recoSubleadingJetMatchesSubleadingGenJet) {
+            // Fill the response matrix histogram for the dijet system
+            hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Fill(genDijetPtAve, genDijetEtaCM, recoDijetPtAve, recoDijetEtaCM, weight);
+        }
+        else {
+            // Fill the missing response matrix histogram for the dijet system
+            hs.hGenDijetPtEtaCMMissArr[iCut]->Fill(genDijetPtAve, genDijetEtaCM, weight);
+        }
+    } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
 }
 
 //________________
@@ -2408,7 +2636,6 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
         }
         hs.hGenInclusiveJetPtEtaStdBins->Write();
         hs.hGenInclusiveJetPtPtHat->Write();
-        hs.hGenInclusiveJetEtaPt80To120->Write();
 
         // Gen dijets
         hs.hGenDijetPtAve->Write();
@@ -2431,9 +2658,6 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
             hs.hGenDijetDefExtraPtEtaCMArr[iCut]->Write();
             hs.hGenDijetDefExtraPtEtaForwardArr[iCut]->Write();
             hs.hGenDijetDefExtraPtEtaBackwardArr[iCut]->Write();
-            hs.hGenDijetDefOneAndAHalfPtEtaCMArr[iCut]->Write();
-            hs.hGenDijetDefOneAndAHalfPtEtaForwardArr[iCut]->Write();
-            hs.hGenDijetDefOneAndAHalfPtEtaBackwardArr[iCut]->Write();
             hs.hGenDijetDefDoublePtEtaCMArr[iCut]->Write();
             hs.hGenDijetDefDoublePtEtaForwardArr[iCut]->Write();
             hs.hGenDijetDefDoublePtEtaBackwardArr[iCut]->Write();
@@ -2441,18 +2665,22 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
             hs.hGenDijetDefNinetyPtEtaForwardArr[iCut]->Write();
             hs.hGenDijetDefNinetyPtEtaBackwardArr[iCut]->Write();
 
-            hs.hGenInclusiveJetJESDefPtEta->Write();
-            hs.hGenInclusiveJetJESDefExtraPtEta->Write();
-            hs.hGenInclusiveJetJESDefOneAndAHalfPtEta->Write();
-            hs.hGenInclusiveJetJESDefDoublePtEta->Write();
-            hs.hGenInclusiveJetJESDefNinetyPtEta->Write();
-
-            hs.hGenInclusiveJetDefPtEtaFlipped->Write();
-            hs.hGenInclusiveJetDefExtraPtEtaFlipped->Write();
-            hs.hGenInclusiveJetDefOneAndAHalfPtEtaFlipped->Write();
-            hs.hGenInclusiveJetDefDoublePtEtaFlipped->Write();
-            hs.hGenInclusiveJetDefNinetyPtEtaFlipped->Write();
+            // Response matrix 
+            hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
+            hs.hGenDijetPtEtaCMMissArr[iCut]->Write();
         }
+
+        hs.hGenInclusiveJetJESDefPtEta->Write();
+        hs.hGenInclusiveJetJESDefExtraPtEta->Write();
+        hs.hGenInclusiveJetJESDefDoublePtEta->Write();
+        hs.hGenInclusiveJetJESDefNinetyPtEta->Write();
+
+        hs.hGenInclusiveJetDefPtEtaFlipped->Write();
+        hs.hGenInclusiveJetDefExtraPtEtaFlipped->Write();
+        hs.hGenInclusiveJetDefDoublePtEtaFlipped->Write();
+        hs.hGenInclusiveJetDefNinetyPtEtaFlipped->Write();
+
+        
 
         //
         // Ref level histograms
@@ -2464,13 +2692,21 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
         hs.hRefInclusiveJetEtaLab->Write();
         hs.hRefInclusiveJetPt->Write();
         hs.hRefInclusiveJetPtEtaStdBins->Write();
-        hs.hRefInclusiveJetEtaPt80To120->Write();
 
         // Ref dijets
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
             hs.hRefDijetPtEtaCMArr[iCut]->Write();
             hs.hRefDijetPtEtaForwardArr[iCut]->Write();
             hs.hRefDijetPtEtaBackwardArr[iCut]->Write();
+        }
+
+        //
+        // Ref-selected level histograms
+        //
+        for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+            hs.hRefSelDijetPtEtaCMArr[iCut]->Write();
+            hs.hRefSelDijetPtEtaForwardArr[iCut]->Write();
+            hs.hRefSelDijetPtEtaBackwardArr[iCut]->Write();
         }
 
     } // if (isMc)
@@ -2500,12 +2736,6 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
             hs.hRecoInclusiveJetJESDownPtEta->Write();
         }
         hs.hRecoInclusiveJetPtPtHat->Write();
-        hs.hRecoInclusiveJetEtaPtMatched80To120->Write();
-        hs.hRecoInclusiveJetEtaPt80To120->Write();
-        hs.hRecoInclusiveJetEtaPtDefNoSF80To120->Write();
-        hs.hRecoInclusiveJetEtaPtDef80To120->Write();
-        hs.hRecoInclusiveJetEtaPtDefExtraNoSF80To120->Write();
-        hs.hRecoInclusiveJetEtaPtDefExtra80To120->Write();
     }
     
     // Reco dijets
@@ -2572,35 +2802,78 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
     auto fVzWeight = std::make_unique<TF1>("fVzWeight", "pol8", -15.1, 15.1);
     fVzWeight->SetParameters(0.856516,-0.0159813,0.00436628,-0.00012862,2.61129e-05,-4.16965e-07,1.73711e-08,-3.11953e-09,6.24993e-10);
 
-    // JER smearing function (parametrization of sigma_smear vs pT)
-    auto fJERSmearFunc = std::make_unique<TF1>("fJERSmearFunc", "sqrt( [0]*[0] + [1]*[1]/x )", 30., 800.);
+    // JER smearing helper for calculating the smearing factor based on eta and pT
+    auto fJerSmearingHelper = std::make_unique<JERSmearingHelper>();
+
+    auto fJERSmearVsEtaFunc_pt_30_50 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_30_50", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_50_80 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_50_80", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_80_100 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_80_100", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_100_120 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_100_120", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_120_150 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_120_150", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_150_180 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_150_180", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_180_220 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_180_220", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_220_280 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_220_280", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_280_350 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_280_350", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_350_450 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_350_450", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_450_540 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_450_540", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+    auto fJERSmearVsEtaFunc_pt_540_8160 = std::make_unique<TF1>("fJERSmearVsEtaFunc_pt_540_8160", "gaus(0) + gaus(3) + pol2(6)", -2.8, 2.8);
+
     if (isPythia) {
         if (isPbGoing) {
-            fJERSmearFunc->SetParameters(0.04360, 0.81815); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJerSmearingHelper->setJERSmearingFuncVsPtParams(0.04360, 0.81815); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
         }
         else {
-            fJERSmearFunc->SetParameters(0.04305, 0.82470); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJerSmearingHelper->setJERSmearingFuncVsPtParams(0.04305, 0.82470); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
         }
     }
     else { // Embdedding
         if (isPbGoing) {
-            fJERSmearFunc->SetParameters(0.04360, 0.81815); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJerSmearingHelper->setJERSmearingFuncVsPtParams(0.04360, 0.81815); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJERSmearVsEtaFunc_pt_30_50->SetParameters(0.251023, -1.44091, 0.247814, 0.259187, 1.43814, 0.284808, 0.980647, -0.00616568, 0.0127762);
+            fJERSmearVsEtaFunc_pt_50_80->SetParameters(2.80975e-01, -1.43118e+00, 2.62786e-01, 3.11693e-01, 1.43402e+00, 2.98206e-01, 9.97888e-01, -9.32355e-03, -4.82988e-03);
+            fJERSmearVsEtaFunc_pt_80_100->SetParameters(2.94796e-01, -1.41661e+00, 2.34356e-01, 3.06224e-01, 1.43206e+00, 2.88265e-01, 1.00413e+00, -8.87238e-03, -1.53309e-02);
+            fJERSmearVsEtaFunc_pt_100_120->SetParameters(0.268538, -1.38565, 0.228907, 0.322785, 1.38592, 0.26244, 1.00201, -0.0128027, -0.021899);
+            fJERSmearVsEtaFunc_pt_120_150->SetParameters(0.270962, -1.35472, 0.222158, 0.295618, 1.40682, 0.296922, 1.00146, -0.0130908, -0.023406);
+            fJERSmearVsEtaFunc_pt_150_180->SetParameters(0.291945, -1.37874, 0.170634, 0.274105, 1.39584, 0.282491, 1.00488, -0.0178596, -0.0266459);
+            fJERSmearVsEtaFunc_pt_180_220->SetParameters(0.248293, -1.33017, 0.206415, 0.279631, 1.35826, 0.274813, 1.00113, -0.0154812, -0.0243555);
+            fJERSmearVsEtaFunc_pt_220_280->SetParameters(0.268718, -1.33038, 0.19311, 0.298086, 1.33168, 0.282377, 0.998327, -0.0210509, -0.0276671);
+            fJERSmearVsEtaFunc_pt_280_350->SetParameters(0.274991, -1.33119, 0.176131, 0.327383, 1.32507, 0.231403, 1.00344, -0.0174497, -0.0290836);
+            fJERSmearVsEtaFunc_pt_350_450->SetParameters(0.293324, -1.34356, 0.166471, 0.328376, 1.34978, 0.288753, 1.00615, -0.0339521, -0.0397907);
+            fJERSmearVsEtaFunc_pt_450_540->SetParameters(0.324936, -1.32021, 0.164281, 0.369252, 1.34049, 0.286628, 1.00614, -0.0389711, -0.0465924);
+            fJERSmearVsEtaFunc_pt_540_8160->SetParameters(0.37107, -1.34014, 0.148853, 0.495634, 1.37641,  0.350713, 1.00368, -0.0782385, -0.0654875);
         }
         else {
-            fJERSmearFunc->SetParameters(0.04181, 0.8614); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJerSmearingHelper->setJERSmearingFuncVsPtParams(0.04181, 0.8614); // -0.8 < eta < 0.8, 30 < pt (GeV) < 800
+            fJERSmearVsEtaFunc_pt_30_50->SetParameters(0.236966, -1.51017, 0.335154, 0.305743, 1.44193, 0.292118, 0.986551, 6.73397e-05, 0.0118094);
+            fJERSmearVsEtaFunc_pt_50_80->SetParameters(0.296463, -1.46524, 0.303889, 0.332084, 1.45171, 0.295073, 0.99803, -0.00414073, -0.00244323);
+            fJERSmearVsEtaFunc_pt_80_100->SetParameters(0.281362, -1.436, 0.269096, 0.277846, 1.40117, 0.297503, 0.999944, 0.000818982, -0.0206659);
+            fJERSmearVsEtaFunc_pt_100_120->SetParameters(0.285419, -1.40383, 0.20919, 0.293156, 1.38149, 0.261957, 1.00248, -0.00378822, -0.0210735);
+            fJERSmearVsEtaFunc_pt_120_150->SetParameters(0.286209, -1.35991, 0.261485, 0.277341, 1.34677, 0.276339, 0.999703, 0.00635947, -0.0228129);
+            fJERSmearVsEtaFunc_pt_150_180->SetParameters(0.264685, -1.38645, 0.207738, 0.265336, 1.37243, 0.246389, 1.00305, -0.00340848, -0.0242265);
+            fJERSmearVsEtaFunc_pt_180_220->SetParameters(0.28098, -1.32577, 0.240958, 0.292022, 1.34173, 0.246079, 0.995414, 0.00611453, -0.0235741);
+            fJERSmearVsEtaFunc_pt_220_280->SetParameters(0.269833, -1.37708, 0.364279, 0.257267, 1.33253, 0.216335, 0.993059, 0.0303286, -0.0349511);
+            fJERSmearVsEtaFunc_pt_280_350->SetParameters(0.297607, -1.31883, 0.207127, 0.294736, 1.34136, 0.212788, 1.00491, 0.00283823, -0.0309229);
+            fJERSmearVsEtaFunc_pt_350_450->SetParameters(0.291975, -1.32442, 0.247271, 0.317328, 1.32188, 0.221408, 1.00603, 0.0079703, -0.0378725);
+            fJERSmearVsEtaFunc_pt_450_540->SetParameters(3.06494e-01, -1.27420, 2.57302e-01, 3.37387e-01, 1.31932e+00, 2.29305e-01, 1.00217e+00, 6.98099e-03, -3.63918e-02);
+            fJERSmearVsEtaFunc_pt_540_8160->SetParameters(2.65766e-01, -1.30667e+00, 2.73191e-01, 3.68171e-01, 1.31464e+00, 2.50415e-01, 1.00047e+00, -1.67119e-02, -2.60016e-02);
         }
+
+        fJerSmearingHelper->addJERSmearingFuncVsEta(30., 50., std::move(fJERSmearVsEtaFunc_pt_30_50));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(50., 80., std::move(fJERSmearVsEtaFunc_pt_50_80));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(80., 100., std::move(fJERSmearVsEtaFunc_pt_80_100));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(100., 120., std::move(fJERSmearVsEtaFunc_pt_100_120));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(120., 150., std::move(fJERSmearVsEtaFunc_pt_120_150));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(150., 180., std::move(fJERSmearVsEtaFunc_pt_150_180));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(180., 220., std::move(fJERSmearVsEtaFunc_pt_180_220));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(220., 280., std::move(fJERSmearVsEtaFunc_pt_220_280));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(280., 350., std::move(fJERSmearVsEtaFunc_pt_280_350));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(350., 450., std::move(fJERSmearVsEtaFunc_pt_350_450));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(450., 540., std::move(fJERSmearVsEtaFunc_pt_450_540));
+        fJerSmearingHelper->addJERSmearingFuncVsEta(540., 8160., std::move(fJERSmearVsEtaFunc_pt_540_8160));
     }
 
     auto fJERSmearVsEtaFunc = std::make_unique<TF1>("fJERSmearVsEtaFunc", "gaus(0) + gaus(3) + pol2(6)", -2.6, 2.6);
     fJERSmearVsEtaFunc->SetParameters(0.280798, -1.42826, 0.240604, 0.350327, 1.41888, 0.260303, 1.00702, -0.0255149, -0.032875);
-
-    auto fRndm = std::make_unique<TRandom3>(0);
-    // for (int i=0; i<5; ++i) {
-    //     double randomPt = fRndm->Uniform(30., 800.);
-    //     std::cout << Form("Check randomizer: Gaussian %d: %f; pt: %f; jerSmeared: %f", 
-    //                       i, fRndm->Gaus(0., 1.), randomPt, fJERSmearFunc->Eval(randomPt)) << std::endl;
-    // }
-     
 
     int nEventsProcessed{0};
     int nGoodEvents{0};
@@ -2685,15 +2958,20 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         //
         if (isMc) {
             processGenJets(isPbGoing, isMc, weight, genJets, hs, ptHat);
-            processGenDijets(isPbGoing, isMc, weight, genJets, hs, fJERSmearFunc.get(), fRndm.get(), fJERSmearVsEtaFunc.get());
+            processGenDijets(isPbGoing, isMc, weight, genJets, hs, fJerSmearingHelper.get());
+            processRefDijets(isPbGoing, isMc, weight, recoJets, hs);
         }
 
         //
         // Reco level processing
         //
-        processRecoJets(isPbGoing, isMc, weight, recoJets, hs, jeu, jetSelectionMethod, 
-                        ptHat, fJERSmearFunc.get(), fRndm.get());
-        processRecoDijets(isPbGoing, isMc, weight, recoJets, hs, doJerSyst, doJeuSyst);
+        processRecoJets(isPbGoing, isMc, weight, recoJets, hs, jeu, jetSelectionMethod, ptHat);
+        processRecoDijets(isPbGoing, isMc, weight, recoJets, hs, 
+                          fJerSmearingHelper.get(), doJerSyst, doJeuSyst);
+
+        if (isMc) {
+            prepareUnfolding(isPbGoing, isMc, weight, genJets, recoJets, hs);
+        }
     } // for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry)
 
     std::cout << Form("Processed %d events, of which %d passed selection.", nEventsProcessed, nGoodEvents) << std::endl;
@@ -2892,9 +3170,6 @@ int main(int argc, char* argv[]) {
     ///////////////////////
     Histograms hs;
     createHistograms(hs, isMc, jerSyst, jeuSyst);
-    if (isMc) {
-        setValuesForExtraJerSmearing(isPythia, isPbGoing);
-    }
 
     //////////////////////////////////
     // Setup Jet Energy Corrections //
@@ -2918,5 +3193,4 @@ int main(int argc, char* argv[]) {
 
     // Write output
     writeOutput(oFileName, hs, isMc, jerSyst, jeuSyst);
-
 }
