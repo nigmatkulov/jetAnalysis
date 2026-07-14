@@ -67,3 +67,10 @@ add_executable(processForestSimple
 )
 target_link_libraries(processForestSimple ${ROOT_LIBRARIES})
 target_include_directories(processForestSimple PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS}) #${ROOT_INCLUDE_DIRS}
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(test_analysis_contract tests/test_analysis_contract.cpp)
+    target_include_directories(test_analysis_contract PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME analysis_contract COMMAND test_analysis_contract)
+endif()

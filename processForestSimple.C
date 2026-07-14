@@ -11,6 +11,7 @@
 
 #include "JetCorrector.h"
 #include "JetUncertainty.h"
+#include "AnalysisContract.h"
 
 #include <iostream>
 #include <array>
@@ -39,7 +40,7 @@ void usage() {
                 << "  <value>               Trigger ID (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100\n"
                 << "  <value>               Reco jet selection method (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose\n"
                 << RESET;
-    exit (0);
+    exit(EXIT_FAILURE);
 }
 
 // Eta shifts for pPb 8.16 TeV collisions, used for etaCM calculation
@@ -1006,6 +1007,10 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                             Form("Gen dijet #eta_{CM} vs Reco dijet #eta_{CM} vs Gen dijet p_{T}^{ave} vs Reco dijet p_{T}^{ave};Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM}"), 
                                                             nDimResponse, responseBins, responseBinsMin, responseBinsMax);
             hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Sumw2();
+            hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut] = std::make_unique<THnSparseF>(Form("hRefDijetPtEtaCMVsRecoPtEtaCM_%d", iCut),
+                                                            "Reference-matched dijet response;Ref p_{T}^{ave} (GeV);Ref #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM}",
+                                                            nDimResponse, responseBins, responseBinsMin, responseBinsMax);
+            hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Sumw2();
             hs.hGenDijetPtEtaCMMissArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetPtEtaCMMiss_%d", iCut), 
                                                                 Form("Gen dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
                                                                 nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
@@ -1569,43 +1574,19 @@ void setupInput(const TString &input, TChain &hltTree, TChain &eventTree, TChain
 
 //________________
 float etaCM(const float &etaLab, const float &etaShift, const bool &isPbGoing, const bool &isMc) {
-    float etaCM;
-    if ( isMc ) { // For embedding: Pb goes to negative, p goes to positive
-        if (isPbGoing) {
-            etaCM = -1.0 * (etaLab + etaShift);
-        }
-        else {
-            etaCM = etaLab - etaShift;
-        }
+    if (isMc) { // For embedding: Pb goes to negative, p goes to positive
+        return isPbGoing ? -1.f * (etaLab + etaShift) : etaLab - etaShift;
     }
-    else {
-        if (isPbGoing) {
-            etaCM = etaLab - etaShift;
-        }
-        else {
-            etaCM = -1.0 * (etaLab + etaShift);
-        }
-    }
-    return etaCM;
+    return isPbGoing ? etaLab - etaShift : -1.f * (etaLab + etaShift);
 }
 
 //________________
 float etaLab(const float &eta, const bool &isPbGoing, const bool &isMc) {
-    
-    float etaL = eta;
-    if ( isMc ) { // For embedding: Pb goes to negative, p goes to positive
-        if (isPbGoing) {
-            etaL = -etaL;
-        }
+    if (isMc) { // For embedding: Pb goes to negative, p goes to positive
+        return isPbGoing ? -eta : eta;
     }
-    else { // For data: p goes to negative, Pb goes to positive
-        if (isPbGoing) {
-        }
-        else {
-            etaL = -etaL;
-        }
-    }
-    return etaL;
+    // For data: p goes to negative, Pb goes to positive in stored orientation.
+    return isPbGoing ? eta : -eta;
 }
 
 //________________
@@ -2133,21 +2114,12 @@ void processRefDijets(const bool &isPbGoing, const bool &isMc, const float &weig
             float systDijetEtaCM = 0.5f * (leadEtaCM + subleadEtaCM);
 
             refFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
-            if (refFullArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
-                refFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
-            }
 
             if (systDijetEtaCM >= 0.) {
                 refForwardArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
-                if (refForwardArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
-                    refForwardArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
-                }
             }
             else {
                 refBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(systDijetEtaCM), weight);
-                if (refBackwardArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
-                    refBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(systDijetEtaCM), weight);
-                }
             }
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
     };
@@ -2380,10 +2352,9 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
     };
 
     auto goodPair = [](float leadPt, float subleadPt, float leadEtaCM, float subleadEtaCM, float dphi, float etaCut) {
-        return ( leadPt >= 50. && subleadPt >=50. && 
-                 std::abs(leadEtaCM) <= etaCut && std::abs(subleadEtaCM) <= etaCut &&
-                 std::abs(dphi) >= TMath::TwoPi() / 3.);
-    }
+        return analysis_contract::passesDijetSelection(
+            leadPt, subleadPt, leadEtaCM, subleadEtaCM, dphi, etaCut);
+    };
 
     // Sort gen jets by pT in descending order to identify leading and subleading jets
     std::sort(genJets.begin(), genJets.end(), [&](const GenJet &a, const GenJet &b) {
@@ -2415,7 +2386,6 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
     float genDijetDeltaPhi = {0.f};
 
     bool has2genJets = (genJets.size() >= 2);
-    bool genPairPass = {false};
 
     if (has2genJets) {
         genLeadingJet = genJets[0];
@@ -2433,10 +2403,6 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
         genDijetEtaCM = 0.5 * (genLeadingJetEtaCM + genSubleadingJetEtaCM);
         genDijetDeltaPhi = wrapDeltaPhi(genLeadingJetPhi - genSubleadingJetPhi);
 
-        genPairPass = ( genLeadingJetPt >= 50. && genSubleadingJetPt >= 40. &&
-                        std::abs(genLeadingJetEtaCM) <= etaCuts[iCut] &&
-                        std::abs(genSubleadingJetEtaCM) <= etaCuts[iCut] &&
-                        std::abs(genDijetDeltaPhi) >= twoPiOverThree );
     } // if (has2genJets)
 
     //
@@ -2453,14 +2419,12 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
     float recoLeadingJetPt = {-99.f};
     float recoLeadingJetEtaCM = {-99.f};
     float recoLeadingJetPhi = {0.f};
-    bool  recoLeadingJetMatchesLeadingGenJet = {false};
     float refLeadingJetPt = {-99.f};
     float refLeadingJetEtaCM = {-99.f};
 
     float recoSubleadingJetPt = {-99.f};
     float recoSubleadingJetEtaCM = {-99.f};
     float recoSubleadingJetPhi = {0.f};
-    bool recoSubleadingJetMatchesSubleadingGenJet = {false};
     float refSubleadingJetPt = {-99.f};
     float refSubleadingJetEtaCM = {-99.f};
 
@@ -2471,7 +2435,6 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
     float refDijetPtAve = {-99.f};
     float refDijetEtaCM = {-99.f};
 
-    bool recoPairPass = {false};
 
     if (has2recoJets) {
         // Get leading and subleading reco jets
@@ -2489,11 +2452,6 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
         recoDijetPtAve = 0.5 * (recoLeadingJetPt + recoSubleadingJetPt);
         recoDijetEtaCM = 0.5 * (recoLeadingJetEtaCM + recoSubleadingJetEtaCM);
         recoDijetDeltaPhi = wrapDeltaPhi(recoLeadingJetPhi - recoSubleadingJetPhi);
-
-        recoPairPass = ( recoLeadingJetPt >= 50. && recoSubleadingJetPt >= 40. &&
-                         std::abs(recoLeadingJetEtaCM) <= etaCuts[iCut] && 
-                         std::abs(recoSubleadingJetPt) <= etaCuts[iCut] &&
-                         std::abs(recoDijetDeltaPhi) >= twoPiOverThree );
 
         // Define the deltaR cut for matching
         if (has2genJets) {
@@ -2509,91 +2467,55 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
         } // if (has2genJets)
     } // if (has2recoJets)
 
-    // Make this loop outside to simplify the code and avoid unnecessary computations for it later
-    for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
-
-        genPairPass = goodPair(genLeadingJetPt, genSubleadingJetPt, genLeadingJetEtaCM, genSubleadingJetEtaCM, genDijetDeltaPhi, etaCuts[iCut]);
-        recoPairPass = goodPair(recoLeadingJetPt, recoSubleadingJetPt, recoLeadingJetEtaCM, recoSubleadingJetEtaCM, recoDijetDeltaPhi, etaCuts[iCut]);
-
-        if (genPairPass && recoPairPass && goodMatching) {
-
-        } // if (genPairPass && recoPairPass && goodMatching)
-        
-    } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
-
-
-    if (has2recoJets) {
-        // Get leading and subleading reco jets
-        recoLeadingJet = recoJets[0];
-        recoSubleadingJet = recoJets[1];
-
-        recoLeadingJetPt = recoLeadingJet.recoPt;
-        recoLeadingJetEtaCM = etaCM(recoLeadingJet.recoEta, 0.465f, isPbGoing, isMc);
-        recoLeadingJetPhi = recoLeadingJet.recoPhi;
-
-        recoSubleadingJetPt = recoSubleadingJet.recoPt;
-        recoSubleadingJetEtaCM = etaCM(recoSubleadingJet.recoEta, 0.465f, isPbGoing, isMc);
-        recoSubleadingJetPhi = recoSubleadingJet.recoPhi;
-
-        recoDijetPtAve = 0.5 * (recoLeadingJetPt + recoSubleadingJetPt);
-        recoDijetEtaCM = 0.5 * (recoLeadingJetEtaCM + recoSubleadingJetEtaCM);
-        recoDijetDeltaPhi = wrapDeltaPhi(recoLeadingJetPhi - recoSubleadingJetPhi);
-
-
-
-
-
-
-        if (recoLeadingJetPt > 50. && recoSubleadingJetPt > 40. && 
-            recoDijetDeltaPhi > TMath::TwoPi() / 3. &&
-            recoLeadingJet.refPt > 0 && recoSubleadingJet.refPt > 0) {
-
-            refLeadingJetPt = recoLeadingJet.refPt;
-            refLeadingJetEtaCM = etaCM(recoLeadingJet.refEta, 0.465f, isPbGoing, isMc);
-            
-            refSubleadingJetPt = recoSubleadingJet.refPt;
-            refSubleadingJetEtaCM = etaCM(recoSubleadingJet.refEta, 0.465f, isPbGoing, isMc);
-
-            refDijetPtAve = 0.5 * (refLeadingJetPt + refSubleadingJetPt);
-            refDijetEtaCM = 0.5 * (refLeadingJetEtaCM + refSubleadingJetEtaCM);
-
-            for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
-                if (std::abs(recoLeadingJetEtaCM) > etaCuts[iCut] || std::abs(recoSubleadingJetEtaCM) > etaCuts[iCut]) continue;
-                hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Fill(refDijetPtAve, refDijetEtaCM, recoDijetPtAve, recoDijetEtaCM, weight);
-        }
+    bool hasReferencePair = has2recoJets &&
+                            recoLeadingJet.refPt > 0.f && recoSubleadingJet.refPt > 0.f;
+    float refDijetDeltaPhi = 0.f;
+    if (hasReferencePair) {
+        refLeadingJetPt = recoLeadingJet.refPt;
+        refLeadingJetEtaCM = etaCM(recoLeadingJet.refEta,
+                                   analysis_contract::kNominalEtaShift,
+                                   isPbGoing, isMc);
+        refSubleadingJetPt = recoSubleadingJet.refPt;
+        refSubleadingJetEtaCM = etaCM(recoSubleadingJet.refEta,
+                                      analysis_contract::kNominalEtaShift,
+                                      isPbGoing, isMc);
+        refDijetPtAve = 0.5f * (refLeadingJetPt + refSubleadingJetPt);
+        refDijetEtaCM = 0.5f * (refLeadingJetEtaCM + refSubleadingJetEtaCM);
+        refDijetDeltaPhi = wrapDeltaPhi(recoLeadingJet.refPhi - recoSubleadingJet.refPhi);
     }
 
-    //
-    // First check gen dijet selection cuts before filling histograms, to avoid unnecessary computation
-    //
-
-    // // Apply dijet selection cuts: leading jet pT > 50 GeV and subleading jet pT > 40 GeV 
-    // if (genLeadingJetPt < 50. || genSubleadingJetPt < 40.) return;
-    // // Apply a cut on the azimuthal angle difference: |Δφ| > 2π/3
-    // if (std::abs(genDijetDeltaPhi) < TMath::TwoPi() / 3.) return;
-
-    // Fill the gen dijet histograms for each eta cut
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
-        
-        if ( genLeadingJetPt >= 50. && genSubleadingJetPt >= 40. &&
-             std::abs(genDijetDeltaPhi) >= TMath::TwoPi() / 3. &&
-             std::abs(genLeadingJetEtaCM) <= etaCuts[iCut] && std::abs(genSubleadingJetEtaCM) <= etaCuts[iCut]) {
+        const bool genPairPass = has2genJets && goodPair(
+            genLeadingJetPt, genSubleadingJetPt,
+            genLeadingJetEtaCM, genSubleadingJetEtaCM,
+            genDijetDeltaPhi, etaCuts[iCut]);
+        const bool recoPairPass = has2recoJets && goodPair(
+            recoLeadingJetPt, recoSubleadingJetPt,
+            recoLeadingJetEtaCM, recoSubleadingJetEtaCM,
+            recoDijetDeltaPhi, etaCuts[iCut]);
+        const bool refPairPass = hasReferencePair && goodPair(
+            refLeadingJetPt, refSubleadingJetPt,
+            refLeadingJetEtaCM, refSubleadingJetEtaCM,
+            refDijetDeltaPhi, etaCuts[iCut]);
 
-        } 
-        
-        // Fill the response matrix histogram for the dijet system if reco dijet passes selection cuts and matches gen dijet
-        if (recoLeadingJetPt >= 50. && recoSubleadingJetPt >= 40. &&
-            std::abs(recoLeadingJetEtaCM) <= etaCuts[iCut] && std::abs(recoSubleadingJetEtaCM) <= etaCuts[iCut] &&
-            std::abs(recoDijetDeltaPhi) > TMath::TwoPi() / 3. &&
-            recoLeadingJetMatchesLeadingGenJet && recoSubleadingJetMatchesSubleadingGenJet) {
-            // Fill the response matrix histogram for the dijet system
-            hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Fill(genDijetPtAve, genDijetEtaCM, recoDijetPtAve, recoDijetEtaCM, weight);
+        if (genPairPass && recoPairPass && goodMatching) {
+            const double response[4] = {
+                genDijetPtAve, genDijetEtaCM, recoDijetPtAve, recoDijetEtaCM
+            };
+            hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Fill(response, weight);
         }
-        else {
-            // Fill the missing response matrix histogram for the dijet system
-            hs.hGenDijetPtEtaCMMissArr[iCut]->Fill(genDijetPtAve, genDijetEtaCM, weight);
+        else if (genPairPass) {
+            hs.hGenDijetPtEtaCMMissArr[iCut]->Fill(
+                genDijetPtAve, genDijetEtaCM, weight);
         }
-    } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
+
+        if (refPairPass && recoPairPass) {
+            const double response[4] = {
+                refDijetPtAve, refDijetEtaCM, recoDijetPtAve, recoDijetEtaCM
+            };
+            hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Fill(response, weight);
+        }
+    }
 }
 
 //________________
@@ -2667,6 +2589,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
 
             // Response matrix 
             hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
+            hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
             hs.hGenDijetPtEtaCMMissArr[iCut]->Write();
         }
 
