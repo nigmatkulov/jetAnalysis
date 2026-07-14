@@ -14,17 +14,18 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 
 Make sure ROOT is available in your environment and that `ROOTSYS` is set.
 
-### Debug build
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j
-```
-
 ### Release build
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+```
+
+Use Release for normal validation and production execution. If compilation or
+execution fails, reconfigure in Debug and reproduce the problem:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j
 ```
 
@@ -39,7 +40,7 @@ build/processForestSimple
 You can run the macro directly from ROOT and pass the same arguments used by the executable:
 
 ```bash
-root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, -99, 0, 2)'
+root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, 0, 0, 2)'
 ```
 
 Argument order:
@@ -49,8 +50,8 @@ Argument order:
 3. `mcType` (`0` data, `1` embedding, `2` pythia)
 4. `isPbGoingDir` (`0` p-going, `1` Pb-going)
 5. `ptHatSample`
-6. `jeuSyst`
-7. `jerSyst`
+6. `jeuSyst` (`0` disabled, `1` enabled)
+7. `jerSyst` (`0` disabled, `1` enabled)
 8. `triggerId`
 9. `recoJetSelMethod`
 
@@ -59,13 +60,13 @@ Argument order:
 After building, run the executable directly:
 
 ```bash
-./build/processForestSimple input.root output.root 2 1 30 0 -99 0 2
+./build/processForestSimple input.root output.root 2 1 30 0 0 0 2
 ```
 
 Example for a file list:
 
 ```bash
-./build/processForestSimple filelist.txt output.root 2 1 30 0 -99 0 2
+./build/processForestSimple filelist.txt output.root 2 1 30 0 0 0 2
 ```
 
 ## Preset batch scripts
@@ -75,11 +76,18 @@ The repository also includes two sequential batch runners:
 - `pPb8160_analyzeMc_Pbgoing.py`
 - `pPb8160_analyzeMc_pgoing.py`
 
-Each script loops over all available `ptHat` samples and runs the compiled executable. By default the jobs run one at a time, but you can use multiple local cores with `--workers`:
+Each script loops over its explicit `PT_HAT_SAMPLES` list and runs the compiled
+executable. By default the jobs run one at a time, but you can use multiple local
+cores with `--workers`:
 
 ```bash
-python3 pPb8160_analyzeMc_Pbgoing.py --workers 4
-python3 pPb8160_analyzeMc_pgoing.py --workers 4
+py-env/bin/python pPb8160_analyzeMc_Pbgoing.py --workers 4
+py-env/bin/python pPb8160_analyzeMc_pgoing.py --workers 4
 ```
 
 The runner keeps going after individual sample failures and prints a final summary of skipped and failed pt-hat jobs.
+Inputs are read from
+`$HOME/cernbox/ana/pPb8160/<generator>/<direction>/forest/`, and outputs are
+written beneath `$HOME/cernbox/ana/pPb8160/<generator>/<direction>/`. The
+pt-hat samples to run are the explicit `PT_HAT_SAMPLES` list in each preset
+script; review that list before starting a production run.

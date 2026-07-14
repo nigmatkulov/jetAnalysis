@@ -10,7 +10,7 @@ Guidance for agents working in this repository.
 - `JetCorrector.cc` and `JetUncertainty.cc` provide the helper implementations used by `processForestSimple`.
 - `LinkDef.h` plus `root_generate_dictionary(...)` are required so ROOT can generate the dictionary code for `JetCorrector`, `SingleJetCorrector`, and `JetUncertainty`.
 - `aux_files/` contains calibration/correction text inputs for pp, pPb, and PbPb workflows. Treat these as data files; do not reformat them.
-- `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py` are sequential Python 3 batch runners around the compiled executable.
+- `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py` are Python 3 batch runners around the compiled executable. They run sequentially by default and accept `--workers` for local parallelism.
 - Generated/local outputs currently live under `build/`, `macro/`, and ROOT files such as `*.root`; avoid committing or rewriting generated analysis outputs unless explicitly requested.
 
 ## Build Commands
@@ -22,17 +22,18 @@ echo "$ROOTSYS"
 root-config --version
 ```
 
-Configure and build:
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j
-```
-
-For an optimized build:
+Configure and build in Release for normal validation and production execution:
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+```
+
+If compilation or execution fails, reconfigure in Debug and reproduce the
+failure before diagnosing it:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j
 ```
 
@@ -47,29 +48,33 @@ The executable path is:
 Compiled executable:
 
 ```bash
-./build/processForestSimple input.root output.root 2 1 30 0 -99 0 2
+./build/processForestSimple input.root output.root 2 1 30 0 0 0 2
 ```
 
 File-list input is also accepted:
 
 ```bash
-./build/processForestSimple filelist.txt output.root 2 1 30 0 -99 0 2
+./build/processForestSimple filelist.txt output.root 2 1 30 0 0 0 2
 ```
 
 ROOT macro mode:
 
 ```bash
-root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, -99, 0, 2)'
+root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, 0, 0, 2)'
 ```
 
 Preset pPb 8.16 TeV MC batch runners:
 
 ```bash
-python3 pPb8160_analyzeMc_Pbgoing.py
-python3 pPb8160_analyzeMc_pgoing.py
+py-env/bin/python pPb8160_analyzeMc_Pbgoing.py
+py-env/bin/python pPb8160_analyzeMc_pgoing.py
 ```
 
-The Python runners expect the executable at `build/processForestSimple` and input forests under the directory specified by the `INPUT_FORESTS_DIR` environment variable (default: `$HOME/cernbox/ana/pPb8160/`). They create outputs in `macro/eta_shift/`.
+The Python runners expect the executable at `build/processForestSimple`. They
+read input forests from
+`$HOME/cernbox/ana/pPb8160/<generator>/<direction>/forest/` and write outputs
+beneath `$HOME/cernbox/ana/pPb8160/<generator>/<direction>/`. Each preset uses
+its explicit `PT_HAT_SAMPLES` list; review that list before execution.
 
 ## Runtime Arguments
 
@@ -80,8 +85,8 @@ The Python runners expect the executable at `build/processForestSimple` and inpu
 3. `mcType`: `0` data, `1` embedding, `2` pythia
 4. `isPbGoingDir`: `0` p-going, `1` Pb-going
 5. `ptHatSample`
-6. `jeuSyst`: `-1`, `0`, or `1`
-7. `jerSyst`: `-99`, `-1`, `0`, or `1`
+6. `jeuSyst`: `0` disabled, `1` enabled
+7. `jerSyst`: `0` disabled, `1` enabled
 8. `triggerId`: `0` no trigger/MB, `1` jet60, `2` jet80, `3` jet100
 9. `recoJetSelMethod`: `0` none, `1` `trkMaxPt/RawPt`, `2` `jetIdTightLeptVeto`, `3` `jetIdLoose`
 
@@ -102,10 +107,12 @@ The Python runners expect the executable at `build/processForestSimple` and inpu
 After C++ changes:
 
 ```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ```
 
-If CMake has not been configured yet, run:
+Run relevant tests and analysis checks with the Release executable first. If a
+failure occurs, reconfigure and reproduce it in Debug:
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
@@ -125,7 +132,7 @@ This should print usage and exit nonzero.
 For analysis-behavior changes, run a small known input if available:
 
 ```bash
-./build/processForestSimple input.root /tmp/processForestSimple_test.root 2 1 30 0 -99 0 2
+./build/processForestSimple input.root /tmp/processForestSimple_test.root 2 1 30 0 0 0 2
 ```
 
 Then inspect the output with ROOT:
@@ -137,7 +144,7 @@ root -l -b -q '/tmp/processForestSimple_test.root'
 After Python runner changes:
 
 ```bash
-python3 -m py_compile pPb8160_analyzeMc_Pbgoing.py pPb8160_analyzeMc_pgoing.py
+py-env/bin/python -m py_compile pPb8160_analyzeMc_Pbgoing.py pPb8160_analyzeMc_pgoing.py pPb8160_runner.py
 ```
 
 Before handing off, also run:

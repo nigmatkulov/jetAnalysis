@@ -1519,6 +1519,7 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
 
     mainTree.SetBranchStatus("refpt", 1);
     mainTree.SetBranchStatus("refeta", 1);
+    mainTree.SetBranchStatus("refphi", 1);
 
     // Set branch addresses
     mainTree.SetBranchAddress("vz", &vz);
