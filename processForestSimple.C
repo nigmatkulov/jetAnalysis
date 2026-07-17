@@ -2980,6 +2980,13 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         // Check the event is satisfies basic event selection
         if (!isGoodEvent(isPbGoing, isMc, triggerId)) continue;
 
+        // Load Monte Carlo (MC) truth information if processing MC
+        if (isMc) {
+            loadGenJets( genJets );
+        }
+        // Load reconstructed jets
+        loadRecoJets( recoJets, jec, jetSelectionMethod );
+
         if ( isMc ) {
             if (isPbGoing) vz = -vz; 
             weight = eventWeight(ptHat, vz, *fVzWeight, nEntries);
@@ -2995,12 +3002,7 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         hs.hVzUnweighted->Fill(vz);
         hs.hVz->Fill(vz, weight);
 
-        // Load Monte Carlo (MC) truth information if processing MC
-        if (isMc) {
-            loadGenJets( genJets );
-        }
-        // Load reconstructed jets
-        loadRecoJets( recoJets, jec, jetSelectionMethod );
+
 
         // std::cout << "\n========================================\n";
         // std::cout << Form("Event: %d ptHat = %.1f GeV, vz = %.2f cm", iEntry, ptHat, vz) << std::endl;
