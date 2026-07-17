@@ -1,156 +1,70 @@
-# AGENTS.md
+# Agent Guide
 
-Guidance for agents working in this repository.
+## Repository context
 
-## Project Stack
+- CERN ROOT-based CMS jet analysis.
+- `processForestSimple.C` is both a ROOT macro and the source of the compiled executable.
+- `README.md` is the source of truth for layout, commands, runtime arguments, workflows, and validation.
+- `aux_files/` contains external calibration and correction inputs; treat it as data.
 
-- This is a CERN ROOT-based CMS jet analysis project.
-- The main analysis source is `processForestSimple.C`. It is both a ROOT macro, for CLING/CINT execution, and the compiled executable source.
-- `CMakeLists.txt` builds one executable, `processForestSimple`, and discovers ROOT through `ROOTSYS` and `find_package(ROOT REQUIRED COMPONENTS ...)`.
-- `JetCorrector.cc` and `JetUncertainty.cc` provide the helper implementations used by `processForestSimple`.
-- `LinkDef.h` plus `root_generate_dictionary(...)` are required so ROOT can generate the dictionary code for `JetCorrector`, `SingleJetCorrector`, and `JetUncertainty`.
-- `aux_files/` contains calibration/correction text inputs for pp, pPb, and PbPb workflows. Treat these as data files; do not reformat them.
-- `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py` are Python 3 batch runners around the compiled executable. They run sequentially by default and accept `--workers` for local parallelism.
-- Generated/local outputs currently live under `build/`, `macro/`, and ROOT files such as `*.root`; avoid committing or rewriting generated analysis outputs unless explicitly requested.
+## Working agreement
 
-## Build Commands
+- Keep the change limited to the user’s request. Do not fold in cleanup or refactors.
+- Inspect the relevant code, `README.md`, and `git status --short` before editing.
+- Preserve unrelated working-tree changes. Never revert or overwrite them.
+- Preserve existing behavior and public interfaces unless the request explicitly changes them.
+- Do not edit generated ROOT files, build products, caches, notebook checkpoints, or `hist_analysis/output/` unless requested.
+- Avoid new dependencies unless they are necessary and justified.
+- If a decision depends on an undocumented analysis convention, ask one focused question instead of guessing.
 
-Make sure ROOT is available in the shell environment before configuring:
+## Physics guardrails
 
-```bash
-echo "$ROOTSYS"
-root-config --version
-```
+Treat these as protected analysis behavior unless the user explicitly requests a change:
 
-Configure and build in Release for normal validation and production execution:
+- event and jet selections, matching, and trigger logic;
+- correction constants, correction-file paths, weights, thresholds, and systematic switches;
+- histogram names, keys, dimensions, binning, axes, and output paths;
+- ROOT output structure;
+- response-matrix, fake, and miss definitions.
 
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-```
+For an authorized physics change:
 
-If compilation or execution fails, reconfigure in Debug and reproduce the
-failure before diagnosing it:
+1. State the assumption and expected physics effect.
+2. Make the smallest implementation change.
+3. Validate the directly affected counts or objects.
+4. Check that unrelated selections and yields do not change unexpectedly.
 
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j
-```
+## Implementation invariants
 
-The executable path is:
+### C++ and ROOT
 
-```bash
-./build/processForestSimple
-```
+- Preserve both execution modes in `processForestSimple.C`: CLING/CINT code under `#if defined(__CINT__) || defined(__CLING__)` and compiled code in the corresponding `#else` branch.
+- Keep the executable linked with `JetCorrector.cc`, `JetUncertainty.cc`, and the ROOT dictionary generated from `LinkDef.h`.
+- Preserve ROOT ownership and lifetime semantics; avoid copying large ROOT objects without need.
+- Do not rename public functions, TTree branches, histogram keys, or output objects without explicit approval.
+- Avoid formatting-only changes to `processForestSimple.C`; they hide physics-relevant diffs.
 
-## Run Commands
+### Python and notebooks
 
-Compiled executable:
+- Keep sequential execution as the default; local parallelism remains opt-in.
+- Keep notebooks thin. Put reusable analysis logic in `hist_analysis/python/` and machine-specific paths in configuration.
 
-```bash
-./build/processForestSimple input.root output.root 2 1 30 0 0 0 2
-```
+## Validation
 
-File-list input is also accepted:
+Run the smallest applicable checks documented in `README.md`.
 
-```bash
-./build/processForestSimple filelist.txt output.root 2 1 30 0 0 0 2
-```
+- C++ changes: configure and build Release first. Check executable argument handling when relevant.
+- If C++ compilation or execution fails, reproduce it in Debug before diagnosing it.
+- Python changes: run the documented syntax/compile check and the smallest affected workflow when practical.
+- Analysis changes: when a small known input is available, verify output creation, affected keys and dimensions, relevant event or jet counts, and unexpected yield changes.
 
-ROOT macro mode:
+Do not claim a check passed unless it was run. If data, ROOT, or another prerequisite is unavailable, report the skipped check and the exact reason.
 
-```bash
-root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, 0, 0, 2)'
-```
+## Handoff
 
-Preset pPb 8.16 TeV MC batch runners:
+Before finishing:
 
-```bash
-py-env/bin/python pPb8160_analyzeMc_Pbgoing.py
-py-env/bin/python pPb8160_analyzeMc_pgoing.py
-```
-
-The Python runners expect the executable at `build/processForestSimple`. They
-read input forests from
-`$HOME/cernbox/ana/pPb8160/<generator>/<direction>/forest/` and write outputs
-beneath `$HOME/cernbox/ana/pPb8160/<generator>/<direction>/`. Each preset uses
-its explicit `PT_HAT_SAMPLES` list; review that list before execution.
-
-## Runtime Arguments
-
-`processForestSimple` requires exactly 9 runtime arguments after the program name:
-
-1. input ROOT file or text file list
-2. output ROOT file
-3. `mcType`: `0` data, `1` embedding, `2` pythia
-4. `isPbGoingDir`: `0` p-going, `1` Pb-going
-5. `ptHatSample`
-6. `jeuSyst`: `0` disabled, `1` enabled
-7. `jerSyst`: `0` disabled, `1` enabled
-8. `triggerId`: `0` no trigger/MB, `1` jet60, `2` jet80, `3` jet100
-9. `recoJetSelMethod`: `0` none, `1` `trkMaxPt/RawPt`, `2` `jetIdTightLeptVeto`, `3` `jetIdLoose`
-
-## Coding Rules
-
-- Keep changes narrowly scoped. This repository is analysis code with hardcoded physics selections, binning, weights, and correction filenames.
-- Preserve the dual-use structure of `processForestSimple.C`: ROOT macro code inside `#if defined(__CINT__) || defined(__CLING__)`, compiled executable code in the `#else` branch.
-- Keep the `processForestSimple` target linked with `JetCorrector.cc`, `JetUncertainty.cc`, and the generated ROOT dictionary source from `LinkDef.h`.
-- Use ROOT types and local style consistently: `TString`, `TChain`, `TH1D`/`TH2D`/`TH3D`, `Form`, and the existing helper structs.
-- Avoid broad refactors of histogram definitions, branch setup, event selection, correction paths, or physics constants unless the task explicitly asks for them.
-- Do not reformat `aux_files/**/*.txt`; their spacing and content are external calibration inputs.
-- Python scripts should remain simple sequential runners using `pathlib`, explicit constants, and `subprocess.run`.
-- Generated data such as `build/`, `macro/eta_shift/*.root`, `extraJEC_*.root`, caches, and local output directories should generally remain untracked.
-- Be careful with the current working tree: there may be local edits and generated ROOT files. Do not revert user changes.
-
-## Self-Check Instructions
-
-After C++ changes:
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-```
-
-Run relevant tests and analysis checks with the Release executable first. If a
-failure occurs, reconfigure and reproduce it in Debug:
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j
-```
-
-The current `processForestSimple` build is verified to succeed with `cmake --build build -j` in this repository (run from the project root, e.g. `soft/tmp/jetAnalysis`).
-
-Check executable argument validation without needing data:
-
-```bash
-./build/processForestSimple
-```
-
-This should print usage and exit nonzero.
-
-For analysis-behavior changes, run a small known input if available:
-
-```bash
-./build/processForestSimple input.root /tmp/processForestSimple_test.root 2 1 30 0 0 0 2
-```
-
-Then inspect the output with ROOT:
-
-```bash
-root -l -b -q '/tmp/processForestSimple_test.root'
-```
-
-After Python runner changes:
-
-```bash
-py-env/bin/python -m py_compile pPb8160_analyzeMc_Pbgoing.py pPb8160_analyzeMc_pgoing.py pPb8160_runner.py
-```
-
-Before handing off, also run:
-
-```bash
-git status --short
-```
-
-Confirm only intended source/documentation files changed, and call out any checks skipped because ROOT or input ROOT files are unavailable.
+- run `git status --short` and confirm only intended files were touched by the agent;
+- summarize modified files and behavior changes;
+- report checks run and their results;
+- report skipped checks, remaining uncertainty, and expected physics/output differences (or explicitly state that none are expected).

@@ -6,13 +6,22 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 
 - `processForestSimple.C`: main analysis macro and compiled program source.
 - `CMakeLists.txt`: CMake build file that finds ROOT and builds the executable.
+- `JetCorrector.cc` and `JetUncertainty.cc`: jet-correction and uncertainty helpers.
+- `LinkDef.h`: ROOT dictionary declarations used by the compiled executable.
 - `aux_files/`: correction files and supporting inputs.
 - `build/`: out-of-source build directory created by CMake.
 - `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py`: preset batch runners for the compiled executable.
+- `pPb8160_runner.py`: shared implementation used by the preset batch runners.
+- `hist_analysis/`: Python, PyROOT, and Jupyter tools for ROOT-file inventory and histogram comparisons.
 
 ## Build
 
-Make sure ROOT is available in your environment and that `ROOTSYS` is set.
+Make sure ROOT is available in your environment and that `ROOTSYS` is set:
+
+```bash
+echo "$ROOTSYS"
+root-config --version
+```
 
 ### Release build
 
@@ -52,8 +61,8 @@ Argument order:
 5. `ptHatSample`
 6. `jeuSyst` (`0` disabled, `1` enabled)
 7. `jerSyst` (`0` disabled, `1` enabled)
-8. `triggerId`
-9. `recoJetSelMethod`
+8. `triggerId` (`0` no trigger/MB, `1` jet60, `2` jet80, `3` jet100)
+9. `recoJetSelMethod` (`0` none, `1` `trkMaxPt/RawPt`, `2` tight jet ID with lepton veto, `3` loose jet ID)
 
 ## Run the compiled binary
 
@@ -91,3 +100,56 @@ Inputs are read from
 written beneath `$HOME/cernbox/ana/pPb8160/<generator>/<direction>/`. The
 pt-hat samples to run are the explicit `PT_HAT_SAMPLES` list in each preset
 script; review that list before starting a production run.
+
+## Histogram analysis
+
+The `hist_analysis/` package provides a lightweight PyROOT workflow for
+inspecting and comparing analysis outputs:
+
+- `notebooks/01_inventory.ipynb`: checks configured directories, lists ROOT files, and inventories object keys.
+- `notebooks/02_basic_closures.ipynb`: loads a configurable list of objects, creates projections when required, and overlays embedding p-going and Pb-going distributions with ROOT.
+- `config/`: input locations, common pseudorapidity range, and test transverse-momentum bins.
+- `python/`: reusable ROOT object I/O, projection, histogram-operation, inventory, and plotting helpers.
+- `output/`: generated figures and ROOT artifacts; this directory is ignored by Git.
+
+Start Jupyter with the project Python environment from the repository root:
+
+```bash
+py-env/bin/python -m jupyter notebook
+```
+
+The default input locations are configured in `hist_analysis/config/files.py`.
+Review them before running the notebooks on another machine or with a different
+output layout.
+
+## Validation
+
+After C++ changes, configure and build in Release mode first:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+./build/processForestSimple
+```
+
+Running the executable without arguments should print its usage and exit with a
+nonzero status. If compilation or execution fails, rebuild in Debug mode and
+reproduce the failure before diagnosing it.
+
+After changes to the batch runners, check their syntax with:
+
+```bash
+py-env/bin/python -m py_compile \
+  pPb8160_analyzeMc_Pbgoing.py \
+  pPb8160_analyzeMc_pgoing.py \
+  pPb8160_runner.py
+```
+
+After changes to the histogram-analysis Python modules, check their syntax with:
+
+```bash
+py-env/bin/python -m compileall -q hist_analysis/config hist_analysis/python
+```
+
+Generated build products, ROOT outputs, notebook checkpoints, and files beneath
+`hist_analysis/output/` should not normally be committed.
