@@ -21,6 +21,7 @@
 #include <vector>
 #include <algorithm>
 #include <random>
+#include <utility>
 
 const char* RED    = "\033[1;31m";
 const char* GREEN  = "\033[1;32m";
@@ -335,6 +336,57 @@ struct RecoJet {
 
     float refPtSmeared; // reference jet pT after smearing
 };
+
+//________________
+/// Find the two highest-pT jets without sorting the full collection.
+/// Fall back to the original copy-and-sort behavior when equal or non-finite
+/// pT values make the ordering ambiguous.
+template <typename Jet, typename GetPt>
+std::pair<const Jet*, const Jet*> selectLeadingTwo(const std::vector<Jet> &jets,
+                                                   GetPt getPt,
+                                                   std::vector<Jet> &sortFallback) {
+    const Jet *leading = &jets[0];
+    const Jet *subleading = &jets[1];
+    if (getPt(*subleading) > getPt(*leading)) {
+        std::swap(leading, subleading);
+    }
+
+    bool requiresSortFallback = !std::isfinite(getPt(*leading)) || !std::isfinite(getPt(*subleading));
+    for (size_t iJet = 2; iJet < jets.size(); ++iJet) {
+        const Jet *jet = &jets[iJet];
+        const auto pt = getPt(*jet);
+        if (!std::isfinite(pt)) requiresSortFallback = true;
+
+        if (pt > getPt(*leading)) {
+            subleading = leading;
+            leading = jet;
+        }
+        else if (pt > getPt(*subleading)) {
+            subleading = jet;
+        }
+    }
+
+    const auto leadingPt = getPt(*leading);
+    const auto subleadingPt = getPt(*subleading);
+    for (const auto &jet : jets) {
+        const Jet *jetAddress = &jet;
+        if ((jetAddress != leading && getPt(jet) == leadingPt) ||
+            (jetAddress != subleading && getPt(jet) == subleadingPt)) {
+            requiresSortFallback = true;
+            break;
+        }
+    }
+
+    if (requiresSortFallback) {
+        sortFallback.assign(jets.begin(), jets.end());
+        std::sort(sortFallback.begin(), sortFallback.end(), [&](const Jet &a, const Jet &b) {
+            return getPt(a) > getPt(b);
+        });
+        return {&sortFallback[0], &sortFallback[1]};
+    }
+
+    return {leading, subleading};
+}
 
 //________________
 /// Define the histograms for the analysis
@@ -865,7 +917,7 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                                     nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hGenInclusiveJetEtaCMShifted[0]->Sumw2();
         hs.hGenInclusiveJetPtEtaStdBins = std::make_unique<TH2D>("hGenInclusiveJetPtEtaStdBins", 
-                                                                "Gen jet #eta (standard bins) vs p_{T};#eta;p_{T} (GeV)",
+                                                                "Gen jet #eta (standard bins) vs p_{T};p_{T} (GeV);#eta",
                                                                 nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                                 jetEtaL2L3StdBins, jetEtaL2L3StdVals);
         hs.hGenInclusiveJetPtEtaStdBins->Sumw2();
@@ -1068,22 +1120,22 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
 
         // Ref jet histograms
         hs.hRefInclusiveJetPtEtaLabUnflipped = std::make_unique<TH2D>("hRefInclusiveJetPtEtaLabUnflipped", 
-                                                                      "Ref jet #eta (lab frame, unflipped) vs p_{T};#eta;p_{T} (GeV)", 
+                                                                      "Ref jet #eta (lab frame, unflipped) vs p_{T};p_{T} (GeV);#eta;", 
                                                                       nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                                       nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hRefInclusiveJetPtEtaLabUnflipped->Sumw2();
         hs.hRefInclusiveJetPtEtaLab = std::make_unique<TH2D>("hRefInclusiveJetPtEtaLab", 
-                                                              "Ref jet #eta (lab frame) vs p_{T};#eta;p_{T} (GeV)", 
+                                                              "Ref jet #eta (lab frame) vs p_{T};p_{T} (GeV);#eta;", 
                                                               nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                               nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hRefInclusiveJetPtEtaLab->Sumw2();
         hs.hRefInclusiveJetPtEtaCM = std::make_unique<TH2D>("hRefInclusiveJetPtEtaCM", 
-                                                              "Ref jet #eta (CM frame) vs p_{T};#eta;p_{T} (GeV)", 
+                                                              "Ref jet #eta (CM frame) vs p_{T};p_{T} (GeV);#eta_{CM};", 
                                                               nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                               nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hRefInclusiveJetPtEtaCM->Sumw2();
         hs.hRefInclusiveJetPtEtaStdBins = std::make_unique<TH2D>("hRefInclusiveJetPtEtaStdBins", 
-                                                                "Ref jet #eta (standard bins) vs p_{T};#eta;p_{T} (GeV)",
+                                                                "Ref jet #eta (standard bins) vs p_{T};p_{T} (GeV);#eta;",
                                                                 nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                                 jetEtaL2L3StdBins, jetEtaL2L3StdVals);
         hs.hRefInclusiveJetPtEtaStdBins->Sumw2();
@@ -1231,7 +1283,7 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
     } // for (int iShift{0}; iShift < nEtaShifts; ++iShift)
 
     hs.hRecoInclusiveJetPtEtaStdBins = std::make_unique<TH2D>("hRecoInclusiveJetPtEtaStdBins", 
-                                                            "Reco jet #eta (standard bins) vs p_{T};#eta;p_{T} (GeV)",
+                                                            "Reco jet #eta (standard bins) vs p_{T};p_{T} (GeV);#eta",
                                                             nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                             jetEtaL2L3StdBins, jetEtaL2L3StdVals);
     hs.hRecoInclusiveJetPtEtaStdBins->Sumw2();
@@ -1907,8 +1959,7 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
     // fillRecoDijetSystematic:
     // - `getPt`: callable taking `const RecoJet&` and returning the pT value
     //   used for ordering and dijet pT calculations (float-like).
-    // - Makes a local copy of `recoJets` and sorts it descending by `getPt`
-    //   so the outer `recoJets` order is not mutated.
+    // - Finds the two highest-pT jets without sorting the full collection.
     // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
     //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
     //   2D histograms (`recoFull/Forward/Backward`).
@@ -1916,17 +1967,15 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
     //   the corresponding reference histograms are filled using the ref pT.
     // - Passing different accessors (e.g. `recoPt`, `recoPtJerUp`) lets this
     //   lambda fill nominal and systematic variations without duplicating code.
+    std::vector<GenJet> genJetSortFallback;
+    genJetSortFallback.reserve(genJets.size());
     auto fillGenDijetSystematic = [&](auto getPt,
                                       std::unique_ptr<TH2D> *genFullArr,
                                       std::unique_ptr<TH2D> *genForwardArr,
                                       std::unique_ptr<TH2D> *genBackwardArr) {
-        std::vector<GenJet> sortedJets = genJets;
-        std::sort(sortedJets.begin(), sortedJets.end(), [&](const GenJet &a, const GenJet &b) {
-            return getPt(a) > getPt(b);
-        });
-
-        const auto &leadingJetSyst = sortedJets[0];
-        const auto &subleadingJetSyst = sortedJets[1];
+        const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(genJets, getPt, genJetSortFallback);
+        const auto &leadingJetSyst = *leadingJetPtr;
+        const auto &subleadingJetSyst = *subleadingJetPtr;
         // pT cuts for systematic variations (can be adjusted as needed)
         if (getPt(leadingJetSyst) < 50.f || getPt(subleadingJetSyst) < 40.f) return; 
         float systDphi = deltaPhi(leadingJetSyst.phi, subleadingJetSyst.phi);
@@ -2170,8 +2219,7 @@ void processRefDijets(const bool &isPbGoing, const bool &isMc, const float &weig
     // fillRecoDijetSystematic:
     // - `getPt`: callable taking `const RecoJet&` and returning the pT value
     //   used for ordering and dijet pT calculations (float-like).
-    // - Makes a local copy of `recoJets` and sorts it descending by `getPt`
-    //   so the outer `recoJets` order is not mutated.
+    // - Finds the two highest-pT jets without sorting the full collection.
     // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
     //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
     //   2D histograms (`recoFull/Forward/Backward`).
@@ -2179,17 +2227,15 @@ void processRefDijets(const bool &isPbGoing, const bool &isMc, const float &weig
     //   the corresponding reference histograms are filled using the ref pT.
     // - Passing different accessors (e.g. `recoPt`, `recoPtJerUp`) lets this
     //   lambda fill nominal and systematic variations without duplicating code.
+    std::vector<RecoJet> refJetSortFallback;
+    refJetSortFallback.reserve(recoJets.size());
     auto fillRefDijetSystematic = [&](auto getPt,
                                        std::unique_ptr<TH2D> *refFullArr,
                                        std::unique_ptr<TH2D> *refForwardArr,
                                        std::unique_ptr<TH2D> *refBackwardArr) {
-        std::vector<RecoJet> sortedJets = recoJets;
-        std::sort(sortedJets.begin(), sortedJets.end(), [&](const RecoJet &a, const RecoJet &b) {
-            return getPt(a) > getPt(b);
-        });
-
-        const auto &leadingJetSyst = sortedJets[0];
-        const auto &subleadingJetSyst = sortedJets[1];
+        const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(recoJets, getPt, refJetSortFallback);
+        const auto &leadingJetSyst = *leadingJetPtr;
+        const auto &subleadingJetSyst = *subleadingJetPtr;
         // pT cuts for systematic variations (can be adjusted as needed)
         if (getPt(leadingJetSyst) < 50.f || getPt(subleadingJetSyst) < 40.f) return; 
         float systDphi = deltaPhi(leadingJetSyst.refPhi, subleadingJetSyst.refPhi);
@@ -2285,8 +2331,7 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
     // fillRecoDijetSystematic:
     // - `getPt`: callable taking `const RecoJet&` and returning the pT value
     //   used for ordering and dijet pT calculations (float-like).
-    // - Makes a local copy of `recoJets` and sorts it descending by `getPt`
-    //   so the outer `recoJets` order is not mutated.
+    // - Finds the two highest-pT jets without sorting the full collection.
     // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
     //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
     //   2D histograms (`recoFull/Forward/Backward`).
@@ -2294,6 +2339,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
     //   the corresponding reference histograms are filled using the ref pT.
     // - Passing different accessors (e.g. `recoPt`, `recoPtJerUp`) lets this
     //   lambda fill nominal and systematic variations without duplicating code.
+    std::vector<RecoJet> recoJetSortFallback;
+    recoJetSortFallback.reserve(recoJets.size());
     auto fillRecoDijetSystematic = [&](auto getPt,
                                        std::unique_ptr<TH2D> *recoFullArr,
                                        std::unique_ptr<TH2D> *recoForwardArr,
@@ -2301,13 +2348,9 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                        std::unique_ptr<TH2D> *refFullArr = nullptr,
                                        std::unique_ptr<TH2D> *refForwardArr = nullptr,
                                        std::unique_ptr<TH2D> *refBackwardArr = nullptr) {
-        std::vector<RecoJet> sortedJets = recoJets;
-        std::sort(sortedJets.begin(), sortedJets.end(), [&](const RecoJet &a, const RecoJet &b) {
-            return getPt(a) > getPt(b);
-        });
-
-        const auto &leadingJetSyst = sortedJets[0];
-        const auto &subleadingJetSyst = sortedJets[1];
+        const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(recoJets, getPt, recoJetSortFallback);
+        const auto &leadingJetSyst = *leadingJetPtr;
+        const auto &subleadingJetSyst = *subleadingJetPtr;
         // pT cuts for systematic variations (can be adjusted as needed)
         if (getPt(leadingJetSyst) < 50.f || getPt(subleadingJetSyst) < 40.f) return; 
         float systDphi = deltaPhi(leadingJetSyst.recoPhi, subleadingJetSyst.recoPhi);
