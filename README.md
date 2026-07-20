@@ -107,7 +107,8 @@ The `hist_analysis/` package provides a lightweight PyROOT workflow for
 inspecting and comparing analysis outputs:
 
 - `notebooks/01_inventory.ipynb`: checks configured directories, lists ROOT files, and inventories object keys.
-- `notebooks/02_basic_closures.ipynb`: loads a configurable list of objects, creates projections when required, and overlays embedding p-going and Pb-going distributions with ROOT.
+- `notebooks/02_event_histograms.ipynb`: plots event-level pt-hat and vertex-z distributions and reproduces the gen/reco overweight-protection upper-tail diagnostic.
+- `notebooks/03_basic_closures.ipynb`: loads a configurable list of objects, creates projections when required, and overlays embedding p-going and Pb-going distributions with ROOT.
 - `config/`: input locations, common pseudorapidity range, and test transverse-momentum bins.
 - `python/`: reusable ROOT object I/O, projection, histogram-operation, inventory, and plotting helpers.
 - `output/`: generated figures and ROOT artifacts; this directory is ignored by Git.

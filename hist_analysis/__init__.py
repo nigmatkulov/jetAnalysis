@@ -1,0 +1,2 @@
+"""hist_analysis package."""
+

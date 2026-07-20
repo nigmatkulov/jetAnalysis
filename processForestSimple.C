@@ -1829,7 +1829,7 @@ void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet>
     isGenOverweight = {false};
     isRecoOverweight = {false};
 
-    double c0{0.}, c1{0.}, c2{0.}, c3{0.};
+    double c0{0.}, c1{0.}, c2{0.}, c3{0.}, c4{0.};
 
     float genDijetPtAve{0.};
     if ( genJets.size() >= 2 ) {
@@ -1837,13 +1837,13 @@ void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet>
         hs.hGenDijetPtAveOverPtHatVsPtHat->Fill(ptHat, genDijetPtAve / ptHat, weight);
         hs.hGenLeadJetPtOverPtHatVsPtHat->Fill(ptHat, genJets[0].pt / ptHat, weight);
         if (isPythia) { // >0.01% overweight
-            c0 = 1.4209; c1 = 0.0001; c2 = 0.2551; c3 = -0.0112;
+            c0 = -2.1057053; c1 = 3.6487074; c2 = 4.6149196e-05; c3 = 0.31838767; c4 = 0.013966012;
         }
-        else { // >0.05% overweight
-            c0 = 1.4478; c1 = 0.0002; c2 = 0.2740; c3 = -0.0160;
+        else { // >0.01% overweight
+            c0 = -2.7302671; c1 = 4.2753646; c2 = 4.1259207e-05; c3 = 0.31729459; c4 = 0.013252104;
         }
         
-        if (genDijetPtAve / ptHat > (c0 + c1 * ptHat + c2 * std::exp(c3 * ptHat))) {
+        if (genDijetPtAve / ptHat > (c0 + c1 * std::exp(-c2 * ptHat) + c3 * std::exp(-c4 * ptHat))) {
             isGenOverweight = {true};
         }
     }
@@ -1854,13 +1854,13 @@ void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet>
         hs.hRecoDijetPtAveOverPtHatVsPtHat->Fill(ptHat, recoDijetPtAve / ptHat, weight);
         hs.hRecoLeadJetPtOverPtHatVsPtHat->Fill(ptHat, recoJets[0].recoPt / ptHat, weight);
         if (isPythia) { // >0.01% overweight
-            c0 = 1.4280; c1 = 0.0001; c2 = 0.3493; c3 = -0.0106;
+            c0 = -3.2671396; c1 = 4.8264669; c2 = 3.7360753e-05; c3 = 0.34590909; c4 = 0.013088153;
         }
-        else { // >0.05% overweight
-            c0 = 1.4749; c1 = 0.0002; c2 = 0.4283; c3 = -0.0163;
+        else { // >0.01% overweight
+            c0 = 1.3614614; c1 = 0.34284554; c2 = 0.0023496547; c3 = 11.422962; c4 = 0.11113875;
         }
 
-        if (recoDijetPtAve / ptHat > (c0 + c1 * ptHat + c2 * std::exp(c3 * ptHat))) {
+        if (recoDijetPtAve / ptHat > (c0 + c1 * std::exp(-c2 * ptHat) + c3 * std::exp(-c4 * ptHat))) {
             isRecoOverweight = {true};
         }
     }
