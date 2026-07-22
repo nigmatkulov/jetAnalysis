@@ -35,13 +35,19 @@ def first_available_histogram(curve: ClosureCurve):
 
 
 def build_closure_histograms(curves: Iterable[ClosureCurve], *, observable: str,
-                             selection_range=None, normalization: str = "integral"):
+                             selection_range=None, normalization: str = "integral",
+                             rebin_x: int = 1, rebin_y: int = 1):
     """Load, semantically project, align, and optionally normalize closure curves.
 
     The requested selection is interpreted as ``[low, high)`` by the projection
-    helper. Returns the histogram mapping and a mapping recording the selected
-    ROOT key for each curve.
+    helper. The source TH2 histograms are rebinned by the requested common X and
+    Y factors before projection. Returns the histogram mapping and a mapping
+    recording the selected ROOT key for each curve.
     """
+
+    for axis, factor in (("x", rebin_x), ("y", rebin_y)):
+        if isinstance(factor, bool) or not isinstance(factor, int) or factor < 1:
+            raise ValueError(f"rebin_{axis} must be a positive integer, got {factor!r}")
 
     projected_histograms = {}
     selected_keys = {}
@@ -49,6 +55,7 @@ def build_closure_histograms(curves: Iterable[ClosureCurve], *, observable: str,
         if curve.label in projected_histograms:
             raise ValueError(f"Duplicate closure label: {curve.label!r}")
         source, key = first_available_histogram(curve)
+        source.Rebin2D(rebin_x, rebin_y)
         projected = project_semantic_th2(
             source, observable, selection_range,
             name=f"closure_{index}_{observable}",

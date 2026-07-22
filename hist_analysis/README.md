@@ -5,7 +5,7 @@ Workspace for ROOT-file inventory, event diagnostics, closure comparisons, and i
 ## Layout
 
 - `notebooks/`: Jupyter workflows for inventory, event diagnostics, closures, and JES/JER studies.
-- `python/`: reusable PyROOT helpers for histogram I/O, projections, normalization, fitting, and plotting.
+- `python/`: reusable PyROOT helpers for histogram I/O, projections, normalization, fitting, and plotting. `python/root_style.py` defines the shared `PlotStyle`, canvas geometry, axes, annotations, legends, and palette styling.
 - `config/`: input locations, closure bins, the common eta range, and the standard dijet eta-cut index.
 - `output/`: generated PDFs, optional PNGs, and derived ROOT files. This directory is ignored by Git.
 
@@ -42,7 +42,9 @@ Use `notebooks/02_event_histograms.ipynb` for event-level `pThat` and vertex-z
 plots and for the gen/reco dijet overweight-protection diagnostic. The latter
 uses the same discrete per-`pThat`-bin upper-tail threshold definition as
 `macro/plotMcClosures.C::plotOverweightProtection`, followed by the configured
-two-exponential threshold fits over 15–950 GeV.
+two-exponential threshold fits over 15–950 GeV. Its two-dimensional maps use
+square canvases, the Bird palette, logarithmic z axes, shared palette geometry,
+and optional threshold-fit overlays.
 
 Use `notebooks/03_basic_closures.ipynb` for single-jet and dijet overlays and
 ratios to an explicitly selected nominal. It supports p-going, Pb-going, and
@@ -57,6 +59,14 @@ scan pT and eta dependence, and draw the corresponding two-dimensional response
 maps. The notebook also normalizes JER-versus-eta curves to unit central-bin mean
 within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
 `output/jes_jer/`.
+
+Use `notebooks/04_beam_orientation.ipynb` to compare p-going and Pb-going
+single-jet and dijet eta projections. Gen and Reco levels are enabled by default;
+Ref is supported through the commented `LEVELS` configuration. Direction
+comparisons show ratios to the configured nominal, while the same-direction
+frame overlays intentionally do not form ratios. The flipped-lab and CM
+direction comparisons also include the combined-orientation file and use it as
+the ratio denominator.
 
 The closure projection helpers identify pT and eta axes from their physical
 ranges because some existing reference-jet files contain misleading axis

@@ -109,7 +109,9 @@ inspecting and comparing analysis outputs:
 - `notebooks/01_inventory.ipynb`: checks configured directories, lists ROOT files, and inventories object keys.
 - `notebooks/02_event_histograms.ipynb`: plots event-level pt-hat and vertex-z distributions and reproduces the gen/reco overweight-protection upper-tail diagnostic.
 - `notebooks/03_basic_closures.ipynb`: loads a configurable list of objects, creates projections when required, and overlays embedding p-going and Pb-going distributions with ROOT.
-- `config/`: input locations, common pseudorapidity range, and test transverse-momentum bins.
+- `notebooks/03_jet_JES_JER.ipynb`: extracts inclusive-jet JES/JER, compares systematic variations, and draws response maps.
+- `notebooks/04_beam_orientation.ipynb`: compares p-going, Pb-going, and combined beam-orientation eta projections for single jets and dijets, with direction-comparison ratio panels and same-direction frame overlays.
+- `config/`: input locations, common pseudorapidity range, configured single-jet pT and dijet pTave projection bins, and the standard dijet eta-cut index.
 - `python/`: reusable ROOT object I/O, projection, histogram-operation, inventory, and plotting helpers.
 - `output/`: generated figures and ROOT artifacts; this directory is ignored by Git.
 
