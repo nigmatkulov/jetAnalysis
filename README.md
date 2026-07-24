@@ -108,9 +108,10 @@ inspecting and comparing analysis outputs:
 
 - `notebooks/01_inventory.ipynb`: checks configured directories, lists ROOT files, and inventories object keys.
 - `notebooks/02_event_histograms.ipynb`: plots event-level pt-hat and vertex-z distributions and reproduces the gen/reco overweight-protection upper-tail diagnostic.
-- `notebooks/03_basic_closures.ipynb`: loads a configurable list of objects, creates projections when required, and overlays embedding p-going and Pb-going distributions with ROOT.
+- `notebooks/03_dijet_reco_to_gen_closures.ipynb`: compares configurable reconstructed dijet eta distributions with nominal Gen for adjacent bins defined by `PT_AVE_BINS`. It draws full eta shapes and forward/backward ratios with separate upper- and lower-panel axis ranges, ROOT normalization/division, explicit Reco-red and Gen-blue styles, and the standard dijet-selection annotation. Outputs follow `<generator>_<direction>_full_etaCM_<eta*10>_ptave_<low>_<high>.pdf` and the corresponding `..._fb_etaCM_...` pattern.
 - `notebooks/03_jet_JES_JER.ipynb`: extracts inclusive-jet JES/JER, compares systematic variations, and draws response maps.
 - `notebooks/04_beam_orientation.ipynb`: compares p-going, Pb-going, and combined beam-orientation eta projections for single jets and dijets, with direction-comparison ratio panels and same-direction frame overlays.
+- `notebooks/05_unfold2D.ipynb`: builds a flattened dijet pTave-eta response, runs a Bayesian RooUnfold closure test with explicit fake handling, and produces gen/reco/unfolded eta overlays with reco/gen and unfolded/gen ratios for every configured pTave interval. ROOT results and PDF diagnostics are written to `output/unfold2D/`; set `SAVE_PNG = True` for matching PNGs.
 - `config/`: input locations, common pseudorapidity range, configured single-jet pT and dijet pTave projection bins, and the standard dijet eta-cut index.
 - `python/`: reusable ROOT object I/O, projection, histogram-operation, inventory, and plotting helpers.
 - `output/`: generated figures and ROOT artifacts; this directory is ignored by Git.

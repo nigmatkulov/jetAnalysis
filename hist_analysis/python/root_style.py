@@ -18,6 +18,24 @@ COLORS = (
 )
 MARKERS = (20, 21, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32)
 
+# Semantic colors for gen/reco unfolding diagnostics. Keep these mappings in
+# one place so a physics role has the same appearance in every notebook panel.
+UNFOLDING_COLORS = {
+    "gen": ROOT.kBlue,
+    "reco": ROOT.kRed,
+    "miss": ROOT.kOrange + 7,
+    "fake": ROOT.kGreen + 2,
+    "unfolded": ROOT.kBlack,
+}
+
+UNFOLDING_MARKERS = {
+    "gen": 21,
+    "reco": 20,
+    "miss": 24,
+    "fake": 25,
+    "unfolded": 22,
+}
+
 
 @dataclass(frozen=True)
 class PlotStyle:
@@ -115,6 +133,22 @@ def set_1d_style(histogram, style_index: int = 0, *,
         axis.SetNdivisions(style.axis_1d_divisions)
     histogram.GetXaxis().SetTitleOffset(style.axis_1d_x_title_offset)
     histogram.GetYaxis().SetTitleOffset(style.axis_1d_y_title_offset)
+
+
+def set_unfolding_1d_style(histogram, role: str, *,
+                           style: PlotStyle = DEFAULT_PLOT_STYLE) -> None:
+    """Style a 1D unfolding histogram according to its physics role."""
+
+    if role not in UNFOLDING_COLORS:
+        raise ValueError(
+            f"Unknown unfolding role {role!r}; expected one of "
+            f"{tuple(UNFOLDING_COLORS)}"
+        )
+    set_1d_style(histogram, style=style)
+    color = UNFOLDING_COLORS[role]
+    histogram.SetLineColor(color)
+    histogram.SetMarkerColor(color)
+    histogram.SetMarkerStyle(UNFOLDING_MARKERS[role])
 
 
 def set_2d_style(histogram, *, style: PlotStyle = DEFAULT_PLOT_STYLE) -> None:

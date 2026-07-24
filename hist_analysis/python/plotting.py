@@ -9,7 +9,8 @@ import ROOT
 
 from hist_analysis.python.histogram_ops import ratio_to_nominal, style_histograms
 from hist_analysis.python.root_style import (
-    DEFAULT_PLOT_STYLE, PlotStyle, draw_text_block, save_canvas, set_legend_style,
+    DEFAULT_PLOT_STYLE, PlotStyle, draw_text_block, save_canvas, set_1d_style,
+    set_legend_style,
 )
 
 
@@ -27,15 +28,19 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
                  headroom: float = 1.3, canvas_name: str | None = None,
                  annotations: Iterable[str] = (),
                  x_range: tuple[float, float] | None = None,
+                 y_range: tuple[float, float] | None = None,
+                 style_indices: Mapping[str, int] | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
     """Draw an overlay and ratios to an explicitly named nominal histogram.
 
     ``draw_nominal_ratio=False`` suppresses the trivial nominal/self ratio.
     ``x_range`` is applied to both panels, while ``reference_line_x_range`` can
-    independently constrain the horizontal ratio reference line. ``annotations``
-    are drawn as a shared-style text block in the upper pad. ``headroom`` reserves
-    vertical space for legends and annotations, and ``style`` controls the common
-    canvas, margin, font, axis, and text geometry.
+    independently constrain the horizontal ratio reference line. ``y_range``
+    constrains the upper-panel distributions. ``style_indices`` can assign
+    explicit ``set_1d_style`` indices by curve label. ``annotations`` are drawn
+    as a shared-style text block in the upper pad. ``headroom`` reserves vertical
+    space for legends and annotations, and ``style`` controls the common canvas,
+    margin, font, axis, and text geometry.
     """
 
     if nominal not in histograms:
@@ -43,11 +48,19 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
     if not histograms:
         raise ValueError("No histograms supplied")
 
-    style_histograms(histograms)
+    if style_indices is None:
+        style_histograms(histograms)
+    else:
+        for index, (label, histogram) in enumerate(histograms.items()):
+            set_1d_style(
+                histogram, style_indices.get(label, index), style=style,
+            )
     if headroom <= 1.0:
         raise ValueError("headroom must be greater than 1")
     if x_range is not None and x_range[0] >= x_range[1]:
         raise ValueError("x_range must satisfy low < high")
+    if y_range is not None and y_range[0] >= y_range[1]:
+        raise ValueError("y_range must satisfy low < high")
     annotation_lines = tuple(annotations)
     suffix = str(abs(hash(canvas_name or title)))
     canvas = ROOT.TCanvas(
@@ -97,7 +110,11 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
         histogram.GetXaxis().SetLabelSize(0)
         if x_range is not None:
             histogram.GetXaxis().SetRangeUser(*x_range)
-        histogram.SetMaximum(maximum * (20.0 if log_y else headroom))
+        if y_range is None:
+            histogram.SetMaximum(maximum * (20.0 if log_y else headroom))
+        else:
+            histogram.SetMinimum(y_range[0])
+            histogram.SetMaximum(y_range[1])
         histogram.Draw("E1" if index == 0 else "E1 SAME")
         legend.AddEntry(histogram, label, "p")
     legend.Draw()

@@ -50,6 +50,23 @@ static constexpr std::array<float, nEtaShifts> etaShift{0.463, 0.464, 0.465, 0.4
 const int nEtaCuts = 7;
 static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.5};
 
+namespace unfolding_diagnostics {
+
+enum PairCategory : int {
+    kMatchedDirect = 1,
+    kMatchedSwapped,
+    kGenPassRecoFail,
+    kRecoPassGenFail,
+    kSelectedPairMismatch,
+    kMissingOneRecoReference,
+    kMissingBothRecoReferences,
+    kNPairCategories
+};
+
+constexpr int nPairCategories = kNPairCategories - 1;
+
+} // namespace unfolding_diagnostics
+
 std::vector<float> etaBinEdges = {-3.60f, -3.46f, -3.31f, -3.17f, -3.02f, -2.88f, -2.74f, -2.59f, -2.45f, -2.30f, -2.16f, -2.02f, -1.87f, -1.73f, -1.58f, -1.44f, -1.30f, -1.15f, -1.01f, -0.86f, -0.72f, -0.58f, -0.43f, -0.29f, -0.14f, 0.00f, 0.14f, 0.29f, 0.43f, 0.58f, 0.72f, 0.86f, 1.01f, 1.15f, 1.30f, 1.44f, 1.58f, 1.73f, 1.87f, 2.02f, 2.16f, 2.30f, 2.45f, 2.59f, 2.74f, 2.88f, 3.02f, 3.17f, 3.31f, 3.46f, 3.60f};
 
 // Range for the selection
@@ -464,8 +481,10 @@ struct Histograms {
 
     // Unfolding histograms (response matrices and missing histograms)
     std::unique_ptr<THnSparseF> hGenDijetPtEtaCMVsRecoPtEtaCMArr[nEtaCuts];
-    std::unique_ptr<THnSparseF> hRefDijetPtEtaCMVsRecoPtEtaCMArr[nEtaCuts];
+    // std::unique_ptr<THnSparseF> hRefDijetPtEtaCMVsRecoPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetPtEtaCMMissArr[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMFakeArr[nEtaCuts];
+    std::unique_ptr<TH1D> hUnfoldingPairClassificationArr[nEtaCuts];
 
     //
     // Ref-selected level histograms
@@ -826,8 +845,8 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
     double jetJESBins[] = { 0., 2. };
 
     // Dijet binning
-    const int nDijetPtBins = 47;
-    double dijetPtBins[] = { 30., 500.};
+    const int nDijetPtBins = 100;
+    double dijetPtBins[] = { 0., 1000.};
     const int nDijetEtaBins = 60;
     double dijetEtaBins[] = { -3.0, 3.0 };
     const int nDijetEtaFBBins = 30;
@@ -1140,15 +1159,35 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
                                                             Form("Gen dijet #eta_{CM} vs Reco dijet #eta_{CM} vs Gen dijet p_{T}^{ave} vs Reco dijet p_{T}^{ave};Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM}"), 
                                                             nDimResponse, responseBins, responseBinsMin, responseBinsMax);
             hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Sumw2();
-            hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut] = std::make_unique<THnSparseF>(Form("hRefDijetPtEtaCMVsRecoPtEtaCM_%d", iCut),
-                                                            "Reference-matched dijet response;Ref p_{T}^{ave} (GeV);Ref #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM}",
-                                                            nDimResponse, responseBins, responseBinsMin, responseBinsMax);
-            hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Sumw2();
+            // hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut] = std::make_unique<THnSparseF>(Form("hRefDijetPtEtaCMVsRecoPtEtaCM_%d", iCut),
+            //                                                 "Reference-matched dijet response;Ref p_{T}^{ave} (GeV);Ref #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM}",
+            //                                                 nDimResponse, responseBins, responseBinsMin, responseBinsMax);
+            // hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Sumw2();
             hs.hGenDijetPtEtaCMMissArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetPtEtaCMMiss_%d", iCut), 
                                                                 Form("Gen dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
                                                                 nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                                                 nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
             hs.hGenDijetPtEtaCMMissArr[iCut]->Sumw2();
+            hs.hRecoDijetPtEtaCMFakeArr[iCut] = std::make_unique<TH2D>(Form("hRecoDijetPtEtaCMFake_%d", iCut),
+                                                                Form("Unmatched reco dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRecoDijetPtEtaCMFakeArr[iCut]->Sumw2();
+            hs.hUnfoldingPairClassificationArr[iCut] = std::make_unique<TH1D>(
+                Form("hUnfoldingPairClassification_%d", iCut),
+                Form("Unfolding pair classification (|#eta| < %.1f);Pair category;Weighted events", etaCuts[iCut]),
+                unfolding_diagnostics::nPairCategories, 0.5,
+                unfolding_diagnostics::nPairCategories + 0.5);
+            hs.hUnfoldingPairClassificationArr[iCut]->Sumw2();
+
+            auto *classificationAxis = hs.hUnfoldingPairClassificationArr[iCut]->GetXaxis();
+            classificationAxis->SetBinLabel(unfolding_diagnostics::kMatchedDirect, "Matched direct");
+            classificationAxis->SetBinLabel(unfolding_diagnostics::kMatchedSwapped, "Matched swapped");
+            classificationAxis->SetBinLabel(unfolding_diagnostics::kGenPassRecoFail, "Gen pass, reco fail");
+            classificationAxis->SetBinLabel(unfolding_diagnostics::kRecoPassGenFail, "Reco pass, gen fail");
+            classificationAxis->SetBinLabel(unfolding_diagnostics::kSelectedPairMismatch, "Selected-pair mismatch");
+            classificationAxis->SetBinLabel(unfolding_diagnostics::kMissingOneRecoReference, "Missing one reco reference");
+            classificationAxis->SetBinLabel(unfolding_diagnostics::kMissingBothRecoReferences, "Missing both reco references");
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
 
 
@@ -1629,8 +1668,7 @@ void createHistograms(Histograms &hs, const bool &isMc = false,
 /// @param eventTree: the event tree
 /// @param skimTree: the skim tree
 /// @param jetTree: the jet tree
-/// @param isMc: true if the data is from Monte Carlo, false otherwise
-void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChain &skimTree, TChain &jetTree, const bool &isMc) {
+void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChain &skimTree, TChain &jetTree) {
 
     // Check input exists
     if ( input.Length() <= 0 ) {
@@ -1756,9 +1794,11 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
     mainTree.SetBranchStatus("jtPfNEM", 1);
     mainTree.SetBranchStatus("jtPfMUM", 1);
 
-    mainTree.SetBranchStatus("refpt", 1);
-    mainTree.SetBranchStatus("refeta", 1);
-    mainTree.SetBranchStatus("refphi", 1);
+    if (isMc) {
+        mainTree.SetBranchStatus("refpt", 1);
+        mainTree.SetBranchStatus("refeta", 1);
+        mainTree.SetBranchStatus("refphi", 1);
+    }
 
     // Set branch addresses
     mainTree.SetBranchAddress("vz", &vz);
@@ -1799,16 +1839,18 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
     mainTree.SetBranchAddress("jtPfNEM",  &recoJetPfNEM);
     mainTree.SetBranchAddress("jtPfMUM",  &recoJetPfMUM);
 
-    mainTree.SetBranchAddress("refpt", &refJetPt);
-    mainTree.SetBranchAddress("refeta", &refJetEta);
-    mainTree.SetBranchAddress("refphi", &refJetPhi);
+    if (isMc) {
+        mainTree.SetBranchAddress("refpt", &refJetPt);
+        mainTree.SetBranchAddress("refeta", &refJetEta);
+        mainTree.SetBranchAddress("refphi", &refJetPhi);
+    }
 
     std::cout << GREEN << "\t[DONE]" << RESET << std::endl;
 }
 
 //________________
 void setupInput(const TString &input, TChain &hltTree, TChain &eventTree, TChain &skimTree, TChain &jetTree, const bool &isMc) {
-    setupChains(input, hltTree, eventTree, skimTree, jetTree, isMc);
+    setupChains(input, hltTree, eventTree, skimTree, jetTree);
     setupBranches(hltTree, isMc);
 }
 
@@ -2692,13 +2734,14 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
 
     if (!isMc) return; // Only prepare unfolding for MC
     
-
+    // Lambda function to compute the squared delta R between two jets
     auto deltaR2 = [&](float eta1, float phi1, float eta2, float phi2) {
         float dEta = eta1 - eta2;
         float dPhi = deltaPhi(phi1, phi2);
         return dEta * dEta + dPhi * dPhi;
     };
 
+    // Lambda function to check if a pair of jets passes the dijet selection criteria
     auto goodPair = [](float leadPt, float subleadPt, float leadEtaCM, float subleadEtaCM, float dphi, float etaCut) {
         return analysis_contract::passesDijetSelection(
             leadPt, subleadPt, leadEtaCM, subleadEtaCM, dphi, etaCut);
@@ -2715,7 +2758,7 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
     });
 
     //
-    // Get leading and subleading gen jets and dijet properties
+    // Process gen-level (truth) leading and subleading jets and dijet properties
     //
 
     GenJet genLeadingJet;
@@ -2735,26 +2778,32 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
 
     bool has2genJets = (genJets.size() >= 2);
 
+    // Truth-level (gen) leading and subleading jets and dijet properties
+    // If both leading and subleading gen jets pass the selection criteria, 
+    // compute their properties and call truth distribution
     if (has2genJets) {
         genLeadingJet = genJets[0];
         genSubleadingJet = genJets[1];
 
         genLeadingJetPt = genLeadingJet.pt;
-        genLeadingJetEtaCM = etaCM(genLeadingJet.eta, 0.465f, isPbGoing, isMc);
+        genLeadingJetEtaCM = etaCM(genLeadingJet.eta,
+                                   analysis_contract::kNominalEtaShift,
+                                   isPbGoing, isMc);
         genLeadingJetPhi = genLeadingJet.phi;
 
         genSubleadingJetPt = genSubleadingJet.pt;
-        genSubleadingJetEtaCM = etaCM(genSubleadingJet.eta, 0.465f, isPbGoing, isMc);
+        genSubleadingJetEtaCM = etaCM(genSubleadingJet.eta,
+                                      analysis_contract::kNominalEtaShift,
+                                      isPbGoing, isMc);
         genSubleadingJetPhi = genSubleadingJet.phi;
 
         genDijetPtAve = 0.5 * (genLeadingJetPt + genSubleadingJetPt);
         genDijetEtaCM = 0.5 * (genLeadingJetEtaCM + genSubleadingJetEtaCM);
         genDijetDeltaPhi = deltaPhi(genLeadingJetPhi, genSubleadingJetPhi);
-
     } // if (has2genJets)
 
     //
-    // Reco leading and subleading jets and dijet properties
+    // Process reco-level (reconstructed) leading and subleading jets and dijet properties
     //
     RecoJet recoLeadingJet;
     RecoJet recoSubleadingJet;
@@ -2762,91 +2811,122 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
     bool directMatching = {false};
     bool swapMatching = {false};
     bool goodMatching = {false};
+    bool hasRecoReferenceMatches = {false};
+    int nRecoReferenceMatches = {0};
 
     bool has2recoJets = (recoJets.size() >= 2);
     float recoLeadingJetPt = {-99.f};
     float recoLeadingJetEtaCM = {-99.f};
     float recoLeadingJetPhi = {0.f};
-    float refLeadingJetPt = {-99.f};
-    float refLeadingJetEtaCM = {-99.f};
 
     float recoSubleadingJetPt = {-99.f};
     float recoSubleadingJetEtaCM = {-99.f};
     float recoSubleadingJetPhi = {0.f};
-    float refSubleadingJetPt = {-99.f};
-    float refSubleadingJetEtaCM = {-99.f};
 
     float recoDijetPtAve = {-99.f};
     float recoDijetEtaCM = {-99.f};
     float recoDijetDeltaPhi = {0.f};
 
-    float refDijetPtAve = {-99.f};
-    float refDijetEtaCM = {-99.f};
-
-
+    // If both leading and subleading reco jets pass the selection criteria, 
+    // compute their properties and call reco (measured) distribution
     if (has2recoJets) {
         // Get leading and subleading reco jets
         recoLeadingJet = recoJets[0];
         recoSubleadingJet = recoJets[1];
 
         recoLeadingJetPt = recoLeadingJet.recoPt;
-        recoLeadingJetEtaCM = etaCM(recoLeadingJet.recoEta, 0.465f, isPbGoing, isMc);
+        recoLeadingJetEtaCM = etaCM(recoLeadingJet.recoEta,
+                                    analysis_contract::kNominalEtaShift,
+                                    isPbGoing, isMc);
         recoLeadingJetPhi = recoLeadingJet.recoPhi;
 
         recoSubleadingJetPt = recoSubleadingJet.recoPt;
-        recoSubleadingJetEtaCM = etaCM(recoSubleadingJet.recoEta, 0.465f, isPbGoing, isMc);
+        recoSubleadingJetEtaCM = etaCM(recoSubleadingJet.recoEta,
+                                       analysis_contract::kNominalEtaShift,
+                                       isPbGoing, isMc);
         recoSubleadingJetPhi = recoSubleadingJet.recoPhi;
 
         recoDijetPtAve = 0.5 * (recoLeadingJetPt + recoSubleadingJetPt);
         recoDijetEtaCM = 0.5 * (recoLeadingJetEtaCM + recoSubleadingJetEtaCM);
         recoDijetDeltaPhi = deltaPhi(recoLeadingJetPhi, recoSubleadingJetPhi);
 
-        // Define the deltaR cut for matching
-        if (has2genJets) {
-            const float deltaRCut2 = 0.2f * 0.2f;
-            if (recoLeadingJet.refPt > 0 && recoSubleadingJet.refPt > 0) {
-                directMatching = (deltaR2(recoLeadingJet.recoEta, recoLeadingJetPhi, genLeadingJet.eta, genLeadingJetPhi) < deltaRCut2) &&
-                                 (deltaR2(recoSubleadingJet.recoEta, recoSubleadingJetPhi, genSubleadingJet.eta, genSubleadingJetPhi) < deltaRCut2);
-                swapMatching = (deltaR2(recoLeadingJet.recoEta, recoLeadingJetPhi, genSubleadingJet.eta, genSubleadingJetPhi) < deltaRCut2) &&
-                               (deltaR2(recoSubleadingJet.recoEta, recoSubleadingJetPhi, genLeadingJet.eta, genLeadingJetPhi) < deltaRCut2);
-                goodMatching = directMatching || swapMatching;
+        nRecoReferenceMatches = static_cast<int>(recoLeadingJet.refPt > 0.f) +
+                                static_cast<int>(recoSubleadingJet.refPt > 0.f);
+        hasRecoReferenceMatches = nRecoReferenceMatches == 2;
 
-            } // if (recoLeadingJet.refPt > 0 && recoSubleadingJet.refPt > 0) 
-        } // if (has2genJets)
+        // Define the deltaR cut for matching
+        if (has2genJets && hasRecoReferenceMatches) {
+            constexpr float deltaRCut2 = analysis_contract::kDijetMatchDeltaR *
+                                         analysis_contract::kDijetMatchDeltaR;
+            directMatching = (deltaR2(recoLeadingJet.recoEta, recoLeadingJetPhi, genLeadingJet.eta, genLeadingJetPhi) < deltaRCut2) &&
+                             (deltaR2(recoSubleadingJet.recoEta, recoSubleadingJetPhi, genSubleadingJet.eta, genSubleadingJetPhi) < deltaRCut2);
+            swapMatching = (deltaR2(recoLeadingJet.recoEta, recoLeadingJetPhi, genSubleadingJet.eta, genSubleadingJetPhi) < deltaRCut2) &&
+                           (deltaR2(recoSubleadingJet.recoEta, recoSubleadingJetPhi, genLeadingJet.eta, genLeadingJetPhi) < deltaRCut2);
+            goodMatching = directMatching || swapMatching;
+        } // if (has2genJets && hasRecoReferenceMatches)
     } // if (has2recoJets)
 
-    bool hasReferencePair = has2recoJets &&
-                            recoLeadingJet.refPt > 0.f && recoSubleadingJet.refPt > 0.f;
-    float refDijetDeltaPhi = 0.f;
-    if (hasReferencePair) {
-        refLeadingJetPt = recoLeadingJet.refPt;
-        refLeadingJetEtaCM = etaCM(recoLeadingJet.refEta,
-                                   analysis_contract::kNominalEtaShift,
-                                   isPbGoing, isMc);
-        refSubleadingJetPt = recoSubleadingJet.refPt;
-        refSubleadingJetEtaCM = etaCM(recoSubleadingJet.refEta,
-                                      analysis_contract::kNominalEtaShift,
-                                      isPbGoing, isMc);
-        refDijetPtAve = 0.5f * (refLeadingJetPt + refSubleadingJetPt);
-        refDijetEtaCM = 0.5f * (refLeadingJetEtaCM + refSubleadingJetEtaCM);
-        refDijetDeltaPhi = deltaPhi(recoLeadingJet.refPhi, recoSubleadingJet.refPhi);
-    }
-
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+
+        // Explicitly list the conditions for each category to avoid ambiguity 
+        // and ensure clarity in the unfolding diagnostics
+
+        // Gen (truth) dijet passes selection
         const bool genPairPass = has2genJets && goodPair(
             genLeadingJetPt, genSubleadingJetPt,
             genLeadingJetEtaCM, genSubleadingJetEtaCM,
             genDijetDeltaPhi, etaCuts[iCut]);
+        // Reco (measured) dijet passes selection
         const bool recoPairPass = has2recoJets && goodPair(
             recoLeadingJetPt, recoSubleadingJetPt,
             recoLeadingJetEtaCM, recoSubleadingJetEtaCM,
             recoDijetDeltaPhi, etaCuts[iCut]);
-        const bool refPairPass = hasReferencePair && goodPair(
-            refLeadingJetPt, refSubleadingJetPt,
-            refLeadingJetEtaCM, refSubleadingJetEtaCM,
-            refDijetDeltaPhi, etaCuts[iCut]);
 
-        if (genPairPass && recoPairPass && goodMatching) {
+        // Check if both gen and reco dijets pass selection
+        const bool bothPairsPass = genPairPass && recoPairPass;
+        // Check if the reco dijet matches the gen dijet (either direct or swapped)
+        const bool matchedPair = bothPairsPass && goodMatching;
+        // Check if the composition of the reco dijet has changed compared to the gen dijet
+        const bool pairCompositionChanged = bothPairsPass &&
+                                            hasRecoReferenceMatches &&
+                                            !goodMatching;
+        // Check if one or both reco jets are missing a reference match
+        const bool missingOneRecoReference = bothPairsPass &&
+                                             nRecoReferenceMatches == 1;
+        // Check if both reco jets are missing reference matches
+        const bool missingBothRecoReferences = bothPairsPass &&
+                                               nRecoReferenceMatches == 0;
+
+        // Determine the category for unfolding diagnostics
+        int pairCategory = 0;
+        if (matchedPair) {
+            pairCategory = directMatching
+                ? unfolding_diagnostics::kMatchedDirect
+                : unfolding_diagnostics::kMatchedSwapped;
+        }
+        else if (pairCompositionChanged) {
+            pairCategory = unfolding_diagnostics::kSelectedPairMismatch;
+        }
+        else if (missingOneRecoReference) {
+            pairCategory = unfolding_diagnostics::kMissingOneRecoReference;
+        }
+        else if (missingBothRecoReferences) {
+            pairCategory = unfolding_diagnostics::kMissingBothRecoReferences;
+        }
+        else if (genPairPass) {
+            pairCategory = unfolding_diagnostics::kGenPassRecoFail;
+        }
+        else if (recoPairPass) {
+            pairCategory = unfolding_diagnostics::kRecoPassGenFail;
+        }
+
+        if (pairCategory != 0) {
+            hs.hUnfoldingPairClassificationArr[iCut]->Fill(pairCategory, weight);
+        }
+
+        // Fill the response matrix for matched pairs, and fill the appropriate 
+        // histograms for gen-only or reco-only pairs
+        if (matchedPair) {
             const double response[4] = {
                 genDijetPtAve, genDijetEtaCM, recoDijetPtAve, recoDijetEtaCM
             };
@@ -2857,13 +2937,12 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
                 genDijetPtAve, genDijetEtaCM, weight);
         }
 
-        if (refPairPass && recoPairPass) {
-            const double response[4] = {
-                refDijetPtAve, refDijetEtaCM, recoDijetPtAve, recoDijetEtaCM
-            };
-            hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Fill(response, weight);
+        if (recoPairPass && !matchedPair) {
+            hs.hRecoDijetPtEtaCMFakeArr[iCut]->Fill(
+                recoDijetPtAve, recoDijetEtaCM, weight);
         }
-    }
+
+    } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
 }
 
 //________________
@@ -2944,8 +3023,10 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
 
             // Response matrix 
             hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
-            hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
+            // hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
             hs.hGenDijetPtEtaCMMissArr[iCut]->Write();
+            hs.hRecoDijetPtEtaCMFakeArr[iCut]->Write();
+            hs.hUnfoldingPairClassificationArr[iCut]->Write();
         }
 
         hs.hGenInclusiveJetJESDefPtEta->Write();
@@ -3092,7 +3173,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc, const boo
 //________________
 void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia, TChain &mainTree, 
                    JetCorrector &jec, JetUncertainty &jeu,
-                   Histograms &hs, const int &ptHatSample,
+                   Histograms &hs, 
                    const bool &doJeuSyst, const bool &doJerSyst,
                    const int &triggerId, const int &jetSelectionMethod) {
 
@@ -3271,7 +3352,7 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         }
 
         // Load reconstructed jets
-        loadRecoJets( recoJets, jecs );
+        loadRecoJets( recoJets, jec );
 
         if (isMc) {
             // Load generated jets
@@ -3524,7 +3605,7 @@ int main(int argc, char* argv[]) {
                        GREEN, mainTree->GetEntries(), RESET) << std::endl;
 
     // Process the events
-    processEvents(isPbGoing, isMc, isPythia, *mainTree, *jec, *jeu, hs, ptHatSample, 
+    processEvents(isPbGoing, isMc, isPythia, *mainTree, *jec, *jeu, hs,
                   jeuSyst, jerSyst, triggerId, recoJetSelMethod);
 
     // Write output

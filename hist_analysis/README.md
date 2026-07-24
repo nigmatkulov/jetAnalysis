@@ -46,13 +46,6 @@ two-exponential threshold fits over 15–950 GeV. Its two-dimensional maps use
 square canvases, the Bird palette, logarithmic z axes, shared palette geometry,
 and optional threshold-fit overlays.
 
-Use `notebooks/03_basic_closures.ipynb` for single-jet and dijet overlays and
-ratios to an explicitly selected nominal. It supports p-going, Pb-going, and
-existing combined files; gen/ref/reco comparisons within one MC generator; and
-embedding/Pythia comparisons at a selected reconstruction level. Explicit data
-curves require a chosen input file, histogram key, trigger combination, and
-normalization convention.
-
 Use `notebooks/03_jet_JES_JER.ipynb` to extract JES and JER from Gaussian fits to
 inclusive-jet response slices, compare the configured reco/gen smearing cases,
 scan pT and eta dependence, and draw the corresponding two-dimensional response
@@ -67,6 +60,59 @@ comparisons show ratios to the configured nominal, while the same-direction
 frame overlays intentionally do not form ratios. The flipped-lab and CM
 direction comparisons also include the combined-orientation file and use it as
 the ratio denominator.
+
+Use `notebooks/05_unfold2D.ipynb` to construct a flattened dijet
+`pTave`-eta response and run a Bayesian RooUnfold closure test for the configured
+MC sample. Misses are represented by the response inefficiency, while fake
+handling is enabled explicitly in `RooUnfoldBayes`. The notebook writes the
+flattened input spectra, response and miss/fake diagnostics, unfolded result,
+closure ratios, covariance matrix, serialized response, and configuration
+metadata to
+`output/unfold2D/<generator>_<direction>_unfold2D_eta_<cut>_iter_<iterations>.root`.
+The projection/response diagnostics are produced for every configured pTave
+interval; the flattened-response and final closure canvases are also saved as
+PDFs in the same directory. For every pTave interval, the notebook extracts the
+unfolded eta distribution, overlays it with the original gen and reco
+projections, and plots reco/gen and unfolded/gen ratios.
+Those component and ratio histograms are stored in the ROOT output. Unfolding
+plots use the semantic styles from `python/root_style.py`: gen blue, reco red,
+miss orange, fake green, and unfolded black. Set `SAVE_PNG = True` in the
+notebook configuration to also write matching PNG files.
+
+Before constructing `RooUnfoldResponse`, the notebook scales cloned truth,
+measured, and response histograms by the common `RESPONSE_SCALE`. This keeps
+small weighted response entries above RooUnfold's absolute matrix-sanitization
+threshold. The unfolded histogram is scaled back by `1/RESPONSE_SCALE`, and its
+covariance by `1/RESPONSE_SCALE^2`, before results are plotted or written.
+
+For `DIRECTION = 'combined'`, the unfolding notebook reads
+`<generator>/<generator>_<stem>.root`. For `pgoing` or `Pbgoing`, it reads
+`<generator>/<direction>/<generator>_<direction>_<stem>.root`, matching the
+production output naming convention.
+
+Use `notebooks/03_dijet_reco_to_gen_closures.ipynb` for the configurable
+counterpart of `macro/plotMcClosures.C::plotDiJetClosures`. It projects the selected dijet
+intervals from adjacent `PT_AVE_BINS` edges for every selected eta-cut index. It
+compares full eta shapes to nominal Gen and compares forward/backward ratios to
+the Gen forward/backward ratio. `NORMALIZATION='integral'` produces fractions per
+bin whose bin-content sum is one; `bin_width` produces a density whose
+bin-width-weighted integral is one. Projection normalization uses ROOT
+`TH1::Scale`, while forward/backward and closure ratios use ROOT `TH1::Divide`.
+Forward and backward inputs are not normalized before division.
+
+Reco is enabled in red (`set_1d_style` index 0) and Gen in blue (index 1). Ref,
+smeared Gen, or smeared Reco curves can be added by supplying their CM, Forward,
+and Backward key templates. Full-distribution and F/B x-axis ranges, full-shape
+ratio limits, F/B limits, and F/B double-ratio limits are configured separately.
+The annotation records the generator, levels, CM frame, pTave interval, jet eta
+acceptance, leading/subleading thresholds, and delta-phi requirement. The ROOT
+binomial division option reproduces the macro when requested, but the notebook
+can use independent error propagation for weighted forward/backward histograms.
+
+PDF names are
+`<generator>_<direction>_full_etaCM_<eta*10>_ptave_<low>_<high>.pdf` and
+`<generator>_<direction>_fb_etaCM_<eta*10>_ptave_<low>_<high>.pdf`; for example,
+the nominal 1.9 acceptance and 50--60 GeV interval use `etaCM_19_ptave_50_60`.
 
 The closure projection helpers identify pT and eta axes from their physical
 ranges because some existing reference-jet files contain misleading axis
