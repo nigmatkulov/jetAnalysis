@@ -21,8 +21,6 @@ DEFAULT_OUTPUT_DIR = Path.home() / "cernbox" / "ana" / "pPb8160"
 class RunnerConfig:
     mc_type: int
     is_pb_going_dir: int
-    jeu_syst: int
-    jer_syst: int
     trigger_id: int
     reco_jet_sel_method: int
     input_base: Path = DEFAULT_INPUT_BASE
@@ -79,8 +77,6 @@ def build_command(config: RunnerConfig, pt_hat_sample: int) -> list[str]:
         str(config.mc_type),
         str(config.is_pb_going_dir),
         str(pt_hat_sample),
-        str(config.jeu_syst),
-        str(config.jer_syst),
         str(config.trigger_id),
         str(config.reco_jet_sel_method),
     ]

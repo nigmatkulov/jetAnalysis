@@ -92,7 +92,7 @@ production output naming convention.
 
 Use `notebooks/03_dijet_reco_to_gen_closures.ipynb` for the configurable
 counterpart of `macro/plotMcClosures.C::plotDiJetClosures`. It projects the selected dijet
-intervals from adjacent `PT_AVE_BINS` edges for every selected eta-cut index. It
+intervals from `config.histograms.DIJET_PTAVE_BINS` for every selected eta-cut index. It
 compares full eta shapes to nominal Gen and compares forward/backward ratios to
 the Gen forward/backward ratio. `NORMALIZATION='integral'` produces fractions per
 bin whose bin-content sum is one; `bin_width` produces a density whose
@@ -102,8 +102,10 @@ Forward and backward inputs are not normalized before division.
 
 Reco is enabled in red (`set_1d_style` index 0) and Gen in blue (index 1). Ref,
 smeared Gen, or smeared Reco curves can be added by supplying their CM, Forward,
-and Backward key templates. Full-distribution and F/B x-axis ranges, full-shape
-ratio limits, F/B limits, and F/B double-ratio limits are configured separately.
+and Backward key templates. Individual full-distribution and F/B x-axis ranges
+extend 0.1 beyond the selected eta cut; eta-cut overlays extend 0.1 beyond the
+largest selected cut. Full-shape ratio limits, F/B limits, and F/B double-ratio
+limits are configured separately.
 The annotation records the generator, levels, CM frame, pTave interval, jet eta
 acceptance, leading/subleading thresholds, and delta-phi requirement. The ROOT
 binomial division option reproduces the macro when requested, but the notebook

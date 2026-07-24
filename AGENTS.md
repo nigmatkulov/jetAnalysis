@@ -46,8 +46,14 @@ For an authorized physics change:
 
 ### Python and notebooks
 
+- Use `py-env/bin/python` and run notebooks from the repository root.
 - Keep sequential execution as the default; local parallelism remains opt-in.
-- Keep notebooks thin. Put reusable analysis logic in `hist_analysis/python/` and machine-specific paths in configuration.
+- Treat uppercase notebook configuration cells as user-facing workflow parameters. Preserve their defaults unless the requested change requires otherwise.
+- Prefer `pathlib.Path`, the file resolvers in `hist_analysis/python/histogram_io.py`, and the shared plotting conventions in `hist_analysis/python/root_style.py`.
+- Preserve PyROOT ownership and lifetime semantics: clone objects that must outlive an input file, detach histograms with `SetDirectory(0)`, and close files reliably.
+- Put newly introduced reusable analysis, projection, fitting, normalization, and plotting logic in `hist_analysis/python/`. Existing notebooks contain legacy inline implementations; do not refactor them unless required by the task.
+- Keep machine-specific data and external-tool paths in configuration or environment variables. Do not introduce additional absolute paths in notebooks.
+- Keep generated plots and derived ROOT files beneath `hist_analysis/output/` unless the user explicitly requests another location.
 
 ## Validation
 
@@ -56,6 +62,7 @@ Run the smallest applicable checks documented in `README.md`.
 - C++ changes: configure and build Release first. Check executable argument handling when relevant.
 - If C++ compilation or execution fails, reproduce it in Debug before diagnosing it.
 - Python changes: run the documented syntax/compile check and the smallest affected workflow when practical.
+- Notebook changes: verify that the notebook JSON is valid and execute the smallest affected workflow when its ROOT inputs and external libraries are available. Confirm that cells execute in order from a clean kernel and that the expected output files and ROOT keys are produced.
 - Analysis changes: when a small known input is available, verify output creation, affected keys and dimensions, relevant event or jet counts, and unexpected yield changes.
 
 Do not claim a check passed unless it was run. If data, ROOT, or another prerequisite is unavailable, report the skipped check and the exact reason.

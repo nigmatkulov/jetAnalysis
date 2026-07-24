@@ -49,7 +49,7 @@ build/processForestSimple
 You can run the macro directly from ROOT and pass the same arguments used by the executable:
 
 ```bash
-root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, 0, 0, 2)'
+root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, 2)'
 ```
 
 Argument order:
@@ -59,23 +59,21 @@ Argument order:
 3. `mcType` (`0` data, `1` embedding, `2` pythia)
 4. `isPbGoingDir` (`0` p-going, `1` Pb-going)
 5. `ptHatSample`
-6. `jeuSyst` (`0` disabled, `1` enabled)
-7. `jerSyst` (`0` disabled, `1` enabled)
-8. `triggerId` (`0` no trigger/MB, `1` jet60, `2` jet80, `3` jet100)
-9. `recoJetSelMethod` (`0` none, `1` `trkMaxPt/RawPt`, `2` tight jet ID with lepton veto, `3` loose jet ID)
+6. `triggerId` (`0` no trigger/MB, `1` jet60, `2` jet80, `3` jet100)
+7. `recoJetSelMethod` (`0` none, `1` `trkMaxPt/RawPt`, `2` tight jet ID with lepton veto, `3` loose jet ID)
 
 ## Run the compiled binary
 
 After building, run the executable directly:
 
 ```bash
-./build/processForestSimple input.root output.root 2 1 30 0 0 0 2
+./build/processForestSimple input.root output.root 2 1 30 0 2
 ```
 
 Example for a file list:
 
 ```bash
-./build/processForestSimple filelist.txt output.root 2 1 30 0 0 0 2
+./build/processForestSimple filelist.txt output.root 2 1 30 0 2
 ```
 
 ## Preset batch scripts
@@ -108,7 +106,7 @@ inspecting and comparing analysis outputs:
 
 - `notebooks/01_inventory.ipynb`: checks configured directories, lists ROOT files, and inventories object keys.
 - `notebooks/02_event_histograms.ipynb`: plots event-level pt-hat and vertex-z distributions and reproduces the gen/reco overweight-protection upper-tail diagnostic.
-- `notebooks/03_dijet_reco_to_gen_closures.ipynb`: compares configurable reconstructed dijet eta distributions with nominal Gen for adjacent bins defined by `PT_AVE_BINS`. It draws full eta shapes and forward/backward ratios with separate upper- and lower-panel axis ranges, ROOT normalization/division, explicit Reco-red and Gen-blue styles, and the standard dijet-selection annotation. Outputs follow `<generator>_<direction>_full_etaCM_<eta*10>_ptave_<low>_<high>.pdf` and the corresponding `..._fb_etaCM_...` pattern.
+- `notebooks/03_dijet_reco_to_gen_closures.ipynb`: compares configurable reconstructed dijet eta distributions with nominal Gen for the intervals defined by `hist_analysis.config.histograms.DIJET_PTAVE_BINS`. It draws full eta shapes and forward/backward ratios with separate upper- and lower-panel axis ranges, ROOT normalization/division, explicit Reco-red and Gen-blue styles, and the standard dijet-selection annotation. Outputs follow `<generator>_<direction>_full_etaCM_<eta*10>_ptave_<low>_<high>.pdf` and the corresponding `..._fb_etaCM_...` pattern.
 - `notebooks/03_jet_JES_JER.ipynb`: extracts inclusive-jet JES/JER, compares systematic variations, and draws response maps.
 - `notebooks/04_beam_orientation.ipynb`: compares p-going, Pb-going, and combined beam-orientation eta projections for single jets and dijets, with direction-comparison ratio panels and same-direction frame overlays.
 - `notebooks/05_unfold2D.ipynb`: builds a flattened dijet pTave-eta response, runs a Bayesian RooUnfold closure test with explicit fake handling, and produces gen/reco/unfolded eta overlays with reco/gen and unfolded/gen ratios for every configured pTave interval. ROOT results and PDF diagnostics are written to `output/unfold2D/`; set `SAVE_PNG = True` for matching PNGs.
