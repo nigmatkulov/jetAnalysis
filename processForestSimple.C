@@ -212,10 +212,13 @@ class JERSmearingHelper {
         /// @param variation The variation for JER scaling factor:
         ///                  -99: default JER (SF = 1.0), 
         ///                  -1: JER down with SF, 
-        ///                  0: default JER with SF, 
-        ///                  1: JER up with SF, 
-        ///                  2: use eta-dependent JER scaling factor
-        ///                  3: use provided scaling factor
+        ///                   0: default JER with SF, 
+        ///                   1: JER up with SF, 
+        ///                   2: use eta-dependent JER scaling factor
+        ///                   3: use provided scaling factor
+        ///                  19: JER down with SF x eta-dependent scaling factor
+        ///                  20: default JER with SF x eta-dependent scaling factor
+        ///                  21: JER up with SF x eta-dependent scaling factor
         /// @param scaleFactor The JER scaling factor to be used if variation is set to 2
         void smearMomentum(const float &ptOriginal, const float &eta, float &ptSmeared, const int &variation = -99, const float &scaleFactor = 1.0) const {
     
@@ -247,6 +250,15 @@ class JERSmearingHelper {
             }
             else if (variation == 3) { // Use provided scaling factor
                 scaleFactorToUse = scaleFactor; 
+            }
+            else if (variation == 19) { // JER down with SF x eta-dependent scaling factor
+                scaleFactorToUse = JERScaleFactorSystematics(eta, -1) * evalJERScalingFactorForPtEta(ptOriginal, eta);
+            }
+            else if (variation == 20) { // Default JER with SF x eta-dependent scaling factor
+                scaleFactorToUse = JERScaleFactorSystematics(eta, 0) * evalJERScalingFactorForPtEta(ptOriginal, eta);
+            }
+            else if (variation == 21) { // JER up with SF x eta-dependent scaling factor
+                scaleFactorToUse = JERScaleFactorSystematics(eta, 1) * evalJERScalingFactorForPtEta(ptOriginal, eta);
             }
             else {
                 throw std::invalid_argument("Invalid variation value for JER smearing.");
@@ -839,18 +851,18 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
     // Single jet pt binning
     const int nJetPtBins = 100;
     double jetPtBins[] = { 10., 1010. };
-    const int nJetEtaBins = 144;
-    double jetEtaBins[] = { -3.6, 3.6 };
+    const int nJetEtaBins = 160;
+    double jetEtaBins[] = { -4.0, 4.0 };
     const int nJetJESBins = 50;
     double jetJESBins[] = { 0., 2. };
 
     // Dijet binning
     const int nDijetPtBins = 100;
     double dijetPtBins[] = { 0., 1000.};
-    const int nDijetEtaBins = 60;
-    double dijetEtaBins[] = { -3.0, 3.0 };
-    const int nDijetEtaFBBins = 30;
-    double dijetEtaFBBins[] = { 0., 3. };
+    const int nDijetEtaBins = 72;
+    double dijetEtaBins[] = { -3.6, 3.6 };
+    const int nDijetEtaFBBins = 36;
+    double dijetEtaFBBins[] = { 0., 3.6 };
 
     const int nDimResponse = 4;
     int responseBins[nDimResponse] = { nDijetPtBins, nDijetEtaBins, nDijetPtBins, nDijetEtaBins };

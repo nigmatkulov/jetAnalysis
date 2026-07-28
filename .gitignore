@@ -52,6 +52,7 @@ __pycache__/
 # histograms
 macro/202*
 macro/npdf/figs/*
+macro/tmp/*
 
 # processing
 processing/input/*

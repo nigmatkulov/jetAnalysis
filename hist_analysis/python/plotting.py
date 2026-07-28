@@ -29,6 +29,7 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
                  annotations: Iterable[str] = (),
                  x_range: tuple[float, float] | None = None,
                  y_range: tuple[float, float] | None = None,
+                 ratio_option: str = "",
                  style_indices: Mapping[str, int] | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
     """Draw an overlay and ratios to an explicitly named nominal histogram.
@@ -36,7 +37,9 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
     ``draw_nominal_ratio=False`` suppresses the trivial nominal/self ratio.
     ``x_range`` is applied to both panels, while ``reference_line_x_range`` can
     independently constrain the horizontal ratio reference line. ``y_range``
-    constrains the upper-panel distributions. ``style_indices`` can assign
+    constrains the upper-panel distributions. ``ratio_option`` is passed to
+    ROOT histogram division: ``''`` selects regular independent errors and
+    ``'B'`` selects binomial errors. ``style_indices`` can assign
     explicit ``set_1d_style`` indices by curve label. ``annotations`` are drawn
     as a shared-style text block in the upper pad. ``headroom`` reserves vertical
     space for legends and annotations, and ``style`` controls the common canvas,
@@ -125,7 +128,10 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
     for index, (label, histogram) in enumerate(histograms.items()):
         if label == nominal and not draw_nominal_ratio:
             continue
-        ratio = ratio_to_nominal(histogram, histograms[nominal], name=f"ratio_{index}")
+        ratio = ratio_to_nominal(
+            histogram, histograms[nominal], name=f"ratio_{index}",
+            option=ratio_option,
+        )
         ratios[label] = ratio
         ratio.SetTitle("")
         ratio.GetYaxis().SetTitle(f"Ratio to {nominal}")

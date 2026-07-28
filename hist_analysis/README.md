@@ -1,10 +1,10 @@
 # hist_analysis
 
-Workspace for ROOT-file inventory, event diagnostics, closure comparisons, and inclusive-jet JES/JER studies built around the direction-specific and combined `pPb8160` outputs.
+Workspace for ROOT-file inventory, event diagnostics, inclusive-jet efficiency and selection studies, closure comparisons, JES/JER studies, beam-orientation checks, and unfolding prototypes built around the direction-specific and combined `pPb8160` outputs.
 
 ## Layout
 
-- `notebooks/`: Jupyter workflows for inventory, event diagnostics, closures, and JES/JER studies.
+- `notebooks/`: Jupyter workflows for inventory, event diagnostics, inclusive-jet validation, closures, JES/JER, beam orientation, and unfolding.
 - `python/`: reusable PyROOT helpers for histogram I/O, projections, normalization, fitting, and plotting. `python/root_style.py` defines the shared `PlotStyle`, canvas geometry, axes, annotations, legends, and palette styling.
 - `config/`: input locations, closure bins, the common eta range, and the standard dijet eta-cut index.
 - `output/`: generated PDFs, optional PNGs, and derived ROOT files. This directory is ignored by Git.
@@ -46,6 +46,24 @@ two-exponential threshold fits over 15–950 GeV. Its two-dimensional maps use
 square canvases, the Bird palette, logarithmic z axes, shared palette geometry,
 and optional threshold-fit overlays.
 
+Use `notebooks/02_jet_efficiency_fakes.ipynb` for Lab-frame inclusive-jet
+efficiency (`Ref matched / Gen inclusive`), matched rate
+(`Reco matched / Reco inclusive`), and fake rate
+(`Reco unmatched / Reco inclusive`). It draws direct two-dimensional rate maps,
+eta-dependent rates in `config.histograms.SINGLE_JET_PT_BINS`, and pT-dependent
+rates in configurable eta intervals. Numerator and denominator are projected
+before each 1D division and are not normalized. All 1D curves use
+`set_1d_style`; matched and fake rates use indices 0 and 1 on shared log-y
+canvases. The default ROOT binomial errors describe weighted-MC efficiencies and
+must not be interpreted as unweighted counting uncertainties.
+
+Use `notebooks/02_jet_selection.ipynb` to compare Reco, matched Ref, and Gen
+inclusive-jet eta shapes for the standard jet ID, track-maximum-only, and
+no-selection stages in Lab and CM frames. It displays the underlying 2D maps and
+then produces configured pT-interval projections with Reco/Gen and Ref/Gen ratio
+panels. Integral, bin-width, and stored-yield modes and regular or binomial ratio
+errors are configurable.
+
 Use `notebooks/03_jet_JES_JER.ipynb` to extract JES and JER from Gaussian fits to
 inclusive-jet response slices, compare the configured reco/gen smearing cases,
 scan pT and eta dependence, and draw the corresponding two-dimensional response
@@ -53,9 +71,9 @@ maps. The notebook also normalizes JER-versus-eta curves to unit central-bin mea
 within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
 `output/jes_jer/`.
 
-Use `notebooks/04_beam_orientation.ipynb` to compare p-going and Pb-going
-single-jet and dijet eta projections. Gen and Reco levels are enabled by default;
-Ref is supported through the commented `LEVELS` configuration. Direction
+Use `notebooks/04_systematics_beam_orientation.ipynb` to compare p-going and
+Pb-going single-jet and dijet eta projections. Gen and Reco levels are enabled
+by default; Ref is supported through the commented `LEVELS` configuration. Direction
 comparisons show ratios to the configured nominal, while the same-direction
 frame overlays intentionally do not form ratios. The flipped-lab and CM
 direction comparisons also include the combined-orientation file and use it as
@@ -114,7 +132,8 @@ can use independent error propagation for weighted forward/backward histograms.
 PDF names are
 `<generator>_<direction>_full_etaCM_<eta*10>_ptave_<low>_<high>.pdf` and
 `<generator>_<direction>_fb_etaCM_<eta*10>_ptave_<low>_<high>.pdf`; for example,
-the nominal 1.9 acceptance and 50--60 GeV interval use `etaCM_19_ptave_50_60`.
+the nominal 1.9 acceptance and configured 60--80 GeV interval use
+`etaCM_19_ptave_60_80`.
 
 The closure projection helpers identify pT and eta axes from their physical
 ranges because some existing reference-jet files contain misleading axis

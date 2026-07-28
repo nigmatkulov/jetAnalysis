@@ -22,11 +22,15 @@ def normalize_labels(labels: Iterable[str]) -> list[str]:
     return [label.strip() for label in labels if label.strip()]
 
 
-def normalize_histogram(histogram, mode: str = "none"):
+def normalize_histogram(histogram, mode: str = "none", *,
+                        integral_range: tuple[float, float] | None = None):
     """Return a detached clone normalized according to ``mode``.
 
     Supported modes are ``none``, ``integral``, and ``bin_width``.  The latter
-    divides by the integral and bin width, producing a unit-area density.
+    divides by the full integral and bin width, producing a unit-area density.
+    For ``integral`` mode, ``integral_range=(low, high)`` optionally defines an
+    inclusive normalization-bin range using ``axis.FindBin(low)`` through
+    ``axis.FindBin(high)``. The scale factor is applied to the full histogram.
     """
 
     result = histogram.Clone(f"{histogram.GetName()}_{mode}")
@@ -36,9 +40,20 @@ def normalize_histogram(histogram, mode: str = "none"):
     if mode not in {"integral", "bin_width"}:
         raise ValueError(f"Unsupported normalization mode: {mode!r}")
 
-    integral = result.Integral(1, result.GetNbinsX())
+    if mode == "integral" and integral_range is not None:
+        low, high = integral_range
+        if low > high:
+            raise ValueError("integral_range must satisfy low <= high")
+        axis = result.GetXaxis()
+        first_bin = axis.FindBin(low)
+        last_bin = axis.FindBin(high)
+        integral = result.Integral(first_bin, last_bin)
+    else:
+        integral = result.Integral(1, result.GetNbinsX())
     if integral <= 0:
-        raise ValueError(f"Cannot normalize {histogram.GetName()!r}: integral is {integral}")
+        raise ValueError(
+            f"Cannot normalize {histogram.GetName()!r}: integral is {integral}"
+        )
     result.Scale(1.0 / integral, "width" if mode == "bin_width" else "")
     return result
 
@@ -92,13 +107,20 @@ def align_common_binning(histograms: Mapping[str, object]) -> dict[str, object]:
     return aligned
 
 
-def ratio_to_nominal(histogram, nominal, *, name: str | None = None):
-    """Return ``histogram / nominal`` with standard independent errors."""
+def ratio_to_nominal(histogram, nominal, *, name: str | None = None,
+                     option: str = ""):
+    """Return ``histogram / nominal`` with regular or binomial errors.
+
+    ``option=''`` uses ROOT's standard independent-error propagation, while
+    ``option='B'`` requests the binomial treatment from ``TH1::Divide``.
+    """
 
     if not _same_binning(histogram, nominal):
         raise ValueError(
             f"Incompatible binning: {histogram.GetName()!r} and {nominal.GetName()!r}"
         )
+    if option not in {"", "B"}:
+        raise ValueError("Ratio option must be '' or 'B'")
     ratio = histogram.Clone(name or f"{histogram.GetName()}_over_{nominal.GetName()}")
     ratio.SetDirectory(0)
     if histogram is nominal:
@@ -106,7 +128,7 @@ def ratio_to_nominal(histogram, nominal, *, name: str | None = None):
             ratio.SetBinContent(bin_index, 1.0 if nominal.GetBinContent(bin_index) != 0 else 0.0)
             ratio.SetBinError(bin_index, 0.0)
         return ratio
-    ratio.Divide(nominal)
+    ratio.Divide(histogram, nominal, 1.0, 1.0, option)
     return ratio
 
 
