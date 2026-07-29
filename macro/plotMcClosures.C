@@ -5526,7 +5526,7 @@ void plotDiJetClosures(int collisionSystem, double collisionEnergy, TString date
     constexpr int nEtaCuts = 7;
     static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.5};
     double ptAveLow = 60. + 0.001;
-    double ptAveHigh = 90. - 0.001;
+    double ptAveHigh = 100. - 0.001;
     bool useBinomialErrors = true; // Set to true to use binomial errors for ratios, false to use Poisson errors
 
     TString inputFileName;

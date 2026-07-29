@@ -80,7 +80,7 @@ def build_dijet_gen_comparisons(
     nominal: str = "Gen",
     rebin_eta: int = 2,
     normalization: str = "integral",
-    ratio_option: str = "B",
+    ratio_option: str = "",
 ):
     """Build normalized eta shapes and unnormalized forward/backward ratios.
 
@@ -88,8 +88,9 @@ def build_dijet_gen_comparisons(
     projections are normalized with ``TH1::Scale`` according to
     ``normalization`` (``none``, ``integral``, or ``bin_width``).
     Forward/backward ratios are never normalized and use ``TH1::Divide``
-    directly; ``ratio_option='B'`` reproduces the macro's default
-    binomial-error setting, while an empty string requests independent errors.
+    directly. Forward and backward are independent weighted populations, so
+    only standard independent-error propagation (``ratio_option=''``) is
+    accepted; ROOT's binomial ``'B'`` option is not valid for this ratio.
 
     Returns ``(eta_shapes, fb_ratios, selected_keys)``. Both mappings retain the
     supplied curve order and are ready for ``plotting.draw_closure``, which uses
@@ -102,8 +103,11 @@ def build_dijet_gen_comparisons(
         raise ValueError(
             "normalization must be 'none', 'integral', or 'bin_width'"
         )
-    if ratio_option not in {"", "B"}:
-        raise ValueError("ratio_option must be '' or 'B'")
+    if ratio_option != "":
+        raise ValueError(
+            "Forward/Backward ratios require ratio_option='' for independent "
+            "error propagation; binomial option 'B' is invalid"
+        )
     low, high = ptave_range
     if low >= high:
         raise ValueError("ptave_range must satisfy low < high")

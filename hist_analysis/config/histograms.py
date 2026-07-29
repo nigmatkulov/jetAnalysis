@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 SINGLE_JET_PT_BINS = [(50, 80), (180, 200), (400, 500)]
-DIJET_PTAVE_BINS = [(60, 80), (120, 180), (200, 300), (300, 500)]
+DIJET_PTAVE_BINS = [(60, 100), (120, 180), (200, 300), (300, 500)]
 COMMON_ETA_CM_RANGE = (-1.9, 1.9)
 DIJET_DELTA_PHI_SELECTION_LABEL = "|#Delta#phi| > 2#pi/3"
 

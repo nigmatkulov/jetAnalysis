@@ -72,13 +72,30 @@ within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
 `output/jes_jer/`.
 
 Use `notebooks/03_dijet_smearing_effect.ipynb` to compare nominal Gen, Gen with
-the default pT smearing, Gen with eta-dependent smearing, and Reco dijet
-pseudorapidity distributions for one configured eta-cut index and every interval
-in `config.histograms.DIJET_PTAVE_BINS`. The ordered `CURVES` tuple controls the
-inputs. Bin-width-normalized full-shape overlays, ratios to Gen and eta-dependent
-smeared Gen, unnormalized forward/backward overlays, and their ratios to both
-references are written as six separate single-panel canvases per pTave interval
-using the shared ROOT styles.
+the default pT smearing, Gen with eta-dependent smearing, nominal Reco, and Reco
+with eta-dependent default JER smearing for one configured eta-cut index and
+every interval in `config.histograms.DIJET_PTAVE_BINS`. `CURVE_CATALOG` holds
+the available histogram keys, styles, and raw scale factors. Nominal Gen,
+eta-dependent smeared Gen, and nominal Reco are required; add or remove other
+catalog entries with `OPTIONAL_CURVE_LABELS`. Before normalization, raw
+full-distribution overlays and ratios are written after scaling accumulated generator-smeared curves by
+`1/N_SMEAR_RUNS` (20 by default) and accumulated Reco-smeared curves by
+`1/N_RECO_SMEAR_RUNS` (10 by default). Normalized full-shape overlays, ratios to
+Gen and eta-dependent smeared Gen, unnormalized forward/backward overlays, and
+their ratios to both references are also written, for nine separate single-panel
+canvases per pTave interval using the shared ROOT styles. Generator-level and
+Reco-like full-distribution ratios have separate configurable ROOT division
+options. Forward/Backward construction always uses independent propagation.
+The later ratio of one F/B histogram to another has a separate user-configurable
+error option, `''` or `'B'`.
+
+Use `notebooks/03_dijet_reco_smeared_to_gen_closures.ipynb` for the focused
+closure comparison between nominal Gen and Reco smeared with the default
+eta-dependent JER. It writes normalized full-distribution and unnormalized
+Forward/Backward comparisons for every configured pTave interval. As in the
+other closure notebooks, F/B construction always uses independent errors;
+full-distribution and F/B-to-F/B comparison error options are configured
+separately.
 
 Use `notebooks/04_systematics_beam_orientation.ipynb` to compare p-going and
 Pb-going single-jet and dijet eta projections. Gen and Reco levels are enabled
@@ -90,12 +107,16 @@ the ratio denominator.
 
 Use `notebooks/05_unfold2D.ipynb` to construct a flattened dijet
 `pTave`-eta response and run a Bayesian RooUnfold closure test for the configured
-MC sample. Misses are represented by the response inefficiency, while fake
-handling is enabled explicitly in `RooUnfoldBayes`. The notebook writes the
+MC sample using the eta-dependent JER-default measured distribution and its
+corresponding response, miss, fake, and pair-classification objects. Misses are
+represented by the response inefficiency, while fake handling is enabled
+explicitly in `RooUnfoldBayes`. The notebook writes the
 flattened input spectra, response and miss/fake diagnostics, unfolded result,
 closure ratios, covariance matrix, serialized response, and configuration
 metadata to
-`output/unfold2D/<generator>_<direction>_unfold2D_eta_<cut>_iter_<iterations>.root`.
+`output/unfold2D/<generator>_<direction>_unfold2D_jerDefExtra_eta_<cut>_iter_<iterations>.root`.
+Set `DIJET_UNFOLD2D_OUTPUT_DIR` to redirect these generated artifacts without
+editing the notebook configuration.
 The projection/response diagnostics are produced for every configured pTave
 interval; the flattened-response and final closure canvases are also saved as
 PDFs in the same directory. For every pTave interval, the notebook extracts the
@@ -121,11 +142,13 @@ Use `notebooks/03_dijet_reco_to_gen_closures.ipynb` for the configurable
 counterpart of `macro/plotMcClosures.C::plotDiJetClosures`. It projects the selected dijet
 intervals from `config.histograms.DIJET_PTAVE_BINS` for every selected eta-cut index. It
 compares full eta shapes to nominal Gen and compares forward/backward ratios to
-the Gen forward/backward ratio. `NORMALIZATION='integral'` produces fractions per
-bin whose bin-content sum is one; `bin_width` produces a density whose
-bin-width-weighted integral is one. Projection normalization uses ROOT
-`TH1::Scale`, while forward/backward and closure ratios use ROOT `TH1::Divide`.
-Forward and backward inputs are not normalized before division.
+the Gen forward/backward ratio. Before normalizing the shapes, it also writes a
+raw-yield overlay of Reco, matched Ref, and Gen with Reco/Gen and Ref/Gen in the
+lower panel. `NORMALIZATION='integral'` produces fractions per bin whose
+bin-content sum is one; `bin_width` produces a density whose bin-width-weighted
+integral is one. Projection normalization uses ROOT `TH1::Scale`, while
+forward/backward and closure ratios use ROOT `TH1::Divide`. Forward and backward
+inputs are not normalized before division.
 
 Reco is enabled in red (`set_1d_style` index 0) and Gen in blue (index 1). Ref,
 smeared Gen, or smeared Reco curves can be added by supplying their CM, Forward,
@@ -135,8 +158,11 @@ largest selected cut. Full-shape ratio limits, F/B limits, and F/B double-ratio
 limits are configured separately.
 The annotation records the generator, levels, CM frame, pTave interval, jet eta
 acceptance, leading/subleading thresholds, and delta-phi requirement. The ROOT
-binomial division option reproduces the macro when requested, but the notebook
-can use independent error propagation for weighted forward/backward histograms.
+Forward/Backward ratios always use independent error propagation; ROOT's
+binomial division option is invalid because Forward and Backward are separate
+weighted populations. Options for subsequent closure ratios are configured
+separately and may use binomial propagation only when their numerator is a
+statistical subset of the denominator.
 
 PDF names are
 `<generator>_<direction>_full_etaCM_<eta*10>_ptave_<low>_<high>.pdf` and

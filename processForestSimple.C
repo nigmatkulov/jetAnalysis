@@ -494,7 +494,11 @@ struct Histograms {
     // std::unique_ptr<THnSparseF> hRefDijetPtEtaCMVsRecoPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetPtEtaCMMissArr[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMFakeArr[nEtaCuts];
+    std::unique_ptr<THnSparseF> hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr[nEtaCuts];
+    std::unique_ptr<TH2D> hGenDijetPtEtaCMMissJerDefExtraArr[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMFakeJerDefExtraArr[nEtaCuts];
     std::unique_ptr<TH1D> hUnfoldingPairClassificationArr[nEtaCuts];
+    std::unique_ptr<TH1D> hUnfoldingPairClassificationJerDefExtraArr[nEtaCuts];
 
     //
     // Ref-selected level histograms
@@ -561,9 +565,21 @@ struct Histograms {
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJerDef[nEtaCuts];        // JER default variation for reco dijet histograms
     std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJerDef[nEtaCuts];   // JER default variation for reco dijet histograms
     std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArrJerDef[nEtaCuts];  // JER default variation for reco dijet histograms
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJerDownExtra[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJerDownExtra[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArrJerDownExtra[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJerDefExtra[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJerDefExtra[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArrJerDefExtra[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJerUpExtra[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJerUpExtra[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArrJerUpExtra[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJerDefUnfold[nEtaCuts];        // JER default variation for reco dijet histograms for unfolding
     std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJerDefUnfold[nEtaCuts];   // JER default variation for reco dijet histograms for unfolding
     std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArrJerDefUnfold[nEtaCuts];  // JER default variation for reco dijet histograms for unfolding
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJerDefExtraUnfold[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJerDefExtraUnfold[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArrJerDefExtraUnfold[nEtaCuts];
 
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJeuUp[nEtaCuts];         // JEU up variation for reco dijet histograms
     std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJeuUp[nEtaCuts];    // JEU up variation for reco dijet histograms
@@ -1185,6 +1201,23 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                                                 nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                                                 nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
             hs.hRecoDijetPtEtaCMFakeArr[iCut]->Sumw2();
+            hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr[iCut] = std::make_unique<THnSparseF>(
+                Form("hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCM_%d", iCut),
+                "Gen dijet vs reco dijet with eta-dependent default JER;Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM}",
+                nDimResponse, responseBins, responseBinsMin, responseBinsMax);
+            hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr[iCut]->Sumw2();
+            hs.hGenDijetPtEtaCMMissJerDefExtraArr[iCut] = std::make_unique<TH2D>(
+                Form("hGenDijetPtEtaCMMissJerDefExtra_%d", iCut),
+                Form("Gen dijet miss for eta-dependent default JER (|#eta| < %.1f);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hGenDijetPtEtaCMMissJerDefExtraArr[iCut]->Sumw2();
+            hs.hRecoDijetPtEtaCMFakeJerDefExtraArr[iCut] = std::make_unique<TH2D>(
+                Form("hRecoDijetPtEtaCMFakeJerDefExtra_%d", iCut),
+                Form("Reco dijet fake for eta-dependent default JER (|#eta| < %.1f);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRecoDijetPtEtaCMFakeJerDefExtraArr[iCut]->Sumw2();
             hs.hUnfoldingPairClassificationArr[iCut] = std::make_unique<TH1D>(
                 Form("hUnfoldingPairClassification_%d", iCut),
                 Form("Unfolding pair classification (|#eta| < %.1f);Pair category;Weighted events", etaCuts[iCut]),
@@ -1200,6 +1233,16 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
             classificationAxis->SetBinLabel(unfolding_diagnostics::kSelectedPairMismatch, "Selected-pair mismatch");
             classificationAxis->SetBinLabel(unfolding_diagnostics::kMissingOneRecoReference, "Missing one reco reference");
             classificationAxis->SetBinLabel(unfolding_diagnostics::kMissingBothRecoReferences, "Missing both reco references");
+            hs.hUnfoldingPairClassificationJerDefExtraArr[iCut] = std::make_unique<TH1D>(
+                Form("hUnfoldingPairClassificationJerDefExtra_%d", iCut),
+                Form("Unfolding pair classification for eta-dependent default JER (|#eta| < %.1f);Pair category;Weighted events", etaCuts[iCut]),
+                unfolding_diagnostics::nPairCategories, 0.5,
+                unfolding_diagnostics::nPairCategories + 0.5);
+            hs.hUnfoldingPairClassificationJerDefExtraArr[iCut]->Sumw2();
+            auto *extraClassificationAxis = hs.hUnfoldingPairClassificationJerDefExtraArr[iCut]->GetXaxis();
+            for (int category = 1; category <= unfolding_diagnostics::nPairCategories; ++category) {
+                extraClassificationAxis->SetBinLabel(category, classificationAxis->GetBinLabel(category));
+            }
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
 
 
@@ -1632,6 +1675,42 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                             nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hRecoDijetPtEtaBackwardArrJerDef[iCut]->Sumw2();
+
+            auto makeRecoJerExtraTriplet = [&](const char *variation, const char *title,
+                                               std::unique_ptr<TH2D> *fullArr,
+                                               std::unique_ptr<TH2D> *forwardArr,
+                                               std::unique_ptr<TH2D> *backwardArr) {
+                fullArr[iCut] = std::make_unique<TH2D>(
+                    Form("hRecoDijetPtEtaCM%s_%d", variation, iCut),
+                    Form("Reco dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (%s);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut], title),
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                forwardArr[iCut] = std::make_unique<TH2D>(
+                    Form("hRecoDijetPtEtaForward%s_%d", variation, iCut),
+                    Form("Reco dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (%s);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut], title),
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+                backwardArr[iCut] = std::make_unique<TH2D>(
+                    Form("hRecoDijetPtEtaBackward%s_%d", variation, iCut),
+                    Form("Reco dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave} (%s);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut], title),
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+                fullArr[iCut]->Sumw2();
+                forwardArr[iCut]->Sumw2();
+                backwardArr[iCut]->Sumw2();
+            };
+            makeRecoJerExtraTriplet("JerDownExtra", "JER down with eta-dependent scaling",
+                hs.hRecoDijetPtEtaCMArrJerDownExtra, hs.hRecoDijetPtEtaForwardArrJerDownExtra,
+                hs.hRecoDijetPtEtaBackwardArrJerDownExtra);
+            makeRecoJerExtraTriplet("JerDefExtra", "JER default with eta-dependent scaling",
+                hs.hRecoDijetPtEtaCMArrJerDefExtra, hs.hRecoDijetPtEtaForwardArrJerDefExtra,
+                hs.hRecoDijetPtEtaBackwardArrJerDefExtra);
+            makeRecoJerExtraTriplet("JerUpExtra", "JER up with eta-dependent scaling",
+                hs.hRecoDijetPtEtaCMArrJerUpExtra, hs.hRecoDijetPtEtaForwardArrJerUpExtra,
+                hs.hRecoDijetPtEtaBackwardArrJerUpExtra);
+            makeRecoJerExtraTriplet("JerDefExtraUnfold", "JER default with eta-dependent scaling, unfolding",
+                hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold, hs.hRecoDijetPtEtaForwardArrJerDefExtraUnfold,
+                hs.hRecoDijetPtEtaBackwardArrJerDefExtraUnfold);
 
             hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut] = std::make_unique<TH2D>(Form("hRecoDijetPtEtaCMJerDefUnfold_%d", iCut), 
                                             Form("Reco dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (JER default, unfolding);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
@@ -2328,7 +2407,10 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
 //________________
 void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weight, 
                       std::vector<GenJet> &genJets, std::vector<RecoJet> &recoJets, 
-                      Histograms &hs) {
+                      std::unique_ptr<THnSparseF> *responseArr,
+                      std::unique_ptr<TH2D> *missArr,
+                      std::unique_ptr<TH2D> *fakeArr,
+                      std::unique_ptr<TH1D> *classificationArr = nullptr) {
 
     if (!isMc) return; // Only prepare unfolding for MC
     
@@ -2350,8 +2432,9 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
             return a.pt > b.pt;
     });
 
-    // Sort reco jets by JER-default smeared pT so the selected measured dijet
-    // matches the dedicated unfolding distribution.
+    // Sort reco jets by the caller-prepared smeared pT so the selected measured
+    // dijet matches the response, miss, fake, and classification outputs for
+    // the requested JER variation.
     std::sort(recoJets.begin(), recoJets.end(), [](const RecoJet &a, const RecoJet &b) {
         return a.refPtSmeared > b.refPtSmeared;
     });
@@ -2519,8 +2602,8 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
             pairCategory = unfolding_diagnostics::kRecoPassGenFail;
         }
 
-        if (pairCategory != 0) {
-            hs.hUnfoldingPairClassificationArr[iCut]->Fill(pairCategory, weight);
+        if (pairCategory != 0 && classificationArr) {
+            classificationArr[iCut]->Fill(pairCategory, weight);
         }
 
         // Fill the response matrix for matched pairs, and fill the appropriate 
@@ -2529,15 +2612,15 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
             const double response[4] = {
                 genDijetPtAve, genDijetEtaCM, recoDijetPtAve, recoDijetEtaCM
             };
-            hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Fill(response, weight);
+            responseArr[iCut]->Fill(response, weight);
         }
         else if (genPairPass) {
-            hs.hGenDijetPtEtaCMMissArr[iCut]->Fill(
+            missArr[iCut]->Fill(
                 genDijetPtAve, genDijetEtaCM, weight);
         }
 
         if (recoPairPass && !matchedPair) {
-            hs.hRecoDijetPtEtaCMFakeArr[iCut]->Fill(
+            fakeArr[iCut]->Fill(
                 recoDijetPtAve, recoDijetEtaCM, weight);
         }
 
@@ -2798,8 +2881,10 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
 
         // Number of iterations for smearing
         const int nSmearRounds = 10;
-        // 1.0, double, and 90% scale factors, def down, jer def, jer up
-        std::array<float, 6> jerScaleFactors = {1.f, 2.f, 0.9f, 1.0f, 1.0f, 1.0f}; 
+        // 1.0, double, and 90% scale factors; nominal down/default/up; and
+        // eta-dependent down/default/up variations.
+        std::array<float, 9> jerScaleFactors = {1.f, 2.f, 0.9f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
+        std::array<int, 9> jerVariations = {3, 3, 3, -1, 0, 1, 19, 20, 21};
 
         // Loop over smearing rounds
         for (int iIter = 0; iIter < nSmearRounds; ++iIter) {
@@ -2818,8 +2903,9 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                     if (iScale < 3) { // For the first three scales, apply smearing with the scale factor
                         fJERSmearingHelper->smearMomentum(recoJet.refPt, recoJet.recoEta, recoJet.refPtSmeared, 3, jerScaleFactors[iScale]);
                     } 
-                    else { // For the last three scales (jer down, def, up), use the default settings of the helper
-                        fJERSmearingHelper->smearMomentum(recoJet.refPt, recoJet.recoEta, recoJet.refPtSmeared, iScale - 4);
+                    else {
+                        fJERSmearingHelper->smearMomentum(recoJet.refPt, recoJet.recoEta,
+                                                         recoJet.refPtSmeared, jerVariations[iScale]);
                     }
                     
                     // Skip filling histograms for the first 10 iterations to avoid overfilling
@@ -2888,12 +2974,11 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                                 hs.hRecoDijetPtEtaCMArrJerDefUnfold,
                                                 hs.hRecoDijetPtEtaForwardArrJerDefUnfold,
                                                 hs.hRecoDijetPtEtaBackwardArrJerDefUnfold);
-                        prepareUnfolding(isPbGoing, isMc, weight, genJets, recoJets, hs);
-                        // Restore nominal ordering for the remaining JER
-                        // variations; prepareUnfolding requires JER-default order.
-                        std::sort(recoJets.begin(), recoJets.end(), [](const RecoJet &a, const RecoJet &b) {
-                            return a.recoPt > b.recoPt;
-                        });
+                        prepareUnfolding(isPbGoing, isMc, weight, genJets, recoJets,
+                                         hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr,
+                                         hs.hGenDijetPtEtaCMMissArr,
+                                         hs.hRecoDijetPtEtaCMFakeArr,
+                                         hs.hUnfoldingPairClassificationArr);
                     }
                 }
                 else if (iScale == 5) { // JER up
@@ -2904,6 +2989,35 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                             hs.hRefDijetPtEtaCMArrJerUp,
                                             hs.hRefDijetPtEtaForwardArrJerUp,
                                             hs.hRefDijetPtEtaBackwardArrJerUp);
+                }
+                else if (iScale == 6) { // JER down with eta-dependent scaling
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerDownExtra,
+                                            hs.hRecoDijetPtEtaForwardArrJerDownExtra,
+                                            hs.hRecoDijetPtEtaBackwardArrJerDownExtra);
+                }
+                else if (iScale == 7) { // JER default with eta-dependent scaling
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerDefExtra,
+                                            hs.hRecoDijetPtEtaForwardArrJerDefExtra,
+                                            hs.hRecoDijetPtEtaBackwardArrJerDefExtra);
+                    if (iIter == 0) {
+                        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                                hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold,
+                                                hs.hRecoDijetPtEtaForwardArrJerDefExtraUnfold,
+                                                hs.hRecoDijetPtEtaBackwardArrJerDefExtraUnfold);
+                        prepareUnfolding(isPbGoing, isMc, weight, genJets, recoJets,
+                                         hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr,
+                                         hs.hGenDijetPtEtaCMMissJerDefExtraArr,
+                                         hs.hRecoDijetPtEtaCMFakeJerDefExtraArr,
+                                         hs.hUnfoldingPairClassificationJerDefExtraArr);
+                    }
+                }
+                else if (iScale == 8) { // JER up with eta-dependent scaling
+                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                                            hs.hRecoDijetPtEtaCMArrJerUpExtra,
+                                            hs.hRecoDijetPtEtaForwardArrJerUpExtra,
+                                            hs.hRecoDijetPtEtaBackwardArrJerUpExtra);
                 }
             } // for (int iScale = 0; iScale < static_cast<int>(jerScaleFactors.size()); ++iScale)
         } // for (int iIter = 0; iIter < nSmearRounds; ++iIter)
@@ -3056,7 +3170,11 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
             // hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
             hs.hGenDijetPtEtaCMMissArr[iCut]->Write();
             hs.hRecoDijetPtEtaCMFakeArr[iCut]->Write();
+            hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr[iCut]->Write();
+            hs.hGenDijetPtEtaCMMissJerDefExtraArr[iCut]->Write();
+            hs.hRecoDijetPtEtaCMFakeJerDefExtraArr[iCut]->Write();
             hs.hUnfoldingPairClassificationArr[iCut]->Write();
+            hs.hUnfoldingPairClassificationJerDefExtraArr[iCut]->Write();
         }
 
         hs.hGenInclusiveJetJESDefPtEta->Write();
@@ -3172,9 +3290,21 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
             if (hs.hRecoDijetPtEtaCMArrJerDef[iCut]) hs.hRecoDijetPtEtaCMArrJerDef[iCut]->Write();
             if (hs.hRecoDijetPtEtaForwardArrJerDef[iCut]) hs.hRecoDijetPtEtaForwardArrJerDef[iCut]->Write();
             if (hs.hRecoDijetPtEtaBackwardArrJerDef[iCut]) hs.hRecoDijetPtEtaBackwardArrJerDef[iCut]->Write();
+            if (hs.hRecoDijetPtEtaCMArrJerDownExtra[iCut]) hs.hRecoDijetPtEtaCMArrJerDownExtra[iCut]->Write();
+            if (hs.hRecoDijetPtEtaForwardArrJerDownExtra[iCut]) hs.hRecoDijetPtEtaForwardArrJerDownExtra[iCut]->Write();
+            if (hs.hRecoDijetPtEtaBackwardArrJerDownExtra[iCut]) hs.hRecoDijetPtEtaBackwardArrJerDownExtra[iCut]->Write();
+            if (hs.hRecoDijetPtEtaCMArrJerDefExtra[iCut]) hs.hRecoDijetPtEtaCMArrJerDefExtra[iCut]->Write();
+            if (hs.hRecoDijetPtEtaForwardArrJerDefExtra[iCut]) hs.hRecoDijetPtEtaForwardArrJerDefExtra[iCut]->Write();
+            if (hs.hRecoDijetPtEtaBackwardArrJerDefExtra[iCut]) hs.hRecoDijetPtEtaBackwardArrJerDefExtra[iCut]->Write();
+            if (hs.hRecoDijetPtEtaCMArrJerUpExtra[iCut]) hs.hRecoDijetPtEtaCMArrJerUpExtra[iCut]->Write();
+            if (hs.hRecoDijetPtEtaForwardArrJerUpExtra[iCut]) hs.hRecoDijetPtEtaForwardArrJerUpExtra[iCut]->Write();
+            if (hs.hRecoDijetPtEtaBackwardArrJerUpExtra[iCut]) hs.hRecoDijetPtEtaBackwardArrJerUpExtra[iCut]->Write();
             if (hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]) hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]->Write();
             if (hs.hRecoDijetPtEtaForwardArrJerDefUnfold[iCut]) hs.hRecoDijetPtEtaForwardArrJerDefUnfold[iCut]->Write();
             if (hs.hRecoDijetPtEtaBackwardArrJerDefUnfold[iCut]) hs.hRecoDijetPtEtaBackwardArrJerDefUnfold[iCut]->Write();
+            if (hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold[iCut]) hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold[iCut]->Write();
+            if (hs.hRecoDijetPtEtaForwardArrJerDefExtraUnfold[iCut]) hs.hRecoDijetPtEtaForwardArrJerDefExtraUnfold[iCut]->Write();
+            if (hs.hRecoDijetPtEtaBackwardArrJerDefExtraUnfold[iCut]) hs.hRecoDijetPtEtaBackwardArrJerDefExtraUnfold[iCut]->Write();
             // Ref
             if (hs.hRefDijetPtEtaCMArrJerUp[iCut]) hs.hRefDijetPtEtaCMArrJerUp[iCut]->Write();
             if (hs.hRefDijetPtEtaForwardArrJerUp[iCut]) hs.hRefDijetPtEtaForwardArrJerUp[iCut]->Write();
