@@ -71,6 +71,15 @@ maps. The notebook also normalizes JER-versus-eta curves to unit central-bin mea
 within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
 `output/jes_jer/`.
 
+Use `notebooks/03_dijet_smearing_effect.ipynb` to compare nominal Gen, Gen with
+the default pT smearing, Gen with eta-dependent smearing, and Reco dijet
+pseudorapidity distributions for one configured eta-cut index and every interval
+in `config.histograms.DIJET_PTAVE_BINS`. The ordered `CURVES` tuple controls the
+inputs. Bin-width-normalized full-shape overlays, ratios to Gen and eta-dependent
+smeared Gen, unnormalized forward/backward overlays, and their ratios to both
+references are written as six separate single-panel canvases per pTave interval
+using the shared ROOT styles.
+
 Use `notebooks/04_systematics_beam_orientation.ipynb` to compare p-going and
 Pb-going single-jet and dijet eta projections. Gen and Reco levels are enabled
 by default; Ref is supported through the commented `LEVELS` configuration. Direction

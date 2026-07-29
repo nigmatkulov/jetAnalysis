@@ -10,12 +10,88 @@ import ROOT
 from hist_analysis.python.histogram_ops import ratio_to_nominal, style_histograms
 from hist_analysis.python.root_style import (
     DEFAULT_PLOT_STYLE, PlotStyle, draw_text_block, save_canvas, set_1d_style,
-    set_legend_style,
+    set_legend_style, set_pad_style, style_single_panel_axes,
 )
 
 
 def figure_title(generator: str, direction: str, observable: str) -> str:
     return f"{generator} {direction} {observable}"
+
+
+def draw_overlay(histograms: Mapping[str, object], *, title: str,
+                 x_title: str, y_title: str,
+                 grid: bool = True, log_y: bool = False,
+                 output: str | Path | None = None, save_png: bool = False,
+                 headroom: float = 1.3, canvas_name: str | None = None,
+                 annotations: Iterable[str] = (),
+                 x_range: tuple[float, float] | None = None,
+                 y_range: tuple[float, float] | None = None,
+                 reference_y: float | None = None,
+                 style_indices: Mapping[str, int] | None = None,
+                 style: PlotStyle = DEFAULT_PLOT_STYLE):
+    """Draw styled 1D histograms together on one single-panel canvas."""
+
+    if not histograms:
+        raise ValueError("No histograms supplied")
+    if headroom <= 1.0:
+        raise ValueError("headroom must be greater than 1")
+    if x_range is not None and x_range[0] >= x_range[1]:
+        raise ValueError("x_range must satisfy low < high")
+    if y_range is not None and y_range[0] >= y_range[1]:
+        raise ValueError("y_range must satisfy low < high")
+
+    suffix = str(abs(hash(canvas_name or title)))
+    canvas = ROOT.TCanvas(
+        f"c_overlay_{suffix}", title,
+        style.canvas_width, style.canvas_height,
+    )
+    set_pad_style(canvas, grid_x=grid, grid_y=grid, style=style)
+    canvas.SetLeftMargin(style.single_panel_left_margin)
+    canvas.SetBottomMargin(style.single_panel_bottom_margin)
+    canvas.SetLogy(log_y)
+
+    maximum = max(
+        histogram.GetBinContent(bin_index) + histogram.GetBinError(bin_index)
+        for histogram in histograms.values()
+        for bin_index in range(1, histogram.GetNbinsX() + 1)
+    )
+    legend = ROOT.TLegend(0.60, 0.70, 0.88, 0.88)
+    set_legend_style(legend, style=style)
+    for index, (label, histogram) in enumerate(histograms.items()):
+        style_index = index if style_indices is None else style_indices.get(label, index)
+        set_1d_style(histogram, style_index, style=style)
+        style_single_panel_axes(histogram, style=style)
+        histogram.SetTitle(title)
+        histogram.GetXaxis().SetTitle(x_title)
+        histogram.GetYaxis().SetTitle(y_title)
+        if x_range is not None:
+            histogram.GetXaxis().SetRangeUser(*x_range)
+        if y_range is not None:
+            histogram.SetMinimum(y_range[0])
+            histogram.SetMaximum(y_range[1])
+        else:
+            histogram.SetMaximum(maximum * (20.0 if log_y else headroom))
+        histogram.Draw("E1" if index == 0 else "E1 SAME")
+        legend.AddEntry(histogram, label, "p")
+    legend.Draw()
+    annotation_objects = draw_text_block(canvas, annotations, style=style)
+
+    line = None
+    if reference_y is not None:
+        axis = next(iter(histograms.values())).GetXaxis()
+        line_low, line_high = x_range or (axis.GetXmin(), axis.GetXmax())
+        line = ROOT.TLine(line_low, reference_y, line_high, reference_y)
+        line.SetLineStyle(2)
+        line.Draw()
+
+    canvas.Modified()
+    canvas.Update()
+    save_canvas(canvas, output, save_png=save_png)
+    canvas._overlay_objects = [
+        legend, *annotation_objects, *histograms.values(),
+        *([] if line is None else [line]),
+    ]
+    return canvas
 
 
 def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
