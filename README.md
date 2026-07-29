@@ -12,6 +12,7 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 - `build/`: out-of-source build directory created by CMake.
 - `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py`: preset batch runners for the compiled executable.
 - `pPb8160_runner.py`: shared implementation used by the preset batch runners.
+- `processing/`: pPb 8.16 TeV file lists and the HTCondor submission workflow.
 - `hist_analysis/`: Python, PyROOT, and Jupyter tools for ROOT-file inventory and histogram comparisons.
 - `steps/`: approval-gated dijet-measurement roadmap and validation records.
 - `AGENTS.md`: repository-specific working, physics, implementation, validation, and handoff instructions for coding agents.
@@ -101,6 +102,18 @@ written beneath `$HOME/cernbox/ana/pPb8160/<generator>/<direction>/`. The
 pt-hat samples to run are the explicit `PT_HAT_SAMPLES` list in each preset
 script; review that list before starting a production run.
 
+## HTCondor processing
+
+The `processing/submit_process_forest_condor.py` workflow splits the tracked
+pPb 8.16 TeV file lists, creates readable output and log names, and submits the
+current seven-argument `processForestSimple` executable. It supports individual
+or all MB primary datasets and individual or all MC pT-hat samples. Prepare
+`processing/voms_proxy.txt`, then follow the data and MC production examples in
+`processing/README.md`.
+
+Use `--dry-run` to generate and inspect all sublists and submit descriptions
+without calling `condor_submit`.
+
 ## Histogram analysis
 
 The `hist_analysis/` package provides a lightweight PyROOT workflow for
@@ -151,6 +164,19 @@ py-env/bin/python -m py_compile \
   pPb8160_analyzeMc_Pbgoing.py \
   pPb8160_analyzeMc_pgoing.py \
   pPb8160_runner.py
+```
+
+After changes to the HTCondor workflow, check its syntax and generate a small
+campaign without submitting it:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 py-env/bin/python -m py_compile \
+  processing/submit_process_forest_condor.py
+bash -n processing/run_process_forest_condor.sh
+py-env/bin/python processing/submit_process_forest_condor.py \
+  processing/filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
+  /tmp/jetAnalysis-condor-check --mc-type 0 --beam Pbgoing --trigger-id 1 \
+  --proxy processing/voms_proxy.txt --dry-run
 ```
 
 After changes to the histogram-analysis Python modules, check their syntax with:
