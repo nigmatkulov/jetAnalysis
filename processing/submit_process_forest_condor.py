@@ -196,23 +196,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def condor_quote(value: Path | str) -> str:
-    """Quote a literal for use in a Condor submit description.
+def condor_token(value: Path | str) -> str:
+    """Return an unquoted token that is safe in the generated submit syntax.
 
-    Condor submit syntax is not shell syntax.  Double quotes preserve spaces in
-    paths placed in the inline queue table.  Embedded quotes and newlines would
-    require Condor-specific escaping and could alter the generated description,
-    so reject them explicitly instead of producing an ambiguous submit file.
-
-    Condor macros such as ``$(input_list)`` are intentionally *not* passed
-    through this function where the ``arguments`` line is assembled; they must
-    remain available for expansion for each queued job.
+    HTCondor treats quotes in executable and queue-path fields as literal
+    filename characters in the CERN configuration.  The workflow therefore
+    emits paths without quotes and rejects whitespace, which would otherwise
+    split a path into multiple queue or argument fields.
     """
 
     text = str(value)
-    if '"' in text or "\n" in text:
-        raise ValueError(f"unsupported character in Condor argument: {text!r}")
-    return f'"{text}"'
+    if any(character.isspace() for character in text):
+        raise ValueError(f"whitespace is unsupported in Condor paths: {text!r}")
+    return text
 
 
 def make_name(
@@ -390,8 +386,8 @@ def main() -> int:
                     (
                         str(job_id),
                         job_name,
-                        condor_quote(sublist),
-                        condor_quote(output),
+                        condor_token(sublist),
+                        condor_token(output),
                     )
                 )
                 for job_id, (job_name, sublist, output) in enumerate(jobs, start=1)
@@ -411,8 +407,8 @@ def main() -> int:
                 'environment = "X509_USER_PROXY=voms_proxy.txt"',
                 "arguments = " + " ".join(
                     (
-                        condor_quote(REPOSITORY),
-                        condor_quote(executable),
+                        condor_token(REPOSITORY),
+                        condor_token(executable),
                         "$(input_list)",
                         "$(output_file)",
                         str(args.mc_type),
