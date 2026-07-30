@@ -21,6 +21,8 @@
 #include <vector>
 #include <algorithm>
 #include <random>
+#include <fstream>
+#include <sstream>
 #include <utility>
 
 const char* RED    = "\033[1;31m";
@@ -1777,64 +1779,94 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
 /// @param jetTree: the jet tree
 void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChain &skimTree, TChain &jetTree) {
 
-    // Check input exists
-    if ( input.Length() <= 0 ) {
-        std::cerr << "No normal inputfile. Terminating." << std::endl;
-        exit(0);
-    }
-    // Regular input
-    else {
-        // If input is a single ROOT file
-        if ( input.Index(".root") > 0 ) {
-            std::cout << Form( "Adding %s file to chains\n", input.Data() );
-            hltTree.Add( input.Data() );
-            eventTree.Add( input.Data() );
-            skimTree.Add( input.Data() );
-            jetTree.Add( input.Data() );
+    auto failInput = [](const std::string &message) {
+        std::cerr << RED << "ERROR: " << message << RESET << std::endl;
+        std::exit(EXIT_FAILURE);
+    };
+
+    auto addInputFile = [&](const std::string &file) -> bool {
+        std::unique_ptr<TFile> inputFile(TFile::Open(file.c_str()));
+        if (!inputFile || inputFile->IsZombie() || inputFile->GetNkeys() == 0) {
+            std::cerr << RED << "SKIPPING INPUT FILE: cannot open usable ROOT file: "
+                      << file << RESET << std::endl;
+            return false;
         }
-        // Assuming that list of files is provided instead of a single file
+
+        const std::array<const char *, 4> requiredTrees{
+            "hltanalysis/HltTree",
+            "hiEvtAnalyzer/HiTree",
+            "skimanalysis/HltTree",
+            "ak4PFJetAnalyzer/t"
+        };
+        for (const char *treeName : requiredTrees) {
+            if (!inputFile->Get(treeName)) {
+                std::cerr << RED << "SKIPPING INPUT FILE: missing required tree "
+                          << treeName << ": " << file << RESET << std::endl;
+                return false;
+            }
+        }
+        inputFile->Close();
+
+        if (hltTree.Add(file.c_str()) == 0 ||
+            eventTree.Add(file.c_str()) == 0 ||
+            skimTree.Add(file.c_str()) == 0 ||
+            jetTree.Add(file.c_str()) == 0) {
+            failInput("Failed to add input ROOT file to every chain: " + file);
+        }
+        std::cout << Form("Adding file to chain: %s\n", file.c_str());
+        return true;
+    };
+
+    if ( input.Length() <= 0 ) {
+        failInput("No input ROOT file or file list was provided");
+    }
+
+    Int_t nFiles = 0;
+    Int_t nFilesSkipped = 0;
+    if ( input.EndsWith(".root") ) {
+        if (addInputFile(input.Data())) {
+            nFiles = 1;
+        }
         else {
-            std::ifstream inputStream( input.Data() );
+            nFilesSkipped = 1;
+        }
+    }
+    else {
+        std::ifstream inputStream(input.Data());
+        if (!inputStream) {
+            failInput("Cannot open input file list: " + std::string(input.Data()));
+        }
 
-            if ( !inputStream ) std::cout << Form( "ERROR: Cannot open file list: %s\n", input.Data() );
-            Int_t nFiles = 0;
+        std::string line;
+        while (std::getline(inputStream, line)) {
+            std::istringstream fields(line);
             std::string file;
-            size_t pos;
-            while ( getline( inputStream, file ) ) {
-                // NOTE: our external formatters may pass "file NumEvents"
-                //       Take only the first part
-                //cout << "DEBUG found " <<  file << endl;
-                pos = file.find_first_of(" ");
-                if ( pos != std::string::npos ) file.erase( pos, file.length() - pos );
-                //cout << "DEBUG found [" <<  file << "]" << endl;
+            fields >> file;
+            if (file.empty() || file[0] == '#') continue;
+            if (file.find(".root") == std::string::npos ||
+                file.find("Forest") == std::string::npos) {
+                failInput("Invalid HiForest entry in input list: " + line);
+            }
+            if (addInputFile(file)) {
+                ++nFiles;
+            }
+            else {
+                ++nFilesSkipped;
+            }
+        }
+    }
 
-                // Check that file is of a correct name
-                if ( file.find(".root") != std::string::npos &&
-                     file.find("Forest") != std::string::npos ) {
-                    
-                    // Open file
-                    TFile* ftmp = TFile::Open(file.c_str());
+    std::cout << Form("Input file summary: accepted=%d skipped=%d\n",
+                      nFiles, nFilesSkipped);
+    if (nFiles == 0) {
+        failInput("No usable input ROOT files remain");
+    }
 
-                    // Check file is not zombie and contains information
-                    if ( ftmp && !ftmp->IsZombie() && ftmp->GetNkeys() ) {
-                        std::cout << Form("Adding file to chain: %s\n", file.c_str() );
-                        // Adding file to chains
-                        hltTree.Add( file.c_str() );
-                        eventTree.Add( file.c_str() );
-                        skimTree.Add( file.c_str() );
-                        jetTree.Add( file.c_str() );
-                        ++nFiles;
-                    } //if(ftmp && !ftmp->IsZombie() && ftmp->GetNkeys())
-
-                    if (ftmp) {
-                        ftmp->Close();
-                    } //if (ftmp)
-                } //if ( file.find(".root") != std::string::npos && file.find("Forest") != std::string::npos && file.find("AOD") != std::string::npos )
-            } //while ( getline( inputStream, file ) )
-
-            std::cout << Form("Total number of files in chain: %d\n", nFiles);
-        } // else {   if file list
-    } // else {   if normal input
+    const Long64_t hltEntries = hltTree.GetEntries();
+    if (hltEntries <= 0 || eventTree.GetEntries() != hltEntries ||
+        skimTree.GetEntries() != hltEntries || jetTree.GetEntries() != hltEntries) {
+        failInput("Input chains are empty or have inconsistent entry counts");
+    }
 
     // Connect chains between each other
     hltTree.AddFriend(&eventTree);

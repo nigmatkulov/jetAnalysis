@@ -80,10 +80,14 @@ Example for a file list:
 ./build/processForestSimple filelist.txt output.root 2 1 30 0 2
 ```
 
-A file list contains one ROOT path per line. Blank lines are not meaningful to
-the C++ loader; candidate entries must contain both `Forest` and `.root`. Each
-candidate is opened and accepted only when it is non-zombie and contains ROOT
-keys. The filename does not need to contain `AOD`.
+A file list contains one ROOT path per line. Blank lines and comment lines are
+ignored; candidate entries must contain both `Forest` and `.root`. Every listed
+file should be readable and contain the four required analysis trees. Missing,
+unreadable, or incomplete ROOT files are skipped with an explicit message on
+the error stream, while the remaining files continue processing. Malformed
+list entries, no usable remaining files, or inconsistent aggregate tree entry
+counts terminate the job with a nonzero status. The filename does not need to
+contain `AOD`.
 
 Before submitting a new dataset to Condor, run one small list directly and
 confirm that the executable reports a nonzero file count and the expected event

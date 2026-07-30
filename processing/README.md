@@ -84,9 +84,13 @@ cd ..
 cd processing
 ```
 
-Confirm that `Total number of files in chain` and the event count are nonzero.
-Current HiForest list entries need to contain `Forest` and `.root`; `AOD` is not
-required in the filename.
+Confirm that the reported accepted-plus-skipped count matches the sublist
+length and that the event count is nonzero. Current HiForest list entries need
+to contain `Forest` and `.root`; `AOD` is not required in the filename. Missing,
+unreadable, or incomplete ROOT files print an explicit `SKIPPING INPUT FILE`
+message on the error stream and processing continues with all remaining files.
+The job fails if no usable files remain, a list entry is malformed, or the
+aggregate tree entry counts are inconsistent.
 
 Submit from a shell where the CMS/ROOT runtime environment is already loaded;
 the generated description uses `getenv = True`. By default jobs require the
