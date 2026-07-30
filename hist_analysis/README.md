@@ -159,6 +159,19 @@ small weighted response entries above RooUnfold's absolute matrix-sanitization
 threshold. The unfolded histogram is scaled back by `1/RESPONSE_SCALE`, and its
 covariance by `1/RESPONSE_SCALE^2`, before results are plotted or written.
 
+Use `notebooks/05_unfold2D_mc_direction.ipynb` for the beam-direction closure
+test. It constructs the response and its training truth/reco marginals, misses,
+fakes, and pair classification from Pb-going embedding, then unfolds the
+independent p-going embedding eta-dependent JER-default reco distribution and
+compares it with p-going generator truth. The notebook uses the same flattened
+bin mapping, RooUnfold response scaling, explicit fake handling, covariance,
+plotting styles, and ROOT output objects as `05_unfold2D.ipynb`. Its output tag
+records both the response-training and test directions. Configure
+`FLATTENED_RATIO_TO_GEN_Y_RANGE` and `ETA_RATIO_TO_GEN_Y_RANGE` to set the
+ratio-to-gen y-axis ranges for the flattened closure and per-pTave eta panels,
+respectively. Set `DRAW_GRID` to enable or disable grid lines on all diagnostic
+and closure canvases.
+
 Use `notebooks/06_data_check.ipynb` for trigger-by-trigger reconstructed-data
 checks. It plots the dijet pTave spectrum and, for each configured half-open
 pTave interval, normalized CM eta projections and unnormalized

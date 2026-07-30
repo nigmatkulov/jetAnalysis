@@ -29,8 +29,9 @@ def normalize_histogram(histogram, mode: str = "none", *,
     Supported modes are ``none``, ``integral``, and ``bin_width``.  The latter
     divides by the full integral and bin width, producing a unit-area density.
     For ``integral`` mode, ``integral_range=(low, high)`` optionally defines an
-    inclusive normalization-bin range using ``axis.FindBin(low)`` through
-    ``axis.FindBin(high)``. The scale factor is applied to the full histogram.
+    half-open normalization-bin range using ``axis.FindBin(low + 0.001)``
+    through ``axis.FindBin(high - 0.001)``. The scale factor is applied to the
+    full histogram.
     """
 
     result = histogram.Clone(f"{histogram.GetName()}_{mode}")
@@ -45,8 +46,8 @@ def normalize_histogram(histogram, mode: str = "none", *,
         if low > high:
             raise ValueError("integral_range must satisfy low <= high")
         axis = result.GetXaxis()
-        first_bin = axis.FindBin(low)
-        last_bin = axis.FindBin(high)
+        first_bin = axis.FindBin(low + 0.001)
+        last_bin = axis.FindBin(high - 0.001)
         integral = result.Integral(first_bin, last_bin)
     else:
         integral = result.Integral(1, result.GetNbinsX())
@@ -97,8 +98,8 @@ def align_common_binning(histograms: Mapping[str, object]) -> dict[str, object]:
         result.Sumw2()
         axis = histogram.GetXaxis()
         for output_bin, (low, high) in enumerate(zip(common_edges, common_edges[1:]), 1):
-            first = axis.FindFixBin(low)
-            last = axis.FindFixBin(math.nextafter(high, -math.inf))
+            first = axis.FindBin(low + 0.001)
+            last = axis.FindBin(high - 0.001)
             content = sum(histogram.GetBinContent(i) for i in range(first, last + 1))
             error2 = sum(histogram.GetBinError(i) ** 2 for i in range(first, last + 1))
             result.SetBinContent(output_bin, content)

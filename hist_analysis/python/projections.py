@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-import math
 from typing import Any
 
 import ROOT
@@ -61,10 +60,10 @@ def _range_to_bins(axis, value_range):
         return 1, axis.GetNbins()
 
     low, high = value_range
-    low_bin = max(1, axis.FindFixBin(low))
-    # Interpret configured intervals as [low, high), avoiding inclusion of a
-    # bin whose lower edge is exactly the requested upper boundary.
-    high_bin = min(axis.GetNbins(), axis.FindFixBin(math.nextafter(high, -math.inf)))
+    # Interpret configured intervals as [low, high), with a small inward
+    # offset matching the analysis notebooks and ROOT macros.
+    low_bin = max(1, axis.FindBin(low + 0.001))
+    high_bin = min(axis.GetNbins(), axis.FindBin(high - 0.001))
     if low_bin > high_bin:
         low_bin, high_bin = high_bin, low_bin
     return low_bin, high_bin
