@@ -401,7 +401,7 @@ def main() -> int:
             submit_lines = [
                 "universe = vanilla",
                 "initialdir = .",
-                f"executable = {condor_quote(WORKER)}",
+                f"executable = {WORKER}",
                 f'+JobFlavour = "{args.job_flavour}"',
                 "getenv = True",
                 "request_cpus = 1",
