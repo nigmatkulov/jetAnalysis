@@ -2875,6 +2875,16 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                 hs.hRecoDijetPtEtaCMArr,
                                 hs.hRecoDijetPtEtaForwardArr,
                                 hs.hRecoDijetPtEtaBackwardArr);
+
+        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPtJeuUp; },
+                                hs.hRecoDijetPtEtaCMArrJeuUp,
+                                hs.hRecoDijetPtEtaForwardArrJeuUp,
+                                hs.hRecoDijetPtEtaBackwardArrJeuUp);
+
+        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPtJeuDown; },
+                                hs.hRecoDijetPtEtaCMArrJeuDown,
+                                hs.hRecoDijetPtEtaForwardArrJeuDown,
+                                hs.hRecoDijetPtEtaBackwardArrJeuDown);
     }
 
     // Fill JER systematic dijet histograms if requested
