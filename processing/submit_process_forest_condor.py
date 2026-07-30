@@ -366,8 +366,9 @@ def main() -> int:
             lists_dir.mkdir(parents=True)
             logs_dir.mkdir(parents=True)
 
-            # Condor must see these exact credential directives.  Submitting
-            # with cwd=sample_dir makes the relative voms_proxy.txt unambiguous.
+            # Condor must see these exact credential directives.  The submit
+            # command runs with cwd=sample_dir, so initialdir="." and the
+            # relative voms_proxy.txt both resolve inside this sample campaign.
             shutil.copy2(proxy, sample_dir / "voms_proxy.txt")
 
             jobs: list[tuple[str, Path, Path]] = []
@@ -399,7 +400,7 @@ def main() -> int:
             submit_file = sample_dir / f"{label}_{campaign_id}.sub"
             submit_lines = [
                 "universe = vanilla",
-                f"initialdir = {condor_quote(sample_dir)}",
+                "initialdir = .",
                 f"executable = {condor_quote(WORKER)}",
                 f'+JobFlavour = "{args.job_flavour}"',
                 "getenv = True",
