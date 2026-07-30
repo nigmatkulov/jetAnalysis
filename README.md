@@ -79,6 +79,20 @@ Example for a file list:
 ./build/processForestSimple filelist.txt output.root 2 1 30 0 2
 ```
 
+A file list contains one ROOT path per line. Blank lines are not meaningful to
+the C++ loader; candidate entries must contain both `Forest` and `.root`. Each
+candidate is opened and accepted only when it is non-zombie and contains ROOT
+keys. The filename does not need to contain `AOD`.
+
+Before submitting a new dataset to Condor, run one small list directly and
+confirm that the executable reports a nonzero file count and the expected event
+count:
+
+```bash
+./build/processForestSimple test.list /tmp/processForestSimple-test.root \
+  0 1 0 1 2
+```
+
 ## Preset batch scripts
 
 The repository also includes two sequential batch runners:
@@ -111,8 +125,15 @@ or all MB primary datasets and individual or all MC pT-hat samples. Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in
 `processing/README.md`.
 
+Standard production ROOT outputs are written beneath
+`/eos/user/g/gnigmatk/ana/pPb8160/`: experimental data under `exp/<direction>`,
+embedding under `embedding/<direction>`, and Pythia under
+`pythia/<direction>`, where `<direction>` is `Pbgoing` or `pgoing`.
+
 Use `--dry-run` to generate and inspect all sublists and submit descriptions
-without calling `condor_submit`.
+without calling `condor_submit`. Run submission commands from `processing/`;
+that directory convention and the complete production/test commands are
+documented in `processing/README.md`.
 
 ## Histogram analysis
 

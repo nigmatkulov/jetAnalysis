@@ -23,7 +23,9 @@ cmake --build ../build -j
 Create or copy a valid proxy to the default protected location:
 
 ```bash
+voms-proxy-init --voms cms --valid 24:00
 cp "$(voms-proxy-info -path)" voms_proxy.txt
+voms-proxy-info -timeleft
 ```
 
 The proxy is ignored by Git. Generate a data campaign without submitting it:
@@ -31,7 +33,7 @@ The proxy is ignored by Git. Generate a data campaign without submitting it:
 ```bash
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_MB/Pbgoing/MB_PD12_Pbgoing.txt \
-  /eos/user/u/user/jetAnalysis/data/Pbgoing \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
   --mc-type 0 --beam Pbgoing --trigger-id 0 --pd-number 12 \
   --reco-jet-selection 2 --files-per-job 50 --dry-run
 ```
@@ -67,6 +69,25 @@ Generate and inspect one Condor job without submitting it:
 After inspecting the generated `.sub` file under `condor/`, repeat the command
 without `--dry-run` to submit it.
 
+`--files-per-job 3` creates one Condor job containing all three test files. Use
+`--files-per-job 1` to create three independent jobs, one for each input file.
+
+Before the Condor test, the same list can be processed directly from the
+repository root to verify list parsing and event access independently of the
+scheduler:
+
+```bash
+cd ..
+./build/processForestSimple \
+  processing/input/Jet60_Pbgoing_3files.list \
+  /tmp/Jet60_Pbgoing_3files.root 0 1 0 1 2
+cd processing
+```
+
+Confirm that `Total number of files in chain` and the event count are nonzero.
+Current HiForest list entries need to contain `Forest` and `.root`; `AOD` is not
+required in the filename.
+
 Submit from a shell where the CMS/ROOT runtime environment is already loaded;
 the generated description uses `getenv = True`. By default jobs require the
 CERN AlmaLinux 9 QA environment, matching the previous submission workflow.
@@ -89,6 +110,8 @@ generated sublists, submit files, and logs are stored below
 `condor/<campaign-id>/<sample-name>/`; outputs go to the requested
 output directory. Repository, executable, generated-list, and output paths must
 be visible from the worker nodes (as they are on CERN shared filesystems).
+Whitespace is not supported in repository, executable, work, input-list, or
+output paths because those values are emitted as unquoted Condor tokens.
 
 ## Unique and readable names
 
@@ -107,9 +130,11 @@ MB_PD12_Pbgoing_data_jetId_job0003.root
 
 The generated input list and Condor log files have the same readable basename.
 Rerunning exactly the same configuration intentionally replaces matching ROOT
-outputs. Different beam directions, triggers, PDs, pT-hat samples, selections,
-and job numbers cannot overwrite one another because those values are part of
-the filename.
+outputs. Different beam directions, triggers, PDs, pT-hat samples, selection
+families, and job numbers cannot overwrite one another because those values are
+part of the filename. Reco selection methods `2` and `3` both use the requested
+short label `jetId`; do not write tight- and loose-ID campaigns to the same
+output directory unless replacement is intended.
 
 `voms_proxy.txt` is used by default. Every generated submit file
 contains:
@@ -122,8 +147,13 @@ environment = "X509_USER_PROXY=voms_proxy.txt"
 ## Standard submissions
 
 The `{pd}` and `{pt_hat}` text below is replaced by the submitter. Quote paths
-containing these placeholders so the shell passes them unchanged. Replace the
-example `/eos/...` output directories with production locations.
+containing these placeholders so the shell passes them unchanged. The commands
+use the standard production output directories beneath
+`/eos/user/g/gnigmatk/ana/pPb8160/`:
+
+- experimental data: `exp/Pbgoing` and `exp/pgoing`;
+- embedding: `embedding/Pbgoing` and `embedding/pgoing`;
+- Pythia: `pythia/Pbgoing` and `pythia/pgoing`.
 
 ### Data
 
@@ -131,49 +161,57 @@ example `/eos/...` output directories with production locations.
 # MB Pb-going: PD1 through PD20, submitted sequentially
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/DATA_MB/Pbgoing/MB_PD{pd}_Pbgoing.txt' \
-  /eos/.../data/Pbgoing --mc-type 0 --beam Pbgoing --trigger-id 0 \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
+  --mc-type 0 --beam Pbgoing --trigger-id 0 \
   --pd-number all --files-per-job 50 --reco-jet-selection 2
 
 # MB p-going: PD1 through PD8, submitted sequentially
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/DATA_MB/pgoing/MB_PD{pd}_pgoing.txt' \
-  /eos/.../data/pgoing --mc-type 0 --beam pgoing --trigger-id 0 \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing \
+  --mc-type 0 --beam pgoing --trigger-id 0 \
   --pd-number all --files-per-job 50 --reco-jet-selection 2
 
 # Jet60 Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
-  /eos/.../data/Pbgoing --mc-type 0 --beam Pbgoing --trigger-id 1 \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
+  --mc-type 0 --beam Pbgoing --trigger-id 1 \
   --files-per-job 50 --reco-jet-selection 2
 
 # Jet60 p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/pgoing/PAEGJet_pgoing.txt \
-  /eos/.../data/pgoing --mc-type 0 --beam pgoing --trigger-id 1 \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing \
+  --mc-type 0 --beam pgoing --trigger-id 1 \
   --files-per-job 50 --reco-jet-selection 2
 
 # Jet80 Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
-  /eos/.../data/Pbgoing --mc-type 0 --beam Pbgoing --trigger-id 2 \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
+  --mc-type 0 --beam Pbgoing --trigger-id 2 \
   --files-per-job 50 --reco-jet-selection 2
 
 # Jet80 p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/pgoing/PAEGJet_pgoing.txt \
-  /eos/.../data/pgoing --mc-type 0 --beam pgoing --trigger-id 2 \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing \
+  --mc-type 0 --beam pgoing --trigger-id 2 \
   --files-per-job 50 --reco-jet-selection 2
 
 # Jet100 Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
-  /eos/.../data/Pbgoing --mc-type 0 --beam Pbgoing --trigger-id 3 \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
+  --mc-type 0 --beam Pbgoing --trigger-id 3 \
   --files-per-job 50 --reco-jet-selection 2
 
 # Jet100 p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/pgoing/PAEGJet_pgoing.txt \
-  /eos/.../data/pgoing --mc-type 0 --beam pgoing --trigger-id 3 \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing \
+  --mc-type 0 --beam pgoing --trigger-id 3 \
   --files-per-job 50 --reco-jet-selection 2
 ```
 
@@ -190,23 +228,59 @@ description for every supported pT-hat sample: 15, 30, 50, 80, 120, 170, 220,
 # Embedded Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/MC_embedded/Pbgoing/MC_pthat{pt_hat}_Pbgoing_embedded.txt' \
-  /eos/.../embedding/Pbgoing --mc-type 1 --beam Pbgoing --pt-hat all
+  /eos/user/g/gnigmatk/ana/pPb8160/embedding/Pbgoing \
+  --mc-type 1 --beam Pbgoing --pt-hat all \
+  --files-per-job 50 --reco-jet-selection 2
 
 # Embedded p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/MC_embedded/pgoing/MC_pthat{pt_hat}_pgoing_embedded.txt' \
-  /eos/.../embedding/pgoing --mc-type 1 --beam pgoing --pt-hat all
+  /eos/user/g/gnigmatk/ana/pPb8160/embedding/pgoing \
+  --mc-type 1 --beam pgoing --pt-hat all \
+  --files-per-job 50 --reco-jet-selection 2
 
 # Pythia Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/MC_Unembedded/Pbgoing/MC_pthat{pt_hat}_Pbgoing_unembedded.txt' \
-  /eos/.../pythia/Pbgoing --mc-type 2 --beam Pbgoing --pt-hat all
+  /eos/user/g/gnigmatk/ana/pPb8160/pythia/Pbgoing \
+  --mc-type 2 --beam Pbgoing --pt-hat all \
+  --files-per-job 50 --reco-jet-selection 2
 
 # Pythia p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/MC_Unembedded/pgoing/MC_pthat{pt_hat}_pgoing_unembedded.txt' \
-  /eos/.../pythia/pgoing --mc-type 2 --beam pgoing --pt-hat all
+  /eos/user/g/gnigmatk/ana/pPb8160/pythia/pgoing \
+  --mc-type 2 --beam pgoing --pt-hat all \
+  --files-per-job 50 --reco-jet-selection 2
 ```
+
+## Monitoring and validation
+
+Monitor all of your jobs or one returned cluster ID:
+
+```bash
+condor_q "$USER"
+condor_q CLUSTER_ID
+```
+
+If jobs stay idle unexpectedly, inspect matching constraints with:
+
+```bash
+condor_q -better-analyze CLUSTER_ID
+```
+
+After completion, list nonempty error files and inspect the corresponding
+standard output for the file and event counts:
+
+```bash
+find condor -type f -name '*.err' -size +0 -print
+find condor -type f -name '*.out' | sort | tail
+```
+
+A successful worker output reports the input sublist, a nonzero
+`Total number of files in chain`, a nonzero entry count for nonempty inputs, and
+the final processed/selected-event counts. ROOT outputs are written directly to
+the requested shared output directory.
 
 Run `--help` for naming, memory, job-flavour, executable, and work-directory
 options.
