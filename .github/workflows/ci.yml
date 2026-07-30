@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: ROOT Release build and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    container:
+      image: rootproject/root:6.26.10-ubuntu22.04@sha256:ebf48a186c1d34ea5a5a0cbd38f8bdf68cf9e16e87f7a8f04167146af230cd5a
+
+    env:
+      # Keep existing nuisance warnings visible while making diagnostics that
+      # indicate undefined behavior fatal. This image uses GCC and C++17.
+      CXXFLAGS: >-
+        -Werror=return-type
+        -Werror=maybe-uninitialized
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Report toolchain
+        run: |
+          root-config --version
+          root-config --cxx
+          root-config --cflags
+          cmake --version
+
+      - name: Configure Release build
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build --parallel 4
+
+      - name: Run C++ tests
+        run: ctest --test-dir build --output-on-failure
+
+  syntax:
+    name: Python and shell syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Compile Python sources
+        run: |
+          python3 -m py_compile \
+            pPb8160_analyzeMc_Pbgoing.py \
+            pPb8160_analyzeMc_pgoing.py \
+            pPb8160_runner.py \
+            processing/submit_process_forest_condor.py
+          python3 -m compileall -q \
+            hist_analysis/config \
+            hist_analysis/python
+
+      - name: Check shell syntax
+        run: bash -n processing/run_process_forest_condor.sh
