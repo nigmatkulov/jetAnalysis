@@ -384,13 +384,12 @@ def main() -> int:
             rows = [
                 " ".join(
                     (
-                        str(job_id),
                         job_name,
                         condor_token(sublist),
                         condor_token(output),
                     )
                 )
-                for job_id, (job_name, sublist, output) in enumerate(jobs, start=1)
+                for job_name, sublist, output in jobs
             ]
             is_pb_going = 1 if args.beam == "Pbgoing" else 0
             submit_file = sample_dir / f"{label}_{campaign_id}.sub"
@@ -421,7 +420,7 @@ def main() -> int:
                 f"output = {logs_dir}/$(job_name).out",
                 f"error = {logs_dir}/$(job_name).err",
                 f"log = {logs_dir}/$(job_name).log",
-                "queue job_id, job_name, input_list, output_file from (",
+                "queue job_name, input_list, output_file from (",
                 *rows,
                 ")",
                 "",
