@@ -218,6 +218,22 @@ use the standard production output directories beneath
 `--pd-number` has no effect for Jet60, Jet80, or Jet100; each uses the single
 direction-specific PAEGJet list.
 
+### Check data-file availability
+
+Before submitting data, check every ROOT path in all MB lists (PD1–20 for
+Pb-going and PD1–8 for p-going) and both direction-specific PAEGJet lists:
+
+```bash
+../py-env/bin/python check_data_filelists.py
+```
+
+The report is grouped by direction and PD and prints every unavailable path as
+`MISSING`. It exits with status `0` when all files are available, `1` when any
+listed ROOT file is unavailable, and `2` when a required file list itself is
+missing. Availability checks use 16 concurrent workers by default; change this
+with `--workers`. An overall progress bar shows the number and percentage of
+completed checks. Add `--show-available` to print successful paths as well.
+
 ### Monte Carlo
 
 Each command below creates and sequentially submits one independent Condor

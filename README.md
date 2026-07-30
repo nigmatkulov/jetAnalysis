@@ -12,7 +12,8 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 - `build/`: out-of-source build directory created by CMake.
 - `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py`: preset batch runners for the compiled executable.
 - `pPb8160_runner.py`: shared implementation used by the preset batch runners.
-- `processing/`: pPb 8.16 TeV file lists and the HTCondor submission workflow.
+- `processing/`: pPb 8.16 TeV file lists, data-availability checks, and the
+  HTCondor submission workflow.
 - `hist_analysis/`: Python, PyROOT, and Jupyter tools for ROOT-file inventory and histogram comparisons.
 - `steps/`: approval-gated dijet-measurement roadmap and validation records.
 - `AGENTS.md`: repository-specific working, physics, implementation, validation, and handoff instructions for coding agents.
@@ -135,6 +136,11 @@ without calling `condor_submit`. Run submission commands from `processing/`;
 that directory convention and the complete production/test commands are
 documented in `processing/README.md`.
 
+Before a data campaign, run `processing/check_data_filelists.py` on a CERN host
+with EOS mounted. It checks every MB PD list in both directions and both
+direction-specific PAEGJet lists, prints missing ROOT paths, and returns a
+nonzero status when files or required lists are unavailable.
+
 ## Histogram analysis
 
 The `hist_analysis/` package provides a lightweight PyROOT workflow for
@@ -197,8 +203,10 @@ campaign without submitting it:
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 py-env/bin/python -m py_compile \
-  processing/submit_process_forest_condor.py
+  processing/submit_process_forest_condor.py \
+  processing/check_data_filelists.py
 bash -n processing/run_process_forest_condor.sh
+py-env/bin/python processing/check_data_filelists.py --help
 py-env/bin/python processing/submit_process_forest_condor.py \
   processing/filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
   /tmp/jetAnalysis-condor-check --mc-type 0 --beam Pbgoing --trigger-id 1 \
