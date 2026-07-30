@@ -1809,8 +1809,8 @@ void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChai
                 //cout << "DEBUG found [" <<  file << "]" << endl;
 
                 // Check that file is of a correct name
-                if ( file.find(".root") != std::string::npos && file.find("Forest") != std::string::npos &&
-                     file.find("AOD") != std::string::npos ) {
+                if ( file.find(".root") != std::string::npos &&
+                     file.find("Forest") != std::string::npos ) {
                     
                     // Open file
                     TFile* ftmp = TFile::Open(file.c_str());
