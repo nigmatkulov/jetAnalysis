@@ -21,16 +21,16 @@ Within each generator directory, the direction-specific subdirectories are used 
 
 ## Python environment
 
-Use the project environment at:
+Use the project environment from the repository root:
 
 ```bash
-/Users/gnigmat/work/cms/jetAnalysis/py-env
+py-env/bin/python
 ```
 
 Example:
 
 ```bash
-/Users/gnigmat/work/cms/jetAnalysis/py-env/bin/python -m jupyter notebook
+py-env/bin/python -m jupyter notebook
 ```
 
 ## Starting point
@@ -89,6 +89,14 @@ options. Forward/Backward construction always uses independent propagation.
 The later ratio of one F/B histogram to another has a separate user-configurable
 error option, `''` or `'B'`.
 
+Use `notebooks/03_dijet_data_vs_mc.ipynb` to compare the reconstructed-data,
+reconstructed-MC, and generator-level-MC dijet pTave spectra for MinimumBias,
+Jet60, Jet80, and Jet100. Each curve is normalized independently over the
+configured half-open pTave interval, and a separate comparison is produced for
+every configured jet-eta acceptance. The input data directory and output
+directory can be overridden with `PPB_DATA_DIR` and
+`DIJET_DATA_VS_MC_OUTPUT_DIR`.
+
 Use `notebooks/03_dijet_reco_smeared_to_gen_closures.ipynb` for the focused
 closure comparison between nominal Gen and Reco smeared with the default
 eta-dependent JER. It writes normalized full-distribution and unnormalized
@@ -104,6 +112,24 @@ comparisons show ratios to the configured nominal, while the same-direction
 frame overlays intentionally do not form ratios. The flipped-lab and CM
 direction comparisons also include the combined-orientation file and use it as
 the ratio denominator.
+
+Use `notebooks/04_systematics_JER.ipynb` to estimate the reconstructed-dijet
+JER shape uncertainty with embedding or Pythia MC. For every configured pTave
+interval it overlays the JER Up, Down, and default CM eta projections after
+scaling each to unit integral, and overlays their unnormalized Forward/Backward
+ratios. Dedicated Up/Def and Down/Def plots are produced for both observables.
+Forward/Backward construction always uses independent error propagation;
+full-shape and subsequent F/B-to-F/B comparison ratios independently support
+ROOT's standard or `B` division option.
+
+Use `notebooks/04_systematics_JEU.ipynb` to estimate the reconstructed-dijet
+JEU shape uncertainty in MinimumBias, Jet60, Jet80, and Jet100 data. Each
+trigger has its own configured pTave intervals. The notebook compares
+unit-integral JEU Up, Down, and default CM eta projections and their
+unnormalized Forward/Backward ratios, then draws dedicated Up/Def and Down/Def
+comparisons. Forward/Backward construction always uses independent errors; the
+later comparison-ratio error options are configured separately. Set
+`DIJET_JEU_SYSTEMATICS_OUTPUT_DIR` to redirect its generated plots.
 
 Use `notebooks/05_unfold2D.ipynb` to construct a flattened dijet
 `pTave`-eta response and run a Bayesian RooUnfold closure test for the configured
@@ -132,6 +158,14 @@ measured, and response histograms by the common `RESPONSE_SCALE`. This keeps
 small weighted response entries above RooUnfold's absolute matrix-sanitization
 threshold. The unfolded histogram is scaled back by `1/RESPONSE_SCALE`, and its
 covariance by `1/RESPONSE_SCALE^2`, before results are plotted or written.
+
+Use `notebooks/06_data_check.ipynb` for trigger-by-trigger reconstructed-data
+checks. It plots the dijet pTave spectrum and, for each configured half-open
+pTave interval, normalized CM eta projections and unnormalized
+Forward/Backward ratios across the selected jet-eta acceptances. The pTave
+intervals are configured independently for MinimumBias, Jet60, Jet80, and
+Jet100. Set `PPB_DATA_DIR` and `DATA_CHECK_OUTPUT_DIR` to override its input and
+output locations.
 
 For `DIRECTION = 'combined'`, the unfolding notebook reads
 `<generator>/<generator>_<stem>.root`. For `pgoing` or `Pbgoing`, it reads
