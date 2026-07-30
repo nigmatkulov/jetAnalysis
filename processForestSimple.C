@@ -203,6 +203,7 @@ class JERSmearingHelper {
             else {
                 return 1.0; // No variation specified, return 1
             }
+            return 1.0; // No scale factor is defined outside the configured eta bins
         }
 
         /// @brief Returns the JER smeared pT for a given
@@ -2443,8 +2444,8 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
     // Process gen-level (truth) leading and subleading jets and dijet properties
     //
 
-    GenJet genLeadingJet;
-    GenJet genSubleadingJet;
+    GenJet genLeadingJet{};
+    GenJet genSubleadingJet{};
 
     float genLeadingJetPt = {-99.f};
     float genLeadingJetEtaCM = {-99.f};
