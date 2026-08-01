@@ -172,13 +172,23 @@ ratio-to-gen y-axis ranges for the flattened closure and per-pTave eta panels,
 respectively. Set `DRAW_GRID` to enable or disable grid lines on all diagnostic
 and closure canvases.
 
-Use `notebooks/06_data_check.ipynb` for trigger-by-trigger reconstructed-data
-checks. It plots the dijet pTave spectrum and, for each configured half-open
-pTave interval, normalized CM eta projections and unnormalized
-Forward/Backward ratios across the selected jet-eta acceptances. The pTave
-intervals are configured independently for MinimumBias, Jet60, Jet80, and
-Jet100. Set `PPB_DATA_DIR` and `DATA_CHECK_OUTPUT_DIR` to override its input and
-output locations.
+Use `notebooks/06_data_jet_distributions.ipynb` and
+`notebooks/06_data_dijet_distributions.ipynb` for trigger-by-trigger
+reconstructed-data beam-orientation checks. Set `SELECTION` to `jetId`,
+`trkMax`, or `noSel`; the notebooks resolve the matching combined, Pb-going,
+and p-going ROOT files. For each trigger they draw raw two-dimensional maps in
+the unflipped-Lab, flipped-Lab, and CM frames, using one common z-axis range for
+all three orientations. The inclusive-jet notebook also draws selected raw-pT
+versus unflipped detector-eta diagnostics from
+`hRecoInclusiveJetRawPtEtaLabUnflipped`. They overlay pT or pTave spectra and
+normalized eta projections with Pb-going/combined and p-going/combined ratio
+panels. The pT
+spectra are normalized in the configured 110--130 GeV interval. Inclusive-jet
+and dijet projection intervals are independently configurable for MinimumBias,
+Jet60, Jet80, and Jet100; inclusive-jet pT spectra also have a configurable eta
+selection. Set `PPB_DATA_DIR`,
+`DATA_JET_OUTPUT_DIR`, or `DATA_DIJET_OUTPUT_DIR` to override input and output
+locations.
 
 For `DIRECTION = 'combined'`, the unfolding notebook reads
 `<generator>/<generator>_<stem>.root`. For `pgoing` or `Pbgoing`, it reads

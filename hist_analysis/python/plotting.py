@@ -26,6 +26,7 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
                  annotations: Iterable[str] = (),
                  x_range: tuple[float, float] | None = None,
                  y_range: tuple[float, float] | None = None,
+                 legend_bounds: tuple[float, float, float, float] | None = None,
                  reference_y: float | None = None,
                  style_indices: Mapping[str, int] | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
@@ -55,7 +56,7 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
         for histogram in histograms.values()
         for bin_index in range(1, histogram.GetNbinsX() + 1)
     )
-    legend = ROOT.TLegend(0.60, 0.70, 0.88, 0.88)
+    legend = ROOT.TLegend(*(legend_bounds or (0.60, 0.70, 0.88, 0.88)))
     set_legend_style(legend, style=style)
     for index, (label, histogram) in enumerate(histograms.items()):
         style_index = index if style_indices is None else style_indices.get(label, index)

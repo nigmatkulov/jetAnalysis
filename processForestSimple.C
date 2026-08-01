@@ -23,6 +23,7 @@
 #include <random>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 #include <utility>
 
 const char* RED    = "\033[1;31m";
@@ -49,6 +50,16 @@ const int nEtaShifts = 13;
 static constexpr std::array<float, nEtaShifts> etaShift{0.460, 0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470, 0.475, 0.480, 0.485, 0.490 };
 const int nEtaCuts = 8;
 static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.5, 3.0};
+// Low-pileup runs used to isolate the localized data excess.  The extra
+// histogram-array element is the run-integrated control distribution.
+const int nDiagnosticRuns = 5;
+const int nDiagnosticRunHistograms = nDiagnosticRuns + 1;
+static constexpr std::array<UInt_t, nDiagnosticRuns> diagnosticRunIds{
+    285480, 285505, 285517, 285832, 285993
+};
+static constexpr std::array<float, nDiagnosticRuns> diagnosticRunPileup{
+    0.04f, 0.25f, 0.1f, 0.004f, 0.2f
+};
 
 namespace unfolding_diagnostics {
 
@@ -75,6 +86,12 @@ float ptHatRange[2] { 0.f, 8160.f};
 // Event info variables
 float ptHat;
 float vz;
+UInt_t run;
+UInt_t lumi;
+ULong64_t evt;
+Long64_t chainEntry;
+int inputTreeNumber;
+int analysisTriggerId;
 
 // Skim/event filter variables
 int pBeamScrapingFilter;
@@ -516,6 +533,7 @@ struct Histograms {
 
     // Reco jet histograms
     std::unique_ptr<TH2D> hRecoInclusiveJetPtEtaLabUnflippedUnweighted;
+    std::unique_ptr<TH2D> hRecoInclusiveJetRawPtEtaLabUnflipped;
     std::unique_ptr<TH2D> hRecoInclusiveJetPtEtaLabUnflipped;
     std::unique_ptr<TH2D> hRecoInclusiveJetPtEtaLab;
     std::unique_ptr<TH2D> hRecoInclusiveJetPtEtaCM;
@@ -544,6 +562,31 @@ struct Histograms {
     std::unique_ptr<TH2D> hRecoDijetPtEtaLabUnflipped;
     std::unique_ptr<TH2D> hRecoDijetPtEtaLab;
     std::unique_ptr<TH2D> hRecoDijetPtEtaCM;
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMRunArr[nDiagnosticRunHistograms];
+
+    std::unique_ptr<TTree> tRecoDijetAnomaly;
+    UInt_t anomalyRun{};
+    UInt_t anomalyLumi{};
+    ULong64_t anomalyEvent{};
+    Long64_t anomalyChainEntry{};
+    int anomalyInputTreeNumber{};
+    int anomalyTriggerId{};
+    int anomalyIsPbGoing{};
+    int anomalyJet60Bit{};
+    int anomalyJet80Bit{};
+    int anomalyJet100Bit{};
+    int anomalyNRecoJets{};
+    float anomalyDijetPtAve{};
+    float anomalyDijetEtaCM{};
+    float anomalyDeltaPhi{};
+    float anomalyLeadPt{};
+    float anomalyLeadRawPt{};
+    float anomalyLeadEta{};
+    float anomalyLeadPhi{};
+    float anomalySubleadPt{};
+    float anomalySubleadRawPt{};
+    float anomalySubleadEta{};
+    float anomalySubleadPhi{};
 
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArr[nEtaCuts];
@@ -1427,6 +1470,12 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                                                     nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                                     nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
     hs.hRecoInclusiveJetPtEtaLabUnflippedUnweighted->Sumw2();
+    hs.hRecoInclusiveJetRawPtEtaLabUnflipped = std::make_unique<TH2D>(
+        "hRecoInclusiveJetRawPtEtaLabUnflipped",
+        "Selected reco jet #eta (lab frame, unflipped) vs raw p_{T};raw p_{T} (GeV);#eta",
+        nJetPtBins, jetPtBins[0], jetPtBins[1],
+        nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+    hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Sumw2();
     hs.hRecoInclusiveJetPtEtaLabUnflipped = std::make_unique<TH2D>("hRecoInclusiveJetPtEtaLabUnflipped", 
                                                                     "Reco jet #eta (lab frame, unflipped) vs p_{T};p_{T} (GeV);#eta", 
                                                                     nJetPtBins, jetPtBins[0], jetPtBins[1],
@@ -1567,6 +1616,53 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                                   nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                                   nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
     hs.hRecoDijetPtEtaCM->Sumw2();
+
+    // These data-only objects retain the run and event provenance needed to
+    // trace the localized Jet80 dijet excess without enlarging MC outputs.
+    if (!isMc) {
+        hs.hRecoDijetPtEtaCMRunArr[nDiagnosticRuns] = std::make_unique<TH2D>(
+            "hRecoDijetPtEtaCMRunIntegrated",
+            "Reco dijet #eta_{CM} vs p_{T}^{ave}, all runs (|#eta_{CM}^{jet}|<1.9);p_{T}^{ave} (GeV);#eta_{CM}^{dijet}",
+            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+        hs.hRecoDijetPtEtaCMRunArr[nDiagnosticRuns]->Sumw2();
+
+        for (int iRun{0}; iRun < nDiagnosticRuns; ++iRun) {
+            hs.hRecoDijetPtEtaCMRunArr[iRun] = std::make_unique<TH2D>(
+                Form("hRecoDijetPtEtaCMRun_%u", diagnosticRunIds[iRun]),
+                Form("Reco dijet #eta_{CM} vs p_{T}^{ave}, run %u (PU %.3g, |#eta_{CM}^{jet}|<1.9);p_{T}^{ave} (GeV);#eta_{CM}^{dijet}",
+                     diagnosticRunIds[iRun], diagnosticRunPileup[iRun]),
+                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRecoDijetPtEtaCMRunArr[iRun]->Sumw2();
+        }
+
+        hs.tRecoDijetAnomaly = std::make_unique<TTree>(
+            "tRecoDijetAnomaly",
+            "Selected data dijets with 100 < pTave < 110 GeV and 1.5 < etaCMdijet < 1.6");
+        hs.tRecoDijetAnomaly->Branch("run", &hs.anomalyRun);
+        hs.tRecoDijetAnomaly->Branch("lumi", &hs.anomalyLumi);
+        hs.tRecoDijetAnomaly->Branch("event", &hs.anomalyEvent);
+        hs.tRecoDijetAnomaly->Branch("chainEntry", &hs.anomalyChainEntry);
+        hs.tRecoDijetAnomaly->Branch("inputTreeNumber", &hs.anomalyInputTreeNumber);
+        hs.tRecoDijetAnomaly->Branch("triggerId", &hs.anomalyTriggerId);
+        hs.tRecoDijetAnomaly->Branch("isPbGoing", &hs.anomalyIsPbGoing);
+        hs.tRecoDijetAnomaly->Branch("jet60Bit", &hs.anomalyJet60Bit);
+        hs.tRecoDijetAnomaly->Branch("jet80Bit", &hs.anomalyJet80Bit);
+        hs.tRecoDijetAnomaly->Branch("jet100Bit", &hs.anomalyJet100Bit);
+        hs.tRecoDijetAnomaly->Branch("nRecoJets", &hs.anomalyNRecoJets);
+        hs.tRecoDijetAnomaly->Branch("dijetPtAve", &hs.anomalyDijetPtAve);
+        hs.tRecoDijetAnomaly->Branch("dijetEtaCM", &hs.anomalyDijetEtaCM);
+        hs.tRecoDijetAnomaly->Branch("deltaPhi", &hs.anomalyDeltaPhi);
+        hs.tRecoDijetAnomaly->Branch("leadPt", &hs.anomalyLeadPt);
+        hs.tRecoDijetAnomaly->Branch("leadRawPt", &hs.anomalyLeadRawPt);
+        hs.tRecoDijetAnomaly->Branch("leadEta", &hs.anomalyLeadEta);
+        hs.tRecoDijetAnomaly->Branch("leadPhi", &hs.anomalyLeadPhi);
+        hs.tRecoDijetAnomaly->Branch("subleadPt", &hs.anomalySubleadPt);
+        hs.tRecoDijetAnomaly->Branch("subleadRawPt", &hs.anomalySubleadRawPt);
+        hs.tRecoDijetAnomaly->Branch("subleadEta", &hs.anomalySubleadEta);
+        hs.tRecoDijetAnomaly->Branch("subleadPhi", &hs.anomalySubleadPhi);
+    }
 
 
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
@@ -1893,7 +1989,12 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
 
     // Event level branches
     mainTree.SetBranchStatus("vz", 1);
-    mainTree.SetBranchStatus("pthat", 1);
+    mainTree.SetBranchStatus("run", 1);
+    mainTree.SetBranchStatus("lumi", 1);
+    mainTree.SetBranchStatus("evt", 1);
+    if (isMc) {
+        mainTree.SetBranchStatus("pthat", 1);
+    }
 
     // Enable skim/event filter branches
     mainTree.SetBranchStatus("pBeamScrapingFilter", 1);
@@ -1941,7 +2042,12 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
 
     // Set branch addresses
     mainTree.SetBranchAddress("vz", &vz);
-    mainTree.SetBranchAddress("pthat", &ptHat);
+    mainTree.SetBranchAddress("run", &run);
+    mainTree.SetBranchAddress("lumi", &lumi);
+    mainTree.SetBranchAddress("evt", &evt);
+    if (isMc) {
+        mainTree.SetBranchAddress("pthat", &ptHat);
+    }
 
     mainTree.SetBranchAddress("pBeamScrapingFilter", &pBeamScrapingFilter);
     mainTree.SetBranchAddress("pPAprimaryVertexFilter", &pPAprimaryVertexFilter);
@@ -2071,7 +2177,7 @@ bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &triggerId) 
 //________________
 void loadGenJets(std::vector<GenJet> &genJets) {
     // Clear the vector before filling it
-    if ( !genJets.empty() ) { genJets.clear(); }
+    genJets.clear();
 
     for (int iGenJet{0}; iGenJet < nGenJets; ++iGenJet) {
         GenJet genJet{genJetPt[iGenJet], genJetEta[iGenJet], genJetPhi[iGenJet], -1.f};
@@ -2083,9 +2189,9 @@ void loadGenJets(std::vector<GenJet> &genJets) {
 }
 
 //________________
-void loadRecoJets(std::vector<RecoJet> &recoJets, JetCorrector &jec) {
+void loadRecoJets(std::vector<RecoJet> &recoJets, JetCorrector &jec, const bool &isMc) {
     // Clear the vector before filling it
-    if ( !recoJets.empty() ) { recoJets.clear(); }
+    recoJets.clear();
     float recoJetPtCorr{0.};
 
     // Loop over reco jets and add them to the vector, applying necessary corrections and selections
@@ -2101,13 +2207,16 @@ void loadRecoJets(std::vector<RecoJet> &recoJets, JetCorrector &jec) {
         // if ( jec.GetCorrectedPT() < 10. ) { continue; } // Precut at 10 GeV to save computational time
 
         // Create reco jet object and add it to the vector
+        const float refPt = isMc ? refJetPt[iRecoJet] : -1.f;
+        const float refEta = isMc ? refJetEta[iRecoJet] : 0.f;
+        const float refPhi = isMc ? refJetPhi[iRecoJet] : 0.f;
         RecoJet recoJet{recoJetPtRaw[iRecoJet], recoJetPtCorr, 
                         recoJetEta[iRecoJet], recoJetPhi[iRecoJet],
                         recoJetPfNHF[iRecoJet], recoJetPfNEF[iRecoJet], recoJetPfCHF[iRecoJet], 
                         recoJetPfMUF[iRecoJet], recoJetPfCEF[iRecoJet], recoJetPfCHM[iRecoJet], 
                         recoJetPfCEM[iRecoJet], recoJetPfNHM[iRecoJet], recoJetPfNEM[iRecoJet], 
                         recoJetPfMUM[iRecoJet], recoJetTrackMaxPt[iRecoJet], 
-                        refJetPt[iRecoJet], refJetEta[iRecoJet], refJetPhi[iRecoJet],
+                        refPt, refEta, refPhi,
                         -1., -1.,                  // JeuUp, JeuDown
                         -1.,                       // refPtSmeared
                         };
@@ -2730,6 +2839,11 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
             ++it;
         }
 
+        // Fill only after the configured jet selection, so this diagnostic has
+        // exactly the same selected population as the corrected-pT histogram.
+        hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Fill(
+            recoJet.recoPtRaw, recoJet.recoEta, weight);
+
         // std::cout << Form("Jet: eta = %.2f, phi = %.2f, rawPt = %.1f, recoPt = %.1f", 
         //                   recoJet.recoEta, recoJet.recoPhi, recoJet.recoRawPt, recoJet.recoPt) << std::endl;
         hs.hRecoInclusiveJetPtEtaLabUnflippedUnweighted->Fill(recoJet.recoPt, recoJet.recoEta, 1.);
@@ -2812,6 +2926,47 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                 hs.hRecoDijetPtEtaLabUnflipped->Fill(recoDijetPtAve, dijetEtaLabUnflipped, weight);
                 hs.hRecoDijetPtEtaLab->Fill(recoDijetPtAve, dijetEtaLab, weight);
                 hs.hRecoDijetPtEtaCM->Fill(recoDijetPtAve, dijetEtaCM, weight);
+
+                if (!isMc) {
+                    // The last array entry is the inclusive control; the first
+                    // five entries isolate the requested run IDs.
+                    hs.hRecoDijetPtEtaCMRunArr[nDiagnosticRuns]->Fill(
+                        recoDijetPtAve, dijetEtaCM, weight);
+                    for (int iRun{0}; iRun < nDiagnosticRuns; ++iRun) {
+                        if (run == diagnosticRunIds[iRun]) {
+                            hs.hRecoDijetPtEtaCMRunArr[iRun]->Fill(
+                                recoDijetPtAve, dijetEtaCM, weight);
+                            break;
+                        }
+                    }
+
+                    if (recoDijetPtAve > 100.f && recoDijetPtAve < 110.f &&
+                        dijetEtaCM > 1.5f && dijetEtaCM < 1.6f) {
+                        hs.anomalyRun = run;
+                        hs.anomalyLumi = lumi;
+                        hs.anomalyEvent = evt;
+                        hs.anomalyChainEntry = chainEntry;
+                        hs.anomalyInputTreeNumber = inputTreeNumber;
+                        hs.anomalyTriggerId = analysisTriggerId;
+                        hs.anomalyIsPbGoing = isPbGoing ? 1 : 0;
+                        hs.anomalyJet60Bit = HLT_PAAK4PFJet60_Eta5p1_v4;
+                        hs.anomalyJet80Bit = HLT_PAAK4PFJet80_Eta5p1_v3;
+                        hs.anomalyJet100Bit = HLT_PAAK4PFJet100_Eta5p1_v3;
+                        hs.anomalyNRecoJets = static_cast<int>(recoJets.size());
+                        hs.anomalyDijetPtAve = recoDijetPtAve;
+                        hs.anomalyDijetEtaCM = dijetEtaCM;
+                        hs.anomalyDeltaPhi = dphi;
+                        hs.anomalyLeadPt = leadingJet.recoPt;
+                        hs.anomalyLeadRawPt = leadingJet.recoPtRaw;
+                        hs.anomalyLeadEta = leadingJet.recoEta;
+                        hs.anomalyLeadPhi = leadingJet.recoPhi;
+                        hs.anomalySubleadPt = subleadingJet.recoPt;
+                        hs.anomalySubleadRawPt = subleadingJet.recoPtRaw;
+                        hs.anomalySubleadEta = subleadingJet.recoEta;
+                        hs.anomalySubleadPhi = subleadingJet.recoPhi;
+                        hs.tRecoDijetAnomaly->Fill();
+                    }
+                }
 
                 if (leadingJet.refPt > 0. && subleadingJet.refPt > 0.) {
                     float refLeadEtaLabUnflipped = leadingJet.refEta;
@@ -3282,6 +3437,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
     hs.hRecoInclusiveJetTrkMaxPtEtaLab->Write();
     hs.hRecoInclusiveJetTrkMaxPtEtaCM->Write();
     hs.hRecoInclusiveJetPtEtaLabUnflippedUnweighted->Write();
+    hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Write();
     hs.hRecoInclusiveJetPtEtaLabUnflipped->Write();
     hs.hRecoInclusiveJetPtEtaLab->Write();
     hs.hRecoInclusiveJetPtEtaCM->Write();
@@ -3308,6 +3464,12 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
     hs.hRecoDijetPtEtaLabUnflipped->Write();
     hs.hRecoDijetPtEtaLab->Write();
     hs.hRecoDijetPtEtaCM->Write();
+    if (!isMc) {
+        for (int iRun{0}; iRun < nDiagnosticRunHistograms; ++iRun) {
+            hs.hRecoDijetPtEtaCMRunArr[iRun]->Write();
+        }
+        hs.tRecoDijetAnomaly->Write();
+    }
 
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
         hs.hRecoDijetPtEtaCMArr[iCut]->Write();
@@ -3381,6 +3543,7 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
                    const int &triggerId, const int &jetSelectionMethod) {
 
     std::cout << "Start event processing..." << std::endl;
+    analysisTriggerId = triggerId;
 
     // Vz weight function for MC, derived from data/MC ratio of vz distribution in minimum bias events
     auto fVzWeight = std::make_unique<TF1>("fVzWeight", "pol8", -15.1, 15.1);
@@ -3499,10 +3662,29 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
     Long64_t nextPrintAt{printEvery};
     auto startTime = std::chrono::steady_clock::now();
 
+    // ROOT fills fixed-size jet arrays during GetEntry.  Reject a chain whose
+    // count branches can exceed their capacity before reading any event.
+    auto validateJetCount = [&](const char *branchName) {
+        const double minimum = mainTree.GetMinimum(branchName);
+        const double maximum = mainTree.GetMaximum(branchName);
+        if (!std::isfinite(minimum) || !std::isfinite(maximum) ||
+            minimum < 0. || maximum > static_cast<double>(maxJets)) {
+            throw std::runtime_error(Form(
+                "Invalid %s range [%.0f, %.0f]; fixed jet-array capacity is %d",
+                branchName, minimum, maximum, maxJets));
+        }
+        std::cout << Form("Validated %s range: [%.0f, %.0f] (capacity %d)\n",
+                          branchName, minimum, maximum, maxJets);
+    };
+    validateJetCount("nref");
+    if (isMc) validateJetCount("ngen");
+
     Long64_t nEntries = mainTree.GetEntries();
     for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry) {
 
         mainTree.GetEntry(iEntry);
+        chainEntry = iEntry;
+        inputTreeNumber = mainTree.GetTreeNumber();
         nEventsProcessed++;
         Long64_t entriesPassed = iEntry + 1;
         if ((entriesPassed >= nextPrintAt) || (entriesPassed == nEntries)) {
@@ -3555,7 +3737,7 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         }
 
         // Load reconstructed jets
-        loadRecoJets( recoJets, jec );
+        loadRecoJets(recoJets, jec, isMc);
 
         if (isMc) {
             // Load generated jets

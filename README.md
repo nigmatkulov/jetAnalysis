@@ -145,6 +145,17 @@ with EOS mounted. It checks every MB PD list in both directions and both
 direction-specific PAEGJet lists, prints missing ROOT paths, and returns a
 nonzero status when files or required lists are unavailable.
 
+Data outputs also contain targeted diagnostics for investigating localized jet
+and dijet excesses. `hRecoInclusiveJetRawPtEtaLabUnflipped` stores selected raw
+jet pT versus detector eta using the same configured selection as the nominal
+corrected-pT inclusive-jet histogram. `hRecoDijetPtEtaCMRunArr` consists of the
+five run-specific histograms for runs 285480, 285505, 285517, 285832, and
+285993, followed by the run-integrated control. `tRecoDijetAnomaly` records
+run/lumisection/event provenance, trigger bits, dijet kinematics, and corrected
+and raw leading/subleading jet quantities for selected events in the diagnostic
+window 100 < pTave < 110 GeV and 1.5 < etaCM(dijet) < 1.6. These data-only
+objects are intended for diagnosis and do not change event or jet selections.
+
 ## Histogram analysis
 
 The `hist_analysis/` package provides a lightweight PyROOT workflow for
@@ -164,7 +175,8 @@ inspecting and comparing analysis outputs:
 - `notebooks/04_systematics_JEU.ipynb`: estimates the reconstructed-dijet JEU shape systematic for the MB and jet-triggered data samples from unit-integral JEU Up, Down, and default CM eta projections and unnormalized forward/backward ratios.
 - `notebooks/05_unfold2D.ipynb`: builds a flattened dijet pTave-eta response for the eta-dependent JER-default measured distribution, runs a Bayesian RooUnfold closure test with explicit miss/fake handling, and produces Gen/Reco/unfolded eta overlays and closure ratios for every configured pTave interval. ROOT results and PDF diagnostics are written to `output/unfold2D/`; set `SAVE_PNG = True` for matching PNGs.
 - `notebooks/05_unfold2D_mc_direction.ipynb`: trains the same flattened response on Pb-going embedding and applies it to the independent p-going embedding reco distribution, then compares the unfolded result with p-going generator truth. It preserves the response scaling, miss/fake handling, diagnostics, and output conventions of `05_unfold2D.ipynb`.
-- `notebooks/06_data_check.ipynb`: plots reconstructed-data dijet pTave spectra, normalized CM eta projections, and unnormalized forward/backward ratios for configurable trigger-specific pTave intervals and jet-eta acceptances.
+- `notebooks/06_data_jet_distributions.ipynb`: compares Pb-going, p-going, and combined inclusive-jet data for configurable jet-ID, track-maximum, or no-selection outputs. It draws common-scale orientation 2D maps and pT/eta overlays with ratios to combined in the unflipped-Lab, flipped-Lab, and CM frames, plus selected raw-jet-pT versus unflipped detector-eta diagnostics.
+- `notebooks/06_data_dijet_distributions.ipynb`: provides the corresponding selection-configurable dijet orientation maps and pTave/eta comparisons using the full unflipped-Lab, flipped-Lab, and CM dijet histograms.
 - `config/`: input locations, common pseudorapidity range, configured single-jet pT and dijet pTave projection bins, and the standard dijet eta-cut index.
 - `python/`: reusable ROOT object I/O, projection, histogram-operation, inventory, and plotting helpers.
 - `output/`: generated figures and ROOT artifacts; this directory is ignored by Git.
