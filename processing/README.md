@@ -326,6 +326,33 @@ A successful worker output reports the input sublist, a nonzero
 the final processed/selected-event counts. ROOT outputs are written directly to
 the requested shared output directory.
 
+### Merge completed data outputs
+
+Merge all MB Pb-going job outputs recursively, using at most 500 inputs in each
+`hadd -f208` call, into the standard final filename:
+
+```bash
+../py-env/bin/python merge_data_outputs.py \
+  /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
+  --trigger MB --beam Pbgoing
+```
+
+The corresponding p-going command uses the `pgoing` directory and
+`--beam pgoing`, producing `mb_pgoing_ak4_jetId.root`. Jet-trigger samples use
+the same interface with `--trigger Jet60`, `Jet80`, or `Jet100`; their default
+outputs are `jet60_<beam>_ak4_jetId.root`, `jet80_<beam>_ak4_jetId.root`, and
+`jet100_<beam>_ak4_jetId.root`.
+
+The script requires every intermediate file and the final file to be nonempty
+and reopenable by `rootls` with at least one top-level key. It builds the final
+candidate beside the destination and replaces the destination atomically only
+after validation. Only after reopening that installed final file successfully
+does it remove the matched per-job ROOT files. A failed merge leaves all
+original job outputs and any older final output intact. Use
+`--dry-run` to inspect the recursive file selection without merging or deleting,
+or `--keep-inputs` to merge and verify while retaining the source files. Change
+the fan-in with `--batch-size`; values are restricted to 2–999.
+
 ### Retry completed jobs with ROOT input read errors
 
 From `processing/`, scan all campaigns without changing files or submitting

@@ -150,6 +150,12 @@ campaigns for ROOT input read failures and resubmit only the affected queue
 rows. It reports a dry run by default; see `processing/README.md` before using
 its explicit `--submit` mode.
 
+`processing/merge_data_outputs.py` recursively merges one completed data
+trigger/direction in batches using `hadd -f208`, verifies the final ROOT file,
+atomically installs it, and then removes the merged per-job ROOT files. See
+`processing/README.md` for MB and jet-trigger examples, validation details, and
+the non-destructive options.
+
 Before a data campaign, run `processing/check_data_filelists.py` on a CERN host
 with EOS mounted. It checks every MB PD list in both directions and both
 direction-specific PAEGJet lists, prints missing ROOT paths, and returns a
@@ -234,6 +240,7 @@ campaign without submitting it:
 PYTHONDONTWRITEBYTECODE=1 py-env/bin/python -m py_compile \
   processing/submit_process_forest_condor.py \
   processing/submit_all_data_condor.py \
+  processing/merge_data_outputs.py \
   processing/retry_failed_io_jobs.py \
   processing/check_data_filelists.py
 bash -n processing/run_process_forest_condor.sh
