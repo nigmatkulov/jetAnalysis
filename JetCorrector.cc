@@ -19,6 +19,8 @@
 
 #include "JetCorrector.h"
 
+#include <cstddef>
+
 //_________________
 JetCorrector::JetCorrector() : JEC{}, 
     JetPT{-999.}, JetEta{-999.}, JetPhi{-999.}, 
@@ -153,10 +155,10 @@ void SingleJetCorrector::Initialize(std::string FileName) {
             //std::cout << "IsDefinition = true" << std::endl;
 
             nvar = atoi(Parts[0].c_str());
-            if (Parts.size() <= nvar + 1)
+            if (Parts.size() <= static_cast<std::size_t>(nvar + 1))
                 continue;
             npar = atoi(Parts[nvar + 1].c_str());
-            if (Parts.size() <= nvar + 1 + npar + 1)
+            if (Parts.size() <= static_cast<std::size_t>(nvar + 1 + npar + 1))
                 continue;
 
             CurrentFormula = Parts[nvar + 1 + npar + 1];
@@ -177,7 +179,7 @@ void SingleJetCorrector::Initialize(std::string FileName) {
 
             //std::cout << "IsDefinition = false" << std::endl;
 
-            if (Parts.size() < nvar * 2 + npar * 2 + 1) continue;
+            if (Parts.size() < static_cast<std::size_t>(nvar * 2 + npar * 2 + 1)) continue;
 
             std::vector<double> Parameter;
             for (int i = nvar * 2 + npar * 2 + 1; i < (int)Parts.size(); i++) {
@@ -330,7 +332,7 @@ double SingleJetCorrector::GetCorrection() {
         double V[3] = {0, 0, 0};
         for (int i = 0; i < 3; i++) {
 
-            if (Dependencies[iE].size() <= i) continue;
+            if (Dependencies[iE].size() <= static_cast<std::size_t>(i)) continue;
 
             double Value = GetValue(Dependencies[iE][i]);
             if (Value < DependencyRanges[iE][i * 2])

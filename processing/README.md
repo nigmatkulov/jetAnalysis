@@ -166,6 +166,21 @@ use the standard production output directories beneath
 
 ### Data
 
+Submit all four trigger configurations (MB, Jet60, Jet80, and Jet100) for both
+beam orientations with one command:
+
+```bash
+../py-env/bin/python submit_all_data_condor.py
+```
+
+This uses the standard output directories, 10 files per job, tight jet ID with
+the lepton veto, every direction-appropriate MB PD, and the shared PAEGJet list
+for each jet trigger. Add `--dry-run` to prepare all eight configurations
+without calling `condor_submit`. Use `--help` to see the common output, split,
+selection, proxy, and work-directory overrides.
+
+The equivalent individual commands are listed below.
+
 ```bash
 # MB Pb-going: PD1 through PD20, submitted sequentially
 ../py-env/bin/python submit_process_forest_condor.py \

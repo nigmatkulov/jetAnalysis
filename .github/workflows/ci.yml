@@ -69,6 +69,7 @@ jobs:
             pPb8160_analyzeMc_pgoing.py \
             pPb8160_runner.py \
             processing/submit_process_forest_condor.py \
+            processing/submit_all_data_condor.py \
             processing/check_data_filelists.py \
             processing/retry_failed_io_jobs.py
           python3 -m compileall -q \

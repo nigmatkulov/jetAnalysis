@@ -130,6 +130,8 @@ or all MB primary datasets and individual or all MC pT-hat samples. Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in
 `processing/README.md`. Production jobs use 10 input files per job by default
 so one transient input failure invalidates a smaller unit of work.
+`processing/submit_all_data_condor.py` is the convenience wrapper for submitting
+all four data triggers in both beam orientations.
 
 Standard production ROOT outputs are written beneath
 `/eos/user/g/gnigmatk/ana/pPb8160/`: experimental data under `exp/<direction>`,
@@ -229,6 +231,8 @@ campaign without submitting it:
 ```bash
 PYTHONDONTWRITEBYTECODE=1 py-env/bin/python -m py_compile \
   processing/submit_process_forest_condor.py \
+  processing/submit_all_data_condor.py \
+  processing/retry_failed_io_jobs.py \
   processing/check_data_filelists.py
 bash -n processing/run_process_forest_condor.sh
 py-env/bin/python processing/check_data_filelists.py --help

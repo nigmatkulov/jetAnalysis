@@ -19,6 +19,8 @@
 // Jet analysis headers
 #include "JetUncertainty.h"
 
+#include <cstddef>
+
 //________________
 void JetUncertainty::Initialize(std::string FileName) {
     int nvar = 0, npar = 0;
@@ -44,9 +46,9 @@ void JetUncertainty::Initialize(std::string FileName) {
             // Found a definition line - update current formula
 
             nvar = atoi(Parts[0].c_str());
-            if (Parts.size() <= nvar + 1) continue;
+            if (Parts.size() <= static_cast<std::size_t>(nvar + 1)) continue;
             npar = atoi(Parts[nvar + 1].c_str());
-            if (Parts.size() <= nvar + 1 + npar + 1) continue;
+            if (Parts.size() <= static_cast<std::size_t>(nvar + 1 + npar + 1)) continue;
 
             CurrentFormula = Parts[nvar + 1 + npar + 1];
             CurrentBinTypes.clear();
@@ -62,7 +64,7 @@ void JetUncertainty::Initialize(std::string FileName) {
         else {
             // Otherwise it's a line with actual JECs, add it to the list
 
-            if (Parts.size() < nvar * 2 + 1) continue;
+            if (Parts.size() < static_cast<std::size_t>(nvar * 2 + 1)) continue;
             BinTypes.push_back(CurrentBinTypes);
             std::vector<double> Ranges;
             for (int i = 0; i < nvar * 2; i++) {
