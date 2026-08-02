@@ -157,7 +157,7 @@ def parse_args() -> argparse.Namespace:
         help="0=none, 1=trkMaxPt/RawPt, 2=tight ID+lepton veto, 3=loose ID",
     )
     parser.add_argument(
-        "--files-per-job", type=positive_int, default=50, help="Default: 50"
+        "--files-per-job", type=positive_int, default=10, help="Default: 10"
     )
     parser.add_argument(
         "--name",

@@ -128,7 +128,8 @@ pPb 8.16 TeV file lists, creates readable output and log names, and submits the
 current seven-argument `processForestSimple` executable. It supports individual
 or all MB primary datasets and individual or all MC pT-hat samples. Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in
-`processing/README.md`.
+`processing/README.md`. Production jobs use 10 input files per job by default
+so one transient input failure invalidates a smaller unit of work.
 
 Standard production ROOT outputs are written beneath
 `/eos/user/g/gnigmatk/ana/pPb8160/`: experimental data under `exp/<direction>`,

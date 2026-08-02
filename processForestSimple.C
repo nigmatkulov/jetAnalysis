@@ -3712,7 +3712,15 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
     Long64_t nEntries = mainTree.GetEntries();
     for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry) {
 
-        mainTree.GetEntry(iEntry);
+        const Long64_t bytesRead = mainTree.GetEntry(iEntry);
+        if (bytesRead <= 0) {
+            const TFile *currentFile = mainTree.GetFile();
+            throw std::runtime_error(Form(
+                "Failed to read chain entry %lld from tree %d, file %s",
+                iEntry,
+                mainTree.GetTreeNumber(),
+                currentFile ? currentFile->GetName() : "<unknown>"));
+        }
         chainEntry = iEntry;
         inputTreeNumber = mainTree.GetTreeNumber();
         nEventsProcessed++;
