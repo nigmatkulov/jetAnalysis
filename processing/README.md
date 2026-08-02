@@ -328,20 +328,43 @@ the requested shared output directory.
 
 ### Merge completed data outputs
 
-Merge all MB Pb-going job outputs recursively, using at most 500 inputs in each
-`hadd -f208` call, into the standard final filename:
+First preview the recursively discovered MB Pb-going job outputs and standard
+final filename:
 
 ```bash
 ../py-env/bin/python merge_data_outputs.py \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
-  --trigger MB --beam Pbgoing
+  --trigger MB --beam Pbgoing --dry-run
 ```
+
+Review the selected paths, then remove `--dry-run` to merge with at most 500
+inputs in each `hadd -f208` call. The successful merge verifies and installs
+`mb_Pbgoing_ak4_jetId.root`, then removes only the matched per-job inputs.
+
+The reconstruction-selection option controls both source discovery and the
+default final filename:
+
+| Merger option | Submitter method | Matched filename label | Final suffix |
+| --- | --- | --- | --- |
+| `jetId` (default) | `2` or `3` | `_data_jetId_job*.root` | `_ak4_jetId.root` |
+| `trkMax` | `1` | `_data_trkMax_job*.root` | `_ak4_trkMax.root` |
+| `noSel` | `0` | `_data_noSel_job*.root` | `_ak4_noSel.root` |
+
+Reco-selection methods `2` (tight ID with lepton veto) and `3` (loose ID) both
+use the `jetId` filename label. The merger cannot distinguish them, so do not
+place both campaigns beneath the same merge directory. This is the same naming
+constraint described in the submission section above.
 
 The corresponding p-going command uses the `pgoing` directory and
 `--beam pgoing`, producing `mb_pgoing_ak4_jetId.root`. Jet-trigger samples use
 the same interface with `--trigger Jet60`, `Jet80`, or `Jet100`; their default
 outputs are `jet60_<beam>_ak4_jetId.root`, `jet80_<beam>_ak4_jetId.root`, and
 `jet100_<beam>_ak4_jetId.root`.
+
+Pass `--output /path/to/name.root` to replace the default final path. This does
+not change source discovery: `--trigger`, `--beam`, and
+`--reco-jet-selection` still determine exactly which job outputs are merged
+and, after verification, removed.
 
 The script requires every intermediate file and the final file to be nonempty
 and reopenable by `rootls` with at least one top-level key. It builds the final

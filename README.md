@@ -154,7 +154,8 @@ its explicit `--submit` mode.
 trigger/direction in batches using `hadd -f208`, verifies the final ROOT file,
 atomically installs it, and then removes the merged per-job ROOT files. See
 `processing/README.md` for MB and jet-trigger examples, validation details, and
-the non-destructive options.
+the `jetId`/`trkMax`/`noSel` selection mapping, custom output naming, and
+non-destructive options.
 
 Before a data campaign, run `processing/check_data_filelists.py` on a CERN host
 with EOS mounted. It checks every MB PD list in both directions and both

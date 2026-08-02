@@ -19,6 +19,10 @@ from pathlib import Path
 
 # These labels deliberately match the submitter's case-sensitive output names.
 TRIGGERS = ("MB", "Jet60", "Jet80", "Jet100")
+# The submitter maps numeric reco-selection methods 2 (tight+lepton veto) and 3
+# (loose) to the same jetId label. This merger therefore selects by the stored
+# label and cannot separate methods 2 and 3 if their outputs share a directory.
+RECO_JET_SELECTIONS = ("jetId", "trkMax", "noSel")
 
 
 def positive_batch_size(value: str) -> int:
@@ -43,8 +47,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--trigger", choices=TRIGGERS, required=True)
     parser.add_argument("--beam", choices=("Pbgoing", "pgoing"), required=True)
     parser.add_argument(
+        "--reco-jet-selection",
+        choices=RECO_JET_SELECTIONS,
+        default="jetId",
+        help="Selection label in source and output names (default: jetId)",
+    )
+    parser.add_argument(
         "--output", type=Path,
-        help="Final ROOT file (default: INPUT_DIR/<trigger>_<beam>_ak4_jetId.root)",
+        help=(
+            "Final ROOT file (default: "
+            "INPUT_DIR/<trigger>_<beam>_ak4_<reco-selection>.root)"
+        ),
     )
     parser.add_argument("--batch-size", type=positive_batch_size, default=500)
     parser.add_argument(
@@ -58,16 +71,17 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def input_pattern(trigger: str, beam: str) -> str:
-    """Return the submitter filename pattern for one trigger/direction pair.
+def input_pattern(trigger: str, beam: str, reco_jet_selection: str) -> str:
+    """Return the submitter pattern for one trigger/direction/selection tuple.
 
     MB includes a primary-dataset label between the trigger and direction;
-    PAEGJet-derived trigger samples do not.
+    PAEGJet-derived trigger samples do not. The selection label is included so
+    neighboring campaigns produced with another selection are never deleted.
     """
 
     if trigger == "MB":
-        return f"MB_PD*_{beam}_data_jetId_job*.root"
-    return f"{trigger}_{beam}_data_jetId_job*.root"
+        return f"MB_PD*_{beam}_data_{reco_jet_selection}_job*.root"
+    return f"{trigger}_{beam}_data_{reco_jet_selection}_job*.root"
 
 
 def validate_root_file(path: Path, rootls: str) -> None:
@@ -145,12 +159,11 @@ def main() -> int:
     if not input_dir.is_dir():
         raise SystemExit(f"input directory does not exist: {input_dir}")
 
-    output = (
-        args.output.expanduser().resolve()
-        if args.output
-        else input_dir / f"{args.trigger.lower()}_{args.beam}_ak4_jetId.root"
+    default_output = input_dir / (
+        f"{args.trigger.lower()}_{args.beam}_ak4_{args.reco_jet_selection}.root"
     )
-    pattern = input_pattern(args.trigger, args.beam)
+    output = args.output.expanduser().resolve() if args.output else default_output
+    pattern = input_pattern(args.trigger, args.beam, args.reco_jet_selection)
     # Resolve and deduplicate paths before merging. Excluding output is a
     # second guard against ever feeding the target back into hadd if a custom
     # output name happens to match the discovery pattern.
