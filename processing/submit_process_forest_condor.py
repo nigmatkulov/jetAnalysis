@@ -168,7 +168,11 @@ def parse_args() -> argparse.Namespace:
         help=f"Analysis executable (default: {DEFAULT_EXECUTABLE})",
     )
     parser.add_argument(
-        "--job-flavour", default="longlunch", help="CERN JobFlavour (default: longlunch)"
+        "--job-flavour",
+        help=(
+            "CERN JobFlavour override (default: espresso for data, "
+            "microcentury for MC)"
+        ),
     )
     parser.add_argument(
         "--request-memory", default="2GB", help="Condor memory request (default: 2GB)"
@@ -323,6 +327,9 @@ def main() -> int:
     output_dir = args.output_dir.expanduser().resolve()
     work_dir = args.work_dir.expanduser().resolve()
     proxy = args.proxy.expanduser().resolve()
+    job_flavour = args.job_flavour or (
+        "espresso" if args.mc_type == 0 else "microcentury"
+    )
 
     if not executable.is_file():
         raise SystemExit(f"Executable does not exist: {executable}")
@@ -397,7 +404,7 @@ def main() -> int:
                 "universe = vanilla",
                 "initialdir = .",
                 f"executable = {WORKER}",
-                f'+JobFlavour = "{args.job_flavour}"',
+                f'+JobFlavour = "{job_flavour}"',
                 "getenv = True",
                 "request_cpus = 1",
                 f"request_memory = {args.request_memory}",

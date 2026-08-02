@@ -25,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--files-per-job", type=int, default=10)
     parser.add_argument("--reco-jet-selection", type=int, default=2)
+    parser.add_argument("--job-flavour", help="Override the default espresso flavour")
     parser.add_argument("--proxy", type=Path, help="Forward a non-default proxy path")
     parser.add_argument("--work-dir", type=Path, help="Forward a non-default Condor work directory")
     parser.add_argument("--dry-run", action="store_true")
@@ -50,6 +51,8 @@ def submission_command(args: argparse.Namespace, beam: str, trigger_id: int) -> 
     ]
     if trigger_id == 0:
         command.extend(("--pd-number", "all"))
+    if args.job_flavour:
+        command.extend(("--job-flavour", args.job_flavour))
     if args.proxy:
         command.extend(("--proxy", str(args.proxy)))
     if args.work_dir:

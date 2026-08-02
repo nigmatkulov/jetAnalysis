@@ -132,6 +132,8 @@ or all MB primary datasets and individual or all MC pT-hat samples. Prepare
 so one transient input failure invalidates a smaller unit of work.
 `processing/submit_all_data_condor.py` is the convenience wrapper for submitting
 all four data triggers in both beam orientations.
+The default CERN job flavour is `espresso` (20 minutes) for experimental data
+and `microcentury` (1 hour) for MC; `--job-flavour` overrides these defaults.
 
 Standard production ROOT outputs are written beneath
 `/eos/user/g/gnigmatk/ana/pPb8160/`: experimental data under `exp/<direction>`,

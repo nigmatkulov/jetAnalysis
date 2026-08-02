@@ -45,6 +45,10 @@ amount of otherwise valid work invalidated by one transient input read failure
 and makes failed jobs cheaper to retry. Override `--files-per-job` explicitly
 when a different split has been validated for the campaign.
 
+The submitter requests CERN's `espresso` flavour (20 minutes) by default for
+experimental data and `microcentury` (1 hour) for embedding and Pythia jobs.
+Use `--job-flavour FLAVOUR` to override the sample-dependent default.
+
 If `../py-env/bin/python` is not installed in the CERN checkout, use the
 environment's `python3` command. Do not prefix the script or input paths with
 `processing/` when the current directory is already `processing/`.
@@ -177,7 +181,7 @@ This uses the standard output directories, 10 files per job, tight jet ID with
 the lepton veto, every direction-appropriate MB PD, and the shared PAEGJet list
 for each jet trigger. Add `--dry-run` to prepare all eight configurations
 without calling `condor_submit`. Use `--help` to see the common output, split,
-selection, proxy, and work-directory overrides.
+selection, job-flavour, proxy, and work-directory overrides.
 
 The equivalent individual commands are listed below.
 
