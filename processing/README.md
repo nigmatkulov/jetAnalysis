@@ -307,5 +307,38 @@ A successful worker output reports the input sublist, a nonzero
 the final processed/selected-event counts. ROOT outputs are written directly to
 the requested shared output directory.
 
+### Retry completed jobs with ROOT input read errors
+
+From `processing/`, scan all campaigns without changing files or submitting
+jobs:
+
+```bash
+../py-env/bin/python retry_failed_io_jobs.py
+```
+
+The scanner selects only jobs that satisfy both conditions:
+
+- the Condor event log records that the job terminated;
+- stderr contains a ROOT `TFile::ReadBuffer`, `TBranch::GetBasket`, or the
+  analysis `Failed to read chain entry` input-read error.
+
+Normal jobs, active jobs, and jobs with unrelated errors are not touched. Review
+the reported job names, then archive their old logs, quarantine any stale ROOT
+outputs with an `.invalid-<timestamp>` suffix, generate retry submit files with
+only the affected queue rows, and submit them with:
+
+```bash
+../py-env/bin/python retry_failed_io_jobs.py --submit
+```
+
+Archived logs are stored below each sample campaign in
+`retry_archive/<timestamp>/<job-name>/`. Previous retry submit files are not
+rescanned. Pass a campaign subtree explicitly to limit the scan, for example:
+
+```bash
+../py-env/bin/python retry_failed_io_jobs.py \
+  condor/20260801_064512_348372_42cd324c
+```
+
 Run `--help` for naming, memory, job-flavour, executable, and work-directory
 options.

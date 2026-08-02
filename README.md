@@ -141,6 +141,11 @@ without calling `condor_submit`. Run submission commands from `processing/`;
 that directory convention and the complete production/test commands are
 documented in `processing/README.md`.
 
+After jobs finish, `processing/retry_failed_io_jobs.py` can scan generated
+campaigns for ROOT input read failures and resubmit only the affected queue
+rows. It reports a dry run by default; see `processing/README.md` before using
+its explicit `--submit` mode.
+
 Before a data campaign, run `processing/check_data_filelists.py` on a CERN host
 with EOS mounted. It checks every MB PD list in both directions and both
 direction-specific PAEGJet lists, prints missing ROOT paths, and returns a
