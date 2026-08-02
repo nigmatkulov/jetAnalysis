@@ -672,6 +672,26 @@ struct Histograms {
 
 };
 
+// Enforce the data-only lifetime of the targeted anomaly diagnostics.  This
+// turns a future misplaced creation or missing data object into an immediate
+// failure instead of allowing MC to silently produce diagnostic content.
+void validateDataDiagnosticState(const Histograms &hs, const bool isMc) {
+    bool anyDiagnostic = static_cast<bool>(hs.hRecoInclusiveJetRawPtEtaLabUnflipped) ||
+                         static_cast<bool>(hs.tRecoDijetAnomaly);
+    bool allDiagnostics = static_cast<bool>(hs.hRecoInclusiveJetRawPtEtaLabUnflipped) &&
+                          static_cast<bool>(hs.tRecoDijetAnomaly);
+    for (int iRun{0}; iRun < nDiagnosticRunHistograms; ++iRun) {
+        anyDiagnostic = anyDiagnostic || static_cast<bool>(hs.hRecoDijetPtEtaCMRunArr[iRun]);
+        allDiagnostics = allDiagnostics && static_cast<bool>(hs.hRecoDijetPtEtaCMRunArr[iRun]);
+    }
+    if (isMc && anyDiagnostic) {
+        throw std::logic_error("Data anomaly diagnostics must not be created for MC");
+    }
+    if (!isMc && !allDiagnostics) {
+        throw std::logic_error("Data anomaly diagnostics are incomplete for data");
+    }
+}
+
 //________________
 // Event weight calculation for pPb8160 MC samples
 /// @param ptHat: the ptHat
@@ -1470,12 +1490,6 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                                                     nJetPtBins, jetPtBins[0], jetPtBins[1],
                                                                     nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
     hs.hRecoInclusiveJetPtEtaLabUnflippedUnweighted->Sumw2();
-    hs.hRecoInclusiveJetRawPtEtaLabUnflipped = std::make_unique<TH2D>(
-        "hRecoInclusiveJetRawPtEtaLabUnflipped",
-        "Selected reco jet #eta (lab frame, unflipped) vs raw p_{T};raw p_{T} (GeV);#eta",
-        nJetPtBins, jetPtBins[0], jetPtBins[1],
-        nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
-    hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Sumw2();
     hs.hRecoInclusiveJetPtEtaLabUnflipped = std::make_unique<TH2D>("hRecoInclusiveJetPtEtaLabUnflipped", 
                                                                     "Reco jet #eta (lab frame, unflipped) vs p_{T};p_{T} (GeV);#eta", 
                                                                     nJetPtBins, jetPtBins[0], jetPtBins[1],
@@ -1620,6 +1634,13 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
     // These data-only objects retain the run and event provenance needed to
     // trace the localized Jet80 dijet excess without enlarging MC outputs.
     if (!isMc) {
+        hs.hRecoInclusiveJetRawPtEtaLabUnflipped = std::make_unique<TH2D>(
+            "hRecoInclusiveJetRawPtEtaLabUnflipped",
+            "Selected reco jet #eta (lab frame, unflipped) vs raw p_{T};raw p_{T} (GeV);#eta",
+            nJetPtBins, jetPtBins[0], jetPtBins[1],
+            nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+        hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Sumw2();
+
         hs.hRecoDijetPtEtaCMRunArr[nDiagnosticRuns] = std::make_unique<TH2D>(
             "hRecoDijetPtEtaCMRunIntegrated",
             "Reco dijet #eta_{CM} vs p_{T}^{ave}, all runs (|#eta_{CM}^{jet}|<1.9);p_{T}^{ave} (GeV);#eta_{CM}^{dijet}",
@@ -1863,6 +1884,7 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
     } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
 
 
+    validateDataDiagnosticState(hs, isMc);
     std::cout << GREEN << "\t[DONE]" << RESET << std::endl;
 } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
 
@@ -1989,11 +2011,14 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
 
     // Event level branches
     mainTree.SetBranchStatus("vz", 1);
-    mainTree.SetBranchStatus("run", 1);
-    mainTree.SetBranchStatus("lumi", 1);
-    mainTree.SetBranchStatus("evt", 1);
     if (isMc) {
         mainTree.SetBranchStatus("pthat", 1);
+    }
+    else {
+        // Event provenance is consumed exclusively by data anomaly diagnostics.
+        mainTree.SetBranchStatus("run", 1);
+        mainTree.SetBranchStatus("lumi", 1);
+        mainTree.SetBranchStatus("evt", 1);
     }
 
     // Enable skim/event filter branches
@@ -2042,11 +2067,13 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
 
     // Set branch addresses
     mainTree.SetBranchAddress("vz", &vz);
-    mainTree.SetBranchAddress("run", &run);
-    mainTree.SetBranchAddress("lumi", &lumi);
-    mainTree.SetBranchAddress("evt", &evt);
     if (isMc) {
         mainTree.SetBranchAddress("pthat", &ptHat);
+    }
+    else {
+        mainTree.SetBranchAddress("run", &run);
+        mainTree.SetBranchAddress("lumi", &lumi);
+        mainTree.SetBranchAddress("evt", &evt);
     }
 
     mainTree.SetBranchAddress("pBeamScrapingFilter", &pBeamScrapingFilter);
@@ -2841,8 +2868,10 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
 
         // Fill only after the configured jet selection, so this diagnostic has
         // exactly the same selected population as the corrected-pT histogram.
-        hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Fill(
-            recoJet.recoPtRaw, recoJet.recoEta, weight);
+        if (!isMc) {
+            hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Fill(
+                recoJet.recoPtRaw, recoJet.recoEta, weight);
+        }
 
         // std::cout << Form("Jet: eta = %.2f, phi = %.2f, rawPt = %.1f, recoPt = %.1f", 
         //                   recoJet.recoEta, recoJet.recoPhi, recoJet.recoRawPt, recoJet.recoPt) << std::endl;
@@ -3290,6 +3319,7 @@ void processRefDijets(const bool &isPbGoing, const bool &isMc, const float &weig
 //________________
 void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
 
+    validateDataDiagnosticState(hs, isMc);
     std::cout << "Writing output to file: " << oFileName.Data();
     // Output file
     int compressionSetting = 208; // LZMA compression
@@ -3437,7 +3467,6 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
     hs.hRecoInclusiveJetTrkMaxPtEtaLab->Write();
     hs.hRecoInclusiveJetTrkMaxPtEtaCM->Write();
     hs.hRecoInclusiveJetPtEtaLabUnflippedUnweighted->Write();
-    hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Write();
     hs.hRecoInclusiveJetPtEtaLabUnflipped->Write();
     hs.hRecoInclusiveJetPtEtaLab->Write();
     hs.hRecoInclusiveJetPtEtaCM->Write();
@@ -3465,6 +3494,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
     hs.hRecoDijetPtEtaLab->Write();
     hs.hRecoDijetPtEtaCM->Write();
     if (!isMc) {
+        hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Write();
         for (int iRun{0}; iRun < nDiagnosticRunHistograms; ++iRun) {
             hs.hRecoDijetPtEtaCMRunArr[iRun]->Write();
         }
@@ -3940,6 +3970,7 @@ int main(int argc, char* argv[]) {
     ///////////////////////
     Histograms hs;
     createHistograms(hs, isMc);
+    validateDataDiagnosticState(hs, isMc);
 
     //////////////////////////////////
     // Setup Jet Energy Corrections //

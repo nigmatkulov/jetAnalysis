@@ -68,7 +68,8 @@ jobs:
             pPb8160_analyzeMc_Pbgoing.py \
             pPb8160_analyzeMc_pgoing.py \
             pPb8160_runner.py \
-            processing/submit_process_forest_condor.py
+            processing/submit_process_forest_condor.py \
+            processing/check_data_filelists.py
           python3 -m compileall -q \
             hist_analysis/config \
             hist_analysis/python

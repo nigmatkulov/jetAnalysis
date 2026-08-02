@@ -155,6 +155,9 @@ run/lumisection/event provenance, trigger bits, dijet kinematics, and corrected
 and raw leading/subleading jet quantities for selected events in the diagnostic
 window 100 < pTave < 110 GeV and 1.5 < etaCM(dijet) < 1.6. These data-only
 objects are intended for diagnosis and do not change event or jet selections.
+They are guarded as data-only throughout branch setup, object creation, filling,
+and output writing. An explicit runtime invariant also rejects diagnostic
+objects in MC processing and rejects incomplete diagnostic setup for data.
 
 ## Histogram analysis
 

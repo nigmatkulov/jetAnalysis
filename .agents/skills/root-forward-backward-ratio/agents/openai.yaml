@@ -1,0 +1,4 @@
+interface:
+  display_name: "ROOT Forward/Backward Ratio"
+  short_description: "Build ROOT F/B ratios with independent errors"
+  default_prompt: "Use $root-forward-backward-ratio to create a CERN ROOT forward/backward histogram with independent error propagation."

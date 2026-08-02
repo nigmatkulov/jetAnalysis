@@ -33,6 +33,12 @@ Example:
 py-env/bin/python -m jupyter notebook
 ```
 
+Notebook setup is shared through `python/notebook_setup.py`. It locates PyROOT
+from the active environment or dynamically through `root-config`; notebooks do
+not add version- or machine-specific ROOT paths. The unfolding notebooks load
+RooUnfold separately and use the adjacent `../RooUnfold` checkout by default;
+set `ROOUNFOLD_ROOT` to override that location.
+
 ## Starting point
 
 Run `notebooks/01_inventory.ipynb` first to check the configured directory tree,
