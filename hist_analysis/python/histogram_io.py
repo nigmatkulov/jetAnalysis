@@ -26,6 +26,19 @@ else:
 
 _SUPPORTED_HISTOGRAM_CLASSES = ("TH1", "TH2", "TH3", "THnSparse")
 _SUPPORTED_GENERIC_CLASSES = _SUPPORTED_HISTOGRAM_CLASSES + ("TGraph",)
+_DATA_TRIGGER_STEMS = {
+    "MinimumBias": "mb",
+    "MB": "mb",
+    "mb": "mb",
+    "Jet60": "jet60",
+    "jet60": "jet60",
+    "Jet80": "jet80",
+    "jet80": "jet80",
+    "Jet100": "jet100",
+    "jet100": "jet100",
+}
+_DATA_DIRECTIONS = ("combined", "Pbgoing", "pgoing")
+_DATA_RECO_SELECTIONS = ("jetId", "trkMax", "noSel")
 
 
 # ------------------------------------------------------------
@@ -79,6 +92,45 @@ def resolve_combined_file(base_dir: Path,
     """
 
     return base_dir / generator / f"{generator}_{stem}.root"
+
+
+def resolve_data_file(data_dir: Path,
+                      trigger: str,
+                      direction: str = "combined",
+                      selection: str = "jetId") -> Path:
+    """Build a merged experimental-data output path.
+
+    Trigger aliases used by the data notebooks map to the lowercase stems
+    written by ``processing/merge_data_outputs.py``. Combined files live in
+    ``data_dir``; direction-specific files live in their matching subdirectory
+    and include the direction in the filename.
+    """
+
+    try:
+        trigger_stem = _DATA_TRIGGER_STEMS[trigger]
+    except KeyError as error:
+        supported = ", ".join(sorted(_DATA_TRIGGER_STEMS))
+        raise ValueError(
+            f"Unsupported data trigger {trigger!r}; expected one of: {supported}"
+        ) from error
+    if direction not in _DATA_DIRECTIONS:
+        supported = ", ".join(_DATA_DIRECTIONS)
+        raise ValueError(
+            f"Unsupported data direction {direction!r}; expected one of: {supported}"
+        )
+    if selection not in _DATA_RECO_SELECTIONS:
+        supported = ", ".join(_DATA_RECO_SELECTIONS)
+        raise ValueError(
+            f"Unsupported reco-jet selection {selection!r}; expected one of: {supported}"
+        )
+
+    data_dir = Path(data_dir)
+    if direction == "combined":
+        return data_dir / f"{trigger_stem}_ak4_{selection}.root"
+    return (
+        data_dir / direction
+        / f"{trigger_stem}_{direction}_ak4_{selection}.root"
+    )
 
 # ------------------------------------------------------------
 # File handling

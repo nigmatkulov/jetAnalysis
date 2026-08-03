@@ -9,6 +9,10 @@ Workspace for ROOT-file inventory, event diagnostics, inclusive-jet efficiency a
 - `config/`: input locations, closure bins, the common eta range, and the standard dijet eta-cut index.
 - `output/`: generated PDFs, optional PNGs, and derived ROOT files. This directory is ignored by Git.
 
+Notebook filenames use `_mc_` for MC-only validation workflows and `_data_`
+for data-only workflows. The numeric prefix groups the analysis stage; the
+data-versus-MC comparison is stage 07.
+
 ## Data locations
 
 The direction-dependent outputs are stored under:
@@ -44,7 +48,7 @@ set `ROOUNFOLD_ROOT` to override that location.
 Run `notebooks/01_inventory.ipynb` first to check the configured directory tree,
 find ROOT files, and inspect top-level object keys.
 
-Use `notebooks/02_event_histograms.ipynb` for event-level `pThat` and vertex-z
+Use `notebooks/02_mc_event_histograms.ipynb` for event-level `pThat` and vertex-z
 plots and for the gen/reco dijet overweight-protection diagnostic. The latter
 uses the same discrete per-`pThat`-bin upper-tail threshold definition as
 `macro/plotMcClosures.C::plotOverweightProtection`, followed by the configured
@@ -52,7 +56,7 @@ two-exponential threshold fits over 15–950 GeV. Its two-dimensional maps use
 square canvases, the Bird palette, logarithmic z axes, shared palette geometry,
 and optional threshold-fit overlays.
 
-Use `notebooks/02_jet_efficiency_fakes.ipynb` for Lab-frame inclusive-jet
+Use `notebooks/02_mc_jet_efficiency_fakes.ipynb` for Lab-frame inclusive-jet
 efficiency (`Ref matched / Gen inclusive`), matched rate
 (`Reco matched / Reco inclusive`), and fake rate
 (`Reco unmatched / Reco inclusive`). It draws direct two-dimensional rate maps,
@@ -63,21 +67,21 @@ before each 1D division and are not normalized. All 1D curves use
 canvases. The default ROOT binomial errors describe weighted-MC efficiencies and
 must not be interpreted as unweighted counting uncertainties.
 
-Use `notebooks/02_jet_selection.ipynb` to compare Reco, matched Ref, and Gen
+Use `notebooks/02_mc_jet_selection.ipynb` to compare Reco, matched Ref, and Gen
 inclusive-jet eta shapes for the standard jet ID, track-maximum-only, and
 no-selection stages in Lab and CM frames. It displays the underlying 2D maps and
 then produces configured pT-interval projections with Reco/Gen and Ref/Gen ratio
 panels. Integral, bin-width, and stored-yield modes and regular or binomial ratio
 errors are configurable.
 
-Use `notebooks/03_jet_JES_JER.ipynb` to extract JES and JER from Gaussian fits to
+Use `notebooks/02_mc_jet_JES_JER.ipynb` to extract JES and JER from Gaussian fits to
 inclusive-jet response slices, compare the configured reco/gen smearing cases,
 scan pT and eta dependence, and draw the corresponding two-dimensional response
 maps. The notebook also normalizes JER-versus-eta curves to unit central-bin mean
 within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
 `output/jes_jer/`.
 
-Use `notebooks/03_dijet_smearing_effect.ipynb` to compare nominal Gen, Gen with
+Use `notebooks/03_mc_dijet_smearing_effect.ipynb` to compare nominal Gen, Gen with
 the default pT smearing, Gen with eta-dependent smearing, nominal Reco, and Reco
 with eta-dependent default JER smearing for one configured eta-cut index and
 every interval in `config.histograms.DIJET_PTAVE_BINS`. `CURVE_CATALOG` holds
@@ -95,15 +99,18 @@ options. Forward/Backward construction always uses independent propagation.
 The later ratio of one F/B histogram to another has a separate user-configurable
 error option, `''` or `'B'`.
 
-Use `notebooks/03_dijet_data_vs_mc.ipynb` to compare the reconstructed-data,
+Use `notebooks/07_dijet_data_vs_mc.ipynb` to compare the reconstructed-data,
 reconstructed-MC, and generator-level-MC dijet pTave spectra for MinimumBias,
 Jet60, Jet80, and Jet100. Each curve is normalized independently over the
 configured half-open pTave interval, and a separate comparison is produced for
 every configured jet-eta acceptance. The input data directory and output
 directory can be overridden with `PPB_DATA_DIR` and
-`DIJET_DATA_VS_MC_OUTPUT_DIR`.
+`DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`, `Pbgoing`, or
+`pgoing`, and `DATA_SELECTION` to `jetId`, `trkMax`, or `noSel`; the same
+trigger/direction/selection filename resolver used by the other data notebooks
+selects all four data inputs.
 
-Use `notebooks/03_dijet_reco_smeared_to_gen_closures.ipynb` for the focused
+Use `notebooks/03_mc_dijet_reco_smeared_to_gen_closures.ipynb` for the focused
 closure comparison between nominal Gen and Reco smeared with the default
 eta-dependent JER. It writes normalized full-distribution and unnormalized
 Forward/Backward comparisons for every configured pTave interval. As in the
@@ -135,7 +142,9 @@ unit-integral JEU Up, Down, and default CM eta projections and their
 unnormalized Forward/Backward ratios, then draws dedicated Up/Def and Down/Def
 comparisons. Forward/Backward construction always uses independent errors; the
 later comparison-ratio error options are configured separately. Set
-`DIJET_JEU_SYSTEMATICS_OUTPUT_DIR` to redirect its generated plots.
+`DATA_DIRECTION` and `DATA_SELECTION` to choose the shared four-trigger data
+production, and `DIJET_JEU_SYSTEMATICS_OUTPUT_DIR` to redirect its generated
+plots.
 
 Use `notebooks/05_unfold2D.ipynb` to construct a flattened dijet
 `pTave`-eta response and run a Bayesian RooUnfold closure test for the configured
@@ -182,7 +191,10 @@ Use `notebooks/06_data_jet_distributions.ipynb` and
 `notebooks/06_data_dijet_distributions.ipynb` for trigger-by-trigger
 reconstructed-data beam-orientation checks. Set `SELECTION` to `jetId`,
 `trkMax`, or `noSel`; the notebooks resolve the matching combined, Pb-going,
-and p-going ROOT files. For each trigger they draw raw two-dimensional maps in
+and p-going ROOT files for MinimumBias, Jet60, Jet80, and Jet100. Combined
+filenames are `<trigger>_ak4_<selection>.root`; direction-specific filenames
+are `<direction>/<trigger>_<direction>_ak4_<selection>.root`, with lowercase
+trigger stems (`mb`, `jet60`, `jet80`, and `jet100`). For each trigger they draw raw two-dimensional maps in
 the unflipped-Lab, flipped-Lab, and CM frames, using one common z-axis range for
 all three orientations. The inclusive-jet notebook also draws selected raw-pT
 versus unflipped detector-eta diagnostics from
@@ -201,7 +213,7 @@ For `DIRECTION = 'combined'`, the unfolding notebook reads
 `<generator>/<direction>/<generator>_<direction>_<stem>.root`, matching the
 production output naming convention.
 
-Use `notebooks/03_dijet_reco_to_gen_closures.ipynb` for the configurable
+Use `notebooks/03_mc_dijet_reco_to_gen_closures.ipynb` for the configurable
 counterpart of `macro/plotMcClosures.C::plotDiJetClosures`. It projects the selected dijet
 intervals from `config.histograms.DIJET_PTAVE_BINS` for every selected eta-cut index. It
 compares full eta shapes to nominal Gen and compares forward/backward ratios to
