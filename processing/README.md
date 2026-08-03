@@ -40,10 +40,12 @@ The proxy is ignored by Git. Generate a data campaign without submitting it:
 
 Remove `--dry-run` to call `condor_submit`.
 
-Production submissions use 10 input files per job by default. This limits the
-amount of otherwise valid work invalidated by one transient input read failure
-and makes failed jobs cheaper to retry. Override `--files-per-job` explicitly
-when a different split has been validated for the campaign.
+The general `submit_process_forest_condor.py` submitter uses 10 input files per
+job by default. This limits the amount of otherwise valid work invalidated by
+one transient input read failure and makes failed jobs cheaper to retry.
+Override `--files-per-job` explicitly when a different split has been validated
+for the campaign. The data-only bulk wrapper documented below deliberately
+overrides this with 50 files per job.
 
 The submitter requests CERN's `espresso` flavour (20 minutes) by default for
 experimental data and `microcentury` (1 hour) for embedding and Pythia jobs.
@@ -177,7 +179,7 @@ beam orientations with one command:
 ../py-env/bin/python submit_all_data_condor.py
 ```
 
-This uses the standard output directories, 10 files per job, tight jet ID with
+This uses the standard output directories, 50 files per job, tight jet ID with
 the lepton veto, every direction-appropriate MB PD, and the shared PAEGJet list
 for each jet trigger. Add `--dry-run` to prepare all eight configurations
 without calling `condor_submit`. Use `--help` to see the common output, split,
@@ -191,56 +193,56 @@ The equivalent individual commands are listed below.
   'filelists/pPb8160/DATA_MB/Pbgoing/MB_PD{pd}_Pbgoing.txt' \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
   --mc-type 0 --beam Pbgoing --trigger-id 0 \
-  --pd-number all --files-per-job 10 --reco-jet-selection 2
+  --pd-number all --files-per-job 50 --reco-jet-selection 2
 
 # MB p-going: PD1 through PD8, submitted sequentially
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/DATA_MB/pgoing/MB_PD{pd}_pgoing.txt' \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing \
   --mc-type 0 --beam pgoing --trigger-id 0 \
-  --pd-number all --files-per-job 10 --reco-jet-selection 2
+  --pd-number all --files-per-job 50 --reco-jet-selection 2
 
 # Jet60 Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
   --mc-type 0 --beam Pbgoing --trigger-id 1 \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 50 --reco-jet-selection 2
 
 # Jet60 p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/pgoing/PAEGJet_pgoing.txt \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing \
   --mc-type 0 --beam pgoing --trigger-id 1 \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 50 --reco-jet-selection 2
 
 # Jet80 Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
   --mc-type 0 --beam Pbgoing --trigger-id 2 \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 50 --reco-jet-selection 2
 
 # Jet80 p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/pgoing/PAEGJet_pgoing.txt \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing \
   --mc-type 0 --beam pgoing --trigger-id 2 \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 50 --reco-jet-selection 2
 
 # Jet100 Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
   --mc-type 0 --beam Pbgoing --trigger-id 3 \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 50 --reco-jet-selection 2
 
 # Jet100 p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   filelists/pPb8160/DATA_PAEGJet/pgoing/PAEGJet_pgoing.txt \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/pgoing \
   --mc-type 0 --beam pgoing --trigger-id 3 \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 50 --reco-jet-selection 2
 ```
 
 `--pd-number` has no effect for Jet60, Jet80, or Jet100; each uses the single

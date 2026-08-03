@@ -23,7 +23,10 @@ def parse_args() -> argparse.Namespace:
         "--output-base", type=Path, default=DEFAULT_OUTPUT_BASE,
         help=f"Parent of Pbgoing/ and pgoing/ output directories (default: {DEFAULT_OUTPUT_BASE})",
     )
-    parser.add_argument("--files-per-job", type=int, default=10)
+    parser.add_argument(
+        "--files-per-job", type=int, default=50,
+        help="Number of input ROOT files per Condor job (default: 50)",
+    )
     parser.add_argument("--reco-jet-selection", type=int, default=2)
     parser.add_argument("--job-flavour", help="Override the default espresso flavour")
     parser.add_argument("--proxy", type=Path, help="Forward a non-default proxy path")

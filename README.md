@@ -128,10 +128,11 @@ pPb 8.16 TeV file lists, creates readable output and log names, and submits the
 current seven-argument `processForestSimple` executable. It supports individual
 or all MB primary datasets and individual or all MC pT-hat samples. Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in
-`processing/README.md`. Production jobs use 10 input files per job by default
-so one transient input failure invalidates a smaller unit of work.
+`processing/README.md`. The general submitter uses 10 input files per job by
+default so one transient input failure invalidates a smaller unit of work.
 `processing/submit_all_data_condor.py` is the convenience wrapper for submitting
-all four data triggers in both beam orientations.
+all four data triggers in both beam orientations; it uses 50 input files per
+job by default.
 The default CERN job flavour is `espresso` (20 minutes) for experimental data
 and `microcentury` (1 hour) for MC; `--job-flavour` overrides these defaults.
 
