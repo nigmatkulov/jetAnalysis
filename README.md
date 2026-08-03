@@ -148,8 +148,10 @@ documented in `processing/README.md`.
 
 After jobs finish, `processing/retry_failed_io_jobs.py` can scan generated
 campaigns for ROOT input read failures and resubmit only the affected queue
-rows. It reports a dry run by default; see `processing/README.md` before using
-its explicit `--submit` mode.
+rows. It reports a dry run by default; confirm its selected total and the copied
+campaign proxy before using the explicit `--submit` mode. The archive,
+quarantine, campaign-scoping, and post-retry checks are documented in
+`processing/README.md`.
 
 `processing/merge_data_outputs.py` recursively merges one completed data
 trigger/direction in batches using `hadd -f208`, verifies the final ROOT file,

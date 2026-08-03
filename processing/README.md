@@ -380,8 +380,10 @@ the fan-in with `--batch-size`; values are restricted to 2–999.
 
 ### Retry completed jobs with ROOT input read errors
 
-From `processing/`, scan all campaigns without changing files or submitting
-jobs:
+Wait for the campaigns being checked to finish, or expect active and
+unterminated jobs to be reported and skipped. A nonempty `.err` file alone does
+not mark a job for retry. From `processing/`, scan all retained campaigns
+without changing files or submitting jobs:
 
 ```bash
 ../py-env/bin/python retry_failed_io_jobs.py
@@ -390,26 +392,65 @@ jobs:
 The scanner selects only jobs that satisfy both conditions:
 
 - the Condor event log records that the job terminated;
-- stderr contains a ROOT `TFile::ReadBuffer`, `TBranch::GetBasket`, or the
-  analysis `Failed to read chain entry` input-read error.
+- stderr contains a ROOT `TFile::ReadBuffer` `Input/output error`, a
+  `TBranch::GetBasket` `badread` error, or the analysis `Failed to read chain
+  entry` error.
 
-Normal jobs, active jobs, and jobs with unrelated errors are not touched. Review
-the reported job names, then archive their old logs, quarantine any stale ROOT
-outputs with an `.invalid-<timestamp>` suffix, generate retry submit files with
-only the affected queue rows, and submit them with:
+Normal jobs, active jobs, and jobs with unrelated errors are not touched. The
+final `Dry run: N failed job(s) would be retried.` line is the total number of
+selected queue rows. Review the listed job names and output paths before
+enabling submission. If `condor/` contains unrelated or historical campaigns,
+pass the intended campaign subtree explicitly, for example:
+
+```bash
+../py-env/bin/python retry_failed_io_jobs.py \
+  condor/20260803_211646_314197_f0ca9cb3
+```
+
+The retry submit descriptions reuse the proxy copied into each sample campaign
+at its original submission. Check one campaign copy before resubmitting:
+
+```bash
+voms-proxy-info \
+  -file condor/20260803_211646_314197_f0ca9cb3/MB_PD1_Pbgoing_data_jetId/voms_proxy.txt \
+  -timeleft
+```
+
+Renewing only `processing/voms_proxy.txt` after the original submission does
+not replace those campaign copies. If a campaign proxy is expired, prepare a
+fresh campaign instead of submitting its generated retry description unchanged.
+
+After reviewing the dry run and confirming the campaign proxy is valid, archive
+the selected jobs' old logs, quarantine any stale ROOT outputs with an
+`.invalid-<timestamp>` suffix, generate retry submit files containing only the
+affected queue rows, and call `condor_submit` with:
 
 ```bash
 ../py-env/bin/python retry_failed_io_jobs.py --submit
 ```
 
-Archived logs are stored below each sample campaign in
-`retry_archive/<timestamp>/<job-name>/`. Previous retry submit files are not
-rescanned. Pass a campaign subtree explicitly to limit the scan, for example:
+The default `condor` argument is appropriate only when every retained campaign
+is in scope. For a controlled recovery, add `--submit` to the same explicit
+campaign path used for its dry run:
 
 ```bash
 ../py-env/bin/python retry_failed_io_jobs.py \
-  condor/20260801_064512_348372_42cd324c
+  condor/20260803_211646_314197_f0ca9cb3 --submit
 ```
 
-Run `--help` for naming, memory, job-flavour, executable, and work-directory
-options.
+Archived logs are stored below each sample campaign in
+`retry_archive/<timestamp>/<job-name>/`. Any pre-existing output for a selected
+job is preserved beside the original output path as
+`<name>.root.invalid-<timestamp>` before resubmission. Successful jobs and their
+outputs are not moved. The generated `_retry_<timestamp>.sub` files are not
+treated as original campaigns during later scans, preventing duplicate queue
+definitions from being scanned.
+
+Record the cluster IDs printed by `condor_submit`, monitor them with
+`condor_q`, and rerun the same dry-run command after they terminate. A clean
+campaign reports `No completed jobs with matching ROOT input read errors were
+found.` If some jobs repeatedly fail on the same EOS input, test that file
+directly and retry it in a smaller job rather than repeatedly processing the
+same multi-file queue row. Do not merge a trigger/direction until this check is
+clean. Run `retry_failed_io_jobs.py --help` for its campaign-path and `--submit`
+interface.
