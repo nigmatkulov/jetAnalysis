@@ -99,16 +99,18 @@ options. Forward/Backward construction always uses independent propagation.
 The later ratio of one F/B histogram to another has a separate user-configurable
 error option, `''` or `'B'`.
 
-Use `notebooks/07_dijet_data_vs_mc.ipynb` to compare the reconstructed-data,
-reconstructed-MC, and generator-level-MC dijet pTave spectra for MinimumBias,
-Jet60, Jet80, and Jet100. Each curve is normalized independently over the
-configured half-open pTave interval, and a separate comparison is produced for
-every configured jet-eta acceptance. The input data directory and output
-directory can be overridden with `PPB_DATA_DIR` and
-`DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`, `Pbgoing`, or
-`pgoing`, and `DATA_SELECTION` to `jetId`, `trkMax`, or `noSel`; the same
-trigger/direction/selection filename resolver used by the other data notebooks
-selects all four data inputs.
+Use `notebooks/07_dijet_data_vs_mc.ipynb` to compare nominal reconstructed-data,
+eta-dependent JER-default reconstructed-MC, and nominal generator-level-MC dijet
+pTave spectra for MinimumBias, Jet60, Jet80, and Jet100. The MC-reco curve uses
+`hRecoDijetPtEtaCMJerDefExtra`; data reco and MC gen use
+`hRecoDijetPtEtaCM` and `hGenDijetPtEtaCM`, respectively. Each curve is
+normalized independently over the configured half-open pTave interval, and a
+separate comparison is produced for every configured jet-eta acceptance. The
+input data directory and output directory can be overridden with `PPB_DATA_DIR`
+and `DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`,
+`Pbgoing`, or `pgoing`, and `DATA_SELECTION` to `jetId`, `trkMax`, or `noSel`;
+the same trigger/direction/selection filename resolver used by the other data
+notebooks selects all four data inputs.
 
 Use `notebooks/03_mc_dijet_reco_smeared_to_gen_closures.ipynb` for the focused
 closure comparison between nominal Gen and Reco smeared with the default
