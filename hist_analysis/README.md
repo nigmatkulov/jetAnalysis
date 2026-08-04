@@ -81,6 +81,22 @@ maps. The notebook also normalizes JER-versus-eta curves to unit central-bin mea
 within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
 `output/jes_jer/`.
 
+Use `notebooks/03_mc_dijet_embedding_vs_pythia.ipynb` to compare Embedding and
+PYTHIA Reco, matched-Ref, and Gen dijet distributions for a configurable stored
+jet-eta acceptance and every half-open interval in
+`config.histograms.TEST_DIJET_PTAVE_BINS`. Reco, Ref, and Gen comparisons are
+launched from separate cells. Each full CM-pseudorapidity distribution is
+normalized independently to unit bin-content sum, then overlaid with a
+PYTHIA/Embedding ratio panel. The notebook derives one common full-distribution
+y-axis range from all levels, samples, and pTave intervals before drawing. It
+also overlays the unnormalized Forward/Backward ratios with a common configured
+`FB_RANGE` and draws `(F/B)_PYTHIA / (F/B)_Embedding`. Both F/B construction and
+the later sample-comparison ratios use ROOT independent-error propagation; no
+binomial option is exposed. Combined and direction-specific inputs use the
+standard MC filename resolvers. Set `DIJET_EMBEDDING_VS_PYTHIA_OUTPUT_DIR` to
+redirect output from `output/dijet_embedding_vs_pythia/`, and `SAVE_PNG = True`
+to write PNG files alongside the default PDFs.
+
 Use `notebooks/03_mc_dijet_smearing_effect.ipynb` to compare nominal Gen, Gen with
 the default pT smearing, Gen with eta-dependent smearing, nominal Reco, and Reco
 with eta-dependent default JER smearing for one configured eta-cut index and
