@@ -15,7 +15,6 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 - `processing/`: pPb 8.16 TeV file lists, data-availability checks, and the
   HTCondor submission workflow.
 - `hist_analysis/`: Python, PyROOT, and Jupyter tools for ROOT-file inventory and histogram comparisons.
-- `steps/`: approval-gated dijet-measurement roadmap and validation records.
 - `AGENTS.md`: repository-specific working, physics, implementation, validation, and handoff instructions for coding agents.
 
 ## Build

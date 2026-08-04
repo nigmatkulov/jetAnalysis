@@ -63,3 +63,6 @@ processing/voms_proxy.txt
 
 # Local validation and recovery artifacts
 /test_data.list
+
+# Local analysis planning documents
+/steps/

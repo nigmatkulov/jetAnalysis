@@ -6,7 +6,6 @@
 - `processForestSimple.C` is both a ROOT macro and the source of the compiled executable.
 - `README.md` is the source of truth for layout, commands, runtime arguments, workflows, and validation.
 - `hist_analysis/README.md` documents the notebook workflows in detail.
-- `steps/README.md` and its numbered step documents record the measurement roadmap, approval gates, and validation status; they do not override implemented code or the commands in the root README.
 - `aux_files/` contains external calibration and correction inputs; treat it as data.
 
 ## Working agreement
