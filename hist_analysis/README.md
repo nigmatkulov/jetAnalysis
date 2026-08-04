@@ -122,8 +122,13 @@ pTave spectra for MinimumBias, Jet60, Jet80, and Jet100. The MC-reco curve uses
 `hRecoDijetPtEtaCM` and `hGenDijetPtEtaCM`, respectively. Each curve is
 normalized independently over the configured half-open pTave interval, and a
 separate comparison is produced for every configured jet-eta acceptance. The
-input data directory and output directory can be overridden with `PPB_DATA_DIR`
-and `DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`,
+notebook also projects and unit-normalizes pseudorapidity shapes in every
+half-open interval from `config.histograms.TEST_DIJET_PTAVE_BINS`, producing
+data/MC-gen and MC-reco/MC-gen ratios for each trigger and eta acceptance. The
+default ratio ranges are 0.75--1.25 for pTave and 0.65--1.15 for eta, configured
+independently with `PTAVE_RATIO_RANGE` and `ETA_RATIO_RANGE`. The input data
+directory and output directory can be overridden with `PPB_DATA_DIR` and
+`DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`,
 `Pbgoing`, or `pgoing`, and `DATA_SELECTION` to `jetId`, `trkMax`, or `noSel`;
 the same trigger/direction/selection filename resolver used by the other data
 notebooks selects all four data inputs.

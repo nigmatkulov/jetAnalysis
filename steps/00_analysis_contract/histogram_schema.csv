@@ -1,0 +1,7 @@
+pattern,axes,units,selection,weight,purpose
+hGenDijetPtEtaCM_<eta-index>,pTave;etaCM,GeV;unitless,independent generator dijet nominal cuts,eventWeight,generator spectrum
+hRecoDijetPtEtaCM_<eta-index>,pTave;etaCM,GeV;unitless,reconstructed dijet nominal cuts and requested jet ID,eventWeight,reconstructed spectrum
+hRefSelDijetPtEtaCM_<eta-index>,pTave;etaCM,GeV;unitless,reference jets associated to selected reconstructed jets,eventWeight,reference-selected spectrum
+hGenDijetPtEtaCMVsRecoPtEtaCM_<eta-index>,gen pTave;gen etaCM;reco pTave;reco etaCM,GeV;unitless;GeV;unitless,gen and reco pass plus one-to-one deltaR<0.2 match,eventWeight,independent-generator response
+hRefDijetPtEtaCMVsRecoPtEtaCM_<eta-index>,ref pTave;ref etaCM;reco pTave;reco etaCM,GeV;unitless;GeV;unitless,reference and reco pairs pass,eventWeight,reference-matched response
+hGenDijetPtEtaCMMiss_<eta-index>,gen pTave;gen etaCM,GeV;unitless,gen passes but matched reco pair does not,eventWeight,response inefficiency
