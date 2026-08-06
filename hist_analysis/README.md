@@ -73,6 +73,8 @@ no-selection stages in Lab and CM frames. It displays the underlying 2D maps and
 then produces configured pT-interval projections with Reco/Gen and Ref/Gen ratio
 panels. Integral, bin-width, and stored-yield modes and regular or binomial ratio
 errors are configurable.
+The MC outputs also provide RefSel inclusive-jet histograms for these three
+selection stages in the unflipped-Lab, Lab, and CM frames.
 
 Use `notebooks/02_mc_jet_JES_JER.ipynb` to extract JES and JER from Gaussian fits to
 inclusive-jet response slices, compare the configured reco/gen smearing cases,
@@ -176,6 +178,22 @@ configured separately for Up/Def and Down/Def in both the full-distribution
 and F/B fit families.
 Set `SHOW_FIT_RESULTS = False` to hide the compact parameter and
 chi-square/ndf box while retaining the fitted curves and numeric summaries.
+Following `macro/systematics.C::calculateSystUncrtBinByBin` on `main`, the
+notebook also calculates the unsmoothed relative JER uncertainty in each bin as
+`(|Up/Def - 1| + |Down/Def - 1|) / 2`, evaluating the fitted Up/Def and Down/Def
+functions at the bin center as in the macro's `useFit` path. Before the optional
+smoothing step, the retained systematic histograms remain fractional; display clones
+are scaled by 100 and plotted with the y-axis title
+`JER Rel. Syst. Uncrt. (%)`, matching the macro's percent-plot convention.
+Systematic bins whose centers lie outside the selected eta acceptance remain
+zero; fitted functions are not evaluated beyond `|eta| = ETA_CUT`.
+Set `APPLY_SYSTEMATIC_SMOOTHING = True` to smooth both JER uncertainty families.
+The F/B relative uncertainty becomes a running maximum from low to high
+absolute eta. Full-CM smoothing runs outward independently in both directions
+from the ROOT bin selected by `FULL_SMOOTHING_ORIGIN`, whose default is
+`-0.465 + 0.00001` for the CM boost. Original unsmoothed histograms are retained.
+Systematic-plot filenames contain `systematic_smoothed_` or
+`systematic_nonsmoothed_` according to this option.
 
 Use `notebooks/04_systematics_JEU.ipynb` to estimate the reconstructed-dijet
 JEU shape uncertainty in MinimumBias, Jet60, Jet80, and Jet100 data. Each
@@ -183,7 +201,17 @@ trigger has its own configured pTave intervals. The notebook compares
 unit-integral JEU Up, Down, and default CM eta projections and their
 unnormalized Forward/Backward ratios, then draws dedicated Up/Def and Down/Def
 comparisons. Forward/Backward construction always uses independent errors; the
-later comparison-ratio error options are configured separately. Set
+later comparison-ratio error options are configured separately. The Up/Def and
+Down/Def curves use independently configurable `pol2` full-CM and `pol1` F/B
+fits, including configurable initial parameters and optional compact fit-result
+text. The relative JEU systematic is evaluated from the fitted curves as
+`(|Up/Def - 1| + |Down/Def - 1|) / 2`, retained fractionally, and plotted in
+percent as `JEU Rel. Syst. Uncrt. (%)`. Evaluation stops at `ETA_CUT`.
+`APPLY_SYSTEMATIC_SMOOTHING` optionally applies a low-to-high running maximum
+for F/B and independent outward smoothing for full CM from the bin selected by
+`FULL_SMOOTHING_ORIGIN` (default `-0.465 + 0.00001`). Both smoothed and original
+unsmoothed objects are retained, and systematic filenames identify the selected
+mode. Set
 `DATA_DIRECTION` and `DATA_SELECTION` to choose the shared four-trigger data
 production, and `DIJET_JEU_SYSTEMATICS_OUTPUT_DIR` to redirect its generated
 plots.

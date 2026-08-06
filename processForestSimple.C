@@ -49,7 +49,7 @@ void usage() {
 const int nEtaShifts = 13;
 static constexpr std::array<float, nEtaShifts> etaShift{0.460, 0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470, 0.475, 0.480, 0.485, 0.490 };
 const int nEtaCuts = 8;
-static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.5, 3.0};
+static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.4, 3.0};
 // Run IDs used for the data-taking-period comparison histograms.
 const int nDiagnosticRuns = 5;
 const int nDiagnosticRunHistograms = nDiagnosticRuns + 1;
@@ -618,7 +618,18 @@ struct Histograms {
     std::unique_ptr<TH2D> hRefInclusiveJetNoSelPtEtaLabUnflipped;
     std::unique_ptr<TH2D> hRefInclusiveJetNoSelPtEtaLab;
     std::unique_ptr<TH2D> hRefInclusiveJetNoSelPtEtaCM;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetPtEtaLabUnflipped;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetPtEtaLab;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetPtEtaCM;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetTrkMaxPtEtaLabUnflipped;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetTrkMaxPtEtaLab;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetTrkMaxPtEtaCM;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetNoSelPtEtaLabUnflipped;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetNoSelPtEtaLab;
+    std::unique_ptr<TH2D> hRefSelInclusiveJetNoSelPtEtaCM;
     std::unique_ptr<TH2D> hRefInclusiveJetPtEtaStdBins;
+    // For pointing resolution studies, we need to store the 3D histograms of reco dijet pt vs eta vs ref dijet eta
+    std::unique_ptr<TH3D> hRecoDijetPtEtaCMRefEtaCMArr[nEtaCuts];
 
     // Ref dijet histograms
 
@@ -1319,6 +1330,32 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                                               nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
         hs.hRefInclusiveJetNoSelPtEtaCM->Sumw2();
 
+        auto makeRefSelInclusiveJetHistogram = [&](const char *name, const char *title) {
+            auto histogram = std::make_unique<TH2D>(
+                name, title, nJetPtBins, jetPtBins[0], jetPtBins[1],
+                nJetEtaBins, jetEtaBins[0], jetEtaBins[1]);
+            histogram->Sumw2();
+            return histogram;
+        };
+        hs.hRefSelInclusiveJetPtEtaLabUnflipped = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetPtEtaLabUnflipped", "Ref-selected jet #eta (lab frame, unflipped) vs p_{T};p_{T} (GeV);#eta");
+        hs.hRefSelInclusiveJetPtEtaLab = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetPtEtaLab", "Ref-selected jet #eta (lab frame) vs p_{T};p_{T} (GeV);#eta");
+        hs.hRefSelInclusiveJetPtEtaCM = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetPtEtaCM", "Ref-selected jet #eta (CM frame) vs p_{T};p_{T} (GeV);#eta_{CM}");
+        hs.hRefSelInclusiveJetTrkMaxPtEtaLabUnflipped = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetTrkMaxPtEtaLabUnflipped", "Ref-selected jet #eta (lab frame, unflipped) vs p_{T} (TrkMax);p_{T} (GeV);#eta");
+        hs.hRefSelInclusiveJetTrkMaxPtEtaLab = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetTrkMaxPtEtaLab", "Ref-selected jet #eta (lab frame) vs p_{T} (TrkMax);p_{T} (GeV);#eta");
+        hs.hRefSelInclusiveJetTrkMaxPtEtaCM = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetTrkMaxPtEtaCM", "Ref-selected jet #eta (CM frame) vs p_{T} (TrkMax);p_{T} (GeV);#eta_{CM}");
+        hs.hRefSelInclusiveJetNoSelPtEtaLabUnflipped = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetNoSelPtEtaLabUnflipped", "Ref-selected jet #eta (lab frame, unflipped) vs p_{T} (NoSel);p_{T} (GeV);#eta");
+        hs.hRefSelInclusiveJetNoSelPtEtaLab = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetNoSelPtEtaLab", "Ref-selected jet #eta (lab frame) vs p_{T} (NoSel);p_{T} (GeV);#eta");
+        hs.hRefSelInclusiveJetNoSelPtEtaCM = makeRefSelInclusiveJetHistogram(
+            "hRefSelInclusiveJetNoSelPtEtaCM", "Ref-selected jet #eta (CM frame) vs p_{T} (NoSel);p_{T} (GeV);#eta_{CM}");
+
         // Ref dijet histograms
 
         hs.hRefDijetPtEtaLabUnflipped = std::make_unique<TH2D>("hRefDijetPtEtaLabUnflipped", 
@@ -1354,61 +1391,57 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                                     nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hRefDijetPtEtaBackwardArr[iCut]->Sumw2();
 
-            if (isMc) {
-                hs.hRefDijetPtEtaCMArrJerUp[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCMJerUp_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (JER up);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
-                hs.hRefDijetPtEtaCMArrJerUp[iCut]->Sumw2();
-                hs.hRefDijetPtEtaForwardArrJerUp[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaForwardJerUp_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (JER up);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
-                hs.hRefDijetPtEtaForwardArrJerUp[iCut]->Sumw2();
-                hs.hRefDijetPtEtaBackwardArrJerUp[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaBackwardJerUp_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave} (JER up);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
-                hs.hRefDijetPtEtaBackwardArrJerUp[iCut]->Sumw2();
-                hs.hRefDijetPtEtaCMArrJerDown[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCMJerDown_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (JER down);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
-                hs.hRefDijetPtEtaCMArrJerDown[iCut]->Sumw2();
-                hs.hRefDijetPtEtaForwardArrJerDown[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaForwardJerDown_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (JER down);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
-                hs.hRefDijetPtEtaForwardArrJerDown[iCut]->Sumw2();
-                hs.hRefDijetPtEtaBackwardArrJerDown[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaBackwardJerDown_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave} (JER down);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
-                hs.hRefDijetPtEtaBackwardArrJerDown[iCut]->Sumw2();
-                hs.hRefDijetPtEtaCMArrJerDef[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCMJerDef_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (JER default);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
-                hs.hRefDijetPtEtaCMArrJerDef[iCut]->Sumw2();
-                hs.hRefDijetPtEtaForwardArrJerDef[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaForwardJerDef_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (JER default);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
-                hs.hRefDijetPtEtaForwardArrJerDef[iCut]->Sumw2();
-                hs.hRefDijetPtEtaBackwardArrJerDef[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaBackwardJerDef_%d", iCut),
-                                                Form("Ref dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave} (JER default);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
-                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                                nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
-                hs.hRefDijetPtEtaBackwardArrJerDef[iCut]->Sumw2();
-            }
+            hs.hRefDijetPtEtaCMArrJerUp[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCMJerUp_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (JER up);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefDijetPtEtaCMArrJerUp[iCut]->Sumw2();
+            hs.hRefDijetPtEtaForwardArrJerUp[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaForwardJerUp_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (JER up);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+            hs.hRefDijetPtEtaForwardArrJerUp[iCut]->Sumw2();
+            hs.hRefDijetPtEtaBackwardArrJerUp[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaBackwardJerUp_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave} (JER up);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+            hs.hRefDijetPtEtaBackwardArrJerUp[iCut]->Sumw2();
+            hs.hRefDijetPtEtaCMArrJerDown[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCMJerDown_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (JER down);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefDijetPtEtaCMArrJerDown[iCut]->Sumw2();
+            hs.hRefDijetPtEtaForwardArrJerDown[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaForwardJerDown_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (JER down);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+            hs.hRefDijetPtEtaForwardArrJerDown[iCut]->Sumw2();
+            hs.hRefDijetPtEtaBackwardArrJerDown[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaBackwardJerDown_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave} (JER down);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+            hs.hRefDijetPtEtaBackwardArrJerDown[iCut]->Sumw2();
+            hs.hRefDijetPtEtaCMArrJerDef[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCMJerDef_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave} (JER default);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefDijetPtEtaCMArrJerDef[iCut]->Sumw2();
+            hs.hRefDijetPtEtaForwardArrJerDef[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaForwardJerDef_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (JER default);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+            hs.hRefDijetPtEtaForwardArrJerDef[iCut]->Sumw2();
+            hs.hRefDijetPtEtaBackwardArrJerDef[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaBackwardJerDef_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, backward, |#eta| < %.1f) vs p_{T}^{ave} (JER default);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
+            hs.hRefDijetPtEtaBackwardArrJerDef[iCut]->Sumw2();
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
-    }
 
-    //
-    // Ref-selected level histograms
-    //
+        //
+        // Ref-selected level histograms
+        //
 
-    if (isMc) {
         // Loop over eta cuts for dijet histograms
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
             hs.hRefSelDijetPtEtaCMArr[iCut] = std::make_unique<TH2D>(Form("hRefSelDijetPtEtaCM_%d", iCut), 
@@ -1427,7 +1460,7 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                                     nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hRefSelDijetPtEtaBackwardArr[iCut]->Sumw2();
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
-    }
+    } // if (fIsMC)
 
 
     //
@@ -1765,6 +1798,13 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                             nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hRecoDijetPtEtaBackwardArrJerDefUnfold[iCut]->Sumw2();
+
+            hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut] = std::make_unique<TH3D>(Form("hRecoDijetPtEtaCMRefEtaCM_%d", iCut),
+                                            Form("Reco dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs. ref dijet #eta_{CM} vs. p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}^{reco};#eta_{CM}^{ref};", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut]->Sumw2();
         } // if (isMc)
 
         if (!isMc) {
@@ -2745,9 +2785,12 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
             hs.hRecoInclusiveJetNoSelPtEtaLab->Fill(recoJet.recoPt, recoJetEtaLabFlipped, weight);
             hs.hRecoInclusiveJetNoSelPtEtaCM->Fill(recoJet.recoPt, recoJetEtaCM, weight);
             if (hasMatchingGenJet) {
-                hs.hRefInclusiveJetNoSelPtEtaLabUnflipped->Fill(recoJet.refPt, recoJet.refEta, weight);
-                hs.hRefInclusiveJetNoSelPtEtaLab->Fill(recoJet.refPt, refJetEtaLabFlipped, weight);
-                hs.hRefInclusiveJetNoSelPtEtaCM->Fill(recoJet.refPt, refJetEtaCM, weight);
+                hs.hRefInclusiveJetNoSelPtEtaLabUnflipped->Fill(recoJet.recoPt, recoJet.refEta, weight);
+                hs.hRefInclusiveJetNoSelPtEtaLab->Fill(recoJet.recoPt, refJetEtaLabFlipped, weight);
+                hs.hRefInclusiveJetNoSelPtEtaCM->Fill(recoJet.recoPt, refJetEtaCM, weight);
+                hs.hRefSelInclusiveJetNoSelPtEtaLabUnflipped->Fill(recoJet.refPt, recoJet.refEta, weight);
+                hs.hRefSelInclusiveJetNoSelPtEtaLab->Fill(recoJet.refPt, refJetEtaLabFlipped, weight);
+                hs.hRefSelInclusiveJetNoSelPtEtaCM->Fill(recoJet.refPt, refJetEtaCM, weight);
             }
         }
         // Acceptance for reco jets with trkMax selection applied
@@ -2756,9 +2799,12 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
             hs.hRecoInclusiveJetTrkMaxPtEtaLab->Fill(recoJet.recoPt, recoJetEtaLabFlipped, weight);
             hs.hRecoInclusiveJetTrkMaxPtEtaCM->Fill(recoJet.recoPt, recoJetEtaCM, weight);
             if (hasMatchingGenJet) {
-                hs.hRefInclusiveJetTrkMaxPtEtaLabUnflipped->Fill(recoJet.refPt, recoJet.refEta, weight);
-                hs.hRefInclusiveJetTrkMaxPtEtaLab->Fill(recoJet.refPt, refJetEtaLabFlipped, weight);
-                hs.hRefInclusiveJetTrkMaxPtEtaCM->Fill(recoJet.refPt, refJetEtaCM, weight);
+                hs.hRefInclusiveJetTrkMaxPtEtaLabUnflipped->Fill(recoJet.recoPt, recoJet.refEta, weight);
+                hs.hRefInclusiveJetTrkMaxPtEtaLab->Fill(recoJet.recoPt, refJetEtaLabFlipped, weight);
+                hs.hRefInclusiveJetTrkMaxPtEtaCM->Fill(recoJet.recoPt, refJetEtaCM, weight);
+                hs.hRefSelInclusiveJetTrkMaxPtEtaLabUnflipped->Fill(recoJet.refPt, recoJet.refEta, weight);
+                hs.hRefSelInclusiveJetTrkMaxPtEtaLab->Fill(recoJet.refPt, refJetEtaLabFlipped, weight);
+                hs.hRefSelInclusiveJetTrkMaxPtEtaCM->Fill(recoJet.refPt, refJetEtaCM, weight);
             }
         }
         // Acceptance for reco jets with jetId selection applied
@@ -2767,9 +2813,12 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
             hs.hRecoInclusiveJetPtEtaLab->Fill(recoJet.recoPt, recoJetEtaLabFlipped, weight);
             hs.hRecoInclusiveJetPtEtaCM->Fill(recoJet.recoPt, recoJetEtaCM, weight);
             if (hasMatchingGenJet) {
-                hs.hRefInclusiveJetPtEtaLabUnflipped->Fill(recoJet.refPt, recoJet.refEta, weight);
-                hs.hRefInclusiveJetPtEtaLab->Fill(recoJet.refPt, refJetEtaLabFlipped, weight);
-                hs.hRefInclusiveJetPtEtaCM->Fill(recoJet.refPt, refJetEtaCM, weight);
+                hs.hRefInclusiveJetPtEtaLabUnflipped->Fill(recoJet.recoPt, recoJet.refEta, weight);
+                hs.hRefInclusiveJetPtEtaLab->Fill(recoJet.recoPt, refJetEtaLabFlipped, weight);
+                hs.hRefInclusiveJetPtEtaCM->Fill(recoJet.recoPt, refJetEtaCM, weight);
+                hs.hRefSelInclusiveJetPtEtaLabUnflipped->Fill(recoJet.refPt, recoJet.refEta, weight);
+                hs.hRefSelInclusiveJetPtEtaLab->Fill(recoJet.refPt, refJetEtaLabFlipped, weight);
+                hs.hRefSelInclusiveJetPtEtaCM->Fill(recoJet.refPt, refJetEtaCM, weight);
             }   
         }
 
@@ -2890,14 +2939,13 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                     float refSubleadEtaLab = etaLab(subleadingJet.refEta, isPbGoing, isMc);
                     float refSubleadEtaCM = etaCM(subleadingJet.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
                     
-                    float refDijetPtAve = 0.5f * (leadingJet.refPt + subleadingJet.refPt);
                     float refDijetEtaLabUnflipped = 0.5f * (refLeadEtaLabUnflipped + refSubleadEtaLabUnflipped);
                     float refDijetEtaLab = 0.5f * (refLeadEtaLab + refSubleadEtaLab);
                     float refDijetEtaCM = 0.5f * (refLeadEtaCM + refSubleadEtaCM);
 
-                    hs.hRefDijetPtEtaLabUnflipped->Fill(refDijetPtAve, refDijetEtaLabUnflipped, weight);
-                    hs.hRefDijetPtEtaLab->Fill(refDijetPtAve, refDijetEtaLab, weight);
-                    hs.hRefDijetPtEtaCM->Fill(refDijetPtAve, refDijetEtaCM, weight);
+                    hs.hRefDijetPtEtaLabUnflipped->Fill(recoDijetPtAve, refDijetEtaLabUnflipped, weight);
+                    hs.hRefDijetPtEtaLab->Fill(recoDijetPtAve, refDijetEtaLab, weight);
+                    hs.hRefDijetPtEtaCM->Fill(recoDijetPtAve, refDijetEtaCM, weight);
                 } // if (leadingJet.refPt > 0. && subleadingJet.refPt > 0.)
             } // if (std::abs(recoLeadEtaCM) <= 1.9 && std::abs(recoSubleadEtaCM) <= 1.9)
         } // if (std::abs(dphi) >= TMath::TwoPi() / 3.)
@@ -2922,7 +2970,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                        std::unique_ptr<TH2D> *recoBackwardArr,
                                        std::unique_ptr<TH2D> *refFullArr = nullptr,
                                        std::unique_ptr<TH2D> *refForwardArr = nullptr,
-                                       std::unique_ptr<TH2D> *refBackwardArr = nullptr) {
+                                       std::unique_ptr<TH2D> *refBackwardArr = nullptr,
+                                       std::unique_ptr<TH3D> *recoPtEtaRefEtaArr = nullptr) {
         const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(recoJets, getPt, recoJetSortFallback);
         const auto &leadingJetSyst = *leadingJetPtr;
         const auto &subleadingJetSyst = *subleadingJetPtr;
@@ -2932,31 +2981,54 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
         if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
 
         float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
-        float systRefDijetPtAve = 0.5f * (leadingJetSyst.refPt + subleadingJetSyst.refPt);
         float leadEtaCM = etaCM(leadingJetSyst.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
         float subleadEtaCM = etaCM(subleadingJetSyst.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
         float systDijetEtaCM = 0.5f * (leadEtaCM + subleadEtaCM);
+
+        bool  leadHasRef = (leadingJetSyst.refPt > 0.);
+        bool  subleadHasRef = (subleadingJetSyst.refPt > 0.);
+        bool  hasRefPair = (leadHasRef && subleadHasRef);
+        float refLeadEtaCM = 0.;
+        float refSubleadEtaCM = 0.;
+        float refDijetEtaCM = 0.;
+
+        if (hasRefPair) {
+            refLeadEtaCM = etaCM(leadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+            refSubleadEtaCM = etaCM(subleadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+            refDijetEtaCM = 0.5f * (refLeadEtaCM + refSubleadEtaCM);
+        }
 
         // Loop over eta cuts and fill the corresponding histograms
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
 
             if (std::abs(leadEtaCM) > etaCuts[iCut] || std::abs(subleadEtaCM) > etaCuts[iCut]) continue;
+
+            // Fill reco dijet histograms
             recoFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
-            if (refFullArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
-                refFullArr[iCut]->Fill(systRefDijetPtAve, systDijetEtaCM, weight);
+
+            // Fill ref dijet histograms (if a ref pair is available)
+            if (refFullArr && hasRefPair) {
+                refFullArr[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
+            }
+            // Fill reco dijet ptAve vs. etaCM vs. ref etaCM
+            if (recoPtEtaRefEtaArr && hasRefPair) {
+                recoPtEtaRefEtaArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, refDijetEtaCM, weight);
             }
 
+            // Reco forward and backward distributions
             if (systDijetEtaCM >= 0.) {
                 recoForwardArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
-                if (refForwardArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
-                    refForwardArr[iCut]->Fill(systRefDijetPtAve, systDijetEtaCM, weight);
-                }
             }
             else {
                 recoBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(systDijetEtaCM), weight);
-                if (refBackwardArr && leadingJetSyst.refPt > 0. && subleadingJetSyst.refPt > 0.) {
-                    refBackwardArr[iCut]->Fill(systRefDijetPtAve, std::abs(systDijetEtaCM), weight);
-                }
+            }
+
+            // Ref forward and backward distributions (if reference jets are available)
+            if (refForwardArr && hasRefPair && refDijetEtaCM >= 0.) {
+                refForwardArr[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
+            }
+            if (refBackwardArr && hasRefPair && refDijetEtaCM < 0.) {
+                refBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(refDijetEtaCM), weight);
             }
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
     };
@@ -2969,7 +3041,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                 hs.hRecoDijetPtEtaBackwardArr,
                                 hs.hRefDijetPtEtaCMArr,
                                 hs.hRefDijetPtEtaForwardArr,
-                                hs.hRefDijetPtEtaBackwardArr);
+                                hs.hRefDijetPtEtaBackwardArr,
+                                hs.hRecoDijetPtEtaCMRefEtaCMArr);
     }
     else {
         fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPt; },
@@ -3313,25 +3386,36 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
         hs.hRefInclusiveJetPtEtaLabUnflipped->Write();
         hs.hRefInclusiveJetPtEtaLab->Write();
         hs.hRefInclusiveJetPtEtaCM->Write();
+        hs.hRefSelInclusiveJetNoSelPtEtaLabUnflipped->Write();
+        hs.hRefSelInclusiveJetNoSelPtEtaLab->Write();
+        hs.hRefSelInclusiveJetNoSelPtEtaCM->Write();
+        hs.hRefSelInclusiveJetTrkMaxPtEtaLabUnflipped->Write();
+        hs.hRefSelInclusiveJetTrkMaxPtEtaLab->Write();
+        hs.hRefSelInclusiveJetTrkMaxPtEtaCM->Write();
+        hs.hRefSelInclusiveJetPtEtaLabUnflipped->Write();
+        hs.hRefSelInclusiveJetPtEtaLab->Write();
+        hs.hRefSelInclusiveJetPtEtaCM->Write();
 
         hs.hRefInclusiveJetPtEtaStdBins->Write();
 
         // Ref dijets
-
         hs.hRefDijetPtEtaLabUnflipped->Write();
         hs.hRefDijetPtEtaLab->Write();
         hs.hRefDijetPtEtaCM->Write();
 
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+
+            //
+            // Ref level histograms
+            //
             hs.hRefDijetPtEtaCMArr[iCut]->Write();
             hs.hRefDijetPtEtaForwardArr[iCut]->Write();
             hs.hRefDijetPtEtaBackwardArr[iCut]->Write();
-        }
+            hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut]->Write();
 
-        //
-        // Ref-selected level histograms
-        //
-        for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+            //
+            // Ref-selected level histograms
+            //
             hs.hRefSelDijetPtEtaCMArr[iCut]->Write();
             hs.hRefSelDijetPtEtaForwardArr[iCut]->Write();
             hs.hRefSelDijetPtEtaBackwardArr[iCut]->Write();

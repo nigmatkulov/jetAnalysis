@@ -8,6 +8,151 @@ from typing import Mapping, Sequence
 import ROOT
 
 
+def _same_binning(left, right) -> bool:
+    if left.GetNbinsX() != right.GetNbinsX():
+        return False
+    return all(
+        abs(
+            left.GetXaxis().GetBinLowEdge(index)
+            - right.GetXaxis().GetBinLowEdge(index)
+        ) < 1e-9
+        for index in range(1, left.GetNbinsX() + 2)
+    )
+
+
+def calculate_bin_by_bin_systematic(
+    up_ratio,
+    down_ratio,
+    *,
+    name: str,
+    up_function=None,
+    down_function=None,
+    evaluation_range: tuple[float, float] | None = None,
+):
+    """Reproduce ``calculateSystUncrtBinByBin`` without smoothing.
+
+    The inputs are variation/default ratio histograms and provide the output
+    binning. When both functions are supplied, their values at each bin center
+    replace the raw bin contents, matching the macro's ``useFit`` path. Each
+    output bin is ``(|up - 1| + |down - 1|) / 2``. As in the main-branch macro,
+    the result is set to zero when both evaluated values are below ``1e-6``.
+    Bins with centers outside ``evaluation_range`` remain zero. The detached
+    output has zero bin errors because it stores the systematic estimate itself.
+    """
+
+    if not name:
+        raise ValueError("name must be non-empty")
+    if not _same_binning(up_ratio, down_ratio):
+        raise ValueError("Up and Down ratio histograms must have identical binning")
+    if (up_function is None) != (down_function is None):
+        raise ValueError("up_function and down_function must be supplied together")
+    if evaluation_range is not None:
+        range_low, range_high = evaluation_range
+        if (
+            not math.isfinite(range_low)
+            or not math.isfinite(range_high)
+            or range_low >= range_high
+        ):
+            raise ValueError(
+                "evaluation_range must contain finite values with low < high"
+            )
+
+    systematic = up_ratio.Clone(name)
+    systematic.SetDirectory(0)
+    systematic.Reset()
+    for bin_index in range(1, up_ratio.GetNbinsX() + 1):
+        bin_center = up_ratio.GetBinCenter(bin_index)
+        if evaluation_range is not None and not (
+            range_low <= bin_center <= range_high
+        ):
+            continue
+        up = (
+            up_function.Eval(bin_center)
+            if up_function is not None else up_ratio.GetBinContent(bin_index)
+        )
+        down = (
+            down_function.Eval(bin_center)
+            if down_function is not None else down_ratio.GetBinContent(bin_index)
+        )
+        uncertainty = (abs(up - 1.0) + abs(down - 1.0)) / 2.0
+        if up < 1e-6 and down < 1e-6:
+            uncertainty = 0.0
+        systematic.SetBinContent(bin_index, uncertainty)
+        systematic.SetBinError(bin_index, 0.0)
+    return systematic
+
+
+def smooth_systematic_running_max(
+    histogram,
+    *,
+    name: str,
+    evaluation_range: tuple[float, float],
+    smoothing_origin: float | None = None,
+):
+    """Return an outward-running-maximum clone within an accepted range.
+
+    With no origin, this reproduces the nonnegative-eta branch used for JER F/B
+    uncertainties on ``main``. With an origin, the ROOT bin containing that
+    value starts the increasing-x branch, while the preceding bin starts the
+    decreasing-x branch. Bins outside ``evaluation_range`` are explicitly kept
+    at zero so smoothing cannot exceed the analysis acceptance.
+    """
+
+    if not name:
+        raise ValueError("name must be non-empty")
+    range_low, range_high = evaluation_range
+    if (
+        not math.isfinite(range_low)
+        or not math.isfinite(range_high)
+        or range_low >= range_high
+    ):
+        raise ValueError(
+            "evaluation_range must contain finite values with low < high"
+        )
+    if smoothing_origin is not None and (
+        not math.isfinite(smoothing_origin)
+        or not range_low <= smoothing_origin <= range_high
+    ):
+        raise ValueError("smoothing_origin must lie within evaluation_range")
+
+    smoothed = histogram.Clone(name)
+    smoothed.SetDirectory(0)
+    accepted_bins = [
+        index
+        for index in range(1, smoothed.GetNbinsX() + 1)
+        if range_low <= smoothed.GetBinCenter(index) <= range_high
+    ]
+    if not accepted_bins:
+        raise ValueError("evaluation_range contains no histogram bin centers")
+
+    if smoothing_origin is None:
+        branches = (accepted_bins,)
+    else:
+        start_bin = smoothed.FindBin(smoothing_origin)
+        accepted = set(accepted_bins)
+        if start_bin not in accepted:
+            raise ValueError("smoothing_origin maps outside accepted bins")
+        branches = (
+            [index for index in accepted_bins if index >= start_bin],
+            [index for index in reversed(accepted_bins) if index < start_bin],
+        )
+    for branch in branches:
+        if not branch:
+            continue
+        running_maximum = smoothed.GetBinContent(branch[0])
+        for bin_index in branch[1:]:
+            running_maximum = max(
+                running_maximum, smoothed.GetBinContent(bin_index)
+            )
+            smoothed.SetBinContent(bin_index, running_maximum)
+    accepted = set(accepted_bins)
+    for bin_index in range(1, smoothed.GetNbinsX() + 1):
+        if bin_index not in accepted:
+            smoothed.SetBinContent(bin_index, 0.0)
+            smoothed.SetBinError(bin_index, 0.0)
+    return smoothed
+
+
 def format_fit_summary_lines(
     summaries: Mapping[str, Mapping[str, object]],
     *,

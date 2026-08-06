@@ -169,7 +169,10 @@ detector eta using the same configured selection as the nominal corrected-pT
 inclusive-jet histogram. It is written for both data and MC so the raw and
 corrected inclusive-jet spectra can be compared directly. Data outputs also
 retain the run-integrated and run-specific `hRecoDijetPtEtaCMRunArr` histograms
-for the configured run-ID comparison.
+for the configured run-ID comparison. MC outputs also contain
+`hRefSelInclusiveJet{PtEtaLabUnflipped,PtEtaLab,PtEtaCM}` and the corresponding
+`TrkMax` and `NoSel` families, filled from reference jets matched to the
+selected reconstructed-jet population.
 
 ## Histogram analysis
 
@@ -187,8 +190,8 @@ inspecting and comparing analysis outputs:
 - `notebooks/03_mc_dijet_reco_smeared_to_gen_closures.ipynb`: compares eta-dependent JER-smeared Reco with nominal Gen using normalized full distributions and unnormalized forward/backward ratios, with separately configurable full-distribution and F/B-to-F/B ratio errors.
 - `notebooks/03_mc_dijet_smearing_effect.ipynb`: always compares nominal Gen, eta-dependent smeared Gen, and Reco dijet pseudorapidity distributions; other curves can be enabled from a catalog. It writes raw full-distribution overlays and ratios after correcting accumulated smear trials, normalized full-shape comparisons, and forward/backward comparisons for each configured pTave interval. Constructing F/B always uses independent errors; subsequent comparison-ratio options are configurable.
 - `notebooks/04_systematics_beam_orientation.ipynb`: compares p-going, Pb-going, and combined beam-orientation eta projections for single jets and dijets, with direction-comparison ratio panels and same-direction frame overlays.
-- `notebooks/04_systematics_JER.ipynb`: estimates the reconstructed-dijet JER shape systematic in embedding or Pythia MC from unit-integral JER Up, Down, and default CM eta projections and unnormalized forward/backward ratios. It draws dedicated Up/Def and Down/Def comparisons with configurable polynomial fits and reports their coefficients and fit quality; F/B construction always uses independent errors.
-- `notebooks/04_systematics_JEU.ipynb`: estimates the reconstructed-dijet JEU shape systematic for the MB and jet-triggered data samples from unit-integral JEU Up, Down, and default CM eta projections and unnormalized forward/backward ratios.
+- `notebooks/04_systematics_JER.ipynb`: estimates the reconstructed-dijet JER shape systematic in embedding or Pythia MC from unit-integral JER Up, Down, and default CM eta projections and unnormalized forward/backward ratios. It draws dedicated Up/Def and Down/Def comparisons with configurable polynomial fits, calculates bin-by-bin relative uncertainties from the fitted values, and optionally applies outward running-maximum smoothing to the full CM and F/B uncertainties; F/B construction always uses independent errors.
+- `notebooks/04_systematics_JEU.ipynb`: estimates the reconstructed-dijet JEU shape systematic for the MB and jet-triggered data samples from unit-integral JEU Up, Down, and default CM eta projections and unnormalized forward/backward ratios. Configurable polynomial fits provide the bin-center values used to calculate the relative uncertainty, with optional outward smoothing for full-CM and F/B results.
 - `notebooks/05_unfold2D.ipynb`: builds a flattened dijet pTave-eta response for the eta-dependent JER-default measured distribution, runs a Bayesian RooUnfold closure test with explicit miss/fake handling, and produces Gen/Reco/unfolded eta overlays and closure ratios for every configured pTave interval. ROOT results and PDF diagnostics are written to `output/unfold2D/`; set `SAVE_PNG = True` for matching PNGs.
 - `notebooks/05_unfold2D_mc_direction.ipynb`: trains the same flattened response on Pb-going embedding and applies it to the independent p-going embedding reco distribution, then compares the unfolded result with p-going generator truth. It preserves the response scaling, miss/fake handling, diagnostics, and output conventions of `05_unfold2D.ipynb`.
 - `notebooks/06_data_jet_distributions.ipynb`: compares Pb-going, p-going, and combined inclusive-jet data for configurable jet-ID, track-maximum, or no-selection outputs. It draws common-scale orientation 2D maps and pT/eta overlays with ratios to combined in the unflipped-Lab, flipped-Lab, and CM frames, plus selected raw-jet-pT versus unflipped detector-eta diagnostics.
