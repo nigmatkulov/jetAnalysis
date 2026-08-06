@@ -131,8 +131,12 @@ separate comparison is produced for every configured jet-eta acceptance. The
 notebook also projects and unit-normalizes pseudorapidity shapes in every
 half-open interval from `config.histograms.TEST_DIJET_PTAVE_BINS`, producing
 data/MC-gen and MC-reco/MC-gen ratios for each trigger and eta acceptance. The
+notebook also compares the unnormalized data, MC-reco, and MC-gen
+Forward/Backward ratios, with Data/MC-gen and MC-reco/MC-gen lower panels.
+F/B construction and the subsequent comparisons use independent errors. The
 default ratio ranges are 0.75--1.25 for pTave and 0.65--1.15 for eta, configured
-independently with `PTAVE_RATIO_RANGE` and `ETA_RATIO_RANGE`. The input data
+independently with `PTAVE_RATIO_RANGE` and `ETA_RATIO_RANGE`; `FB_RANGE` and
+`FB_RATIO_RANGE` configure the F/B panels. The input data
 directory and output directory can be overridden with `PPB_DATA_DIR` and
 `DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`,
 `Pbgoing`, or `pgoing`, and `DATA_SELECTION` to `jetId`, `trkMax`, or `noSel`;
@@ -162,7 +166,16 @@ scaling each to unit integral, and overlays their unnormalized Forward/Backward
 ratios. Dedicated Up/Def and Down/Def plots are produced for both observables.
 Forward/Backward construction always uses independent error propagation;
 full-shape and subsequent F/B-to-F/B comparison ratios independently support
-ROOT's standard or `B` division option.
+ROOT's standard or `B` division option. Both ratio families have independently
+configurable polynomial fits, currently `pol2` for full distributions and
+`pol1` for F/B; the notebook retains the
+coefficients, parameter errors, covariance matrix, chi-square, degrees of
+freedom, and fit probability, and prints the scalar results for later
+systematic-uncertainty extraction. Initial polynomial coefficients are
+configured separately for Up/Def and Down/Def in both the full-distribution
+and F/B fit families.
+Set `SHOW_FIT_RESULTS = False` to hide the compact parameter and
+chi-square/ndf box while retaining the fitted curves and numeric summaries.
 
 Use `notebooks/04_systematics_JEU.ipynb` to estimate the reconstructed-dijet
 JEU shape uncertainty in MinimumBias, Jet60, Jet80, and Jet100 data. Each
@@ -230,10 +243,21 @@ versus unflipped detector-eta diagnostics from
 `hRecoInclusiveJetRawPtEtaLabUnflipped`. They overlay pT or pTave spectra and
 normalized eta projections with Pb-going/combined and p-going/combined ratio
 panels. The pT
-spectra are normalized in the configured 110--130 GeV interval. Inclusive-jet
+spectra are normalized in the configured 110--130 GeV interval. The dijet
+notebook also folds each raw CM eta projection into an unnormalized
+Forward/Backward ratio, overlays the three orientations, and plots the
+Pb-going/combined and p-going/combined F/B ratios with independent-error
+propagation. Inclusive-jet
 and dijet projection intervals are independently configurable for MinimumBias,
 Jet60, Jet80, and Jet100; inclusive-jet pT spectra also have a configurable eta
-selection. Set `PPB_DATA_DIR`,
+selection. In the inclusive-jet notebook, set `ETA_DISPLAY_RANGE` to limit the
+eta axis and `ETA_Y_RANGE` to set a common y-axis range for the normalized eta
+orientation overlays; leave either as `None` for the full axis or automatic
+scaling. For every trigger and pT interval, the notebook also overlays the
+Pb-going and p-going unflipped-Lab corrected/raw eta-yield ratios. These use
+independent-error propagation and are displayed within
+`CORRECTED_RAW_RATIO_RANGE`; a lower panel compares Pb-going to p-going within
+`CORRECTED_RAW_DIRECTION_RATIO_RANGE`. Set `PPB_DATA_DIR`,
 `DATA_JET_OUTPUT_DIR`, or `DATA_DIJET_OUTPUT_DIR` to override input and output
 locations.
 

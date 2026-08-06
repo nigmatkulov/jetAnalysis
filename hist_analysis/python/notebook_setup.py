@@ -71,17 +71,22 @@ def load_roounfold(root, *, project_root: str | Path,
 
     project_root = Path(project_root).expanduser().resolve()
     configured_root = checkout or os.environ.get("ROOUNFOLD_ROOT")
-    roounfold_root = (
-        Path(configured_root).expanduser().resolve()
+    extensions = tuple(dict.fromkeys(
+        (str(root.gSystem.GetSoExt()).lstrip("."), "dylib", "so")
+    ))
+    roounfold_roots = (
+        (Path(configured_root).expanduser().resolve(),)
         if configured_root
-        else project_root.parent / "RooUnfold"
+        else tuple(parent / "RooUnfold" for parent in project_root.parents)
     )
-
-    extension = str(root.gSystem.GetSoExt()).lstrip(".")
-    library_name = f"libRooUnfold.{extension}"
-    candidates = (
-        roounfold_root / "build" / library_name,
-        roounfold_root / "build" / "lib" / library_name,
+    candidates = tuple(
+        library
+        for roounfold_root in roounfold_roots
+        for extension in extensions
+        for library in (
+            roounfold_root / "build" / f"libRooUnfold.{extension}",
+            roounfold_root / "build" / "lib" / f"libRooUnfold.{extension}",
+        )
     )
     library = next((path for path in candidates if path.is_file()), None)
     if library is None:
@@ -90,6 +95,9 @@ def load_roounfold(root, *, project_root: str | Path,
             f"RooUnfold library not found; searched: {searched}. Set "
             "ROOUNFOLD_ROOT to the RooUnfold checkout."
         )
+    roounfold_root = library.parent.parent
+    if roounfold_root.name == "build":
+        roounfold_root = roounfold_root.parent
 
     for path in (
         roounfold_root / "src",

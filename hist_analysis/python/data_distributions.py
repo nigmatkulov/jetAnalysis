@@ -9,7 +9,7 @@ import ROOT
 from IPython.display import display
 
 from hist_analysis.python.histogram_io import load_histogram
-from hist_analysis.python.histogram_ops import normalize_histogram
+from hist_analysis.python.histogram_ops import normalize_histogram, ratio_to_nominal
 from hist_analysis.python.plotting import draw_closure, draw_overlay
 from hist_analysis.python.projections import project_semantic_th2
 from hist_analysis.python.root_style import (
@@ -213,8 +213,12 @@ def draw_orientation_comparisons(
     save_png: bool,
     grid: bool,
     style,
+    eta_display_range: tuple[float, float] | None = None,
+    eta_y_range: tuple[float, float] | None = None,
+    fb_y_range: tuple[float, float] | None = None,
+    fb_ratio_range: tuple[float, float] | None = None,
 ):
-    """Overlay Pb-going, p-going, and combined shapes with ratios to combined."""
+    """Overlay orientation shapes and CM F/B ratios relative to combined."""
 
     if jet_kind not in {"jet", "dijet"}:
         raise ValueError("jet_kind must be 'jet' or 'dijet'")
@@ -337,15 +341,19 @@ def draw_orientation_comparisons(
         for pt_range in pt_bins:
             low, high = pt_range
             pt_tag = f"{low:g}_{high:g}".replace(".", "p")
-            histograms = {
+            raw_histograms = {
                 direction: project_data_histogram(
                     filename, key, "eta", pt_range,
                     name=(
                         f"h_{trigger_tag}_{frame}_{_tag(direction)}_"
                         f"{jet_kind}_{pt_tag}"
-                    ), rebin=rebin_eta, normalization="integral",
+                    ), rebin=rebin_eta,
                 )
                 for direction, filename in direction_files.items()
+            }
+            histograms = {
+                direction: normalize_histogram(histogram, "integral")
+                for direction, histogram in raw_histograms.items()
             }
             canvas, ratios = draw_closure(
                 histograms, "combined", title="", x_title=eta_title,
@@ -355,7 +363,8 @@ def draw_orientation_comparisons(
                     "pPb 8.16 TeV data", trigger, frame_label, object_label,
                     selection,
                     f"{low:g} #leq {momentum} < {high:g} GeV",
-                ), grid=grid, style=style, headroom=2.2,
+                ), x_range=eta_display_range, y_range=eta_y_range,
+                grid=grid, style=style, headroom=2.2,
                 output=output / (
                     f"{trigger_tag}_{frame}_{jet_kind}_orientation_pt_{pt_tag}.pdf"
                 ), save_png=save_png,
@@ -365,8 +374,141 @@ def draw_orientation_comparisons(
             )
             display(canvas)
             results[(frame, pt_range)] = {
+                "raw_histograms": raw_histograms,
                 "histograms": histograms,
                 "ratios_to_combined": ratios,
                 "canvas": canvas,
             }
+            if frame == "cm" and jet_kind == "dijet":
+                forward_backward = {
+                    direction: forward_backward_from_full(
+                        histogram,
+                        name=(
+                            f"h_{trigger_tag}_{_tag(direction)}_"
+                            f"{jet_kind}_fb_{pt_tag}"
+                        ),
+                    )
+                    for direction, histogram in raw_histograms.items()
+                }
+                fb_canvas, fb_ratios = draw_closure(
+                    forward_backward, "combined", title="",
+                    x_title=f"|{eta_title}|",
+                    y_title="Forward / Backward",
+                    y_range=fb_y_range,
+                    ratio_range=fb_ratio_range or ratio_range,
+                    ratio_option="", draw_nominal_ratio=False,
+                    style_indices=styles, annotations=(
+                        "pPb 8.16 TeV data", trigger, frame_label,
+                        object_label, selection,
+                        f"{low:g} #leq {momentum} < {high:g} GeV",
+                    ), grid=grid, style=style, headroom=2.2,
+                    output=output / (
+                        f"{trigger_tag}_{frame}_{jet_kind}_"
+                        f"orientation_fb_pt_{pt_tag}.pdf"
+                    ), save_png=save_png,
+                    canvas_name=(
+                        f"{trigger_tag}_{frame}_{jet_kind}_"
+                        f"orientation_fb_{pt_tag}"
+                    ),
+                )
+                display(fb_canvas)
+                results[(frame, pt_range)].update({
+                    "forward_backward": forward_backward,
+                    "fb_ratios_to_combined": fb_ratios,
+                    "fb_canvas": fb_canvas,
+                })
+    return results
+
+
+def draw_corrected_raw_eta_comparisons(
+    trigger: str,
+    direction_files,
+    pt_bins,
+    *,
+    corrected_key: str,
+    raw_key: str,
+    output_dir: str | Path,
+    rebin_eta: int,
+    eta_display_range: tuple[float, float] | None,
+    ratio_range: tuple[float, float] | None,
+    direction_ratio_range: tuple[float, float],
+    selection: str,
+    save_png: bool,
+    grid: bool,
+    style,
+):
+    """Compare unflipped-Lab corrected/raw eta ratios by beam direction."""
+
+    directions = ("Pb-going", "p-going")
+    missing = [
+        direction for direction in directions
+        if direction not in direction_files
+    ]
+    if missing:
+        raise KeyError(f"Missing direction files for: {', '.join(missing)}")
+
+    output = Path(output_dir)
+    trigger_tag = _tag(trigger)
+    styles = {"Pb-going": 1, "p-going": 0}
+    results = {}
+    for low, high in pt_bins:
+        pt_range = (low, high)
+        pt_tag = f"{low:g}_{high:g}".replace(".", "p")
+        ratios = {}
+        inputs = {}
+        for direction in directions:
+            filename = direction_files[direction]
+            corrected = project_data_histogram(
+                filename, corrected_key, "eta", pt_range,
+                name=(
+                    f"h_{trigger_tag}_{_tag(direction)}_"
+                    f"corrected_eta_{pt_tag}"
+                ),
+                rebin=rebin_eta,
+            )
+            raw = project_data_histogram(
+                filename, raw_key, "eta", pt_range,
+                name=f"h_{trigger_tag}_{_tag(direction)}_raw_eta_{pt_tag}",
+                rebin=rebin_eta,
+            )
+            ratios[direction] = ratio_to_nominal(
+                corrected, raw,
+                name=(
+                    f"h_{trigger_tag}_{_tag(direction)}_"
+                    f"corrected_over_raw_eta_{pt_tag}"
+                ),
+                option="",
+            )
+            inputs[direction] = {"corrected": corrected, "raw": raw}
+
+        canvas, ratios_to_pgoing = draw_closure(
+            ratios, "p-going", title="",
+            x_title="#eta_{Lab,unflipped}^{jet}",
+            y_title="Corrected / raw", x_range=eta_display_range,
+            y_range=ratio_range, ratio_range=direction_ratio_range,
+            ratio_option="", draw_nominal_ratio=False,
+            annotations=(
+                "pPb 8.16 TeV data", trigger, "Lab unflipped",
+                "Inclusive jets", selection,
+                f"{low:g} #leq p_{{T}}^{{jet}} < {high:g} GeV",
+            ),
+            style_indices=styles, grid=grid, style=style,
+            output=output / (
+                f"{trigger_tag}_lab_unflipped_jet_"
+                f"corrected_over_raw_eta_pt_{pt_tag}.pdf"
+            ),
+            save_png=save_png,
+            canvas_name=(
+                f"{trigger_tag}_lab_unflipped_jet_"
+                f"corrected_over_raw_eta_{pt_tag}"
+            ),
+        )
+        display(canvas)
+        results[pt_range] = {
+            "inputs": inputs,
+            "ratios": ratios,
+            "corrected_over_raw": ratios,
+            "ratios_to_pgoing": ratios_to_pgoing,
+            "canvas": canvas,
+        }
     return results

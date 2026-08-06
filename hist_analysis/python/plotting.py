@@ -28,9 +28,15 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
                  y_range: tuple[float, float] | None = None,
                  legend_bounds: tuple[float, float, float, float] | None = None,
                  reference_y: float | None = None,
+                 overlay_functions: Mapping[str, object] | None = None,
+                 overlay_text: Mapping[str, Iterable[str]] | None = None,
+                 overlay_text_bounds: tuple[float, float, float, float] = (
+                     0.43, 0.18, 0.88, 0.40,
+                 ),
+                 overlay_text_size: float = 0.018,
                  style_indices: Mapping[str, int] | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
-    """Draw styled 1D histograms together on one single-panel canvas."""
+    """Draw histograms with optional same-label functions and text box."""
 
     if not histograms:
         raise ValueError("No histograms supplied")
@@ -40,6 +46,23 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
         raise ValueError("x_range must satisfy low < high")
     if y_range is not None and y_range[0] >= y_range[1]:
         raise ValueError("y_range must satisfy low < high")
+    if overlay_functions is not None:
+        unknown_labels = set(overlay_functions) - set(histograms)
+        if unknown_labels:
+            raise KeyError(
+                f"Functions have no matching histograms: {sorted(unknown_labels)}"
+            )
+    if overlay_text is not None:
+        unknown_labels = set(overlay_text) - set(histograms)
+        if unknown_labels:
+            raise KeyError(
+                f"Text has no matching histograms: {sorted(unknown_labels)}"
+            )
+        x1, y1, x2, y2 = overlay_text_bounds
+        if not (0.0 <= x1 < x2 <= 1.0 and 0.0 <= y1 < y2 <= 1.0):
+            raise ValueError("overlay_text_bounds must be ordered NDC coordinates")
+        if overlay_text_size <= 0.0:
+            raise ValueError("overlay_text_size must be positive")
 
     suffix = str(abs(hash(canvas_name or title)))
     canvas = ROOT.TCanvas(
@@ -74,6 +97,11 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
             histogram.SetMaximum(maximum * (20.0 if log_y else headroom))
         histogram.Draw("E1" if index == 0 else "E1 SAME")
         legend.AddEntry(histogram, label, "p")
+    drawn_functions = []
+    for label, function in (overlay_functions or {}).items():
+        function.SetLineColor(histograms[label].GetLineColor())
+        function.Draw("SAME")
+        drawn_functions.append(function)
     legend.Draw()
     annotation_objects = draw_text_block(canvas, annotations, style=style)
 
@@ -85,12 +113,30 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
         line.SetLineStyle(2)
         line.Draw()
 
+    text_box = None
+    text_lines = []
+    if overlay_text:
+        text_box = ROOT.TPaveText(*overlay_text_bounds, "NDC NB")
+        text_box.SetFillColor(ROOT.kWhite)
+        text_box.SetFillStyle(1001)
+        text_box.SetBorderSize(0)
+        text_box.SetTextAlign(12)
+        text_box.SetTextFont(style.font)
+        text_box.SetTextSize(overlay_text_size)
+        for label, lines in overlay_text.items():
+            for text in lines:
+                rendered = text_box.AddText(text)
+                rendered.SetTextColor(histograms[label].GetLineColor())
+                text_lines.append(rendered)
+        text_box.Draw()
+
     canvas.Modified()
     canvas.Update()
     save_canvas(canvas, output, save_png=save_png)
     canvas._overlay_objects = [
-        legend, *annotation_objects, *histograms.values(),
+        legend, *annotation_objects, *histograms.values(), *drawn_functions,
         *([] if line is None else [line]),
+        *([] if text_box is None else [text_box, *text_lines]),
     ]
     return canvas
 
