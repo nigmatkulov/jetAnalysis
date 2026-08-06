@@ -164,19 +164,12 @@ with EOS mounted. It checks every MB PD list in both directions and both
 direction-specific PAEGJet lists, prints missing ROOT paths, and returns a
 nonzero status when files or required lists are unavailable.
 
-Data outputs also contain targeted diagnostics for investigating localized jet
-and dijet excesses. `hRecoInclusiveJetRawPtEtaLabUnflipped` stores selected raw
-jet pT versus detector eta using the same configured selection as the nominal
-corrected-pT inclusive-jet histogram. `hRecoDijetPtEtaCMRunArr` consists of the
-five run-specific histograms for runs 285480, 285505, 285517, 285832, and
-285993, followed by the run-integrated control. `tRecoDijetAnomaly` records
-run/lumisection/event provenance, trigger bits, dijet kinematics, and corrected
-and raw leading/subleading jet quantities for selected events in the diagnostic
-window 100 < pTave < 110 GeV and 1.5 < etaCM(dijet) < 1.6. These data-only
-objects are intended for diagnosis and do not change event or jet selections.
-They are guarded as data-only throughout branch setup, object creation, filling,
-and output writing. An explicit runtime invariant also rejects diagnostic
-objects in MC processing and rejects incomplete diagnostic setup for data.
+`hRecoInclusiveJetRawPtEtaLabUnflipped` stores selected raw jet pT versus
+detector eta using the same configured selection as the nominal corrected-pT
+inclusive-jet histogram. It is written for both data and MC so the raw and
+corrected inclusive-jet spectra can be compared directly. Data outputs also
+retain the run-integrated and run-specific `hRecoDijetPtEtaCMRunArr` histograms
+for the configured run-ID comparison.
 
 ## Histogram analysis
 
@@ -188,6 +181,7 @@ inspecting and comparing analysis outputs:
 - `notebooks/02_mc_jet_efficiency_fakes.ipynb`: calculates Lab-frame inclusive-jet efficiency, matched rate, and fake rate without pre-division normalization. It draws two-dimensional maps, eta projections in configured jet-pT intervals, and pT projections in configurable eta intervals; matched and fake 1D rates use style indices 0 and 1 on shared log-y canvases.
 - `notebooks/02_mc_jet_selection.ipynb`: overlays unit-normalized Reco, matched-Ref, and Gen inclusive-jet eta distributions in the Lab and CM frames, with Reco/Gen and Ref/Gen ratios, for jet-ID, track-maximum, and no-selection stages in configured jet-pT intervals after displaying the underlying two-dimensional maps. Full-range or configurable eta-range integral normalization is supported; stored-yield and bin-width modes and regular or binomial ratio errors remain configurable.
 - `notebooks/02_mc_jet_JES_JER.ipynb`: extracts inclusive-jet JES/JER, compares systematic variations, and draws response maps.
+- `notebooks/02_mc_jet_JEC_check.ipynb`: compares raw and corrected MC inclusive-jet eta projections in configurable pT intervals for Pb-going and p-going samples, including corrected/raw and direction-ratio panels.
 - `notebooks/03_mc_dijet_embedding_vs_pythia.ipynb`: compares unit-normalized Reco, matched-Ref, and Gen dijet CM-pseudorapidity shapes between Embedding and PYTHIA in `TEST_DIJET_PTAVE_BINS`, with PYTHIA/Embedding ratio panels. It also compares the corresponding unnormalized forward/backward ratios and their PYTHIA/Embedding ratios using independent-error propagation. Each level runs from its own cell, and each overlay family uses a common y-axis range across all levels and pTave intervals.
 - `notebooks/03_mc_dijet_reco_to_gen_closures.ipynb`: compares configurable Reco and matched-Ref dijet eta distributions with nominal Gen for the intervals defined by `hist_analysis.config.histograms.DIJET_PTAVE_BINS`. It draws raw full-distribution overlays and ratios before normalization, normalized full shapes, and unnormalized forward/backward ratios. Forward/backward construction always uses independent error propagation.
 - `notebooks/03_mc_dijet_reco_smeared_to_gen_closures.ipynb`: compares eta-dependent JER-smeared Reco with nominal Gen using normalized full distributions and unnormalized forward/backward ratios, with separately configurable full-distribution and F/B-to-F/B ratio errors.

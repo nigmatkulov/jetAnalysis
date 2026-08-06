@@ -78,8 +78,14 @@ Use `notebooks/02_mc_jet_JES_JER.ipynb` to extract JES and JER from Gaussian fit
 inclusive-jet response slices, compare the configured reco/gen smearing cases,
 scan pT and eta dependence, and draw the corresponding two-dimensional response
 maps. The notebook also normalizes JER-versus-eta curves to unit central-bin mean
+
 within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
 `output/jes_jer/`.
+
+Use `notebooks/02_mc_jet_JEC_check.ipynb` to compare raw and JEC-corrected MC
+inclusive-jet eta projections in configurable pT intervals. It overlays the
+Pb-going and p-going yields, plots corrected/raw ratios, and compares the two
+beam directions with independent-error propagation.
 
 Use `notebooks/03_mc_dijet_embedding_vs_pythia.ipynb` to compare Embedding and
 PYTHIA Reco, matched-Ref, and Gen dijet distributions for a configurable stored
