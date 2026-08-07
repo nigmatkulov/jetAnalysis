@@ -35,6 +35,7 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
                  ),
                  overlay_text_size: float = 0.018,
                  style_indices: Mapping[str, int] | None = None,
+                 show_legend: bool = True,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
     """Draw histograms with optional same-label functions and text box."""
 
@@ -102,7 +103,8 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
         function.SetLineColor(histograms[label].GetLineColor())
         function.Draw("SAME")
         drawn_functions.append(function)
-    legend.Draw()
+    if show_legend:
+        legend.Draw()
     annotation_objects = draw_text_block(canvas, annotations, style=style)
 
     line = None
@@ -134,7 +136,8 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
     canvas.Update()
     save_canvas(canvas, output, save_png=save_png)
     canvas._overlay_objects = [
-        legend, *annotation_objects, *histograms.values(), *drawn_functions,
+        *([legend] if show_legend else []),
+        *annotation_objects, *histograms.values(), *drawn_functions,
         *([] if line is None else [line]),
         *([] if text_box is None else [text_box, *text_lines]),
     ]

@@ -36,8 +36,10 @@ def calculate_bin_by_bin_systematic(
     replace the raw bin contents, matching the macro's ``useFit`` path. Each
     output bin is ``(|up - 1| + |down - 1|) / 2``. As in the main-branch macro,
     the result is set to zero when both evaluated values are below ``1e-6``.
-    Bins with centers outside ``evaluation_range`` remain zero. The detached
-    output has zero bin errors because it stores the systematic estimate itself.
+    Every bin that overlaps ``evaluation_range`` is included. For a boundary
+    bin whose center lies outside the range, the fit is evaluated at the nearest
+    range boundary rather than beyond the accepted eta range. The detached output
+    has zero bin errors because it stores the systematic estimate itself.
     """
 
     if not name:
@@ -62,16 +64,19 @@ def calculate_bin_by_bin_systematic(
     systematic.Reset()
     for bin_index in range(1, up_ratio.GetNbinsX() + 1):
         bin_center = up_ratio.GetBinCenter(bin_index)
-        if evaluation_range is not None and not (
-            range_low <= bin_center <= range_high
-        ):
-            continue
+        evaluation_point = bin_center
+        if evaluation_range is not None:
+            bin_low = up_ratio.GetXaxis().GetBinLowEdge(bin_index)
+            bin_high = up_ratio.GetXaxis().GetBinUpEdge(bin_index)
+            if bin_high <= range_low or bin_low >= range_high:
+                continue
+            evaluation_point = min(max(bin_center, range_low), range_high)
         up = (
-            up_function.Eval(bin_center)
+            up_function.Eval(evaluation_point)
             if up_function is not None else up_ratio.GetBinContent(bin_index)
         )
         down = (
-            down_function.Eval(bin_center)
+            down_function.Eval(evaluation_point)
             if down_function is not None else down_ratio.GetBinContent(bin_index)
         )
         uncertainty = (abs(up - 1.0) + abs(down - 1.0)) / 2.0
@@ -94,8 +99,9 @@ def smooth_systematic_running_max(
     With no origin, this reproduces the nonnegative-eta branch used for JER F/B
     uncertainties on ``main``. With an origin, the ROOT bin containing that
     value starts the increasing-x branch, while the preceding bin starts the
-    decreasing-x branch. Bins outside ``evaluation_range`` are explicitly kept
-    at zero so smoothing cannot exceed the analysis acceptance.
+    decreasing-x branch. Boundary bins that overlap ``evaluation_range`` are
+    included even when their centers lie outside it. Fully disjoint bins are
+    explicitly kept at zero so smoothing cannot exceed the analysis acceptance.
     """
 
     if not name:
@@ -120,10 +126,11 @@ def smooth_systematic_running_max(
     accepted_bins = [
         index
         for index in range(1, smoothed.GetNbinsX() + 1)
-        if range_low <= smoothed.GetBinCenter(index) <= range_high
+        if smoothed.GetXaxis().GetBinUpEdge(index) > range_low
+        and smoothed.GetXaxis().GetBinLowEdge(index) < range_high
     ]
     if not accepted_bins:
-        raise ValueError("evaluation_range contains no histogram bin centers")
+        raise ValueError("evaluation_range overlaps no histogram bins")
 
     if smoothing_origin is None:
         branches = (accepted_bins,)
@@ -198,8 +205,12 @@ def fit_histogram_variations(
     """Fit variation histograms and return TF1 objects and numeric summaries.
 
     ``fit_options`` must contain ROOT's ``S`` option so fit status and parameter
-    covariance are available through ``TFitResultPtr``. The returned summaries
-    contain plain Python values suitable for later systematic-uncertainty use.
+    covariance are available through ``TFitResultPtr``. ROOT selects fit bins by
+    their centers, so the numerical fit range is expanded to the centers of the
+    first and last bins that overlap ``fit_range``. This includes partially
+    accepted rebinned boundary bins. The TF1 drawing range is restored to the
+    requested physical range after fitting. The returned summaries contain plain
+    Python values suitable for later systematic-uncertainty use.
     """
 
     if not histograms:
@@ -221,8 +232,24 @@ def fit_histogram_variations(
     functions = {}
     summaries = {}
     for index, (label, histogram) in enumerate(histograms.items()):
+        overlapping_bins = [
+            bin_index
+            for bin_index in range(1, histogram.GetNbinsX() + 1)
+            if histogram.GetXaxis().GetBinUpEdge(bin_index) > low
+            and histogram.GetXaxis().GetBinLowEdge(bin_index) < high
+        ]
+        if not overlapping_bins:
+            raise ValueError(
+                f"fit_range overlaps no histogram bins for {label!r}"
+            )
+        fit_low = histogram.GetBinCenter(overlapping_bins[0])
+        fit_high = histogram.GetBinCenter(overlapping_bins[-1])
+        if fit_low >= fit_high:
+            raise ValueError(
+                f"fit_range must overlap at least two bin centers for {label!r}"
+            )
         function = ROOT.TF1(
-            f"{name_prefix}_{index}", formula, low, high,
+            f"{name_prefix}_{index}", formula, fit_low, fit_high,
         )
         default_values = (1.0,) + (0.0,) * (function.GetNpar() - 1)
         parameter_values = tuple(
@@ -239,7 +266,7 @@ def fit_histogram_variations(
         function.SetLineWidth(2)
 
         fit_result = histogram.Fit(
-            function, fit_options, "", low, high,
+            function, fit_options, "", fit_low, fit_high,
         )
         status = int(fit_result)
         if status != 0:
@@ -251,6 +278,7 @@ def fit_histogram_variations(
         summaries[label] = {
             "formula": formula,
             "range": (low, high),
+            "fit_bin_center_range": (fit_low, fit_high),
             "initial_parameters": parameter_values,
             "parameters": tuple(
                 function.GetParameter(i) for i in range(function.GetNpar())
@@ -270,4 +298,5 @@ def fit_histogram_variations(
             "probability": function.GetProb(),
             "status": status,
         }
+        function.SetRange(low, high)
     return functions, summaries

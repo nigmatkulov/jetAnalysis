@@ -185,8 +185,13 @@ functions at the bin center as in the macro's `useFit` path. Before the optional
 smoothing step, the retained systematic histograms remain fractional; display clones
 are scaled by 100 and plotted with the y-axis title
 `JER Rel. Syst. Uncrt. (%)`, matching the macro's percent-plot convention.
-Systematic bins whose centers lie outside the selected eta acceptance remain
-zero; fitted functions are not evaluated beyond `|eta| = ETA_CUT`.
+Systematic bins that overlap the selected eta acceptance are included, even
+when rebinning places their centers beyond the cut. For such boundary bins the
+fit is evaluated at `ETA_CUT` (or `-ETA_CUT`) so it is never evaluated beyond
+the accepted range; only bins fully outside the acceptance remain zero. Fits
+also include every overlapping boundary bin by expanding ROOT's numerical fit
+range to that bin's center, while the displayed fit curve remains restricted to
+the physical eta acceptance.
 Set `APPLY_SYSTEMATIC_SMOOTHING = True` to smooth both JER uncertainty families.
 The F/B relative uncertainty becomes a running maximum from low to high
 absolute eta. Full-CM smoothing runs outward independently in both directions
@@ -206,7 +211,10 @@ Down/Def curves use independently configurable `pol2` full-CM and `pol1` F/B
 fits, including configurable initial parameters and optional compact fit-result
 text. The relative JEU systematic is evaluated from the fitted curves as
 `(|Up/Def - 1| + |Down/Def - 1|) / 2`, retained fractionally, and plotted in
-percent as `JEU Rel. Syst. Uncrt. (%)`. Evaluation stops at `ETA_CUT`.
+percent as `JEU Rel. Syst. Uncrt. (%)`. Bins overlapping the eta acceptance are
+included; boundary-bin fit evaluation is clamped to `ETA_CUT`, while fully
+outside bins remain zero. The fits themselves also include these overlapping
+boundary bins, while displayed fit curves remain restricted to the acceptance.
 `APPLY_SYSTEMATIC_SMOOTHING` optionally applies a low-to-high running maximum
 for F/B and independent outward smoothing for full CM from the bin selected by
 `FULL_SMOOTHING_ORIGIN` (default `-0.465 + 0.00001`). Both smoothed and original
