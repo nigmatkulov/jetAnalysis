@@ -91,7 +91,7 @@ scheduler:
 cd ..
 ./build/processForestSimple \
   processing/input/Jet60_Pbgoing_3files.list \
-  /tmp/Jet60_Pbgoing_3files.root 0 1 0 1 2
+  /tmp/Jet60_Pbgoing_3files.root 0 1 0 1 2 0
 cd processing
 ```
 
@@ -117,6 +117,8 @@ Options passed to `processForestSimple` are:
 - `--pd-number`: required for MB data; ignored for Jet60/80/100 and MC.
 - `--reco-jet-selection`: `0` none, `1` `trkMaxPt/RawPt`, `2` tight jet ID
   with lepton veto, or `3` loose jet ID.
+- `--vertex-filter-selection`: `0` `pVertexFilterCutdz1p0` (nominal), `1`
+  `pVertexFilterCutGplus`, or `2` `pVertexFilterCutVtx1`.
 
 The default proxy is `voms_proxy.txt` in the `processing/` directory; override it with
 `--proxy /path/to/x509_proxy`. The proxy is copied into every sample directory

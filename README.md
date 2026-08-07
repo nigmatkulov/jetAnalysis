@@ -52,7 +52,7 @@ build/processForestSimple
 You can run the macro directly from ROOT and pass the same arguments used by the executable:
 
 ```bash
-root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, 2)'
+root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 30, 0, 2, 0)'
 ```
 
 Argument order:
@@ -64,19 +64,20 @@ Argument order:
 5. `ptHatSample`
 6. `triggerId` (`0` no trigger/MB, `1` jet60, `2` jet80, `3` jet100)
 7. `recoJetSelMethod` (`0` none, `1` `trkMaxPt/RawPt`, `2` tight jet ID with lepton veto, `3` loose jet ID)
+8. `vertexFilterSelection` (`0` `pVertexFilterCutdz1p0`, `1` `pVertexFilterCutGplus`, `2` `pVertexFilterCutVtx1`)
 
 ## Run the compiled binary
 
 After building, run the executable directly:
 
 ```bash
-./build/processForestSimple input.root output.root 2 1 30 0 2
+./build/processForestSimple input.root output.root 2 1 30 0 2 0
 ```
 
 Example for a file list:
 
 ```bash
-./build/processForestSimple filelist.txt output.root 2 1 30 0 2
+./build/processForestSimple filelist.txt output.root 2 1 30 0 2 0
 ```
 
 A file list contains one ROOT path per line. Blank lines and comment lines are
@@ -94,7 +95,7 @@ count:
 
 ```bash
 ./build/processForestSimple test.list /tmp/processForestSimple-test.root \
-  0 1 0 1 2
+  0 1 0 1 2 0
 ```
 
 ## Preset batch scripts
@@ -124,7 +125,7 @@ script; review that list before starting a production run.
 
 The `processing/submit_process_forest_condor.py` workflow splits the tracked
 pPb 8.16 TeV file lists, creates readable output and log names, and submits the
-current seven-argument `processForestSimple` executable. It supports individual
+current eight-argument `processForestSimple` executable. It supports individual
 or all MB primary datasets and individual or all MC pT-hat samples. Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in
 `processing/README.md`. The general submitter uses 10 input files per job by

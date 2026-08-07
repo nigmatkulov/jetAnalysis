@@ -23,6 +23,7 @@ class RunnerConfig:
     is_pb_going_dir: int
     trigger_id: int
     reco_jet_sel_method: int
+    vertex_filter_selection: int = 0
     input_base: Path = DEFAULT_INPUT_BASE
     output_dir: Path = DEFAULT_OUTPUT_DIR
 
@@ -79,6 +80,7 @@ def build_command(config: RunnerConfig, pt_hat_sample: int) -> list[str]:
         str(pt_hat_sample),
         str(config.trigger_id),
         str(config.reco_jet_sel_method),
+        str(config.vertex_filter_selection),
     ]
 
 

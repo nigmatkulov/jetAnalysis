@@ -28,6 +28,10 @@ def parse_args() -> argparse.Namespace:
         help="Number of input ROOT files per Condor job (default: 50)",
     )
     parser.add_argument("--reco-jet-selection", type=int, default=2)
+    parser.add_argument(
+        "--vertex-filter-selection", type=int, default=0,
+        help="0=dz1p0, 1=Gplus, 2=Vtx1 (default: 0)",
+    )
     parser.add_argument("--job-flavour", help="Override the default espresso flavour")
     parser.add_argument("--proxy", type=Path, help="Forward a non-default proxy path")
     parser.add_argument("--work-dir", type=Path, help="Forward a non-default Condor work directory")
@@ -51,6 +55,7 @@ def submission_command(args: argparse.Namespace, beam: str, trigger_id: int) -> 
         "--trigger-id", str(trigger_id),
         "--files-per-job", str(args.files_per_job),
         "--reco-jet-selection", str(args.reco_jet_selection),
+        "--vertex-filter-selection", str(args.vertex_filter_selection),
     ]
     if trigger_id == 0:
         command.extend(("--pd-number", "all"))
@@ -71,6 +76,8 @@ def main() -> int:
         raise SystemExit("--files-per-job must be at least 1")
     if not 0 <= args.reco_jet_selection <= 3:
         raise SystemExit("--reco-jet-selection must be between 0 and 3")
+    if not 0 <= args.vertex_filter_selection <= 2:
+        raise SystemExit("--vertex-filter-selection must be between 0 and 2")
 
     for beam in ("Pbgoing", "pgoing"):
         for trigger_id in range(4):

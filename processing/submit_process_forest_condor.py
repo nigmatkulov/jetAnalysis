@@ -102,7 +102,7 @@ def parse_args() -> argparse.Namespace:
     """Define and parse all submission and analysis command-line options.
 
     The two positional paths identify what to process and where ROOT results
-    should be written.  Options through ``--reco-jet-selection`` map directly
+    should be written.  Options through ``--vertex-filter-selection`` map directly
     to ``processForestSimple``.  The remaining options control job splitting,
     naming, Condor resource requests, credentials, and submission behavior.
     """
@@ -155,6 +155,12 @@ def parse_args() -> argparse.Namespace:
         type=bounded_int("--reco-jet-selection", 0, 3),
         default=2,
         help="0=none, 1=trkMaxPt/RawPt, 2=tight ID+lepton veto, 3=loose ID",
+    )
+    parser.add_argument(
+        "--vertex-filter-selection",
+        type=bounded_int("--vertex-filter-selection", 0, 2),
+        default=0,
+        help="0=dz1p0, 1=Gplus, 2=Vtx1 (default: 0)",
     )
     parser.add_argument(
         "--files-per-job", type=positive_int, default=10, help="Default: 10"
@@ -235,6 +241,7 @@ def make_name(
     reco_selection = ("noSel", "trkMax", "jetId", "jetId")[
         args.reco_jet_selection
     ]
+    vertex_selection = ("dz1p0", "Gplus", "Vtx1")[args.vertex_filter_selection]
     if args.mc_type != 0 and args.trigger_id == 0:
         trigger = "NoTrigger"
     labels = [trigger]
@@ -244,6 +251,8 @@ def make_name(
     if args.mc_type != 0:
         labels.append(f"ptHat{pt_hat}")
     labels.append(reco_selection)
+    if args.vertex_filter_selection != 0:
+        labels.append(vertex_selection)
     if args.name:
         labels.insert(0, args.name)
     return "_".join(labels)
@@ -422,6 +431,7 @@ def main() -> int:
                         str(pt_hat),
                         str(args.trigger_id),
                         str(args.reco_jet_selection),
+                        str(args.vertex_filter_selection),
                     )
                 ),
                 f"output = {logs_dir}/$(job_name).out",

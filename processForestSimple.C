@@ -41,6 +41,7 @@ void usage() {
                 << "  <value>               pT hat sample for MC (default: 30)\n"
                 << "  <value>               Trigger ID (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100\n"
                 << "  <value>               Reco jet selection method (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose\n"
+                << "  <value>               Vertex filter selection (default 0): 0 - dz1p0, 1 - Gplus, 2 - Vtx1\n"
                 << RESET;
     exit(EXIT_FAILURE);
 }
@@ -2124,7 +2125,15 @@ void setPtHatRange(const int &ptHatSample) {
 /// @param isMc: true if the event is from Monte Carlo, false otherwise
 /// @param triggerId: the trigger ID (0 - MB, 1 - Jet60, 2 - Jet80, 3 - Jet100)
 /// @return true if the event is good, false otherwise
-bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &triggerId) {
+bool passesVertexFilter(const int &vertexFilterSelection) {
+    if (vertexFilterSelection == 0) return pVertexFilterCutdz1p0 == 1;
+    if (vertexFilterSelection == 1) return pVertexFilterCutGplus == 1;
+    if (vertexFilterSelection == 2) return pVertexFilterCutVtx1 == 1;
+    return false;
+}
+
+bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &triggerId,
+                 const int &vertexFilterSelection) {
 
     bool goodTrigger{false};
     if (isMc) {
@@ -2153,7 +2162,7 @@ bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &triggerId) 
              ( pPAprimaryVertexFilter == 1 ) && 
              ( HBHENoiseFilterResultRun2Loose == 1 ) && 
              ( phfCoincFilter == 1 ) && 
-             ( pVertexFilterCutdz1p0 == 1 )  && 
+             passesVertexFilter(vertexFilterSelection) &&
              goodTrigger );
 }
 
@@ -3537,7 +3546,8 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
 void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia, TChain &mainTree, 
                    JetCorrector &jec, JetUncertainty &jeu,
                    Histograms &hs,
-                   const int &triggerId, const int &jetSelectionMethod) {
+                   const int &triggerId, const int &jetSelectionMethod,
+                   const int &vertexFilterSelection) {
 
     std::cout << "Start event processing..." << std::endl;
 
@@ -3732,7 +3742,7 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         // std::cout << Form("|vz| <= 15 cm ? %s", (std::abs(vz) <= 15.) ? "true" : "false") << std::endl;
 
         // Check the event is satisfies basic event selection
-        if (!isGoodEvent(isPbGoing, isMc, triggerId)) continue;
+        if (!isGoodEvent(isPbGoing, isMc, triggerId, vertexFilterSelection)) continue;
 
         if ( isMc ) {
             weight = eventWeight(ptHat, vz, *fVzWeight, nEntries);
@@ -3788,11 +3798,13 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
     ptHatSample (default 30, for MC only): 15, 30, 50, 80, 120, 170, 220, 280, 370, 460, 540
     triggerId (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100
     recoJetSelMethod (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose
+    vertexFilterSelection (default 0): 0 - dz1p0, 1 - Gplus, 2 - Vtx1
 */
 #if defined(__CINT__) || defined(__CLING__)
 void processForestSimple( const char* input = "", const char* output = "", 
                           int mcType = 2, int isPbGoingDir = 1, int ptHatSample = 50,
-                          int triggerId = 0, int recoJetSelMethod = 2 ) {
+                          int triggerId = 0, int recoJetSelMethod = 2,
+                          int vertexFilterSelection = 0 ) {
 
     const char *path2auxFiles = "./aux_files/pPb_8160";
 #else
@@ -3805,8 +3817,9 @@ int main(int argc, char* argv[]) {
     int ptHatSample = {50};
     int triggerId = {0};
     int recoJetSelMethod = {2};
+    int vertexFilterSelection = {0};
 
-    if (argc != 8) {
+    if (argc != 9) {
         std::cerr << RED << "Incorrect number of input parameters. Terminating." << RESET << std::endl;
         usage();
     }
@@ -3818,6 +3831,7 @@ int main(int argc, char* argv[]) {
     ptHatSample = std::atoi(argv[5]);
     triggerId = std::atoi(argv[6]);
     recoJetSelMethod = std::atoi(argv[7]);
+    vertexFilterSelection = std::atoi(argv[8]);
 
     const char *path2auxFiles = "./aux_files/pPb_8160";
 #endif
@@ -3837,6 +3851,10 @@ int main(int argc, char* argv[]) {
     }
     if (recoJetSelMethod < 0 || recoJetSelMethod > 3) {
         std::cerr << RED << "Invalid recoJetSelMethod parameter. Must be 0 (no selection), 1 (trkMaxPt/RawPt), 2 (jetIdTightLeptVeto), or 3 (jetIdLoose). Terminating." << RESET << std::endl;
+        usage();
+    }
+    if (vertexFilterSelection < 0 || vertexFilterSelection > 2) {
+        std::cerr << RED << "Invalid vertexFilterSelection parameter. Must be 0 (dz1p0), 1 (Gplus), or 2 (Vtx1). Terminating." << RESET << std::endl;
         usage();
     }
 
@@ -3961,7 +3979,7 @@ int main(int argc, char* argv[]) {
 
     // Process the events
     processEvents(isPbGoing, isMc, isPythia, *mainTree, *jec, *jeu, hs,
-                  triggerId, recoJetSelMethod);
+                  triggerId, recoJetSelMethod, vertexFilterSelection);
 
     // Write output
     writeOutput(oFileName, hs, isMc);
