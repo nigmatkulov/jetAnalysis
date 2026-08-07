@@ -53,6 +53,12 @@ def parse_args() -> argparse.Namespace:
         help="Selection label in source and output names (default: jetId)",
     )
     parser.add_argument(
+        "--vertex-filter-selection",
+        choices=("dz1p0", "Gplus", "Vtx1"),
+        default="dz1p0",
+        help="Vertex-filter label in source and output names (default: dz1p0)",
+    )
+    parser.add_argument(
         "--output", type=Path,
         help=(
             "Final ROOT file (default: "
@@ -71,7 +77,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def input_pattern(trigger: str, beam: str, reco_jet_selection: str) -> str:
+def input_pattern(
+    trigger: str, beam: str, reco_jet_selection: str, vertex_filter_selection: str
+) -> str:
     """Return the submitter pattern for one trigger/direction/selection tuple.
 
     MB includes a primary-dataset label between the trigger and direction;
@@ -79,9 +87,10 @@ def input_pattern(trigger: str, beam: str, reco_jet_selection: str) -> str:
     neighboring campaigns produced with another selection are never deleted.
     """
 
+    vertex_suffix = "" if vertex_filter_selection == "dz1p0" else f"_{vertex_filter_selection}"
     if trigger == "MB":
-        return f"MB_PD*_{beam}_data_{reco_jet_selection}_job*.root"
-    return f"{trigger}_{beam}_data_{reco_jet_selection}_job*.root"
+        return f"MB_PD*_{beam}_data_{reco_jet_selection}{vertex_suffix}_job*.root"
+    return f"{trigger}_{beam}_data_{reco_jet_selection}{vertex_suffix}_job*.root"
 
 
 def validate_root_file(path: Path, rootls: str) -> None:
@@ -159,11 +168,14 @@ def main() -> int:
     if not input_dir.is_dir():
         raise SystemExit(f"input directory does not exist: {input_dir}")
 
+    vertex_suffix = "" if args.vertex_filter_selection == "dz1p0" else f"_{args.vertex_filter_selection}"
     default_output = input_dir / (
-        f"{args.trigger.lower()}_{args.beam}_ak4_{args.reco_jet_selection}.root"
+        f"{args.trigger.lower()}_{args.beam}_ak4_{args.reco_jet_selection}{vertex_suffix}.root"
     )
     output = args.output.expanduser().resolve() if args.output else default_output
-    pattern = input_pattern(args.trigger, args.beam, args.reco_jet_selection)
+    pattern = input_pattern(
+        args.trigger, args.beam, args.reco_jet_selection, args.vertex_filter_selection
+    )
     # Resolve and deduplicate paths before merging. Excluding output is a
     # second guard against ever feeding the target back into hadd if a custom
     # output name happens to match the discovery pattern.

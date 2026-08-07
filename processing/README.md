@@ -338,7 +338,7 @@ final filename:
 ```bash
 ../py-env/bin/python merge_data_outputs.py \
   /eos/user/g/gnigmatk/ana/pPb8160/exp/Pbgoing \
-  --trigger MB --beam Pbgoing --dry-run
+  --trigger MB --beam Pbgoing --vertex-filter-selection dz1p0 --dry-run
 ```
 
 Review the selected paths, then remove `--dry-run` to merge with at most 500
@@ -359,6 +359,12 @@ use the `jetId` filename label. The merger cannot distinguish them, so do not
 place both campaigns beneath the same merge directory. This is the same naming
 constraint described in the submission section above.
 
+Use `--vertex-filter-selection Gplus` or `Vtx1` to merge a pileup systematic
+campaign. These labels are added to both the matched job filenames and the
+default merged filename, for example
+`mb_Pbgoing_ak4_jetId_Gplus.root`. The nominal `dz1p0` selection retains the
+existing filenames.
+
 The corresponding p-going command uses the `pgoing` directory and
 `--beam pgoing`, producing `mb_pgoing_ak4_jetId.root`. Jet-trigger samples use
 the same interface with `--trigger Jet60`, `Jet80`, or `Jet100`; their default
@@ -367,7 +373,7 @@ outputs are `jet60_<beam>_ak4_jetId.root`, `jet80_<beam>_ak4_jetId.root`, and
 
 Pass `--output /path/to/name.root` to replace the default final path. This does
 not change source discovery: `--trigger`, `--beam`, and
-`--reco-jet-selection` still determine exactly which job outputs are merged
+`--reco-jet-selection` and `--vertex-filter-selection` still determine exactly which job outputs are merged
 and, after verification, removed.
 
 The script requires every intermediate file and the final file to be nonempty
