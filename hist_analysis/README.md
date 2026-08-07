@@ -67,12 +67,15 @@ before each 1D division and are not normalized. All 1D curves use
 canvases. The default ROOT binomial errors describe weighted-MC efficiencies and
 must not be interpreted as unweighted counting uncertainties.
 
-Use `notebooks/02_mc_jet_selection.ipynb` to compare Reco, matched Ref, and Gen
-inclusive-jet eta shapes for the standard jet ID, track-maximum-only, and
-no-selection stages in Lab and CM frames. It displays the underlying 2D maps and
-then produces configured pT-interval projections with Reco/Gen and Ref/Gen ratio
-panels. Integral, bin-width, and stored-yield modes and regular or binomial ratio
-errors are configurable.
+Use `notebooks/02_mc_jet_selection.ipynb` to compare Reco, matched Ref, RefSel,
+and Gen inclusive-jet eta shapes for the standard jet ID, track-maximum-only,
+and no-selection stages in Lab and CM frames. It displays the underlying 2D maps,
+then produces configured pT-interval full-distribution overlays and separate
+ratio canvases containing Reco/Gen, Ref/Gen, and RefSel/Gen. Ratios always use
+ROOT option `B` binomial errors. Integral, eta-range, bin-width, and stored-yield
+modes are supported; `LOG_Y` controls the full-distribution y-axis scale. CM
+1D canvases include solid black boundaries at `|eta_CM|=2.4` and dashed black
+boundaries at `|eta_CM|=1.9`, with both boundary types listed in the legend.
 The MC outputs also provide RefSel inclusive-jet histograms for these three
 selection stages in the unflipped-Lab, Lab, and CM frames.
 
