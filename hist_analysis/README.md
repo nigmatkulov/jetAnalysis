@@ -88,9 +88,18 @@ within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
 `output/jes_jer/`.
 
 Use `notebooks/02_mc_jet_JEC_check.ipynb` to compare raw and JEC-corrected MC
-inclusive-jet eta projections in configurable pT intervals. It overlays the
-Pb-going and p-going yields, plots corrected/raw ratios, and compares the two
-beam directions with independent-error propagation.
+inclusive-jet eta projections in configurable pT intervals. Each raw or
+corrected histogram is projected in its own pT coordinate, exposing the bin
+migration introduced by JEC. For each interval, the notebook writes a square
+four-distribution overlay and a two-panel figure containing the Pb-going and
+p-going corrected/raw ratios and their Pb-going/p-going double ratio. Select
+the production and jet selection with `GENERATOR` and `FILE_STEM`, limit every
+eta axis with `X_AXIS_RANGE`, and configure the distribution, corrected/raw,
+and double-ratio y ranges independently. `CORRECTED_RAW_RATIO_OPTION` and
+`CORRECTED_RAW_DIRECTION_RATIO_OPTION` accept ROOT `TH1::Divide` options `''`
+(independent-error propagation) or `'B'` (binomial errors). Outputs use
+`<generator>_<jetSelection>_<overlay|ratio>_pt_<low>_<high>.pdf` beneath
+`output/mc_jet_JEC_check/`; set `SAVE_PNG = True` to also write PNG files.
 
 Use `notebooks/03_mc_dijet_embedding_vs_pythia.ipynb` to compare Embedding and
 PYTHIA Reco, matched-Ref, and Gen dijet distributions for a configurable stored
