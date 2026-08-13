@@ -3,9 +3,55 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Mapping, Sequence
 
 import ROOT
+
+
+def write_systematic_csv(
+    histogram,
+    path,
+    *,
+    evaluation_range: tuple[float, float],
+):
+    """Write a relative systematic histogram in ``TGraphErrors`` CSV format.
+
+    The headerless columns are x, y=1, x error, and fractional y error, so ROOT
+    can read the file directly with ``TGraphErrors(path, "%lg,%lg,%lg,%lg")``.
+    Bins overlapping the evaluation range are retained, including boundary bins;
+    bins entirely outside it are omitted.
+    """
+
+    range_low, range_high = evaluation_range
+    if (
+        not math.isfinite(range_low)
+        or not math.isfinite(range_high)
+        or range_low >= range_high
+    ):
+        raise ValueError(
+            "evaluation_range must contain finite values with low < high"
+        )
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    written_rows = 0
+    axis = histogram.GetXaxis()
+    with output_path.open("w", encoding="utf-8") as stream:
+        for bin_index in range(1, histogram.GetNbinsX() + 1):
+            bin_low = axis.GetBinLowEdge(bin_index)
+            bin_high = axis.GetBinUpEdge(bin_index)
+            if bin_high <= range_low or bin_low >= range_high:
+                continue
+            stream.write(
+                f"{axis.GetBinCenter(bin_index):.10g},1.0,"
+                f"{0.5 * axis.GetBinWidth(bin_index):.10g},"
+                f"{histogram.GetBinContent(bin_index):.10g}\n"
+            )
+            written_rows += 1
+    if written_rows == 0:
+        raise ValueError("evaluation_range overlaps no histogram bins")
+    return output_path
 
 
 def _same_binning(left, right) -> bool:
@@ -28,13 +74,16 @@ def calculate_bin_by_bin_systematic(
     up_function=None,
     down_function=None,
     evaluation_range: tuple[float, float] | None = None,
+    combination: str = "average",
 ):
     """Reproduce ``calculateSystUncrtBinByBin`` without smoothing.
 
     The inputs are variation/default ratio histograms and provide the output
     binning. When both functions are supplied, their values at each bin center
-    replace the raw bin contents, matching the macro's ``useFit`` path. Each
-    output bin is ``(|up - 1| + |down - 1|) / 2``. As in the main-branch macro,
+    replace the raw bin contents, matching the macro's ``useFit`` path. With
+    ``combination='average'``, each output bin is
+    ``(|up - 1| + |down - 1|) / 2``. With ``combination='maximum'``, it is
+    ``max(|up - 1|, |down - 1|)``. As in the main-branch macro,
     the result is set to zero when both evaluated values are below ``1e-6``.
     Every bin that overlaps ``evaluation_range`` is included. For a boundary
     bin whose center lies outside the range, the fit is evaluated at the nearest
@@ -48,6 +97,8 @@ def calculate_bin_by_bin_systematic(
         raise ValueError("Up and Down ratio histograms must have identical binning")
     if (up_function is None) != (down_function is None):
         raise ValueError("up_function and down_function must be supplied together")
+    if combination not in ("average", "maximum"):
+        raise ValueError("combination must be 'average' or 'maximum'")
     if evaluation_range is not None:
         range_low, range_high = evaluation_range
         if (
@@ -79,9 +130,63 @@ def calculate_bin_by_bin_systematic(
             down_function.Eval(evaluation_point)
             if down_function is not None else down_ratio.GetBinContent(bin_index)
         )
-        uncertainty = (abs(up - 1.0) + abs(down - 1.0)) / 2.0
+        deviations = (abs(up - 1.0), abs(down - 1.0))
+        uncertainty = (
+            sum(deviations) / 2.0
+            if combination == "average" else max(deviations)
+        )
         if up < 1e-6 and down < 1e-6:
             uncertainty = 0.0
+        systematic.SetBinContent(bin_index, uncertainty)
+        systematic.SetBinError(bin_index, 0.0)
+    return systematic
+
+
+def calculate_one_sided_systematic(
+    variation_ratio,
+    *,
+    name: str,
+    variation_function=None,
+    evaluation_range: tuple[float, float] | None = None,
+):
+    """Build a symmetric uncertainty from one variation/default ratio.
+
+    Each retained bin is ``abs(variation/default - 1)``.  When a fit function
+    is supplied, it is evaluated at the bin center; overlapping boundary bins
+    are included and evaluated at the nearest acceptance boundary.
+    """
+
+    if not name:
+        raise ValueError("name must be non-empty")
+    if evaluation_range is not None:
+        range_low, range_high = evaluation_range
+        if (
+            not math.isfinite(range_low)
+            or not math.isfinite(range_high)
+            or range_low >= range_high
+        ):
+            raise ValueError(
+                "evaluation_range must contain finite values with low < high"
+            )
+
+    systematic = variation_ratio.Clone(name)
+    systematic.SetDirectory(0)
+    systematic.Reset()
+    for bin_index in range(1, variation_ratio.GetNbinsX() + 1):
+        bin_center = variation_ratio.GetBinCenter(bin_index)
+        evaluation_point = bin_center
+        if evaluation_range is not None:
+            bin_low = variation_ratio.GetXaxis().GetBinLowEdge(bin_index)
+            bin_high = variation_ratio.GetXaxis().GetBinUpEdge(bin_index)
+            if bin_high <= range_low or bin_low >= range_high:
+                continue
+            evaluation_point = min(max(bin_center, range_low), range_high)
+        value = (
+            variation_function.Eval(evaluation_point)
+            if variation_function is not None
+            else variation_ratio.GetBinContent(bin_index)
+        )
+        uncertainty = abs(value - 1.0) if value >= 1e-6 else 0.0
         systematic.SetBinContent(bin_index, uncertainty)
         systematic.SetBinError(bin_index, 0.0)
     return systematic

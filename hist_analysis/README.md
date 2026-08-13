@@ -187,13 +187,17 @@ coefficients, parameter errors, covariance matrix, chi-square, degrees of
 freedom, and fit probability, and prints the scalar results for later
 systematic-uncertainty extraction. Initial polynomial coefficients are
 configured separately for Up/Def and Down/Def in both the full-distribution
-and F/B fit families.
+and F/B fit families. `FIT_WEIGHT_OPTION = 'W'` uses ROOT's unit-weight fit for
+every non-empty bin; set it to `''` to use the histogram bin uncertainties.
 Set `SHOW_FIT_RESULTS = False` to hide the compact parameter and
 chi-square/ndf box while retaining the fitted curves and numeric summaries.
 Following `macro/systematics.C::calculateSystUncrtBinByBin` on `main`, the
 notebook also calculates the unsmoothed relative JER uncertainty in each bin as
 `(|Up/Def - 1| + |Down/Def - 1|) / 2`, evaluating the fitted Up/Def and Down/Def
-functions at the bin center as in the macro's `useFit` path. Before the optional
+functions at the bin center as in the macro's `useFit` path. Set
+`SYSTEMATIC_COMBINATION = 'average'` to use the mean instead. The default is
+`'maximum'`, namely `max(|Up/Def - 1|, |Down/Def - 1|)`.
+Before the optional
 smoothing step, the retained systematic histograms remain fractional; display clones
 are scaled by 100 and plotted with the y-axis title
 `JER Rel. Syst. Uncrt. (%)`, matching the macro's percent-plot convention.
@@ -210,7 +214,10 @@ absolute eta. Full-CM smoothing runs outward independently in both directions
 from the ROOT bin selected by `FULL_SMOOTHING_ORIGIN`, whose default is
 `-0.465 + 0.00001` for the CM boost. Original unsmoothed histograms are retained.
 Systematic-plot filenames contain `systematic_smoothed_` or
-`systematic_nonsmoothed_` according to this option.
+`systematic_nonsmoothed_` according to this option. All generated PDF and CSV
+filenames also record the full/F/B fit functions, fit weighting, and systematic
+combination before the final eta and pTave fields, for example
+`fullFit_pol4_fbFit_pol2_weightsStd_systCombMax_etaCM_19_ptave_60_100`.
 
 Use `notebooks/04_systematics_JEU.ipynb` to estimate the reconstructed-dijet
 JEU shape uncertainty in MinimumBias, Jet60, Jet80, and Jet100 data. Each
@@ -221,8 +228,12 @@ comparisons. Forward/Backward construction always uses independent errors; the
 later comparison-ratio error options are configured separately. The Up/Def and
 Down/Def curves use independently configurable `pol2` full-CM and `pol1` F/B
 fits, including configurable initial parameters and optional compact fit-result
-text. The relative JEU systematic is evaluated from the fitted curves as
-`(|Up/Def - 1| + |Down/Def - 1|) / 2`, retained fractionally, and plotted in
+text. `FIT_WEIGHT_OPTION = 'W'` gives every non-empty bin unit weight in the
+ROOT fits; set it to `''` to use the histogram bin uncertainties. The relative
+JEU systematic is evaluated from the fitted curves as
+`(|Up/Def - 1| + |Down/Def - 1|) / 2` by default; set
+`SYSTEMATIC_COMBINATION = 'maximum'` to use the larger absolute deviation.
+The result is retained fractionally and plotted in
 percent as `JEU Rel. Syst. Uncrt. (%)`. Bins overlapping the eta acceptance are
 included; boundary-bin fit evaluation is clamped to `ETA_CUT`, while fully
 outside bins remain zero. The fits themselves also include these overlapping
@@ -235,6 +246,46 @@ mode. Set
 `DATA_DIRECTION` and `DATA_SELECTION` to choose the shared four-trigger data
 production, and `DIJET_JEU_SYSTEMATICS_OUTPUT_DIR` to redirect its generated
 plots.
+
+The JEU output filenames use the same configuration tag convention as JER.
+Pileup and pointing-resolution outputs use `systCombMax` because their
+uncertainties are constructed from one variation.
+
+Use `notebooks/04_systematics_pileup.ipynb` to estimate the reconstructed-dijet
+pileup-filter shape uncertainty in MinimumBias, Jet60, Jet80, and Jet100 data.
+The notebook overlays unit-integral `dz1p0`, `Gplus`, and optionally `Vtx1` full
+CM eta projections and their unnormalized Forward/Backward ratios. It draws
+`Gplus/dz1p0` and optional diagnostic `Vtx1/dz1p0` comparisons; only
+`|Gplus/dz1p0 - 1|` defines the symmetric, double-sided uncertainty. Set
+`SYSTEMATIC_EXTRACTION` to `fit` or `bin_by_bin`; outward running-maximum
+smoothing is enabled by default. For fitted extraction,
+`FIT_WEIGHT_OPTION = 'W'` gives every non-empty bin unit weight; set it to `''`
+to use histogram bin uncertainties. Full-distribution and later F/B-to-F/B ratios
+independently support standard or binomial errors, while F/B construction is
+always performed with standard independent-error propagation.
+
+Use `notebooks/04_systematics_pointing_resolution.ipynb` to estimate the dijet
+pointing-resolution uncertainty in embedding or Pythia MC. It applies each
+configured half-open reconstructed-pTave interval to the X axis of
+`hRecoDijetPtEtaCMRefEtaCM_<eta cut>`, then projects reconstructed and
+matched-reference CM pseudorapidity from the Y and Z axes. Full shapes are
+independently normalized to unit integral; Forward/Backward is folded from the
+unnormalized projections with independent errors. The one-sided uncertainty is
+`|Reco/Ref - 1|`, evaluated from `pol2` full-shape and `pol1` F/B fits by
+default or directly bin by bin. Outward running-maximum smoothing is optional
+and enabled by default. For fitted extraction, `FIT_WEIGHT_OPTION = 'W'` gives
+every non-empty bin unit weight; set it to `''` to use histogram bin
+uncertainties. Full-shape Reco/Ref and the later F/B-to-F/B comparison
+independently allow standard or ROOT option `B` errors.
+
+JER, JEU, pileup, and pointing-resolution write the evaluated full-CM and F/B
+relative uncertainties as headerless CSV files. The columns are eta-bin center,
+unity, eta half-width, and fractional systematic uncertainty, respectively, so
+they can be loaded directly with
+`ROOT.TGraphErrors(path, "%lg,%lg,%lg,%lg")`. Bins overlapping the configured
+eta acceptance are written (including a boundary bin cut through by rebinning),
+while bins entirely beyond the acceptance are omitted. Beam orientation only
+produces comparison plots and therefore has no extracted uncertainty to export.
 
 Use `notebooks/05_unfold2D.ipynb` to construct a flattened dijet
 `pTave`-eta response and run a Bayesian RooUnfold closure test for the configured

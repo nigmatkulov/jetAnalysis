@@ -39,6 +39,7 @@ _DATA_TRIGGER_STEMS = {
 }
 _DATA_DIRECTIONS = ("combined", "Pbgoing", "pgoing")
 _DATA_RECO_SELECTIONS = ("jetId", "trkMax", "noSel")
+_DATA_VERTEX_FILTERS = ("dz1p0", "Gplus", "Vtx1")
 
 
 # ------------------------------------------------------------
@@ -97,13 +98,16 @@ def resolve_combined_file(base_dir: Path,
 def resolve_data_file(data_dir: Path,
                       trigger: str,
                       direction: str = "combined",
-                      selection: str = "jetId") -> Path:
+                      selection: str = "jetId",
+                      vertex_filter: str = "dz1p0") -> Path:
     """Build a merged experimental-data output path.
 
     Trigger aliases used by the data notebooks map to the lowercase stems
     written by ``processing/merge_data_outputs.py``. Combined files live in
     ``data_dir``; direction-specific files live in their matching subdirectory
-    and include the direction in the filename.
+    and include the direction in the filename. Non-nominal pileup-filter
+    productions append ``_Gplus`` or ``_Vtx1``; nominal ``dz1p0`` remains
+    unsuffixed.
     """
 
     try:
@@ -123,13 +127,20 @@ def resolve_data_file(data_dir: Path,
         raise ValueError(
             f"Unsupported reco-jet selection {selection!r}; expected one of: {supported}"
         )
+    if vertex_filter not in _DATA_VERTEX_FILTERS:
+        supported = ", ".join(_DATA_VERTEX_FILTERS)
+        raise ValueError(
+            f"Unsupported vertex filter {vertex_filter!r}; expected one of: "
+            f"{supported}"
+        )
 
     data_dir = Path(data_dir)
+    vertex_suffix = "" if vertex_filter == "dz1p0" else f"_{vertex_filter}"
     if direction == "combined":
-        return data_dir / f"{trigger_stem}_ak4_{selection}.root"
+        return data_dir / f"{trigger_stem}_ak4_{selection}{vertex_suffix}.root"
     return (
         data_dir / direction
-        / f"{trigger_stem}_{direction}_ak4_{selection}.root"
+        / f"{trigger_stem}_{direction}_ak4_{selection}{vertex_suffix}.root"
     )
 
 # ------------------------------------------------------------
