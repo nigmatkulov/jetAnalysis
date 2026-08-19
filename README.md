@@ -173,7 +173,12 @@ retain the run-integrated and run-specific `hRecoDijetPtEtaCMRunArr` histograms
 for the configured run-ID comparison. MC outputs also contain
 `hRefSelInclusiveJet{PtEtaLabUnflipped,PtEtaLab,PtEtaCM}` and the corresponding
 `TrkMax` and `NoSel` families, filled from reference jets matched to the
-selected reconstructed-jet population.
+selected reconstructed-jet population. For every configured dijet eta cut, MC
+outputs additionally contain `hRecoDijetPtEtaCMRefEtaCM_<index>` and
+`hRecoDijetPtEtaCMdEtaRefEtaCM_<index>`. Their axes are reconstructed pTave,
+reconstructed eta and reference eta for the first object, and reconstructed
+pTave, `eta_reco - eta_ref`, and reference eta for the second. Both are filled
+only for nominal reco-selected dijets whose two jets have reference matches.
 
 ## Histogram analysis
 
@@ -194,7 +199,7 @@ inspecting and comparing analysis outputs:
 - `notebooks/04_systematics_JER.ipynb`: estimates the reconstructed-dijet JER shape systematic in embedding or Pythia MC from unit-integral JER Up, Down, and default CM eta projections and unnormalized forward/backward ratios. It draws dedicated Up/Def and Down/Def comparisons with configurable polynomial fits, calculates bin-by-bin relative uncertainties from the fitted values, and optionally applies outward running-maximum smoothing to the full CM and F/B uncertainties; F/B construction always uses independent errors.
 - `notebooks/04_systematics_JEU.ipynb`: estimates the reconstructed-dijet JEU shape systematic for the MB and jet-triggered data samples from unit-integral JEU Up, Down, and default CM eta projections and unnormalized forward/backward ratios. Configurable polynomial fits provide the bin-center values used to calculate the relative uncertainty, with optional outward smoothing for full-CM and F/B results.
 - `notebooks/04_systematics_pileup.ipynb`: estimates the reconstructed-dijet pileup-filter shape systematic for the MB and jet-triggered data samples by comparing unit-integral `Gplus` and optional diagnostic `Vtx1` CM eta projections with nominal `dz1p0`, together with their unnormalized forward/backward ratios. The symmetric uncertainty is `|Gplus/dz1p0 - 1|`, using fitted or direct bin-by-bin values and optional outward smoothing.
-- `notebooks/04_systematics_pointing_resolution.ipynb`: estimates the MC dijet pointing-resolution shape systematic from reconstructed- and matched-reference-eta projections of `hRecoDijetPtEtaCMRefEtaCM_<eta cut>` in common reconstructed-pTave intervals. It compares unit-normalized full shapes and unnormalized forward/backward ratios, then extracts `|Reco/Ref - 1|` using fitted or direct bin-by-bin values and optional outward smoothing.
+- `notebooks/04_systematics_pointing_resolution.ipynb`: estimates the MC dijet pointing-resolution shape systematic from the nominal Reco and matched-Ref CM, forward, and backward TH2 histograms in common reconstructed-pTave intervals. It compares unit-normalized full shapes and F/B ratios constructed from separate unnormalized forward/backward projections, then extracts `|Reco/Ref - 1|` using fitted or direct bin-by-bin values and optional outward smoothing.
 - `notebooks/05_unfold2D.ipynb`: builds a flattened dijet pTave-eta response for the eta-dependent JER-default measured distribution, runs a Bayesian RooUnfold closure test with explicit miss/fake handling, and produces Gen/Reco/unfolded eta overlays and closure ratios for every configured pTave interval. ROOT results and PDF diagnostics are written to `output/unfold2D/`; set `SAVE_PNG = True` for matching PNGs.
 - `notebooks/05_unfold2D_mc_direction.ipynb`: trains the same flattened response on Pb-going embedding and applies it to the independent p-going embedding reco distribution, then compares the unfolded result with p-going generator truth. It preserves the response scaling, miss/fake handling, diagnostics, and output conventions of `05_unfold2D.ipynb`.
 - `notebooks/06_data_jet_distributions.ipynb`: compares Pb-going, p-going, and combined inclusive-jet data for configurable jet-ID, track-maximum, or no-selection outputs. It draws common-scale orientation 2D maps and pT/eta overlays with ratios to combined in the unflipped-Lab, flipped-Lab, and CM frames, plus selected raw-jet-pT versus unflipped detector-eta diagnostics.

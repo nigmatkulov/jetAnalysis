@@ -265,12 +265,12 @@ independently support standard or binomial errors, while F/B construction is
 always performed with standard independent-error propagation.
 
 Use `notebooks/04_systematics_pointing_resolution.ipynb` to estimate the dijet
-pointing-resolution uncertainty in embedding or Pythia MC. It applies each
-configured half-open reconstructed-pTave interval to the X axis of
-`hRecoDijetPtEtaCMRefEtaCM_<eta cut>`, then projects reconstructed and
-matched-reference CM pseudorapidity from the Y and Z axes. Full shapes are
-independently normalized to unit integral; Forward/Backward is folded from the
-unnormalized projections with independent errors. The one-sided uncertainty is
+pointing-resolution uncertainty in embedding or Pythia MC. It projects the Y
+axis of the nominal `hRecoDijetPtEta{CM,Forward,Backward}_<eta cut>` and
+`hRefDijetPtEta{CM,Forward,Backward}_<eta cut>` TH2 histograms in common
+half-open reconstructed-pTave intervals. Full shapes are independently
+normalized to unit integral; Forward/Backward divides the separate unnormalized
+forward and backward projections with independent errors. The one-sided uncertainty is
 `|Reco/Ref - 1|`, evaluated from `pol2` full-shape and `pol1` F/B fits by
 default or directly bin by bin. Outward running-maximum smoothing is optional
 and enabled by default. For fitted extraction, `FIT_WEIGHT_OPTION = 'W'` gives

@@ -629,8 +629,10 @@ struct Histograms {
     std::unique_ptr<TH2D> hRefSelInclusiveJetNoSelPtEtaLab;
     std::unique_ptr<TH2D> hRefSelInclusiveJetNoSelPtEtaCM;
     std::unique_ptr<TH2D> hRefInclusiveJetPtEtaStdBins;
-    // For pointing resolution studies, we need to store the 3D histograms of reco dijet pt vs eta vs ref dijet eta
-    std::unique_ptr<TH3D> hRecoDijetPtEtaCMRefEtaCMArr[nEtaCuts];
+    // MC-only pointing diagnostics: reconstructed pTave versus either the
+    // reconstructed/reference eta pair or their residual versus reference eta.
+    std::unique_ptr<TH3F> hRecoDijetPtEtaCMRefEtaCMArr[nEtaCuts];
+    std::unique_ptr<TH3F> hRecoDijetPtEtaCMdEtaRefEtaCMArr[nEtaCuts];
 
     // Ref dijet histograms
 
@@ -1800,12 +1802,18 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                             nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hRecoDijetPtEtaBackwardArrJerDefUnfold[iCut]->Sumw2();
 
-            hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut] = std::make_unique<TH3D>(Form("hRecoDijetPtEtaCMRefEtaCM_%d", iCut),
+            hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut] = std::make_unique<TH3F>(Form("hRecoDijetPtEtaCMRefEtaCM_%d", iCut),
                                             Form("Reco dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs. ref dijet #eta_{CM} vs. p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}^{reco};#eta_{CM}^{ref};", etaCuts[iCut]),
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                             nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1],
                                             nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
             hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut]->Sumw2();
+            hs.hRecoDijetPtEtaCMdEtaRefEtaCMArr[iCut] = std::make_unique<TH3F>(Form("hRecoDijetPtEtaCMdEtaRefEtaCM_%d", iCut),
+                                            Form("Reco dijet p_{T}^{ave} vs. (#eta_{CM}^{reco}-#eta_{CM}^{ref}) vs. ref dijet #eta_{CM} (|#eta| < %.1f);p_{T}^{ave} (GeV);#eta_{CM}^{reco}-#eta_{CM}^{ref};#eta_{CM}^{ref};", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            80, -0.04, 0.04,
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRecoDijetPtEtaCMdEtaRefEtaCMArr[iCut]->Sumw2();
         } // if (isMc)
 
         if (!isMc) {
@@ -2980,7 +2988,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                        std::unique_ptr<TH2D> *refFullArr = nullptr,
                                        std::unique_ptr<TH2D> *refForwardArr = nullptr,
                                        std::unique_ptr<TH2D> *refBackwardArr = nullptr,
-                                       std::unique_ptr<TH3D> *recoPtEtaRefEtaArr = nullptr) {
+                                       std::unique_ptr<TH3F> *recoPtEtaRefEtaArr = nullptr,
+                                       std::unique_ptr<TH3F> *recoPtEtaDetaEtaArr = nullptr) {
         const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(recoJets, getPt, recoJetSortFallback);
         const auto &leadingJetSyst = *leadingJetPtr;
         const auto &subleadingJetSyst = *subleadingJetPtr;
@@ -3019,9 +3028,11 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
             if (refFullArr && hasRefPair) {
                 refFullArr[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
             }
-            // Fill reco dijet ptAve vs. etaCM vs. ref etaCM
+            // Pointing diagnostics use the nominal reco-selected, matched pair:
+            // X is reco pTave, while Y/Z store eta correlation or residual.
             if (recoPtEtaRefEtaArr && hasRefPair) {
                 recoPtEtaRefEtaArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, refDijetEtaCM, weight);
+                recoPtEtaDetaEtaArr[iCut]->Fill(systDijetPtAve, (systDijetEtaCM - refDijetEtaCM), refDijetEtaCM, weight);
             }
 
             // Reco forward and backward distributions
@@ -3051,7 +3062,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                 hs.hRefDijetPtEtaCMArr,
                                 hs.hRefDijetPtEtaForwardArr,
                                 hs.hRefDijetPtEtaBackwardArr,
-                                hs.hRecoDijetPtEtaCMRefEtaCMArr);
+                                hs.hRecoDijetPtEtaCMRefEtaCMArr,
+                                hs.hRecoDijetPtEtaCMdEtaRefEtaCMArr);
     }
     else {
         fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPt; },
@@ -3421,6 +3433,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
             hs.hRefDijetPtEtaForwardArr[iCut]->Write();
             hs.hRefDijetPtEtaBackwardArr[iCut]->Write();
             hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut]->Write();
+            hs.hRecoDijetPtEtaCMdEtaRefEtaCMArr[iCut]->Write();
 
             //
             // Ref-selected level histograms
