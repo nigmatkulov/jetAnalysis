@@ -213,15 +213,21 @@ def draw_orientation_comparisons(
     save_png: bool,
     grid: bool,
     style,
+    eta_normalization: str = "integral",
     eta_display_range: tuple[float, float] | None = None,
     eta_y_range: tuple[float, float] | None = None,
     fb_y_range: tuple[float, float] | None = None,
+    fb_x_range: tuple[float, float] | None = None,
     fb_ratio_range: tuple[float, float] | None = None,
 ):
     """Overlay orientation shapes and CM F/B ratios relative to combined."""
 
     if jet_kind not in {"jet", "dijet"}:
         raise ValueError("jet_kind must be 'jet' or 'dijet'")
+    if eta_normalization not in {"integral", "bin_width"}:
+        raise ValueError(
+            "eta_normalization must be 'integral' or 'bin_width'"
+        )
     output = Path(output_dir)
     trigger_tag = _tag(trigger)
     default_momentum = "p_{T}^{jet}" if jet_kind == "jet" else "p_{T}^{ave}"
@@ -352,7 +358,7 @@ def draw_orientation_comparisons(
                 for direction, filename in direction_files.items()
             }
             histograms = {
-                direction: normalize_histogram(histogram, "integral")
+                direction: normalize_histogram(histogram, eta_normalization)
                 for direction, histogram in raw_histograms.items()
             }
             canvas, ratios = draw_closure(
@@ -394,6 +400,7 @@ def draw_orientation_comparisons(
                     forward_backward, "combined", title="",
                     x_title=f"|{eta_title}|",
                     y_title="Forward / Backward",
+                    x_range=fb_x_range,
                     y_range=fb_y_range,
                     ratio_range=fb_ratio_range or ratio_range,
                     ratio_option="", draw_nominal_ratio=False,

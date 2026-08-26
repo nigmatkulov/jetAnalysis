@@ -140,13 +140,19 @@ eta-dependent JER-default reconstructed-MC, and nominal generator-level-MC dijet
 pTave spectra for MinimumBias, Jet60, Jet80, and Jet100. The MC-reco curve uses
 `hRecoDijetPtEtaCMJerDefExtra`; data reco and MC gen use
 `hRecoDijetPtEtaCM` and `hGenDijetPtEtaCM`, respectively. Each curve is
-normalized independently over the configured half-open pTave interval, and a
-separate comparison is produced for every configured jet-eta acceptance. The
-notebook also projects and unit-normalizes pseudorapidity shapes in every
-half-open interval from `config.histograms.TEST_DIJET_PTAVE_BINS`, producing
-data/MC-gen and MC-reco/MC-gen ratios for each trigger and eta acceptance. The
-notebook also compares the unnormalized data, MC-reco, and MC-gen
-Forward/Backward ratios, with Data/MC-gen and MC-reco/MC-gen lower panels.
+normalized independently over the configured half-open pTave interval. At the
+standard eta-cut index 5, the notebook projects pseudorapidity shapes in the
+same 16 trigger-specific half-open pTave intervals used by
+`06_data_dijet_distributions.ipynb`. The shapes are normalized by their
+bin-width integral to produce true unit-area `1/N dN/deta_CM` densities, with
+data/MC-gen and MC-reco/MC-gen ratios. It also compares data, MC-reco, and
+MC-gen Forward/Backward ratios built from the unnormalized projections using
+independent-error propagation; these distributions are displayed from zero,
+with Data/MC-gen and MC-reco/MC-gen lower panels. Three final 1200 x 1200
+canvases collect all 16 intervals in separate 4x4 layouts: one for full-eta
+overlays, one for ratios to generator MC, and one for the data/MC F/B overlays.
+Their 1200-pixel PNG outputs provide at least 200 DPI up to a 6-inch figure,
+and trigger names are omitted from the summary legends.
 F/B construction and the subsequent comparisons use independent errors. The
 default ratio ranges are 0.75--1.25 for pTave and 0.65--1.15 for eta, configured
 independently with `PTAVE_RATIO_RANGE` and `ETA_RATIO_RANGE`; `FB_RANGE` and
@@ -266,17 +272,26 @@ always performed with standard independent-error propagation.
 
 Use `notebooks/04_systematics_pointing_resolution.ipynb` to estimate the dijet
 pointing-resolution uncertainty in embedding or Pythia MC. It projects the Y
-axis of the nominal `hRecoDijetPtEta{CM,Forward,Backward}_<eta cut>` and
-`hRefDijetPtEta{CM,Forward,Backward}_<eta cut>` TH2 histograms in common
-half-open reconstructed-pTave intervals. Full shapes are independently
-normalized to unit integral; Forward/Backward divides the separate unnormalized
-forward and backward projections with independent errors. The one-sided uncertainty is
+axis of nominal `hRecoDijetPtEtaCM_<eta cut>` and pointing-reference
+`hRefDijetPtEtaCMPointingRes_<eta cut>` in common half-open reconstructed-pTave
+intervals. Full shapes are independently normalized to unit integral.
+Each Forward/Backward ratio is folded from its unnormalized full projection,
+starting Forward at `FindBin(0 + 0.001)` and reflecting the bins below zero,
+with independent errors. The one-sided uncertainty is
 `|Reco/Ref - 1|`, evaluated from `pol2` full-shape and `pol1` F/B fits by
 default or directly bin by bin. Outward running-maximum smoothing is optional
 and enabled by default. For fitted extraction, `FIT_WEIGHT_OPTION = 'W'` gives
 every non-empty bin unit weight; set it to `''` to use histogram bin
 uncertainties. Full-shape Reco/Ref and the later F/B-to-F/B comparison
 independently allow standard or ROOT option `B` errors.
+
+The same notebook also produces a full-distribution-only Lab-frame estimator
+from `hRecoDijetPtEtaLab_<lab eta cut>` and
+`hRefDijetPtEtaLabPointingRes_<lab eta cut>`. `LAB_ETA_CUT_INDEX` is configured
+separately from the CM selection and defaults to index 6, corresponding to
+`|eta_Lab^jet| < 2.3`. It reuses the configured pTave intervals, Reco/Ref fit,
+one-sided uncertainty, ratio-band, CSV, and outward smoothing workflows, with
+the Lab smoothing origin fixed at zero. No Lab Forward/Backward ratio is made.
 
 JER, JEU, pileup, and pointing-resolution write the evaluated full-CM and F/B
 relative uncertainties as headerless CSV files. The columns are eta-bin center,
@@ -343,10 +358,14 @@ versus unflipped detector-eta diagnostics from
 normalized eta projections with Pb-going/combined and p-going/combined ratio
 panels. The pT
 spectra are normalized in the configured 110--130 GeV interval. The dijet
-notebook also folds each raw CM eta projection into an unnormalized
+notebook uses bin-width normalization for true unit-area `1/N dN/deta`
+densities and also folds each raw CM eta projection into an unnormalized
 Forward/Backward ratio, overlays the three orientations, and plots the
 Pb-going/combined and p-going/combined F/B ratios with independent-error
-propagation. Inclusive-jet
+propagation. Its eta projections are displayed through the configured eta cut
+plus 0.1, and a final section collects the 16 selected intervals into two
+legend-free square 4x4 figures: one for combined-orientation normalized CM
+shapes and one for combined-orientation F/B curves. Inclusive-jet
 and dijet projection intervals are independently configurable for MinimumBias,
 Jet60, Jet80, and Jet100; inclusive-jet pT spectra also have a configurable eta
 selection. In the inclusive-jet notebook, set `ETA_DISPLAY_RANGE` to limit the

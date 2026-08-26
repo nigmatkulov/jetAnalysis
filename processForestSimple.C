@@ -49,8 +49,8 @@ void usage() {
 // Eta shifts for pPb 8.16 TeV collisions, used for etaCM calculation
 const int nEtaShifts = 13;
 static constexpr std::array<float, nEtaShifts> etaShift{0.460, 0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470, 0.475, 0.480, 0.485, 0.490 };
-const int nEtaCuts = 8;
-static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.4, 3.0};
+const int nEtaCuts = 9;
+static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4, 3.0};
 // Run IDs used for the data-taking-period comparison histograms.
 const int nDiagnosticRuns = 5;
 const int nDiagnosticRunHistograms = nDiagnosticRuns + 1;
@@ -487,6 +487,7 @@ struct Histograms {
     std::unique_ptr<TH2D> hGenDijetPtEtaLab;
     std::unique_ptr<TH2D> hGenDijetPtEtaCM;
 
+    std::unique_ptr<TH2D> hGenDijetPtEtaLabArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetPtEtaForwardArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetPtEtaBackwardArr[nEtaCuts];
@@ -559,6 +560,7 @@ struct Histograms {
     std::unique_ptr<TH2D> hRecoDijetPtEtaLab;
     std::unique_ptr<TH2D> hRecoDijetPtEtaCM;
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMRunArr[nDiagnosticRunHistograms];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaLabArr[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArr[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArr[nEtaCuts];
@@ -629,10 +631,6 @@ struct Histograms {
     std::unique_ptr<TH2D> hRefSelInclusiveJetNoSelPtEtaLab;
     std::unique_ptr<TH2D> hRefSelInclusiveJetNoSelPtEtaCM;
     std::unique_ptr<TH2D> hRefInclusiveJetPtEtaStdBins;
-    // MC-only pointing diagnostics: reconstructed pTave versus either the
-    // reconstructed/reference eta pair or their residual versus reference eta.
-    std::unique_ptr<TH3F> hRecoDijetPtEtaCMRefEtaCMArr[nEtaCuts];
-    std::unique_ptr<TH3F> hRecoDijetPtEtaCMdEtaRefEtaCMArr[nEtaCuts];
 
     // Ref dijet histograms
 
@@ -640,6 +638,8 @@ struct Histograms {
     std::unique_ptr<TH2D> hRefDijetPtEtaLab;
     std::unique_ptr<TH2D> hRefDijetPtEtaCM;
 
+    std::unique_ptr<TH2D> hRefDijetPtEtaLabArr[nEtaCuts];
+    std::unique_ptr<TH2D> hRefDijetPtEtaLabPointingResArr[nEtaCuts];
     std::unique_ptr<TH2D> hRefDijetPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hRefDijetPtEtaForwardArr[nEtaCuts];
     std::unique_ptr<TH2D> hRefDijetPtEtaBackwardArr[nEtaCuts];
@@ -653,6 +653,10 @@ struct Histograms {
     std::unique_ptr<TH2D> hRefDijetPtEtaCMArrJerDef[nEtaCuts];        // JER default variation for ref dijet histograms
     std::unique_ptr<TH2D> hRefDijetPtEtaForwardArrJerDef[nEtaCuts];   // JER default variation for ref dijet histograms
     std::unique_ptr<TH2D> hRefDijetPtEtaBackwardArrJerDef[nEtaCuts];  // JER default variation for ref dijet histograms
+
+    // MC-only pointing diagnostic. It keeps the reconstructed pTave selection
+    // while applying each eta acceptance to the matched reference jets.
+    std::unique_ptr<TH2D> hRefDijetPtEtaCMPointingResArr[nEtaCuts];
 
 };
 
@@ -1132,6 +1136,11 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
 
         // Loop over eta cuts for dijet histograms
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+            hs.hGenDijetPtEtaLabArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetPtEtaLab_%d", iCut),
+                                                Form("Gen dijet #eta (lab frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta", etaCuts[iCut]),
+                                                nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                                nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hGenDijetPtEtaLabArr[iCut]->Sumw2();
             hs.hGenDijetPtEtaCMArr[iCut] = std::make_unique<TH2D>(Form("hGenDijetPtEtaCM_%d", iCut), 
                                                 Form("Gen dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
                                                 nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
@@ -1378,6 +1387,16 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
         hs.hRefDijetPtEtaCM->Sumw2();
 
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+            hs.hRefDijetPtEtaLabArr[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaLab_%d", iCut),
+                                            Form("Ref dijet #eta (lab frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefDijetPtEtaLabArr[iCut]->Sumw2();
+            hs.hRefDijetPtEtaLabPointingResArr[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaLabPointingRes_%d", iCut),
+                                            Form("Ref dijet #eta (lab frame, |#eta| < %.1f) vs p_{T}^{ave} (pointing resolution);p_{T}^{ave} (GeV);#eta", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefDijetPtEtaLabPointingResArr[iCut]->Sumw2();
             hs.hRefDijetPtEtaCMArr[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCM_%d", iCut), 
                                                 Form("Ref dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
                                                 nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
@@ -1439,6 +1458,11 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                             nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hRefDijetPtEtaBackwardArrJerDef[iCut]->Sumw2();
+            hs.hRefDijetPtEtaCMPointingResArr[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCMPointingRes_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, |#eta^{ref}| < %.1f) vs reco p_{T}^{ave} (pointing resolution);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefDijetPtEtaCMPointingResArr[iCut]->Sumw2();
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
 
         //
@@ -1641,6 +1665,11 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
     }
 
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+        hs.hRecoDijetPtEtaLabArr[iCut] = std::make_unique<TH2D>(Form("hRecoDijetPtEtaLab_%d", iCut),
+                                            Form("Reco dijet #eta (lab frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+        hs.hRecoDijetPtEtaLabArr[iCut]->Sumw2();
         hs.hRecoDijetPtEtaCMArr[iCut] = std::make_unique<TH2D>(Form("hRecoDijetPtEtaCM_%d", iCut), 
                                             Form("Reco dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
@@ -1802,18 +1831,6 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                             nDijetEtaFBBins, dijetEtaFBBins[0], dijetEtaFBBins[1]);
             hs.hRecoDijetPtEtaBackwardArrJerDefUnfold[iCut]->Sumw2();
 
-            hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut] = std::make_unique<TH3F>(Form("hRecoDijetPtEtaCMRefEtaCM_%d", iCut),
-                                            Form("Reco dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs. ref dijet #eta_{CM} vs. p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}^{reco};#eta_{CM}^{ref};", etaCuts[iCut]),
-                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1],
-                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
-            hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut]->Sumw2();
-            hs.hRecoDijetPtEtaCMdEtaRefEtaCMArr[iCut] = std::make_unique<TH3F>(Form("hRecoDijetPtEtaCMdEtaRefEtaCM_%d", iCut),
-                                            Form("Reco dijet p_{T}^{ave} vs. (#eta_{CM}^{reco}-#eta_{CM}^{ref}) vs. ref dijet #eta_{CM} (|#eta| < %.1f);p_{T}^{ave} (GeV);#eta_{CM}^{reco}-#eta_{CM}^{ref};#eta_{CM}^{ref};", etaCuts[iCut]),
-                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
-                                            80, -0.04, 0.04,
-                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
-            hs.hRecoDijetPtEtaCMdEtaRefEtaCMArr[iCut]->Sumw2();
         } // if (isMc)
 
         if (!isMc) {
@@ -2403,17 +2420,8 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
         } // if (std::abs(dphi) >= TMath::TwoPi() / 3.)
     } // if (leadingJet.pt >= 50.f && subleadingJet.pt >= 40.)
 
-    // fillRecoDijetSystematic:
-    // - `getPt`: callable taking `const RecoJet&` and returning the pT value
-    //   used for ordering and dijet pT calculations (float-like).
-    // - Finds the two highest-pT jets without sorting the full collection.
-    // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
-    //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
-    //   2D histograms (`recoFull/Forward/Backward`).
-    // - If optional ref arrays are provided and both jets have `refPt > 0`,
-    //   the corresponding reference histograms are filled using the ref pT.
-    // - Passing different accessors (e.g. `recoPt`, `recoPtJerUp`) lets this
-    //   lambda fill nominal and systematic variations without duplicating code.
+    // Re-select the leading pair for each pT accessor so nominal and smeared
+    // generator distributions use the same thresholds and angular selection.
     std::vector<GenJet> genJetSortFallback;
     genJetSortFallback.reserve(genJets.size());
     auto fillGenDijetSystematic = [&](auto getPt,
@@ -2423,8 +2431,7 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
         const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(genJets, getPt, genJetSortFallback);
         const auto &leadingJetSyst = *leadingJetPtr;
         const auto &subleadingJetSyst = *subleadingJetPtr;
-        // pT cuts for systematic variations (can be adjusted as needed)
-        if (getPt(leadingJetSyst) < 50.f || getPt(subleadingJetSyst) < 40.f) return; 
+        if (getPt(leadingJetSyst) < 50.f || getPt(subleadingJetSyst) < 40.f) return;
         float systDphi = deltaPhi(leadingJetSyst.phi, subleadingJetSyst.phi);
         if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
 
@@ -2447,7 +2454,33 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
             }
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
     };
+
+    // Fill dijet histograms for systematic variations in lab frame (etaLab)
+    auto fillGenDijetLabSystematic = [&](auto getPt,
+                                         std::unique_ptr<TH2D> *genFullArr) {
+        const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(genJets, getPt, genJetSortFallback);
+        const auto &leadingJetSyst = *leadingJetPtr;
+        const auto &subleadingJetSyst = *subleadingJetPtr;
+        // pT cuts for systematic variations (can be adjusted as needed)
+        if (getPt(leadingJetSyst) < 50.f || getPt(subleadingJetSyst) < 40.f) return;
+        float systDphi = deltaPhi(leadingJetSyst.phi, subleadingJetSyst.phi);
+        if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
+
+        float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
+        float leadEtaLab = etaLab(leadingJetSyst.eta, isPbGoing, isMc);
+        float subleadEtaLab = etaLab(subleadingJetSyst.eta, isPbGoing, isMc);
+        float systDijetEtaLab = 0.5f * (leadEtaLab + subleadEtaLab);
+
+        // Loop over eta cuts and fill the corresponding histograms
+        for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+            if (std::abs(leadEtaLab) > etaCuts[iCut] || std::abs(subleadEtaLab) > etaCuts[iCut]) continue;
+            genFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaLab, weight);
+        } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
+    };
     
+    //
+    // Gen level dijet histograms (no smearing, no extra scale factors)
+    //
     fillGenDijetSystematic(
         [](const GenJet &jet) { return jet.pt; },
         hs.hGenDijetPtEtaCMArr,
@@ -2455,7 +2488,15 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
         hs.hGenDijetPtEtaBackwardArr
     );
 
+    fillGenDijetLabSystematic(
+        [](const GenJet &jet) { return jet.pt; },
+        hs.hGenDijetPtEtaLabArr
+    );
+
+    //
     // Smear gen jets and fill smeared-gen histograms for several extraScale factors.
+    //
+
     // Number of smearing iterations (runs) per scale.
     int nSmearRuns = 20; // adjust as needed
 
@@ -2975,8 +3016,9 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
     // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
     //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
     //   2D histograms (`recoFull/Forward/Backward`).
-    // - If optional ref arrays are provided and both jets have `refPt > 0`,
-    //   the corresponding reference histograms are filled using the ref pT.
+    // - Matched-reference arrays retain the selected reconstructed pTave on x
+    //   and use reference dijet eta on y. Pointing arrays instead apply each
+    //   eta acceptance to the reference jets.
     // - Passing different accessors (e.g. `recoPt`, `recoPtJerUp`) lets this
     //   lambda fill nominal and systematic variations without duplicating code.
     std::vector<RecoJet> recoJetSortFallback;
@@ -2988,8 +3030,7 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                        std::unique_ptr<TH2D> *refFullArr = nullptr,
                                        std::unique_ptr<TH2D> *refForwardArr = nullptr,
                                        std::unique_ptr<TH2D> *refBackwardArr = nullptr,
-                                       std::unique_ptr<TH3F> *recoPtEtaRefEtaArr = nullptr,
-                                       std::unique_ptr<TH3F> *recoPtEtaDetaEtaArr = nullptr) {
+                                       std::unique_ptr<TH2D> *refFullArrPointing = nullptr) {
         const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(recoJets, getPt, recoJetSortFallback);
         const auto &leadingJetSyst = *leadingJetPtr;
         const auto &subleadingJetSyst = *subleadingJetPtr;
@@ -3019,39 +3060,96 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
         // Loop over eta cuts and fill the corresponding histograms
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
 
-            if (std::abs(leadEtaCM) > etaCuts[iCut] || std::abs(subleadEtaCM) > etaCuts[iCut]) continue;
+            // Standard dijet processing
+            if (std::abs(leadEtaCM) <= etaCuts[iCut] && std::abs(subleadEtaCM) <= etaCuts[iCut]) {
+                // Fill reco dijet histograms
+                recoFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
 
-            // Fill reco dijet histograms
-            recoFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
+                // Fill ref dijet histograms (if a ref pair is available)
+                if (refFullArr && hasRefPair) {
+                    refFullArr[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
+                }
 
-            // Fill ref dijet histograms (if a ref pair is available)
-            if (refFullArr && hasRefPair) {
-                refFullArr[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
-            }
-            // Pointing diagnostics use the nominal reco-selected, matched pair:
-            // X is reco pTave, while Y/Z store eta correlation or residual.
-            if (recoPtEtaRefEtaArr && hasRefPair) {
-                recoPtEtaRefEtaArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, refDijetEtaCM, weight);
-                recoPtEtaDetaEtaArr[iCut]->Fill(systDijetPtAve, (systDijetEtaCM - refDijetEtaCM), refDijetEtaCM, weight);
-            }
+                // Reco forward and backward distributions
+                if (systDijetEtaCM >= 0.) {
+                    recoForwardArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
+                }
+                else {
+                    recoBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(systDijetEtaCM), weight);
+                }
 
-            // Reco forward and backward distributions
-            if (systDijetEtaCM >= 0.) {
-                recoForwardArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
-            }
-            else {
-                recoBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(systDijetEtaCM), weight);
-            }
+                // Ref forward and backward distributions (if reference jets are available)
+                if (refForwardArr && hasRefPair && refDijetEtaCM >= 0.) {
+                    refForwardArr[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
+                }
+                if (refBackwardArr && hasRefPair && refDijetEtaCM < 0.) {
+                    refBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(refDijetEtaCM), weight);
+                }
+            } // if (std::abs(leadEtaCM) < etaCuts[iCut] && std::abs(subleadEtaCM) < etaCuts[iCut])
 
-            // Ref forward and backward distributions (if reference jets are available)
-            if (refForwardArr && hasRefPair && refDijetEtaCM >= 0.) {
-                refForwardArr[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
-            }
-            if (refBackwardArr && hasRefPair && refDijetEtaCM < 0.) {
-                refBackwardArr[iCut]->Fill(systDijetPtAve, std::abs(refDijetEtaCM), weight);
-            }
+            // Pointing resolution histograms for reference jets (if available)
+            if (hasRefPair && refFullArrPointing) {
+                // Fill the pointing resolution histograms only if both reference jets are within the eta cut
+                // but use reco dijet pT average for the x-axis and reference dijet eta for the y-axis
+                if (std::abs(refLeadEtaCM) <= etaCuts[iCut] && std::abs(refSubleadEtaCM) <= etaCuts[iCut]) {
+                    refFullArrPointing[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
+                }
+            } // if (hasRefPair && refFullArrPointing)
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
     };
+
+    auto fillRecoDijetLabSystematic = [&](auto getPt,
+                                       std::unique_ptr<TH2D> *recoFullArr,
+                                       std::unique_ptr<TH2D> *refFullArr = nullptr,
+                                       std::unique_ptr<TH2D> *refFullArrPointing = nullptr) {
+        const auto [leadingJetPtr, subleadingJetPtr] = selectLeadingTwo(recoJets, getPt, recoJetSortFallback);
+        const auto &leadingJetSyst = *leadingJetPtr;
+        const auto &subleadingJetSyst = *subleadingJetPtr;
+        if (getPt(leadingJetSyst) < 50.f || getPt(subleadingJetSyst) < 40.f) return;
+        float systDphi = deltaPhi(leadingJetSyst.recoPhi, subleadingJetSyst.recoPhi);
+        if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
+
+        float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
+        float leadEtaLab = etaLab(leadingJetSyst.recoEta, isPbGoing, isMc);
+        float subleadEtaLab = etaLab(subleadingJetSyst.recoEta, isPbGoing, isMc);
+        float systDijetEtaLab = 0.5f * (leadEtaLab + subleadEtaLab);
+
+        bool  leadHasRef = (leadingJetSyst.refPt > 0.);
+        bool  subleadHasRef = (subleadingJetSyst.refPt > 0.);
+        bool  hasRefPair = (leadHasRef && subleadHasRef);
+        float refLeadEtaLab = 0.;
+        float refSubleadEtaLab = 0.;
+        float refDijetEtaLab = 0.;
+
+        if (hasRefPair) {
+            refLeadEtaLab = etaLab(leadingJetSyst.refEta, isPbGoing, isMc);
+            refSubleadEtaLab = etaLab(subleadingJetSyst.refEta, isPbGoing, isMc);
+            refDijetEtaLab = 0.5f * (refLeadEtaLab + refSubleadEtaLab);
+        }
+
+        // Loop over eta cuts and fill the corresponding histograms
+        for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+
+            if (std::abs(leadEtaLab) <= etaCuts[iCut] && std::abs(subleadEtaLab) <= etaCuts[iCut]) {
+                // Fill reco dijet histograms
+                recoFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaLab, weight);
+
+                // Fill ref dijet histograms (if a ref pair is available)
+                if (refFullArr && hasRefPair) {
+                    refFullArr[iCut]->Fill(systDijetPtAve, refDijetEtaLab, weight);
+                }
+            } // if (std::abs(leadEtaLab) < etaCuts[iCut] && std::abs(subleadEtaLab) < etaCuts[iCut])
+
+            if (hasRefPair && refFullArrPointing) {
+                // Fill the pointing resolution histograms only if both reference jets are within the eta cut
+                // but use reco dijet pT average for the x-axis and reference dijet eta for the y-axis
+                if (std::abs(refLeadEtaLab) <= etaCuts[iCut] && std::abs(refSubleadEtaLab) <= etaCuts[iCut]) {
+                    refFullArrPointing[iCut]->Fill(systDijetPtAve, refDijetEtaLab, weight);
+                }
+            } // if (hasRefPair && refFullArrPointing)
+
+        } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
+    }; // auto fillRecoDijetLabSystematic
 
     // Fill nominal dijet histograms
     if (isMc) {
@@ -3062,8 +3160,12 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                 hs.hRefDijetPtEtaCMArr,
                                 hs.hRefDijetPtEtaForwardArr,
                                 hs.hRefDijetPtEtaBackwardArr,
-                                hs.hRecoDijetPtEtaCMRefEtaCMArr,
-                                hs.hRecoDijetPtEtaCMdEtaRefEtaCMArr);
+                                hs.hRefDijetPtEtaCMPointingResArr);
+
+        fillRecoDijetLabSystematic([](const RecoJet &jet) { return jet.recoPt; },
+                                    hs.hRecoDijetPtEtaLabArr,
+                                    hs.hRefDijetPtEtaLabArr,
+                                    hs.hRefDijetPtEtaLabPointingResArr);
     }
     else {
         fillRecoDijetSystematic([](const RecoJet &jet) { return jet.recoPt; },
@@ -3080,6 +3182,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                 hs.hRecoDijetPtEtaCMArrJeuDown,
                                 hs.hRecoDijetPtEtaForwardArrJeuDown,
                                 hs.hRecoDijetPtEtaBackwardArrJeuDown);
+        fillRecoDijetLabSystematic([](const RecoJet &jet) { return jet.recoPt; },
+                                    hs.hRecoDijetPtEtaLabArr);
     }
 
     // Fill JER systematic dijet histograms if requested
@@ -3244,17 +3348,13 @@ void processRefDijets(const bool &isPbGoing, const bool &isMc, const float &weig
     // Must be at least 2 jets to form a dijet system
     if (recoJets.size() < 2) return;
 
-    // fillRecoDijetSystematic:
+    // fillRefDijetSystematic:
     // - `getPt`: callable taking `const RecoJet&` and returning the pT value
     //   used for ordering and dijet pT calculations (float-like).
     // - Finds the two highest-pT jets without sorting the full collection.
     // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
     //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
-    //   2D histograms (`recoFull/Forward/Backward`).
-    // - If optional ref arrays are provided and both jets have `refPt > 0`,
-    //   the corresponding reference histograms are filled using the ref pT.
-    // - Passing different accessors (e.g. `recoPt`, `recoPtJerUp`) lets this
-    //   lambda fill nominal and systematic variations without duplicating code.
+    //   corresponding reference-level 2D histograms.
     std::vector<RecoJet> refJetSortFallback;
     refJetSortFallback.reserve(recoJets.size());
     auto fillRefDijetSystematic = [&](auto getPt,
@@ -3353,6 +3453,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
         hs.hGenDijetPtEtaCM->Write();
 
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+            hs.hGenDijetPtEtaLabArr[iCut]->Write();
             hs.hGenDijetPtEtaCMArr[iCut]->Write();
             hs.hGenDijetPtEtaForwardArr[iCut]->Write();
             hs.hGenDijetPtEtaBackwardArr[iCut]->Write();
@@ -3429,11 +3530,11 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
             //
             // Ref level histograms
             //
+            hs.hRefDijetPtEtaLabArr[iCut]->Write();
+            hs.hRefDijetPtEtaLabPointingResArr[iCut]->Write();
             hs.hRefDijetPtEtaCMArr[iCut]->Write();
             hs.hRefDijetPtEtaForwardArr[iCut]->Write();
             hs.hRefDijetPtEtaBackwardArr[iCut]->Write();
-            hs.hRecoDijetPtEtaCMRefEtaCMArr[iCut]->Write();
-            hs.hRecoDijetPtEtaCMdEtaRefEtaCMArr[iCut]->Write();
 
             //
             // Ref-selected level histograms
@@ -3491,6 +3592,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
     }
 
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
+        hs.hRecoDijetPtEtaLabArr[iCut]->Write();
         hs.hRecoDijetPtEtaCMArr[iCut]->Write();
         hs.hRecoDijetPtEtaForwardArr[iCut]->Write();
         hs.hRecoDijetPtEtaBackwardArr[iCut]->Write();
@@ -3539,6 +3641,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
             if (hs.hRefDijetPtEtaCMArrJerDef[iCut]) hs.hRefDijetPtEtaCMArrJerDef[iCut]->Write();
             if (hs.hRefDijetPtEtaForwardArrJerDef[iCut]) hs.hRefDijetPtEtaForwardArrJerDef[iCut]->Write();
             if (hs.hRefDijetPtEtaBackwardArrJerDef[iCut]) hs.hRefDijetPtEtaBackwardArrJerDef[iCut]->Write();
+            if (hs.hRefDijetPtEtaCMPointingResArr[iCut]) hs.hRefDijetPtEtaCMPointingResArr[iCut]->Write();
         }
 
         if (!isMc) {
