@@ -47,6 +47,86 @@ The executable is built as:
 build/processForestSimple
 ```
 
+## Optional ROOT MCP server for Codex
+
+[`root-mcp`](https://github.com/mohamedelashri/root-mcp) exposes ROOT-file
+inspection, histogramming, fitting, plotting, and optional native PyROOT tools
+through the Model Context Protocol. Codex supports project-scoped MCP settings
+in `.codex/config.toml` for trusted projects; see the
+[Codex MCP documentation](https://developers.openai.com/codex/extend/mcp).
+
+Keep this optional tool separate from `py-env`, which is the analysis
+environment. From the repository root, create a dedicated environment and
+install the server:
+
+```bash
+python3 -m venv --system-site-packages .root-mcp-env
+.root-mcp-env/bin/python -m pip install --upgrade pip
+.root-mcp-env/bin/python -m pip install root-mcp
+```
+
+For XRootD URLs, install the optional remote-I/O support instead:
+
+```bash
+.root-mcp-env/bin/python -m pip install 'root-mcp[xrootd]'
+```
+
+`--system-site-packages` lets the environment reuse PyROOT from the selected
+ROOT-compatible Python installation. Native ROOT tools such as
+`run_root_code`, `run_rdataframe`, and `run_root_macro` require PyROOT to be
+importable by this same interpreter.
+Verify that before enabling them:
+
+```bash
+.root-mcp-env/bin/python -c 'import ROOT; print(ROOT.gROOT.GetVersion())'
+```
+
+If that command fails, either create `.root-mcp-env` with the Python
+interpreter supplied by the active ROOT installation, or remove
+`--enable-root` from `.codex/run-root-mcp.sh`. The server can still inspect ROOT
+files through its non-native backend.
+
+The tracked `.codex/config.toml` registers the project-local `root_cern` STDIO
+server:
+
+```toml
+[mcp_servers.root_cern]
+command = "./.codex/run-root-mcp.sh"
+cwd = "."
+startup_timeout_sec = 60
+tool_timeout_sec = 120
+enabled = true
+default_tools_approval_mode = "prompt"
+```
+
+The tracked `.codex/run-root-mcp.sh` launcher resolves the checkout path at
+runtime, keeps the machine-specific environment out of Git, and passes that
+path as both `--data-path` and `--allowed-root`. This limits local file access
+to this checkout. Native execution can run Python or ROOT macro code, so review
+tool calls before approval. Do not expose this local STDIO configuration as an
+unauthenticated HTTP service.
+
+Restart Codex after adding the configuration, trust the project if prompted,
+and verify the connection:
+
+```bash
+codex mcp list
+```
+
+In the Codex terminal UI, `/mcp` should list `root_cern`. Ask it to call
+`get_server_info` and confirm that `root_native_available` and
+`root_native_enabled` are both `true` when native ROOT support is expected.
+For a direct server smoke test outside Codex, run:
+
+```bash
+./.codex/run-root-mcp.sh
+```
+
+The command waits for MCP JSON-RPC input; press `Ctrl-C` after confirming that
+it starts without an import or configuration error. If Codex cannot start the
+server, check the absolute paths, run the PyROOT import test above, and raise
+`startup_timeout_sec` for slow ROOT initialization.
+
 ## Run with ROOT
 
 You can run the macro directly from ROOT and pass the same arguments used by the executable:

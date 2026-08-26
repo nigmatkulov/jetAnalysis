@@ -1,0 +1,7 @@
+[mcp_servers.root_cern]
+command = "./.codex/run-root-mcp.sh"
+cwd = "."
+startup_timeout_sec = 60
+tool_timeout_sec = 120
+enabled = true
+default_tools_approval_mode = "prompt"
