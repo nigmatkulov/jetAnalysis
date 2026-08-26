@@ -22,6 +22,7 @@ MARKERS = (20, 21, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32)
 # one place so a physics role has the same appearance in every notebook panel.
 UNFOLDING_COLORS = {
     "gen": ROOT.kBlue,
+    "ref": ROOT.kMagenta + 1,
     "reco": ROOT.kRed,
     "miss": ROOT.kOrange + 7,
     "fake": ROOT.kGreen + 2,
@@ -30,6 +31,7 @@ UNFOLDING_COLORS = {
 
 UNFOLDING_MARKERS = {
     "gen": 21,
+    "ref": 23,
     "reco": 20,
     "miss": 24,
     "fake": 25,

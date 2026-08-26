@@ -302,7 +302,29 @@ eta acceptance are written (including a boundary bin cut through by rebinning),
 while bins entirely beyond the acceptance are omitted. Beam orientation only
 produces comparison plots and therefore has no extracted uncertainty to export.
 
-Use `notebooks/05_unfold2D.ipynb` to construct a flattened dijet
+Use `notebooks/05_unfold2D_gen_and_prior.ipynb` to compare nominal Gen dijet
+`etaCM` projections with the mixed-Gaussian prior
+`hGenDijetPtEtaCMMixedPrior_<eta cut>` in every configured half-open interval
+from the selected shared pTave bin set. The prior is an equal mixture of a
+broad left Gaussian (`mean=-1.0`, `sigma=0.96`) and a narrow right Gaussian
+(`mean=1.2`, `sigma=0.64`), formed by reweighting the nominal
+`mean=0`, `sigma=0.8` Gen shape. It writes raw weighted-yield and
+independently normalized shape overlays with `Mixed prior / Gen` lower panels,
+using the shared file resolvers, annotations, ROOT styles, and output helpers.
+Set `UNFOLD2D_GEN_PRIOR_OUTPUT_DIR` to redirect PDFs from
+`output/unfold2D_gen_and_prior/`. Set `PLOT_RAW_DISTRIBUTIONS = False` to skip
+the unnormalized yield canvases while retaining the normalized shape plots, and
+set `SAVE_PNG = True` for PNG copies.
+
+All `05_unfold2D*` notebooks expose `PTAVE_BIN_SET`. Select `test` to use
+`config.histograms.TEST_DIJET_PTAVE_BINS` or `standard` to use
+`config.histograms.DIJET_PTAVE_BINS`; both are interpreted as ordered half-open
+intervals. Shared projection, flattening/unflattening, sparse-response assembly,
+miss/fake diagnostics, RooUnfold construction, Bayesian execution, ROOT output,
+and unfolding plots live in `python/unfolding.py` and
+`python/unfolding_plots.py`.
+
+Use `notebooks/05_unfold2D_basics.ipynb` to construct a flattened dijet
 `pTave`-eta response and run a Bayesian RooUnfold closure test for the configured
 MC sample using the eta-dependent JER-default measured distribution and its
 corresponding response, miss, fake, and pair-classification objects. Misses are
@@ -314,6 +336,13 @@ metadata to
 `output/unfold2D/<generator>_<direction>_unfold2D_jerDefExtra_eta_<cut>_iter_<iterations>.root`.
 Set `DIJET_UNFOLD2D_OUTPUT_DIR` to redirect these generated artifacts without
 editing the notebook configuration.
+Set `COMPARISON_TARGET` to `gen` or `ref` to choose the denominator and target
+shown in the flattened and per-pTave closure plots. This is a comparison-only
+choice: the RooUnfold response, training truth, inefficiency, and Bayesian prior
+remain Gen-based. The Ref option loads and projects `hRefDijetPtEtaCM_<eta cut>`.
+Set `PLOT_MISS_AND_FAKES` to include or suppress Miss and Fake curves and their
+legend entries in the projection and flattened diagnostic plots; it does not
+disable their use in constructing or validating the unfolding response.
 The projection/response diagnostics are produced for every configured pTave
 interval; the flattened-response and final closure canvases are also saved as
 PDFs in the same directory. For every pTave interval, the notebook extracts the
@@ -330,13 +359,25 @@ small weighted response entries above RooUnfold's absolute matrix-sanitization
 threshold. The unfolded histogram is scaled back by `1/RESPONSE_SCALE`, and its
 covariance by `1/RESPONSE_SCALE^2`, before results are plotted or written.
 
+Use `notebooks/05_unfold2D_studied_to_controlled.ipynb` for the independent
+subsample closure test. It constructs the response, inefficiency, and fake
+contribution exclusively from the reproducible 60% controlled MC subsample,
+then unfolds the JER-default reconstructed distribution from the complementary
+40% studied subsample and compares it with studied Gen truth. The producer keys
+`hRecoDijetPtEtaCMJerDefUnfoldControlledSample_<eta cut>` and
+`hRecoDijetPtEtaCMJerDefUnfoldStudiedSample_<eta cut>` use the same smeared-ref
+reconstructed coordinate as the controlled response matrix. Configure
+`PLOT_MISS_AND_FAKES` to show or hide controlled Miss/Fake diagnostics and use
+`DIJET_UNFOLD2D_STUDIED_CONTROLLED_OUTPUT_DIR` to redirect output from
+`output/unfold2D_studied_to_controlled/`.
+
 Use `notebooks/05_unfold2D_mc_direction.ipynb` for the beam-direction closure
 test. It constructs the response and its training truth/reco marginals, misses,
 fakes, and pair classification from Pb-going embedding, then unfolds the
 independent p-going embedding eta-dependent JER-default reco distribution and
 compares it with p-going generator truth. The notebook uses the same flattened
 bin mapping, RooUnfold response scaling, explicit fake handling, covariance,
-plotting styles, and ROOT output objects as `05_unfold2D.ipynb`. Its output tag
+plotting styles, and ROOT output objects as `05_unfold2D_basics.ipynb`. Its output tag
 records both the response-training and test directions. Configure
 `FLATTENED_RATIO_TO_GEN_Y_RANGE` and `ETA_RATIO_TO_GEN_Y_RANGE` to set the
 ratio-to-gen y-axis ranges for the flattened closure and per-pTave eta panels,

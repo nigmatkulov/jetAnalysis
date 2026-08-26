@@ -64,13 +64,13 @@ static constexpr std::array<float, nDiagnosticRuns> diagnosticRunPileup{
 bool isFillControlledSample = true;
 
 // Trial alternative prior for unfolding regularization. The target is an
-// equal mixture of two Gaussians, expressed as a ratio to a unit-width
-// Gaussian centered at zero in dijet etaCM.
+// equal mixture of two Gaussians, expressed as a ratio to the configured
+// nominal Gaussian centered at zero in dijet etaCM.
 constexpr double nominalPriorMean = 0.;
-constexpr double nominalPriorSigma = 1.;
-constexpr double leftPriorMean = -0.5;
+constexpr double nominalPriorSigma = 0.8;
+constexpr double leftPriorMean = -1.0;
 constexpr double leftPriorSigma = 1.2 * nominalPriorSigma;
-constexpr double rightPriorMean = 0.7;
+constexpr double rightPriorMean = 1.2;
 constexpr double rightPriorSigma = 0.8 * nominalPriorSigma;
 
 namespace unfolding_diagnostics {
@@ -615,6 +615,8 @@ struct Histograms {
     std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJerUpExtra[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArrJerUpExtra[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJerDefUnfold[nEtaCuts];        // JER default variation for reco dijet histograms for unfolding
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaForwardArrJerDefUnfold[nEtaCuts];   // JER default variation for reco dijet histograms for unfolding
     std::unique_ptr<TH2D> hRecoDijetPtEtaBackwardArrJerDefUnfold[nEtaCuts];  // JER default variation for reco dijet histograms for unfolding
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMArrJerDefExtraUnfold[nEtaCuts];
@@ -1908,6 +1910,18 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                             nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
             hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]->Sumw2();
+            hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[iCut] = std::make_unique<TH2D>(
+                                            Form("hRecoDijetPtEtaCMJerDefUnfoldControlledSample_%d", iCut),
+                                            Form("Reco dijet #eta_{CM}, controlled sample (JER default, unfolding, |#eta| < %.1f);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[iCut]->Sumw2();
+            hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[iCut] = std::make_unique<TH2D>(
+                                            Form("hRecoDijetPtEtaCMJerDefUnfoldStudiedSample_%d", iCut),
+                                            Form("Reco dijet #eta_{CM}, studied sample (JER default, unfolding, |#eta| < %.1f);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[iCut]->Sumw2();
             hs.hRecoDijetPtEtaForwardArrJerDefUnfold[iCut] = std::make_unique<TH2D>(Form("hRecoDijetPtEtaForwardJerDefUnfold_%d", iCut), 
                                             Form("Reco dijet #eta_{CM} (CM frame, forward, |#eta| < %.1f) vs p_{T}^{ave} (JER default, unfolding);p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
@@ -3203,6 +3217,12 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                         : hs.hRecoDijetPtEtaCMStudiedSampleArr;
                     sampleArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
                 }
+                if (isMc && recoFullArr == hs.hRecoDijetPtEtaCMArrJerDefUnfold) {
+                    auto *sampleArr = isFillControlledSample
+                        ? hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr
+                        : hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr;
+                    sampleArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
+                }
 
                 // Fill ref dijet histograms (if a ref pair is available)
                 if (refFullArr && hasRefPair) {
@@ -3790,6 +3810,8 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
             if (hs.hRecoDijetPtEtaForwardArrJerUpExtra[iCut]) hs.hRecoDijetPtEtaForwardArrJerUpExtra[iCut]->Write();
             if (hs.hRecoDijetPtEtaBackwardArrJerUpExtra[iCut]) hs.hRecoDijetPtEtaBackwardArrJerUpExtra[iCut]->Write();
             if (hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]) hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]->Write();
+            if (hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[iCut]) hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[iCut]->Write();
+            if (hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[iCut]) hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[iCut]->Write();
             if (hs.hRecoDijetPtEtaForwardArrJerDefUnfold[iCut]) hs.hRecoDijetPtEtaForwardArrJerDefUnfold[iCut]->Write();
             if (hs.hRecoDijetPtEtaBackwardArrJerDefUnfold[iCut]) hs.hRecoDijetPtEtaBackwardArrJerDefUnfold[iCut]->Write();
             if (hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold[iCut]) hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold[iCut]->Write();
