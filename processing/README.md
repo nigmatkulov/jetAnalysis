@@ -28,6 +28,52 @@ cp "$(voms-proxy-info -path)" voms_proxy.txt
 voms-proxy-info -timeleft
 ```
 
+### Clone the CP5 Pythia forests
+
+`submit_clone_forest_condor.py` submits one `macro/cloneForest.C` invocation
+per ROOT file. With no positional arguments it uses
+`filelists/pPb8160/PYTHIA_CP5_Tune/PYTHIA8160.txt` and writes the cloned files
+to `/eos/user/g/gnigmatk/ana/pPb8160/pythia/cp5tune`. Entries beginning with
+`/store/` are converted to global CMS XRootD URLs on submission.
+
+Prepare and inspect the 657-job campaign without submitting it:
+
+```bash
+../py-env/bin/python submit_clone_forest_condor.py --dry-run
+```
+
+Submit after checking the generated description beneath `condor/`:
+
+```bash
+../py-env/bin/python submit_clone_forest_condor.py
+```
+
+An alternative input list and output directory can be passed positionally.
+Use `--help` for macro, campaign-name, proxy, resource, and work-directory
+overrides. Input basenames must be unique because the macro preserves them as
+output filenames. The worker also fails the Condor job if ROOT exits without
+creating a nonempty output file.
+
+The same submitter has presets for every pT-hat list in the unembedded and
+embedded MC samples. Their default output directories are respectively
+`pythia/<direction>/forest` and `embedding/<direction>/forest`:
+
+```bash
+# Prepare all 11 pT-hat samples for one direction
+../py-env/bin/python submit_clone_forest_condor.py \
+  --sample unembedded --beam Pbgoing --dry-run
+../py-env/bin/python submit_clone_forest_condor.py \
+  --sample embedded --beam pgoing --dry-run
+
+# Prepare both directions in one 22-job campaign
+../py-env/bin/python submit_clone_forest_condor.py \
+  --sample unembedded --beam all --dry-run
+
+# Prepare only one pT-hat sample
+../py-env/bin/python submit_clone_forest_condor.py \
+  --sample embedded --beam Pbgoing --pt-hat 120 --dry-run
+```
+
 The proxy is ignored by Git. Generate a data campaign without submitting it:
 
 ```bash
