@@ -67,10 +67,10 @@ bool isFillControlledSample = true;
 // equal mixture of two Gaussians, expressed as a ratio to the configured
 // nominal Gaussian centered at zero in dijet etaCM.
 constexpr double nominalPriorMean = 0.;
-constexpr double nominalPriorSigma = 0.8;
-constexpr double leftPriorMean = -1.0;
+constexpr double nominalPriorSigma = 0.9;
+constexpr double leftPriorMean = -0.2;
 constexpr double leftPriorSigma = 1.2 * nominalPriorSigma;
-constexpr double rightPriorMean = 1.2;
+constexpr double rightPriorMean = 0.5;
 constexpr double rightPriorSigma = 0.8 * nominalPriorSigma;
 
 namespace unfolding_diagnostics {

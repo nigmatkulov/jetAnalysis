@@ -13,6 +13,17 @@ Notebook filenames use `_mc_` for MC-only validation workflows and `_data_`
 for data-only workflows. The numeric prefix groups the analysis stage; the
 data-versus-MC comparison is stage 07.
 
+Every notebook begins with a detailed workflow guide defining its observable,
+normalization, ratios or fits, statistical assumptions, and interpretation.
+Each code cell also starts with a `Cell role` and `Interpretation` comment so
+the executable step can be read together with the preceding physics Markdown.
+Across the project, a histogram bin content denotes the stored weighted yield
+`sum(w)`, while its usual variance is `sum(w^2)`. Unit-area normalization,
+bin-width density normalization, and unnormalized yields are distinct and are
+identified explicitly. Forward/backward ratios always use independent-error
+propagation because their positive- and reflected-negative-eta bins are not a
+subset relationship.
+
 ## Data locations
 
 The direction-dependent outputs are stored under:
@@ -306,8 +317,8 @@ Use `notebooks/05_unfold2D_gen_and_prior.ipynb` to compare nominal Gen dijet
 `etaCM` projections with the mixed-Gaussian prior
 `hGenDijetPtEtaCMMixedPrior_<eta cut>` in every configured half-open interval
 from the selected shared pTave bin set. The prior is an equal mixture of a
-broad left Gaussian (`mean=-1.0`, `sigma=0.96`) and a narrow right Gaussian
-(`mean=1.2`, `sigma=0.64`), formed by reweighting the nominal
+broad left Gaussian (`mean=-0.5`, `sigma=0.96`) and a narrow right Gaussian
+(`mean=0.7`, `sigma=0.64`), formed by reweighting the nominal
 `mean=0`, `sigma=0.8` Gen shape. It writes raw weighted-yield and
 independently normalized shape overlays with `Mixed prior / Gen` lower panels,
 using the shared file resolvers, annotations, ROOT styles, and output helpers.
@@ -328,8 +339,18 @@ Use `notebooks/05_unfold2D_basics.ipynb` to construct a flattened dijet
 `pTave`-eta response and run a Bayesian RooUnfold closure test for the configured
 MC sample using the eta-dependent JER-default measured distribution and its
 corresponding response, miss, fake, and pair-classification objects. Misses are
-represented by the response inefficiency, while fake handling is enabled
-explicitly in `RooUnfoldBayes`. The notebook writes the
+handled with an explicit factorization: the measured distribution is multiplied
+bin by bin by the MC matched-reco/inclusive-reco purity, the signal-only result
+is unfolded with the matched migration response, and the unfolded matched-truth
+distribution is divided bin by bin by the MC matched-truth/inclusive-truth
+efficiency. The notebook retains the conventional RooUnfold fake/miss treatment
+as a validation reference and writes a direct comparison of the two methods.
+This factorization keeps all pTave-eta migrations and is valid when simulation
+describes the reco-bin purity and truth-bin efficiency. Zero-efficiency truth
+bins stop the workflow because they cannot be recovered. Purity and efficiency
+are treated as response inputs; their finite-MC uncertainty must be assessed
+with response variations or toys rather than added again during each bin-wise
+operation. The notebook writes the
 flattened input spectra, response and miss/fake diagnostics, unfolded result,
 closure ratios, covariance matrix, serialized response, and configuration
 metadata to
@@ -342,7 +363,13 @@ choice: the RooUnfold response, training truth, inefficiency, and Bayesian prior
 remain Gen-based. The Ref option loads and projects `hRefDijetPtEtaCM_<eta cut>`.
 Set `PLOT_MISS_AND_FAKES` to include or suppress Miss and Fake curves and their
 legend entries in the projection and flattened diagnostic plots; it does not
-disable their use in constructing or validating the unfolding response.
+disable their use in constructing or validating the correction factors and the
+reference unfolding response.
+Because the basics notebook uses its response-training sample as pseudo-data,
+the factorized reco input, response prior, and Gen target are algebraically
+consistent. Its unfolded/Gen and refolded/reco ratios should therefore be unity
+to numerical precision. This is a technical identity check, not an independent
+closure test.
 The projection/response diagnostics are produced for every configured pTave
 interval; the flattened-response and final closure canvases are also saved as
 PDFs in the same directory. For every pTave interval, the notebook extracts the
@@ -363,13 +390,150 @@ Use `notebooks/05_unfold2D_studied_to_controlled.ipynb` for the independent
 subsample closure test. It constructs the response, inefficiency, and fake
 contribution exclusively from the reproducible 60% controlled MC subsample,
 then unfolds the JER-default reconstructed distribution from the complementary
-40% studied subsample and compares it with studied Gen truth. The producer keys
+40% studied subsample and compares it with studied Gen truth. It applies the
+controlled matched-reco/inclusive-reco purity to studied reco, unfolds with the
+controlled matched-event migration response, and divides by the controlled
+matched-truth/inclusive-truth efficiency. The conventional RooUnfold fake/miss
+treatment is retained as a validation reference. The producer keys
 `hRecoDijetPtEtaCMJerDefUnfoldControlledSample_<eta cut>` and
-`hRecoDijetPtEtaCMJerDefUnfoldStudiedSample_<eta cut>` use the same smeared-ref
-reconstructed coordinate as the controlled response matrix. Configure
+`hRecoDijetPtEtaCMJerDefUnfoldStudiedSample_<eta cut>` use the same data-driven
+JER-smeared reconstructed coordinate as the controlled response matrix. Configure
 `PLOT_MISS_AND_FAKES` to show or hide controlled Miss/Fake diagnostics and use
 `DIJET_UNFOLD2D_STUDIED_CONTROLLED_OUTPUT_DIR` to redirect output from
 `output/unfold2D_studied_to_controlled/`.
+The reconstructed AK4 jets use the data-driven default JER smearing. The
+flattened space is restricted to the
+configured eta acceptance on both response axes and all spectra. Standard
+contiguous pTave bins are the default; the gapped test bins are only a quick
+execution check. Before unfolding, a separate accounting check verifies that
+each controlled truth/reco marginal equals its matched response projection plus
+the effective miss/fake component. A separate diagnostic canvas distinguishes
+explicit selection/matching failures, pTave-boundary migrations, and the
+effective response components. The response, purity, efficiency, misses, fakes,
+and their diagnostics remain controlled-sample-only; studied objects supply
+only the independent measured input and closure truth. The configured Bayesian
+iteration count remains fixed for this workflow. The flattened controlled response matrix
+is also saved by itself as `<output tag>_response_matrix.pdf` with a logarithmic
+color scale; the matrix histogram remains stored in the ROOT output.
+Eta-range restriction uses inclusive bin centers. Consequently, after eta
+rebinning a bin spanning 1.8--2.0 (center 1.9) is retained for an acceptance
+ending at 1.9, consistently for projections and both response axes.
+Before unfolding, the notebook also saves one two-panel comparison per pTave
+interval: controlled versus studied Gen shapes and controlled versus studied
+reco shapes. Each displayed histogram is cloned and independently normalized
+as `1/N dN/detaCM` using its bin widths, leaving all response and unfolding
+inputs unchanged. Legends explicitly identify controlled/studied Gen or Reco. Lower
+panels on the same canvas show the studied/controlled ratios with independently
+propagated histogram uncertainties. The normalized comparison histograms and
+ratios are stored in the notebook ROOT output.
+The independent studied closure is not expected to be exactly unity in every
+bin. Controlled and studied samples contain different weighted-event
+fluctuations. Iterative Bayesian regularization also produces a bias--variance
+tradeoff: increasing iterations generally improves refolded/reco agreement
+while amplifying fluctuations and potentially worsening unfolded/studied-Gen
+agreement. Both notebooks print an integral ratio, a yield-weighted L1
+difference over all bins, and a mean relative difference over populated bins.
+These summaries prevent nearly empty bins with unstable ratios from dominating
+the closure interpretation.
+The notebook also forward-folds the unfolded studied spectrum through the
+controlled response and compares it with studied reco in flattened global bins
+and in every pTave interval. Miss fractions persist through the controlled
+response efficiency. Fake fractions are transferred bin by bin by multiplying
+the folded matched-reco prediction by the controlled fake/matched-reco ratio;
+no controlled/studied sample-size normalization is applied. The folded signal,
+transferred fake component, total forward-folded spectrum, and
+forward-folded/reco ratios are stored in the ROOT output; the fake-handling
+decision is recorded in its metadata.
+
+The recommended unfolding validation order is:
+
+1. Run `05_unfold2D_basics.ipynb` as a same-sample technical closure check.
+2. Run `05_unfold2D_studied_to_controlled.ipynb` as the independent 60/40 MC
+   closure test.
+3. Inspect the prior deformation with `05_unfold2D_gen_and_prior.ipynb`.
+4. Run `05_unfold2D_regularization.ipynb` to study the Bayesian iteration count.
+
+The regularization notebook uses the same factorized unfolding convention as
+the closure notebooks. It forward-folds the mixed inclusive-truth prior with
+the inclusive full-MC response and restores fakes through the binwise MC
+fake/matched-reco ratio. Because pTave migrates between response blocks, it does
+not copy reco-block normalization factors directly onto truth. Instead it
+iteratively scales truth pTave blocks and forward-folds after every update until
+the folded reco block yields match the raw yield of each explicitly selected
+data trigger. The converged truth is therefore exactly the truth used to
+generate the toy mean, within `YIELD_MATCH_TOLERANCE`. The folded contents retain
+the MC prior shape, while their bin errors are replaced by the absolute
+trigger-stitched data errors. A seeded common ensemble of `N_TOYS` inclusive-reco
+histograms is generated with
+`x_i ~ Normal(mu_i, sigma_i)`: only the bin contents fluctuate, while every
+toy retains the data error `sigma_i`. Each toy is multiplied by full-MC purity,
+unfolded with the matched-only response, and divided by full-MC efficiency
+before its bias and variance are evaluated against the inclusive-truth prior.
+Negative draws stop the workflow with a
+bin-level diagnostic; they are not clipped or redrawn because either operation
+would change the intended Gaussian distribution. `PTAVE_BIN_SET = 'test'` is a
+fast workflow check, while `standard` is the intended analysis binning.
+All MC, prior, sparse-response, and data projections use the same configured
+eta acceptance, expanded to complete histogram-bin edges when necessary. The
+broad test intervals use MinimumBias for 50--100 GeV, Jet80 for 100--180 GeV,
+and Jet100 above 180 GeV; the standard intervals retain the finer established
+trigger transitions.
+
+For every iteration, bin `i` uses
+`bias_i = mean(unfolded_i) - prior_i`, unbiased toy variance with the `N_TOYS-1`
+denominator, and `MSE_i = bias_i^2 + variance_i`. The notebook plots averages
+of these per-bin quantities in both absolute and truth-relative form; it never
+averages signed biases before squaring. For any of these quantities `q_i`, the
+**Mean metric** is `(1/N_bins) sum_i q_i` and retains yield-squared units. The
+**Mean fractional metric** is `(1/N_valid) sum_i q_i/prior_i^2`; it is
+dimensionless and gives each valid bin equal fractional weight rather than
+applying one global normalization to the absolute mean. Equal eta-bin widths
+need no additional correction. `REGULARIZATION_SELECTION_MODE = 'absolute'`
+is the default, so the recommended iteration preserves the intended larger
+contribution from bins with larger absolute discrepancies. Set it to `relative`
+when typical fractional per-bin performance is the desired objective, or to
+`both` to report and store both minima. Because later closure and output code
+requires one iteration, `both` uses the absolute minimum as that primary result.
+Bins with zero or negligible prior
+are reported and excluded from relative summaries. The first minimum of the global
+configured MSE is reported as the recommended iteration count. A boundary minimum
+warns that the configured scan may not bracket the optimum. This recommendation
+is conditional on the selected response, distorted prior, binning, and data
+uncertainty model. `LOG_REGULARIZATION_METRICS_Y = True` uses logarithmic y axes
+for the global and optional per-pTave Bias-squared, Variance, and MSE comparison
+canvases; set it to `False` for linear axes. With the current defaults the
+notebook performs 10,000 sequential
+unfolding calls, so use a small `N_TOYS` and `MAX_ITERATIONS` for a preliminary
+code check. Outputs are written below `output/unfold2D_regularization/`; set
+`DIJET_UNFOLD2D_REGULARIZATION_OUTPUT_DIR` to redirect them.
+Every generated filename includes `_seed_<RANDOM_SEED>`. With
+`USE_INTERMEDIATE_CACHE = True`, the inclusive-reco toy distributions and all
+per-iteration mean, bias, bias-squared, variance, and MSE distributions are
+stored as compact ROOT caches beneath `output/unfold2D_regularization/intermediate/`.
+With the default `STORE_ITERATION_DISTRIBUTIONS = True`, a separate, potentially
+large ROOT file also records the eta projections, flattened training inputs,
+response matrix and accounting diagnostics, purity and efficiency, forward-fold
+components, inclusive and purity-corrected toys, every efficiency-corrected
+unfolded toy grouped by iteration, and every metric distribution. This is the
+complete reproducibility input for the metric calculation; eta slices of a
+flattened result can be recovered from its documented pT-block layout.
+Cache metadata includes input-histogram fingerprints, binning, correction
+factors, toy settings, iteration range, and seed. Compatible caches are loaded
+on rerun, skipping toy generation and completed RooUnfold scans; mismatched or
+incomplete caches are regenerated. Cache files are installed atomically so an
+interrupted write is not reused as a completed result.
+The scan always unfolds and evaluates the complete flattened distribution.
+Optional per-pT metric figures are diagnostic slices of the global-bin results
+and never select independent iteration counts.
+The inspection cell below the scan accepts a zero-based toy model number, a
+tuple of Bayesian iterations, and a stored random seed. It reads the complete
+distribution ROOT file without unfolding again, reconstructs each pTave eta
+distribution, and writes separate target-truth/unfolded overlays and
+unfolded/target-truth ratio canvases.
+A second inspection cell accepts a seed and a tuple of zero-based toy numbers.
+It compares the stored inclusive-reco toy fluctuations with their common
+forward-folded expectation and draws the toy/expectation ratio for every pTave
+eta interval, again without generating or unfolding toys.
 
 Use `notebooks/05_unfold2D_mc_direction.ipynb` for the beam-direction closure
 test. It constructs the response and its training truth/reco marginals, misses,
