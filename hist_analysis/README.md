@@ -34,6 +34,14 @@ The direction-dependent outputs are stored under:
 
 Within each generator directory, the direction-specific subdirectories are used for `Pbgoing` and `pgoing` outputs. Combined-orientation files live directly in the generator directory.
 
+Per-forest pp CP5 outputs from `pp_analyzeMc_cp5tune.py` live directly under
+`/Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/` and use the suffix
+`_hist.root`; their matching execution logs use `_hist.log`. These files retain
+the same histogram keys as pPb outputs, but Lab and CM eta are both stored eta,
+and weighted histograms contain sums of the input `hiEvtAnalyzer/HiTree/weight`
+values. They are not part of the direction-combination workflows unless a
+notebook input is explicitly configured to use them.
+
 ## Python environment
 
 Use the project environment from the repository root:

@@ -12,6 +12,7 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 - `build/`: out-of-source build directory created by CMake.
 - `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py`: preset batch runners for the compiled executable.
 - `pPb8160_runner.py`: shared implementation used by the preset batch runners.
+- `pp_analyzeMc_cp5tune.py`: local per-file runner for the pp CP5 sample, with optional parallel workers.
 - `processing/`: pPb 8.16 TeV file lists, data-availability checks, and the
   HTCondor submission workflow.
 - `hist_analysis/`: Python, PyROOT, and Jupyter tools for ROOT-file inventory and histogram comparisons.
@@ -141,10 +142,44 @@ Argument order:
 2. output file
 3. `mcType` (`0` data, `1` embedding, `2` pythia)
 4. `isPbGoingDir` (`0` p-going, `1` Pb-going)
-5. `ptHatSample`
+5. `ptHatSample` (selects the pPb MC range; accepted but unused for pp)
 6. `triggerId` (`0` no trigger/MB, `1` jet60, `2` jet80, `3` jet100)
 7. `recoJetSelMethod` (`0` none, `1` `trkMaxPt/RawPt`, `2` tight jet ID with lepton veto, `3` loose jet ID)
 8. `vertexFilterSelection` (`0` `pVertexFilterCutdz1p0`, `1` `pVertexFilterCutGplus`, `2` `pVertexFilterCutVtx1`)
+9. optional `collisionSystem` (`"pPb"` by default, or `"pp"`); selects frame transformations, MC branches, weighting, and event cuts
+
+Existing eight-argument calls retain the pPb boost, weighting, selection, and
+orientation conventions.
+For pp, append `pp` to the executable command, or `"pp"` to the ROOT call:
+
+```bash
+./build/processForestSimple input.root output.root 2 1 0 0 2 0 pp
+root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 0, 0, 2, 0, "pp")'
+```
+
+In pp mode, Lab and CM eta both equal stored detector eta: neither a boost
+nor a beam-direction sign flip is applied, for data or MC. This covers Gen,
+Reco, reference jets, dijets, systematics, and unfolding. The shift-scan
+histograms keep their existing names/titles for output compatibility, but every
+entry uses stored eta in pp mode, regardless of the shift printed in its name.
+CM eta acceptance and forward/backward assignments use these unshifted values.
+
+For pp MC, `hiEvtAnalyzer/HiTree/pthat` and `weight` must be scalar `Float_t`
+branches. The stored `weight` is used directly for each event, including zero
+and negative values; it is not divided by the file's event count or multiplied
+by a vertex weight. Non-finite weights fail explicitly. `ptHatSample` is unused:
+there is no pT-hat range cut. The pp event selection uses only `|vz| <= 15 cm`
+(the pPb skim filters and vertex-filter selector are ignored). Existing jet
+selection and pT-hat-dependent overweight-event rejection remain in effect.
+
+Both pp and pPb MC read `hiEvtAnalyzer/HiTree/pthat` (lowercase). The pPb
+pT-hat range cut, generator normalization, vertex weighting, and event filters
+remain unchanged. Required MC branch names and scalar `Float_t` types are
+checked in every input file.
+
+Corrections, vertex orientation, default macro paths, and other analysis settings
+remain the existing pPb settings; `isPbGoingDir` still controls those settings.
+Unknown collision-system values are rejected before input processing.
 
 ## Run the compiled binary
 
@@ -201,12 +236,81 @@ written beneath `$HOME/cernbox/ana/pPb8160/<generator>/<direction>/`. The
 pt-hat samples to run are the explicit `PT_HAT_SAMPLES` list in each preset
 script; review that list before starting a production run.
 
+## Local pp CP5 processing
+
+`pp_analyzeMc_cp5tune.py` discovers every `*.root` file directly under
+`$HOME/cernbox/ana/pPb8160/pythia/cp5tune/forest/` and processes one file per job.
+It writes `<input-stem>_hist.root` and `<input-stem>_hist.log` under
+`$HOME/cernbox/ana/pPb8160/pythia/cp5tune/`. On this workstation those directories
+are `/Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/forest/` and its parent.
+The runner invokes `processForestSimple` as Pythia MC in `pp` mode. It passes
+direction 1 to select the existing Pb-going unembedded pPb JEC configuration;
+the direction does not alter pp eta. It uses tight jet ID and trigger ID 0.
+These analysis choices are constants near the top of the script.
+
+Run the complete local pp sample as follows:
+
+```bash
+cd /Users/gnigmat/work/cms/jetAnalysis
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+
+# Confirm the discovered inputs and generated commands without processing.
+py-env/bin/python pp_analyzeMc_cp5tune.py --workers 4 --dry-run
+
+# Process all discovered forests with four concurrent jobs.
+py-env/bin/python pp_analyzeMc_cp5tune.py --workers 4
+```
+
+For example, `HiForestMiniAOD_1.root` produces:
+
+```text
+/Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/HiForestMiniAOD_1_hist.root
+/Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/HiForestMiniAOD_1_hist.log
+```
+
+Inspect failures in the matching `.log` files. A successful campaign ends with
+`Completed: 657 succeeded, 0 failed.` The script returns a nonzero exit status
+if any file fails.
+
+The default is one worker. Choose `--workers` according to available memory and
+I/O bandwidth; each worker is a separate ROOT analysis process. `--input-dir`,
+`--output-dir`, and `--executable` override the paths; `--dry-run` only prints
+commands. Existing outputs or logs
+are rejected unless `--overwrite` is provided. Each subprocess runs from the
+repository root to resolve correction files. Individual processing failures are
+reported with their log paths; remaining files continue, and any failed job
+makes the runner exit nonzero. Outputs are per input file and are not merged.
+
+To intentionally rerun the complete campaign and replace existing per-file
+outputs and logs, use:
+
+```bash
+py-env/bin/python pp_analyzeMc_cp5tune.py --workers 4 --overwrite
+```
+
+To process one pp forest manually, bypassing the batch runner, use the compiled
+executable directly. The fifth numeric argument is `0` because the pT-hat sample
+selector is unused in pp mode; the final `pp` argument enables the pp branches,
+stored event weights, event selection, and eta convention. Use an unused output
+path when calling the executable directly because the runner's overwrite guard
+does not apply:
+
+```bash
+./build/processForestSimple \
+  /Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/forest/HiForestMiniAOD_1.root \
+  /Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/HiForestMiniAOD_1_hist.root \
+  2 1 0 0 2 0 pp
+```
+
 ## HTCondor processing
 
 The `processing/submit_process_forest_condor.py` workflow splits the tracked
-pPb 8.16 TeV file lists, creates readable output and log names, and submits the
-current eight-argument `processForestSimple` executable. It supports individual
-or all MB primary datasets and individual or all MC pT-hat samples. Prepare
+pPb 8.16 TeV file lists, creates readable output and log names, and invokes
+`processForestSimple` with its eight required arguments. Omitting the optional
+collision-system argument deliberately selects the pPb default. It supports
+individual or all MB primary datasets and individual or all MC pT-hat samples.
+Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in
 `processing/README.md`. The general submitter uses 10 input files per job by
 default so one transient input failure invalidates a smaller unit of work.
@@ -310,6 +414,7 @@ After C++ changes, configure and build in Release mode first:
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ./build/processForestSimple
+ctest --test-dir build --output-on-failure
 ```
 
 Running the executable without arguments should print its usage and exit with a
@@ -322,7 +427,17 @@ After changes to the batch runners, check their syntax with:
 py-env/bin/python -m py_compile \
   pPb8160_analyzeMc_Pbgoing.py \
   pPb8160_analyzeMc_pgoing.py \
-  pPb8160_runner.py
+  pPb8160_runner.py \
+  pp_analyzeMc_cp5tune.py
+```
+
+After changes to pp processing, run the runner checks and ROOT weight/selection
+checks (these do not need forest inputs):
+
+```bash
+py-env/bin/python -m py_compile pp_analyzeMc_cp5tune.py
+py-env/bin/python -m unittest discover -s tests -p test_pp_runner.py -v
+root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine(".L JetUncertainty.cc"); gROOT->ProcessLine(".L processForestSimple.C"); gROOT->ProcessLine(".L tests/test_pp_processing.C"); test_pp_processing();'
 ```
 
 After changes to the HTCondor workflow, check its syntax and generate a small

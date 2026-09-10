@@ -36,6 +36,21 @@ per ROOT file. With no positional arguments it uses
 to `/eos/user/g/gnigmatk/ana/pPb8160/pythia/cp5tune`. Entries beginning with
 `/store/` are converted to global CMS XRootD URLs on submission.
 
+After the cloned files are available locally under
+`$HOME/cernbox/ana/pPb8160/pythia/cp5tune/forest/`, process them from the
+repository root with the dedicated pp runner:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+py-env/bin/python pp_analyzeMc_cp5tune.py --workers 4 --dry-run
+py-env/bin/python pp_analyzeMc_cp5tune.py --workers 4
+```
+
+The runner writes one ROOT output and one log per forest to the parent
+`cp5tune/` directory. The main `README.md` documents the pp physics behavior,
+file naming, parallel execution, and overwrite policy.
+
 Prepare and inspect the 657-job campaign without submitting it:
 
 ```bash

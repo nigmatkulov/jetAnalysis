@@ -5,6 +5,7 @@
 #include "TF1.h"
 #include "TChain.h"
 #include "TTree.h"
+#include "TLeaf.h"
 #include "TString.h"
 #include "TRandom3.h"
 #include "THnSparse.h"
@@ -23,6 +24,7 @@
 #include <random>
 #include <fstream>
 #include <sstream>
+#include <string>
 #include <stdexcept>
 #include <utility>
 
@@ -38,10 +40,11 @@ void usage() {
                 << "  <output_file>         Output ROOT file name (default: empty)\n"
                 << "  <0|1|2>               MC type (default 2): 0 - data, 1 - embedding, 2 - pythia\n"
                 << "  <0|1>                 Direction (default 1): 0 - p-going, 1 - Pb-going\n"
-                << "  <value>               pT hat sample for MC (default: 30)\n"
+                << "  <value>               pT-hat sample for pPb MC; unused for pp (default: 50)\n"
                 << "  <value>               Trigger ID (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100\n"
                 << "  <value>               Reco jet selection method (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose\n"
                 << "  <value>               Vertex filter selection (default 0): 0 - dz1p0, 1 - Gplus, 2 - Vtx1\n"
+                << "  [pPb|pp]              Collision system (default: pPb)\n"
                 << RESET;
     exit(EXIT_FAILURE);
 }
@@ -94,6 +97,7 @@ float ptHatRange[2] { 0.f, 8160.f};
 
 // Event info variables
 float ptHat;
+Float_t inputEventWeight; // hiEvtAnalyzer/HiTree/weight, used directly for pp MC.
 float vz;
 UInt_t run;
 UInt_t lumi;
@@ -686,13 +690,22 @@ struct Histograms {
 };
 
 //________________
-// Event weight calculation for pPb8160 MC samples
-/// @param ptHat: the ptHat
+// Event weight calculation: stored generator weight for pp, legacy weighting for pPb.
+/// @param ptHat: event pT-hat read from hiEvtAnalyzer/HiTree/pthat
 /// @param vz: the z position
 /// @param fVzWeight: the z position weight function
-/// @param eventsInSample: the number of events in the sample
+/// @param eventsInSample: the number of events in the sample (pPb only)
+/// @param isPp: use the stored pp MC event weight without normalization
+/// @param storedWeight: scalar Float_t weight from hiEvtAnalyzer/HiTree
 /// @return the event weight
-double eventWeight(const float &ptHat, const float &vz, TF1 &fVzWeight, Long64_t eventsInSample) {
+double eventWeight(const float &ptHat, const float &vz, TF1 &fVzWeight, Long64_t eventsInSample,
+                   bool isPp = false, Float_t storedWeight = 1.f) {
+    if (isPp) {
+        if (!std::isfinite(storedWeight)) {
+            throw std::runtime_error("Non-finite hiEvtAnalyzer/HiTree/weight in pp event");
+        }
+        return storedWeight;
+    }
 
     double genWeight = 1.0;
     double vzWeight = 1./ fVzWeight.Eval( vz );
@@ -1980,7 +1993,7 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
 /// @param eventTree: the event tree
 /// @param skimTree: the skim tree
 /// @param jetTree: the jet tree
-void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChain &skimTree, TChain &jetTree) {
+void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChain &skimTree, TChain &jetTree, bool isMc = false, bool isPp = false) {
 
     auto failInput = [](const std::string &message) {
         std::cerr << RED << "ERROR: " << message << RESET << std::endl;
@@ -2006,6 +2019,21 @@ void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChai
                 std::cerr << RED << "SKIPPING INPUT FILE: missing required tree "
                           << treeName << ": " << file << RESET << std::endl;
                 return false;
+            }
+        }
+        if (isMc) {
+            auto *events = inputFile->Get<TTree>("hiEvtAnalyzer/HiTree");
+            if (!events) failInput("Missing event TTree in " + file);
+            const std::vector<const char *> requiredBranches = isPp
+                ? std::vector<const char *>{"pthat", "weight"}
+                : std::vector<const char *>{"pthat"};
+            for (const char *name : requiredBranches) {
+                const auto *leaf = events->GetLeaf(name);
+                if (!leaf || std::string(leaf->GetTypeName()) != "Float_t" ||
+                    leaf->GetLeafCount() != nullptr || leaf->GetLenStatic() != 1) {
+                    failInput("Expected scalar Float_t hiEvtAnalyzer/HiTree/" +
+                              std::string(name) + " in " + file);
+                }
             }
         }
         inputFile->Close();
@@ -2081,7 +2109,7 @@ void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChai
 /// Set up the branches for the main tree
 /// @param mainTree: the main tree
 /// @param isMc: true if the data is from Monte Carlo, false otherwise
-void setupBranches(TChain &mainTree, const bool &isMc) {
+void setupBranches(TChain &mainTree, TChain &eventTree, const bool &isMc, bool isPp) {
 
     std::cout << "Setting up branches...";
 
@@ -2097,7 +2125,9 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
     // Event level branches
     mainTree.SetBranchStatus("vz", 1);
     if (isMc) {
+        // Register statuses on the master chain so LoadTree preserves them on friends.
         mainTree.SetBranchStatus("pthat", 1);
+        if (isPp) mainTree.SetBranchStatus("weight", 1);
     }
     else {
         mainTree.SetBranchStatus("run", 1);
@@ -2105,19 +2135,23 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
         mainTree.SetBranchStatus("evt", 1);
     }
 
-    // Enable skim/event filter branches
-    mainTree.SetBranchStatus("pBeamScrapingFilter", 1);
-    mainTree.SetBranchStatus("pPAprimaryVertexFilter", 1);
-    mainTree.SetBranchStatus("HBHENoiseFilterResultRun2Loose", 1);
-    mainTree.SetBranchStatus("phfCoincFilter", 1);
-    mainTree.SetBranchStatus("pVertexFilterCutdz1p0", 1);
-    mainTree.SetBranchStatus("pVertexFilterCutGplus", 1);
-    mainTree.SetBranchStatus("pVertexFilterCutVtx1", 1);
+    if (!isPp) {
+        // Enable skim/event filter branches
+        mainTree.SetBranchStatus("pBeamScrapingFilter", 1);
+        mainTree.SetBranchStatus("pPAprimaryVertexFilter", 1);
+        mainTree.SetBranchStatus("HBHENoiseFilterResultRun2Loose", 1);
+        mainTree.SetBranchStatus("phfCoincFilter", 1);
+        mainTree.SetBranchStatus("pVertexFilterCutdz1p0", 1);
+        mainTree.SetBranchStatus("pVertexFilterCutGplus", 1);
+        mainTree.SetBranchStatus("pVertexFilterCutVtx1", 1);
+    }
 
-    // Trigger branches
-    mainTree.SetBranchStatus("HLT_PAAK4PFJet60_Eta5p1_v4", 1);
-    mainTree.SetBranchStatus("HLT_PAAK4PFJet80_Eta5p1_v3", 1);
-    mainTree.SetBranchStatus("HLT_PAAK4PFJet100_Eta5p1_v3", 1);
+    if (!isMc) {
+        // Trigger branches
+        mainTree.SetBranchStatus("HLT_PAAK4PFJet60_Eta5p1_v4", 1);
+        mainTree.SetBranchStatus("HLT_PAAK4PFJet80_Eta5p1_v3", 1);
+        mainTree.SetBranchStatus("HLT_PAAK4PFJet100_Eta5p1_v3", 1);
+    }
 
     // Jet level branches
     if (isMc) {
@@ -2152,7 +2186,11 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
     // Set branch addresses
     mainTree.SetBranchAddress("vz", &vz);
     if (isMc) {
-        mainTree.SetBranchAddress("pthat", &ptHat);
+        // Bind on the event tree explicitly: pp also has a pthat jet-tree branch.
+        if (eventTree.SetBranchAddress("pthat", &ptHat) < 0 ||
+            (isPp && eventTree.SetBranchAddress("weight", &inputEventWeight) < 0)) {
+            throw std::runtime_error("Failed to bind MC event branches in hiEvtAnalyzer/HiTree");
+        }
     }
     else {
         mainTree.SetBranchAddress("run", &run);
@@ -2160,17 +2198,21 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
         mainTree.SetBranchAddress("evt", &evt);
     }
 
-    mainTree.SetBranchAddress("pBeamScrapingFilter", &pBeamScrapingFilter);
-    mainTree.SetBranchAddress("pPAprimaryVertexFilter", &pPAprimaryVertexFilter);
-    mainTree.SetBranchAddress("HBHENoiseFilterResultRun2Loose", &HBHENoiseFilterResultRun2Loose);
-    mainTree.SetBranchAddress("phfCoincFilter", &phfCoincFilter);
-    mainTree.SetBranchAddress("pVertexFilterCutdz1p0", &pVertexFilterCutdz1p0);
-    mainTree.SetBranchAddress("pVertexFilterCutGplus", &pVertexFilterCutGplus);
-    mainTree.SetBranchAddress("pVertexFilterCutVtx1", &pVertexFilterCutVtx1);
+    if (!isPp) {
+        mainTree.SetBranchAddress("pBeamScrapingFilter", &pBeamScrapingFilter);
+        mainTree.SetBranchAddress("pPAprimaryVertexFilter", &pPAprimaryVertexFilter);
+        mainTree.SetBranchAddress("HBHENoiseFilterResultRun2Loose", &HBHENoiseFilterResultRun2Loose);
+        mainTree.SetBranchAddress("phfCoincFilter", &phfCoincFilter);
+        mainTree.SetBranchAddress("pVertexFilterCutdz1p0", &pVertexFilterCutdz1p0);
+        mainTree.SetBranchAddress("pVertexFilterCutGplus", &pVertexFilterCutGplus);
+        mainTree.SetBranchAddress("pVertexFilterCutVtx1", &pVertexFilterCutVtx1);
+    }
 
-    mainTree.SetBranchAddress("HLT_PAAK4PFJet60_Eta5p1_v4", &HLT_PAAK4PFJet60_Eta5p1_v4);
-    mainTree.SetBranchAddress("HLT_PAAK4PFJet80_Eta5p1_v3", &HLT_PAAK4PFJet80_Eta5p1_v3);
-    mainTree.SetBranchAddress("HLT_PAAK4PFJet100_Eta5p1_v3", &HLT_PAAK4PFJet100_Eta5p1_v3);
+    if (!isMc) {
+        mainTree.SetBranchAddress("HLT_PAAK4PFJet60_Eta5p1_v4", &HLT_PAAK4PFJet60_Eta5p1_v4);
+        mainTree.SetBranchAddress("HLT_PAAK4PFJet80_Eta5p1_v3", &HLT_PAAK4PFJet80_Eta5p1_v3);
+        mainTree.SetBranchAddress("HLT_PAAK4PFJet100_Eta5p1_v3", &HLT_PAAK4PFJet100_Eta5p1_v3);
+    }
 
     if (isMc) {
         mainTree.SetBranchAddress("ngen",   &nGenJets);
@@ -2205,31 +2247,18 @@ void setupBranches(TChain &mainTree, const bool &isMc) {
 }
 
 //________________
-void setupInput(const TString &input, TChain &hltTree, TChain &eventTree, TChain &skimTree, TChain &jetTree, const bool &isMc) {
-    setupChains(input, hltTree, eventTree, skimTree, jetTree);
-    setupBranches(hltTree, isMc);
+void setupInput(const TString &input, TChain &hltTree, TChain &eventTree, TChain &skimTree, TChain &jetTree, const bool &isMc, bool isPp = false) {
+    setupChains(input, hltTree, eventTree, skimTree, jetTree, isMc, isPp);
+    setupBranches(hltTree, eventTree, isMc, isPp);
 }
 
 //________________
-float etaCM(const float &etaLab, const float &etaShift, const bool &isPbGoing, const bool &isMc) {
-    if (isMc) { // For embedding: Pb goes to negative, p goes to positive
-        return isPbGoing ? -1.f * (etaLab + etaShift) : etaLab - etaShift;
-    }
-    return isPbGoing ? etaLab - etaShift : -1.f * (etaLab + etaShift);
-}
-
-//________________
-float etaLab(const float &eta, const bool &isPbGoing, const bool &isMc) {
-    if (isMc) { // For embedding: Pb goes to negative, p goes to positive
-        return isPbGoing ? -eta : eta;
-    }
-    // For data: p goes to negative, Pb goes to positive in stored orientation.
-    return isPbGoing ? eta : -eta;
-}
+using analysis_contract::etaCM;
+using analysis_contract::etaLab;
 
 //________________
 /// Set the pT hat range for a given MC sample
-/// @param ptHatSample: the ptHat sample
+/// @param ptHatSample: the pPb pT-hat sample; unused for pp
 void setPtHatRange(const int &ptHatSample) {
     std::cout << "Setting pT hat range for sample " << ptHatSample;
     if (ptHatSample == 15)       { ptHatRange[0] = 15.; ptHatRange[1] = 30.; }
@@ -2260,11 +2289,11 @@ bool passesVertexFilter(const int &vertexFilterSelection) {
 }
 
 bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &triggerId,
-                 const int &vertexFilterSelection) {
+                 const int &vertexFilterSelection, bool isPp = false) {
 
     bool goodTrigger{false};
     if (isMc) {
-        if (ptHat < ptHatRange[0] || ptHat > ptHatRange[1]) {
+        if (!isPp && (ptHat < ptHatRange[0] || ptHat > ptHatRange[1])) {
             return false;
         }
         goodTrigger = {true};
@@ -2283,6 +2312,8 @@ bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &triggerId,
             goodTrigger = {true};
         }
     }
+
+    if (isPp) return std::abs(vz) <= 15. && goodTrigger;
 
     return ( ( std::abs(vz) <= 15. ) && 
              ( pBeamScrapingFilter == 1 ) && 
@@ -2432,7 +2463,7 @@ void calculateScaleSmearing(float &ptDef, const float &eta) {
 }
 
 //________________
-void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weight, 
+void processGenJets(const bool isPp, const bool &isPbGoing, const bool &isMc, const double &weight,
                     std::vector<GenJet> &genJets, Histograms &hs, const double &ptHat) {
 
     float genJetEtaLabFlipped{0.};
@@ -2442,8 +2473,8 @@ void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weigh
     // Loop over gen jets and fill histograms
     for (const auto &genJet : genJets) {
         pt = genJet.pt;
-        genJetEtaLabFlipped = etaLab(genJet.eta, isPbGoing, isMc);
-        genJetEtaCM = etaCM(genJet.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+        genJetEtaLabFlipped = etaLab(genJet.eta, isPbGoing, isMc, isPp);
+        genJetEtaCM = etaCM(genJet.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
 
         hs.hGenInclusiveJetPtEtaLabUnflippedUnweighted->Fill(pt, genJet.eta, 1.);
         hs.hGenInclusiveJetPtEtaLabUnflipped->Fill(pt, genJet.eta, weight);
@@ -2451,7 +2482,7 @@ void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weigh
         hs.hGenInclusiveJetPtEtaCM->Fill(pt, genJetEtaCM, weight);
 
         for (int iShift{0}; iShift < nEtaShifts; ++iShift) {
-            genJetEtaCM = etaCM(genJet.eta, etaShift[iShift], isPbGoing, isMc);
+            genJetEtaCM = etaCM(genJet.eta, etaShift[iShift], isPbGoing, isMc, isPp);
             hs.hGenInclusiveJetEtaCMShiftedUnweighted[iShift]->Fill( genJetEtaCM, 1.); // Unweighted
             hs.hGenInclusiveJetEtaCMShifted[iShift]->Fill(genJetEtaCM, weight);
         } // for (int iShift{0}; iShift < nEtaShifts; ++iShift)
@@ -2472,7 +2503,7 @@ void processGenJets(const bool &isPbGoing, const bool &isMc, const double &weigh
 }
 
 //________________
-void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &weight, 
+void processGenDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, const double &weight,
                       std::vector<GenJet> &genJets, Histograms &hs,
                       JERSmearingHelper *fJERSmearingHelper) {
 
@@ -2489,11 +2520,11 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
         if (std::abs(dphi) >= TMath::TwoPi() / 3.) {
             float dijetPtAve = 0.5f * (leadingJet.pt + subleadingJet.pt);
             float leadEtaLabUnflipped = leadingJet.eta;
-            float leadEtaLabFlipped = etaLab(leadingJet.eta, isPbGoing, isMc);
-            float leadEtaCM = etaCM(leadingJet.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+            float leadEtaLabFlipped = etaLab(leadingJet.eta, isPbGoing, isMc, isPp);
+            float leadEtaCM = etaCM(leadingJet.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
             float subleadEtaLabUnflipped = subleadingJet.eta;
-            float subleadEtaLabFlipped = etaLab(subleadingJet.eta, isPbGoing, isMc);
-            float subleadEtaCM = etaCM(subleadingJet.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+            float subleadEtaLabFlipped = etaLab(subleadingJet.eta, isPbGoing, isMc, isPp);
+            float subleadEtaCM = etaCM(subleadingJet.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
 
             if (std::abs(leadEtaCM) <= 1.9 && std::abs(subleadEtaCM) <= 1.9) {
                 float dijetEtaLabUnflipped = 0.5f * (leadEtaLabUnflipped + subleadEtaLabUnflipped);
@@ -2507,8 +2538,8 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
 
             // Verify forward/backward dijet etaCM bias due to the eta shift
             for (int iShift = 0; iShift < nEtaShifts; ++iShift) {
-                float leadingEtaCMShifted = etaCM(leadingJet.eta, etaShift[iShift], isPbGoing, isMc);
-                float subleadingEtaCMShifted = etaCM(subleadingJet.eta, etaShift[iShift], isPbGoing, isMc);
+                float leadingEtaCMShifted = etaCM(leadingJet.eta, etaShift[iShift], isPbGoing, isMc, isPp);
+                float subleadingEtaCMShifted = etaCM(subleadingJet.eta, etaShift[iShift], isPbGoing, isMc, isPp);
                 float dijetEtaCMShifted = 0.5 * (leadingEtaCMShifted + subleadingEtaCMShifted);
                 
                 if (std::abs(leadingEtaCMShifted) > 1.9 || std::abs(subleadingEtaCMShifted) > 1.9) continue;
@@ -2538,8 +2569,8 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
         if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
 
         float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
-        float leadEtaCM = etaCM(leadingJetSyst.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
-        float subleadEtaCM = etaCM(subleadingJetSyst.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+        float leadEtaCM = etaCM(leadingJetSyst.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
+        float subleadEtaCM = etaCM(subleadingJetSyst.eta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
         float systDijetEtaCM = 0.5f * (leadEtaCM + subleadEtaCM);
 
         auto gaussianRatio = [](double eta, double targetMean, double targetSigma) {
@@ -2588,8 +2619,8 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
         if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
 
         float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
-        float leadEtaLab = etaLab(leadingJetSyst.eta, isPbGoing, isMc);
-        float subleadEtaLab = etaLab(subleadingJetSyst.eta, isPbGoing, isMc);
+        float leadEtaLab = etaLab(leadingJetSyst.eta, isPbGoing, isMc, isPp);
+        float subleadEtaLab = etaLab(subleadingJetSyst.eta, isPbGoing, isMc, isPp);
         float systDijetEtaLab = 0.5f * (leadEtaLab + subleadEtaLab);
 
         // Loop over eta cuts and fill the corresponding histograms
@@ -2660,7 +2691,7 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
             // Apply smearing to each gen jet and store in smearedPt
             for (auto &jet : genJets) {
                 jet.smearedPt = jet.pt;
-                genJetEtaLabFlipped = etaLab(jet.eta, isPbGoing, isMc);
+                genJetEtaLabFlipped = etaLab(jet.eta, isPbGoing, isMc, isPp);
 
                 // std::cout << "gen jet pt: " << jet.pt << ", eta: " << jet.eta << ", smeared pt: " << jet.smearedPt;
 
@@ -2709,7 +2740,7 @@ void processGenDijets(const bool &isPbGoing, const bool &isMc, const double &wei
 }
 
 //________________
-void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weight, 
+void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, const float &weight,
                       std::vector<GenJet> &genJets, std::vector<RecoJet> &recoJets, 
                       std::unique_ptr<THnSparseF> *responseArr,
                       std::unique_ptr<TH2D> *missArr,
@@ -2780,13 +2811,13 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
         genLeadingJetPt = genLeadingJet.pt;
         genLeadingJetEtaCM = etaCM(genLeadingJet.eta,
                                    analysis_contract::kNominalEtaShift,
-                                   isPbGoing, isMc);
+                                   isPbGoing, isMc, isPp);
         genLeadingJetPhi = genLeadingJet.phi;
 
         genSubleadingJetPt = genSubleadingJet.pt;
         genSubleadingJetEtaCM = etaCM(genSubleadingJet.eta,
                                       analysis_contract::kNominalEtaShift,
-                                      isPbGoing, isMc);
+                                      isPbGoing, isMc, isPp);
         genSubleadingJetPhi = genSubleadingJet.phi;
 
         genDijetPtAve = 0.5 * (genLeadingJetPt + genSubleadingJetPt);
@@ -2829,13 +2860,13 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
         recoLeadingJetPt = recoLeadingJet.refPtSmeared;
         recoLeadingJetEtaCM = etaCM(recoLeadingJet.recoEta,
                                     analysis_contract::kNominalEtaShift,
-                                    isPbGoing, isMc);
+                                    isPbGoing, isMc, isPp);
         recoLeadingJetPhi = recoLeadingJet.recoPhi;
 
         recoSubleadingJetPt = recoSubleadingJet.refPtSmeared;
         recoSubleadingJetEtaCM = etaCM(recoSubleadingJet.recoEta,
                                        analysis_contract::kNominalEtaShift,
-                                       isPbGoing, isMc);
+                                       isPbGoing, isMc, isPp);
         recoSubleadingJetPhi = recoSubleadingJet.recoPhi;
 
         recoDijetPtAve = 0.5 * (recoLeadingJetPt + recoSubleadingJetPt);
@@ -2957,7 +2988,7 @@ void prepareUnfolding(const bool &isPbGoing, const bool &isMc, const float &weig
 
 
 //________________
-void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weight, 
+void processRecoJets(const bool isPp, const bool &isPbGoing, const bool &isMc, const double &weight,
                      std::vector<RecoJet> &recoJets, Histograms &hs,
                      JetUncertainty &jeu,
                      const int &jetSelectionMethod, const double &ptHat) {
@@ -2975,11 +3006,11 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
         auto &recoJet = *it;
 
         hasMatchingGenJet = (recoJet.refPt > 0.f);
-        recoJetEtaLabFlipped = etaLab(recoJet.recoEta, isPbGoing, isMc);
-        recoJetEtaCM = etaCM(recoJet.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+        recoJetEtaLabFlipped = etaLab(recoJet.recoEta, isPbGoing, isMc, isPp);
+        recoJetEtaCM = etaCM(recoJet.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
         if (hasMatchingGenJet) {
-            refJetEtaLabFlipped = etaLab(recoJet.refEta, isPbGoing, isMc);
-            refJetEtaCM = etaCM(recoJet.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+            refJetEtaLabFlipped = etaLab(recoJet.refEta, isPbGoing, isMc, isPp);
+            refJetEtaCM = etaCM(recoJet.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
         }
 
         // Acceptance for reco jets without any selection applied
@@ -3045,7 +3076,7 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
         hs.hRecoInclusiveJetPtEtaStdBins->Fill(recoJet.recoPt, recoJet.recoEta, weight);
 
         // for (int iShift{0}; iShift < nEtaShifts; ++iShift) {
-        //     recoJetEtaCM = etaCM(recoJet.recoEta, etaShift[iShift], isPbGoing, isMc);
+        //     recoJetEtaCM = etaCM(recoJet.recoEta, etaShift[iShift], isPbGoing, isMc, isPp);
         //     hs.hRecoInclusiveJetEtaCMShiftedUnweighted[iShift]->Fill( recoJetEtaCM, 1.); // Unweighted
         //     hs.hRecoInclusiveJetEtaCMShifted[iShift]->Fill(recoJetEtaCM, weight);
         // } // for (int iShift{0}; iShift < nEtaShifts; ++iShift)
@@ -3082,7 +3113,7 @@ void processRecoJets(const bool &isPbGoing, const bool &isMc, const double &weig
 }
 
 //________________
-void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &weight, 
+void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, const float &weight,
                        std::vector<RecoJet> &recoJets, std::vector<GenJet> &genJets,
                        Histograms &hs,
                        JERSmearingHelper *fJERSmearingHelper) {
@@ -3108,11 +3139,11 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
         if (std::abs(dphi) >= TMath::TwoPi() / 3.) {
             float recoDijetPtAve = 0.5f * (leadingJet.recoPt + subleadingJet.recoPt);
             float recoLeadEtaLabUnflipped = leadingJet.recoEta;
-            float recoLeadEtaLab = etaLab(leadingJet.recoEta, isPbGoing, isMc);
-            float recoLeadEtaCM = etaCM(leadingJet.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+            float recoLeadEtaLab = etaLab(leadingJet.recoEta, isPbGoing, isMc, isPp);
+            float recoLeadEtaCM = etaCM(leadingJet.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
             float recoSubleadEtaLabUnflipped = subleadingJet.recoEta;
-            float recoSubleadEtaLab = etaLab(subleadingJet.recoEta, isPbGoing, isMc);
-            float recoSubleadEtaCM = etaCM(subleadingJet.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+            float recoSubleadEtaLab = etaLab(subleadingJet.recoEta, isPbGoing, isMc, isPp);
+            float recoSubleadEtaCM = etaCM(subleadingJet.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
             if (std::abs(recoLeadEtaCM) <= 1.9 && std::abs(recoSubleadEtaCM) <= 1.9) {
                 float dijetEtaLabUnflipped = 0.5f * (recoLeadEtaLabUnflipped + recoSubleadEtaLabUnflipped);
                 float dijetEtaLab = 0.5f * (recoLeadEtaLab + recoSubleadEtaLab);
@@ -3136,11 +3167,11 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
 
                 if (leadingJet.refPt > 0. && subleadingJet.refPt > 0.) {
                     float refLeadEtaLabUnflipped = leadingJet.refEta;
-                    float refLeadEtaLab = etaLab(leadingJet.refEta, isPbGoing, isMc);
-                    float refLeadEtaCM = etaCM(leadingJet.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+                    float refLeadEtaLab = etaLab(leadingJet.refEta, isPbGoing, isMc, isPp);
+                    float refLeadEtaCM = etaCM(leadingJet.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
                     float refSubleadEtaLabUnflipped = subleadingJet.refEta;
-                    float refSubleadEtaLab = etaLab(subleadingJet.refEta, isPbGoing, isMc);
-                    float refSubleadEtaCM = etaCM(subleadingJet.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+                    float refSubleadEtaLab = etaLab(subleadingJet.refEta, isPbGoing, isMc, isPp);
+                    float refSubleadEtaCM = etaCM(subleadingJet.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
                     
                     float refDijetEtaLabUnflipped = 0.5f * (refLeadEtaLabUnflipped + refSubleadEtaLabUnflipped);
                     float refDijetEtaLab = 0.5f * (refLeadEtaLab + refSubleadEtaLab);
@@ -3185,8 +3216,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
         if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
 
         float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
-        float leadEtaCM = etaCM(leadingJetSyst.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
-        float subleadEtaCM = etaCM(subleadingJetSyst.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+        float leadEtaCM = etaCM(leadingJetSyst.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
+        float subleadEtaCM = etaCM(subleadingJetSyst.recoEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
         float systDijetEtaCM = 0.5f * (leadEtaCM + subleadEtaCM);
 
         bool  leadHasRef = (leadingJetSyst.refPt > 0.);
@@ -3197,8 +3228,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
         float refDijetEtaCM = 0.;
 
         if (hasRefPair) {
-            refLeadEtaCM = etaCM(leadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
-            refSubleadEtaCM = etaCM(subleadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+            refLeadEtaCM = etaCM(leadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
+            refSubleadEtaCM = etaCM(subleadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
             refDijetEtaCM = 0.5f * (refLeadEtaCM + refSubleadEtaCM);
         }
 
@@ -3275,8 +3306,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
         if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
 
         float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
-        float leadEtaLab = etaLab(leadingJetSyst.recoEta, isPbGoing, isMc);
-        float subleadEtaLab = etaLab(subleadingJetSyst.recoEta, isPbGoing, isMc);
+        float leadEtaLab = etaLab(leadingJetSyst.recoEta, isPbGoing, isMc, isPp);
+        float subleadEtaLab = etaLab(subleadingJetSyst.recoEta, isPbGoing, isMc, isPp);
         float systDijetEtaLab = 0.5f * (leadEtaLab + subleadEtaLab);
 
         bool  leadHasRef = (leadingJetSyst.refPt > 0.);
@@ -3287,8 +3318,8 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
         float refDijetEtaLab = 0.;
 
         if (hasRefPair) {
-            refLeadEtaLab = etaLab(leadingJetSyst.refEta, isPbGoing, isMc);
-            refSubleadEtaLab = etaLab(subleadingJetSyst.refEta, isPbGoing, isMc);
+            refLeadEtaLab = etaLab(leadingJetSyst.refEta, isPbGoing, isMc, isPp);
+            refSubleadEtaLab = etaLab(subleadingJetSyst.refEta, isPbGoing, isMc, isPp);
             refDijetEtaLab = 0.5f * (refLeadEtaLab + refSubleadEtaLab);
         }
 
@@ -3449,7 +3480,7 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                                 hs.hRecoDijetPtEtaCMArrJerDefUnfold,
                                                 hs.hRecoDijetPtEtaForwardArrJerDefUnfold,
                                                 hs.hRecoDijetPtEtaBackwardArrJerDefUnfold);
-                        prepareUnfolding(isPbGoing, isMc, weight, genJets, recoJets,
+                        prepareUnfolding(isPp, isPbGoing, isMc, weight, genJets, recoJets,
                                          hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr,
                                          hs.hGenDijetPtEtaCMMissArr,
                                          hs.hRecoDijetPtEtaCMFakeArr,
@@ -3487,7 +3518,7 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
                                                 hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold,
                                                 hs.hRecoDijetPtEtaForwardArrJerDefExtraUnfold,
                                                 hs.hRecoDijetPtEtaBackwardArrJerDefExtraUnfold);
-                        prepareUnfolding(isPbGoing, isMc, weight, genJets, recoJets,
+                        prepareUnfolding(isPp, isPbGoing, isMc, weight, genJets, recoJets,
                                          hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr,
                                          hs.hGenDijetPtEtaCMMissJerDefExtraArr,
                                          hs.hRecoDijetPtEtaCMFakeJerDefExtraArr,
@@ -3507,7 +3538,7 @@ void processRecoDijets(const bool &isPbGoing, const bool &isMc, const float &wei
 }
 
 //________________
-void processRefDijets(const bool &isPbGoing, const bool &isMc, const float &weight, 
+void processRefDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, const float &weight,
                        std::vector<RecoJet> &recoJets, Histograms &hs) {
 
     // std::cout << "processRefDijets input parameters:" << std::endl;
@@ -3541,8 +3572,8 @@ void processRefDijets(const bool &isPbGoing, const bool &isMc, const float &weig
         if (std::abs(systDphi) < TMath::TwoPi() / 3.) return;
 
         float systDijetPtAve = 0.5f * (getPt(leadingJetSyst) + getPt(subleadingJetSyst));
-        float leadEtaCM = etaCM(leadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
-        float subleadEtaCM = etaCM(subleadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc);
+        float leadEtaCM = etaCM(leadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
+        float subleadEtaCM = etaCM(subleadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
         float systDijetEtaCM = 0.5f * (leadEtaCM + subleadEtaCM);
 
         // Loop over eta cuts and fill the corresponding histograms
@@ -3845,7 +3876,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc) {
 }
 
 //________________
-void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia, TChain &mainTree, 
+void processEvents(const bool isPp, const bool &isPbGoing, const bool &isMc, const bool &isPythia, TChain &mainTree,
                    JetCorrector &jec, JetUncertainty &jeu,
                    Histograms &hs,
                    const int &triggerId, const int &jetSelectionMethod,
@@ -4050,10 +4081,10 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         // std::cout << Form("|vz| <= 15 cm ? %s", (std::abs(vz) <= 15.) ? "true" : "false") << std::endl;
 
         // Check the event is satisfies basic event selection
-        if (!isGoodEvent(isPbGoing, isMc, triggerId, vertexFilterSelection)) continue;
+        if (!isGoodEvent(isPbGoing, isMc, triggerId, vertexFilterSelection, isPp)) continue;
 
         if ( isMc ) {
-            weight = eventWeight(ptHat, vz, *fVzWeight, nEntries);
+            weight = eventWeight(ptHat, vz, *fVzWeight, nEntries, isPp, inputEventWeight);
         }
 
         // Load reconstructed jets
@@ -4079,16 +4110,16 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
         // Gen level processing
         //
         if (isMc) {
-            processGenJets(isPbGoing, isMc, weight, genJets, hs, ptHat);
-            processGenDijets(isPbGoing, isMc, weight, genJets, hs, fJerSmearingHelper.get());
-            processRefDijets(isPbGoing, isMc, weight, recoJets, hs);
+            processGenJets(isPp, isPbGoing, isMc, weight, genJets, hs, ptHat);
+            processGenDijets(isPp, isPbGoing, isMc, weight, genJets, hs, fJerSmearingHelper.get());
+            processRefDijets(isPp, isPbGoing, isMc, weight, recoJets, hs);
         }
 
         //
         // Reco level processing
         //
-        processRecoJets(isPbGoing, isMc, weight, recoJets, hs, jeu, jetSelectionMethod, ptHat);
-        processRecoDijets(isPbGoing, isMc, weight, recoJets, genJets, hs, 
+        processRecoJets(isPp, isPbGoing, isMc, weight, recoJets, hs, jeu, jetSelectionMethod, ptHat);
+        processRecoDijets(isPp, isPbGoing, isMc, weight, recoJets, genJets, hs,
                           fJerSmearingHelper.get());
     } // for (Long64_t iEntry = 0; iEntry < nEntries; ++iEntry)
 
@@ -4103,16 +4134,17 @@ void processEvents(const bool &isPbGoing, const bool &isMc, const bool &isPythia
     output: output file name
     mcType (default 2): 0 - data, 1 - embedding, 2 - pythia
     isPbGoingDir (default 1): 0 - p-going, 1 - Pb-going
-    ptHatSample (default 30, for MC only): 15, 30, 50, 80, 120, 170, 220, 280, 370, 460, 540
+    ptHatSample (default 50): pPb MC sample boundary; unused for pp
     triggerId (default 0): 0 - no trigger (or MB), 1 - jet60, 2 - jet80, 3 - jet100
     recoJetSelMethod (default 2): 0 - no selection, 1 - trkMaxPt/RawPt, 2 - jetIdTightLeptVeto, 3 - jetIdLoose
     vertexFilterSelection (default 0): 0 - dz1p0, 1 - Gplus, 2 - Vtx1
+    collisionSystem (default pPb): pPb or pp; controls eta frames, MC branches, weights, and event cuts
 */
 #if defined(__CINT__) || defined(__CLING__)
 void processForestSimple( const char* input = "", const char* output = "", 
                           int mcType = 2, int isPbGoingDir = 1, int ptHatSample = 50,
                           int triggerId = 0, int recoJetSelMethod = 2,
-                          int vertexFilterSelection = 0 ) {
+                          int vertexFilterSelection = 0, const char* collisionSystem = "pPb" ) {
 
     const char *path2auxFiles = "./aux_files/pPb_8160";
 #else
@@ -4126,8 +4158,9 @@ int main(int argc, char* argv[]) {
     int triggerId = {0};
     int recoJetSelMethod = {2};
     int vertexFilterSelection = {0};
+    const char* collisionSystem = "pPb";
 
-    if (argc != 9) {
+    if (argc != 9 && argc != 10) {
         std::cerr << RED << "Incorrect number of input parameters. Terminating." << RESET << std::endl;
         usage();
     }
@@ -4140,9 +4173,17 @@ int main(int argc, char* argv[]) {
     triggerId = std::atoi(argv[6]);
     recoJetSelMethod = std::atoi(argv[7]);
     vertexFilterSelection = std::atoi(argv[8]);
+    if (argc == 10) collisionSystem = argv[9];
 
     const char *path2auxFiles = "./aux_files/pPb_8160";
 #endif
+
+    if (collisionSystem == nullptr ||
+        (std::string(collisionSystem) != "pPb" && std::string(collisionSystem) != "pp")) {
+        std::cerr << RED << "Invalid collisionSystem. Must be pPb or pp." << RESET << std::endl;
+        usage();
+    }
+    const bool isPp = std::string(collisionSystem) == "pp";
 
     // Validate input parameters
     if (mcType < 0 || mcType > 2) {
@@ -4218,7 +4259,7 @@ int main(int argc, char* argv[]) {
 
 
     // Set pT hat range for MC samples
-    if (isMc) setPtHatRange(ptHatSample);
+    if (isMc && !isPp) setPtHatRange(ptHatSample);
 
     // Setup input filename
     TString fname;
@@ -4240,6 +4281,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Print code input parameters here
+    std::cout << "Collision system: " << collisionSystem << std::endl;
     std::cout << "Code input parameters:" << std::endl;
     std::cout << "  generator: " << GREEN << generator.Data() << RESET << std::endl;
     std::cout << "  direction: " << GREEN << directionStr.Data() << RESET << std::endl;
@@ -4261,7 +4303,7 @@ int main(int argc, char* argv[]) {
     auto eventTree = std::make_unique<TChain>("hiEvtAnalyzer/HiTree");
     auto skimTree = std::make_unique<TChain>("skimanalysis/HltTree");
     auto jetTree = std::make_unique<TChain>("ak4PFJetAnalyzer/t");
-    setupInput(fname, *mainTree, *eventTree, *skimTree, *jetTree, isMc);
+    setupInput(fname, *mainTree, *eventTree, *skimTree, *jetTree, isMc, isPp);
 
     ///////////////////////
     // Create histograms //
@@ -4286,7 +4328,7 @@ int main(int argc, char* argv[]) {
                        GREEN, mainTree->GetEntries(), RESET) << std::endl;
 
     // Process the events
-    processEvents(isPbGoing, isMc, isPythia, *mainTree, *jec, *jeu, hs,
+    processEvents(isPp, isPbGoing, isMc, isPythia, *mainTree, *jec, *jeu, hs,
                   triggerId, recoJetSelMethod, vertexFilterSelection);
 
     // Write output
