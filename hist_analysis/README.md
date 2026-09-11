@@ -121,20 +121,34 @@ and double-ratio y ranges independently. `CORRECTED_RAW_RATIO_OPTION` and
 `output/mc_jet_JEC_check/`; set `SAVE_PNG = True` to also write PNG files.
 
 Use `notebooks/03_mc_dijet_embedding_vs_pythia.ipynb` to compare Embedding and
-PYTHIA Reco, matched-Ref, and Gen dijet distributions for a configurable stored
-jet-eta acceptance and every half-open interval in
-`config.histograms.TEST_DIJET_PTAVE_BINS`. Reco, Ref, and Gen comparisons are
-launched from separate cells. Each full CM-pseudorapidity distribution is
-normalized independently to unit bin-content sum, then overlaid with a
-PYTHIA/Embedding ratio panel. The notebook derives one common full-distribution
-y-axis range from all levels, samples, and pTave intervals before drawing. It
-also overlays the unnormalized Forward/Backward ratios with a common configured
-`FB_RANGE` and draws `(F/B)_PYTHIA / (F/B)_Embedding`. Both F/B construction and
-the later sample-comparison ratios use ROOT independent-error propagation; no
-binomial option is exposed. Combined and direction-specific inputs use the
-standard MC filename resolvers. Set `DIJET_EMBEDDING_VS_PYTHIA_OUTPUT_DIR` to
-redirect output from `output/dijet_embedding_vs_pythia/`, and `SAVE_PNG = True`
-to write PNG files alongside the default PDFs.
+standard PYTHIA Reco, matched-Ref, and Gen dijet distributions for a
+configurable stored jet-eta acceptance. Set `INCLUDE_CP5 = True` to also load
+the configurable pp `CP5_FILE` and produce standard-PYTHIA/CP5 and
+Embedding/CP5 comparisons. `PTAVE_BIN_SET` selects every half-open interval in
+either `config.histograms.DIJET_PTAVE_BINS` or `TEST_DIJET_PTAVE_BINS`. Reco,
+Ref, and Gen comparisons are launched from separate cells. For each pair, the
+full CM-pseudorapidity distributions are normalized independently to unit
+bin-content sum and overlaid above a ratio of the second sample to the first.
+The notebook derives one common full-distribution y-axis range from all levels,
+enabled samples, and pTave intervals before drawing. It also overlays the
+unnormalized Forward/Backward ratios with a common configured `FB_RANGE` and
+draws the corresponding pairwise F/B ratio. Both F/B construction and later
+sample comparisons use ROOT independent-error propagation; no binomial option
+is exposed. Combined and direction-specific pPb inputs use the standard MC
+filename resolvers. Set `DIJET_EMBEDDING_VS_PYTHIA_OUTPUT_DIR` to redirect
+output from `output/dijet_embedding_vs_pythia/`, and `SAVE_PNG = True` to write
+PNG files alongside the default PDFs.
+
+Use `notebooks/03_mc_fb_generator_check.ipynb` to inspect one Embedding,
+standard PYTHIA pPb, or PYTHIA CP5 production at generator level. For either
+the standard or compact test pTave bins, it overlays the independently
+normalized CM- and Lab-frame dijet pseudorapidity shapes with a Lab/CM ratio
+panel (default range 0.5--1.5), and draws the CM Forward/Backward ratio. The
+latter is formed from the unnormalized stored
+Forward and Backward projections with independent-error propagation; no
+binomial option is exposed. `DIRECTION` selects Pb-going, p-going, or combined
+pPb input, while `CP5_FILE` configures the pp input. Outputs go beneath
+`output/mc_fb_generator_check/` by default.
 
 Use `notebooks/03_mc_dijet_smearing_effect.ipynb` to compare nominal Gen, Gen with
 the default pT smearing, Gen with eta-dependent smearing, nominal Reco, and Reco
@@ -159,8 +173,15 @@ eta-dependent JER-default reconstructed-MC, and nominal generator-level-MC dijet
 pTave spectra for MinimumBias, Jet60, Jet80, and Jet100. The MC-reco curve uses
 `hRecoDijetPtEtaCMJerDefExtra`; data reco and MC gen use
 `hRecoDijetPtEtaCM` and `hGenDijetPtEtaCM`, respectively. Each curve is
-normalized independently over the configured half-open pTave interval. At the
-standard eta-cut index 5, the notebook projects pseudorapidity shapes in the
+normalized independently over the configured half-open pTave interval.
+`GEN_REFERENCE = 'nominal'` uses the generator distribution paired with the
+configured MC file and includes MC reco. Set `GEN_REFERENCE = 'cp5'` for a
+Data-versus-PYTHIA-CP5-gen-only comparison and ratio; MC reco is neither loaded
+nor plotted in this mode. The CP5 generator distribution is
+`hGenDijetPtEtaCM`, and its file defaults to
+`~/cernbox/ana/pPb8160/pythia/cp5tune/HiForestMiniAOD_hist.root` and can be
+overridden with `CP5_GEN_FILE`; CP5 output names receive a `_cp5` suffix. At
+the standard eta-cut index 5, the notebook projects pseudorapidity shapes in the
 same 16 trigger-specific half-open pTave intervals used by
 `06_data_dijet_distributions.ipynb`. The shapes are normalized by their
 bin-width integral to produce true unit-area `1/N dN/deta_CM` densities, with
@@ -173,9 +194,11 @@ overlays, one for ratios to generator MC, and one for the data/MC F/B overlays.
 Their 1200-pixel PNG outputs provide at least 200 DPI up to a 6-inch figure,
 and trigger names are omitted from the summary legends.
 F/B construction and the subsequent comparisons use independent errors. The
-default ratio ranges are 0.75--1.25 for pTave and 0.65--1.15 for eta, configured
-independently with `PTAVE_RATIO_RANGE` and `ETA_RATIO_RANGE`; `FB_RANGE` and
-`FB_RATIO_RANGE` configure the F/B panels. The input data
+default ratio ranges are 0.75--1.25 for pTave, 0.8--1.15 for the full-eta
+ratios to generator MC, and 0.8--1.2 for the Forward/Backward ratios to
+generator MC. They are configured independently with `PTAVE_RATIO_RANGE`,
+`ETA_RATIO_RANGE`, and `FB_RATIO_RANGE`; `FB_RANGE` configures the upper F/B
+panels. The input data
 directory and output directory can be overridden with `PPB_DATA_DIR` and
 `DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`,
 `Pbgoing`, or `pgoing`, and `DATA_SELECTION` to `jetId`, `trkMax`, or `noSel`;
@@ -189,6 +212,22 @@ Forward/Backward comparisons for every configured pTave interval. As in the
 other closure notebooks, F/B construction always uses independent errors;
 full-distribution and F/B-to-F/B comparison error options are configured
 separately.
+
+Use `notebooks/05_unfold2D_data.ipynb` to unfold the reconstructed data in the
+same 16 trigger-specific pTave intervals used by
+`06_data_dijet_distributions.ipynb`. MinimumBias supplies 50--80 GeV, Jet60
+80--100 GeV, Jet80 100--120 GeV, and Jet100 120--500 GeV. The combined-direction
+embedding sample supplies the flattened two-dimensional response,
+reconstructed-bin purity, and truth-bin efficiency, and all unfolded inputs are
+the corresponding combined-direction data files.
+The factorized calculation applies purity, unfolds matched migrations with
+RooUnfoldBayes, and then corrects for efficiency; 12 iterations are the
+default. The workflow writes one ROOT result per direction with the unfolded
+yield, transformed covariance, response diagnostics, trigger provenance, and
+forward-folded reconstructed-level validation. Per-interval plots compare data
+before and after unfolding in both unnormalized yield and independently
+normalized eta shape; the normalized distributions are presentation-only
+supplements to the unnormalized unfolded results.
 
 Use `notebooks/04_systematics_beam_orientation.ipynb` to compare p-going and
 Pb-going single-jet and dijet eta projections. Gen and Reco levels are enabled
@@ -462,8 +501,17 @@ The recommended unfolding validation order is:
 4. Run `05_unfold2D_regularization.ipynb` to study the Bayesian iteration count.
 
 The regularization notebook uses the same factorized unfolding convention as
-the closure notebooks. It forward-folds the mixed inclusive-truth prior with
-the inclusive full-MC response and restores fakes through the binwise MC
+the closure notebooks. `INITIAL_TRUTH_MODE` chooses the inclusive truth that it
+forward-folds: `mixed_prior` preserves the original mixed-prior behavior,
+`cp5` reads the configurable `hGenDijetPtEtaCM` histogram from a CP5 ROOT file,
+and `gaussian` generates a seeded Gaussian eta shape with configurable mean,
+sigma, and samples per pT bin. The Gaussian option preserves the pTave marginal
+of an embedding Gen histogram selected by `GAUSSIAN_PT_ETA_CUT_INDEX` (index 5,
+the 1.9 eta cut, by default). `CP5_INITIAL_TRUTH_FILE` may be set in the
+configuration cell or with the environment variable of the same name. Output
+and cache names include the initial-truth choice so incompatible studies do not
+overwrite or reuse one another. The notebook forward-folds the selected truth
+with the inclusive full-MC response and restores fakes through the binwise MC
 fake/matched-reco ratio. Because pTave migrates between response blocks, it does
 not copy reco-block normalization factors directly onto truth. Instead it
 iteratively scales truth pTave blocks and forward-folds after every update until
@@ -477,9 +525,10 @@ histograms is generated with
 toy retains the data error `sigma_i`. Each toy is multiplied by full-MC purity,
 unfolded with the matched-only response, and divided by full-MC efficiency
 before its bias and variance are evaluated against the inclusive-truth prior.
-Negative draws stop the workflow with a
-bin-level diagnostic; they are not clipped or redrawn because either operation
-would change the intended Gaussian distribution. `PTAVE_BIN_SET = 'test'` is a
+Set `RESAMPLE_NEGATIVE_TOY_BIN = True` to reject negative Gaussian draws and
+redraw until each bin is nonnegative. This is a lower-truncated Gaussian and
+shifts sparse-bin means upward; setting it to `False` restores the strict
+bin-level stop controlled by `STOP_ON_NEGATIVE_TOY_BIN`. `PTAVE_BIN_SET = 'test'` is a
 fast workflow check, while `standard` is the intended analysis binning.
 All MC, prior, sparse-response, and data projections use the same configured
 eta acceptance, expanded to complete histogram-bin edges when necessary. The

@@ -364,6 +364,16 @@ class UnfoldingHelpersTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Negative Gaussian toy content"):
             make_gaussian_toys(expectation, n_toys=2, random_seed=5)
 
+    def test_negative_gaussian_draw_can_be_resampled(self):
+        expectation = ROOT.TH1D("resampled_expectation", "", 1, 0.5, 1.5)
+        expectation.SetBinContent(1, 0.0)
+        expectation.SetBinError(1, 1.0)
+        toys = make_gaussian_toys(
+            expectation, n_toys=20, random_seed=5, resample_negative=True,
+        )
+        self.assertTrue(all(toy.GetBinContent(1) >= 0.0 for toy in toys))
+        self.assertTrue(all(toy.GetBinError(1) == 1.0 for toy in toys))
+
     def test_toy_metrics_use_per_bin_bias_and_unbiased_variance(self):
         truth = ROOT.TH1D("metric_truth", "", 2, 0.5, 2.5)
         truth.SetBinContent(1, 10.0)

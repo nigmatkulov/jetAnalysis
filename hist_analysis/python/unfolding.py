@@ -1286,9 +1286,15 @@ def make_gaussian_toys(
     random_seed: int,
     layout: FlattenedBinning | None = None,
     stop_on_negative: bool = True,
+    resample_negative: bool = False,
     name_prefix: str = "hRecoToy",
 ) -> list:
-    """Generate paired Gaussian toys while preserving input bin errors."""
+    """Generate paired Gaussian toys while preserving input bin errors.
+
+    When ``resample_negative`` is true, negative draws are rejected until a
+    nonnegative value is obtained. This produces a lower-truncated Gaussian,
+    not the original Gaussian distribution.
+    """
 
     if n_toys < 2:
         raise ValueError("At least two toys are required for an unbiased variance")
@@ -1305,6 +1311,8 @@ def make_gaussian_toys(
             if not math.isfinite(mean) or not math.isfinite(sigma) or sigma < 0.0:
                 raise ValueError(f"Invalid Gaussian parameters in bin {bin_index}")
             value = rng.gauss(mean, sigma) if sigma > 0.0 else mean
+            while value < 0.0 and resample_negative and sigma > 0.0:
+                value = rng.gauss(mean, sigma)
             if value < 0.0 and stop_on_negative:
                 pt_text = "unknown"
                 if layout is not None:
