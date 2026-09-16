@@ -214,6 +214,23 @@ part of the filename. Reco selection methods `2` and `3` both use the requested
 short label `jetId`; do not write tight- and loose-ID campaigns to the same
 output directory unless replacement is intended.
 
+### AFS-safe logging
+
+Generated Condor descriptions send successful job stdout to `/dev/null`, retain
+one small scheduler lifecycle `.log` per job for status and retry checks, and
+retain a per-job `.err` only when the worker reports a failure. Workers capture
+the application output in node-local temporary storage and emit at most the
+last 64 KiB to `.err` on failure. Email notification and live output streaming
+are disabled. This bounds persistent text output and avoids exhausting the
+2 GB AFS quota during large campaigns.
+
+For `processForestSimple`, the worker also recognizes the ROOT read-error
+signatures used by `retry_failed_io_jobs.py`. If one appears even when the
+executable otherwise returns success, the worker fails the Condor job and
+retains the bounded diagnostic. Normal ROOT progress and warning output is not
+copied to AFS. Physics ROOT outputs continue to be written to the requested EOS
+or shared-filesystem directory and are not subject to this text-log cap.
+
 `voms_proxy.txt` is used by default. Every generated submit file
 contains:
 
@@ -378,18 +395,18 @@ If jobs stay idle unexpectedly, inspect matching constraints with:
 condor_q -better-analyze CLUSTER_ID
 ```
 
-After completion, list nonempty error files and inspect the corresponding
-standard output for the file and event counts:
+After completion, list nonempty error files and inspect scheduler termination
+states. Successful jobs intentionally have no `.out` file:
 
 ```bash
 find condor -type f -name '*.err' -size +0 -print
-find condor -type f -name '*.out' | sort | tail
+find condor -type f -name '*.log' | sort | tail
 ```
 
-A successful worker output reports the input sublist, a nonzero
-`Total number of files in chain`, a nonzero entry count for nonempty inputs, and
-the final processed/selected-event counts. ROOT outputs are written directly to
-the requested shared output directory.
+Validate successful production through Condor exit status and the nonempty ROOT
+outputs written directly to the requested shared output directory. Run a small
+job interactively when detailed file/event counts are needed; routine Condor
+campaigns suppress that verbose output by design.
 
 ### Merge completed data outputs
 
@@ -466,6 +483,8 @@ The scanner selects only jobs that satisfy both conditions:
   entry` error.
 
 Normal jobs, active jobs, and jobs with unrelated errors are not touched. The
+bounded worker diagnostic retains these read-error signatures even though
+successful-job stdout is discarded. The
 final `Dry run: N failed job(s) would be retried.` line is the total number of
 selected queue rows. Review the listed job names and output paths before
 enabling submission. If `condor/` contains unrelated or historical campaigns,
@@ -507,7 +526,7 @@ campaign path used for its dry run:
   condor/20260803_211646_314197_f0ca9cb3 --submit
 ```
 
-Archived logs are stored below each sample campaign in
+Archived `.err` and scheduler `.log` files are stored below each sample campaign in
 `retry_archive/<timestamp>/<job-name>/`. Any pre-existing output for a selected
 job is preserved beside the original output path as
 `<name>.root.invalid-<timestamp>` before resubmission. Successful jobs and their

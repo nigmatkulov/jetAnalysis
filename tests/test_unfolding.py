@@ -17,7 +17,8 @@ from hist_analysis.python.unfolding import (
     as_pt_intervals, calculate_response_diagnostics,
     calculate_closure_metrics,
     calculate_toy_metrics, copy_histogram_errors, histogram_fingerprint,
-    load_regularization_scan_cache, load_toy_cache, make_gaussian_toys,
+    load_regularization_scan_cache, load_regularization_scan_checkpoint,
+    load_toy_cache, make_gaussian_toys,
     regularization_distribution_file_matches,
     match_pt_block_yields, match_truth_to_reco_pt_yields,
     scale_pt_blocks,
@@ -25,7 +26,8 @@ from hist_analysis.python.unfolding import (
     flatten_sparse_response, scan_bayes_regularization,
     unflatten_to_eta_projections,
     prepare_factorized_corrections, restrict_histogram_range, validate_response_accounting,
-    write_regularization_scan_cache, write_toy_cache, write_unfolding_output,
+    write_regularization_scan_cache, write_regularization_scan_checkpoint,
+    write_toy_cache, write_unfolding_output,
 )
 
 
@@ -328,6 +330,22 @@ class UnfoldingHelpersTest(unittest.TestCase):
                 loaded_scan.metrics[0].relative["mse"], metric.relative["mse"],
             )
 
+            checkpoint_path = Path(directory) / "scan_checkpoint_seed_7.root"
+            write_regularization_scan_checkpoint(
+                checkpoint_path, (metric,), metadata,
+            )
+            loaded_checkpoint = load_regularization_scan_checkpoint(
+                checkpoint_path, max_iterations=2, metadata=metadata,
+            )
+            self.assertEqual(len(loaded_checkpoint), 1)
+            self.assertAlmostEqual(
+                loaded_checkpoint[0].absolute["mse"], metric.absolute["mse"],
+            )
+            self.assertEqual(load_regularization_scan_checkpoint(
+                checkpoint_path, max_iterations=2,
+                metadata={**metadata, "seed": 8},
+            ), ())
+
             distributions_path = Path(directory) / "distributions_seed_7.root"
             writer = RegularizationDistributionWriter(
                 distributions_path,
@@ -336,6 +354,14 @@ class UnfoldingHelpersTest(unittest.TestCase):
             )
             writer.write_unfolded(1, 0, toys[0])
             writer.write_unfolded(1, 1, toys[1])
+            writer.checkpoint(1)
+            writer.suspend()
+            writer = RegularizationDistributionWriter(
+                distributions_path,
+                histogram_groups={"flattened_inputs": [expectation], "toys": toys},
+                metadata=metadata,
+            )
+            self.assertEqual(writer.completed_iterations, 1)
             writer.finalize(scan)
             self.assertTrue(regularization_distribution_file_matches(
                 distributions_path, metadata=metadata,
@@ -419,6 +445,7 @@ class UnfoldingHelpersTest(unittest.TestCase):
         toys = [truth.Clone("selection_toy_0"), truth.Clone("selection_toy_1")]
 
         def fake_unfold(*args, **kwargs):
+            self.assertFalse(kwargs["calculate_covariance"])
             iteration = int(kwargs["name"].rsplit("iter", 1)[1])
             histogram = truth.Clone(f"selection_unfolded_{iteration}")
             # Iteration 1 misses only the small bin; iteration 2 misses only the
@@ -435,6 +462,29 @@ class UnfoldingHelpersTest(unittest.TestCase):
         self.assertEqual(scan.absolute_selected_iterations, 1)
         self.assertEqual(scan.relative_selected_iterations, 2)
         self.assertEqual(scan.selected_iterations, 1)
+
+    def test_regularization_scan_resumes_after_initial_metrics(self):
+        truth = ROOT.TH1D("resume_truth", "", 1, 0.5, 1.5)
+        truth.SetBinContent(1, 10.0)
+        toys = [truth.Clone("resume_toy_0"), truth.Clone("resume_toy_1")]
+        initial = calculate_toy_metrics(toys, truth, iterations=1)
+        unfolded_iterations = []
+        checkpoints = []
+
+        def fake_unfold(*args, **kwargs):
+            iteration = int(kwargs["iterations"])
+            unfolded_iterations.append(iteration)
+            return SimpleNamespace(histogram=truth.Clone(f"resume_{iteration}"))
+
+        with patch("hist_analysis.python.unfolding.unfold_bayes", fake_unfold):
+            scan = scan_bayes_regularization(
+                None, None, toys, truth, max_iterations=3,
+                initial_metrics=(initial,),
+                iteration_callback=lambda metrics: checkpoints.append(len(metrics)),
+            )
+        self.assertEqual(unfolded_iterations, [2, 2, 3, 3])
+        self.assertEqual(checkpoints, [2, 3])
+        self.assertEqual(len(scan.metrics), 3)
 
 
 if __name__ == "__main__":

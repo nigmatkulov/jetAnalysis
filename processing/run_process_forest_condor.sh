@@ -21,22 +21,50 @@ vertex_filter_selection=${10}
 cd "$repository"
 mkdir -p "$(dirname "$output_file")"
 
-echo "Host:                  $(hostname)"
-echo "Input list:            $input_list"
-echo "Output file:           $output_file"
-echo "MC type:               $mc_type"
-echo "Pb-going:              $is_pb_going"
-echo "pT-hat sample:         $pt_hat"
-echo "Trigger ID:            $trigger_id"
-echo "Reco-jet selection:    $reco_jet_selection"
-echo "Vertex-filter selection: $vertex_filter_selection"
+job_output=$(mktemp "${TMPDIR:-/tmp}/jetAnalysis-processForest.XXXXXX")
+trap 'rm -f "$job_output"' EXIT
 
-exec "$executable" \
-    "$input_list" \
-    "$output_file" \
-    "$mc_type" \
-    "$is_pb_going" \
-    "$pt_hat" \
-    "$trigger_id" \
-    "$reco_jet_selection" \
-    "$vertex_filter_selection"
+status=0
+if "$executable" \
+        "$input_list" \
+        "$output_file" \
+        "$mc_type" \
+        "$is_pb_going" \
+        "$pt_hat" \
+        "$trigger_id" \
+        "$reco_jet_selection" \
+        "$vertex_filter_selection" >"$job_output" 2>&1; then
+    :
+else
+    status=$?
+fi
+
+# processForestSimple can skip a transiently unreadable file and continue. A
+# successful-looking multi-file output must not hide that data loss: retain a
+# bounded diagnostic and let retry_failed_io_jobs.py resubmit the queue row.
+read_error=0
+if grep -Eq \
+        'SysError in <TFile::ReadBuffer>:.*Input/output error|Error in <TBranch::GetBasket>:.*badread=|Failed to read chain entry .* from tree .* file ' \
+        "$job_output"; then
+    read_error=1
+    status=74
+fi
+
+if [[ $status -ne 0 ]]; then
+    {
+        echo "processForestSimple failed (status $status)"
+        echo "Host: $(hostname)"
+        echo "Input list: $input_list"
+        echo "Output file: $output_file"
+        if [[ $read_error -eq 1 ]]; then
+            echo "Detected ROOT read errors:"
+            grep -E \
+                'SysError in <TFile::ReadBuffer>:.*Input/output error|Error in <TBranch::GetBasket>:.*badread=|Failed to read chain entry .* from tree .* file ' \
+                "$job_output" | tail -n 20
+        fi
+        echo "Last 64 KiB of combined application output:"
+        tail -c 65536 "$job_output"
+    } >&2
+fi
+
+exit "$status"

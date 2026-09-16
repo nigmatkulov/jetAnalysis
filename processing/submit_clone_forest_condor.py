@@ -177,9 +177,13 @@ def main() -> int:
         "arguments = " + " ".join(
             (condor_token(macro), "$(input_file)", "$(output_dir)")
         ),
-        f"output = {condor_token(logs_dir)}/$(job_name).out",
+        "output = /dev/null",
         f"error = {condor_token(logs_dir)}/$(job_name).err",
         f"log = {condor_token(logs_dir)}/$(job_name).log",
+        "stream_output = False",
+        "stream_error = False",
+        "log_xml = False",
+        "notification = Never",
         "queue job_name, input_file, output_dir from (",
         *rows,
         ")",

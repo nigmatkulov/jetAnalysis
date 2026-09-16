@@ -18,17 +18,31 @@ mkdir -p "$output_directory"
 # expression structure.
 macro_call="${macro}(\"${input_file}\",\"${output_directory}\")"
 output_file="${output_directory%/}/${input_file##*/}"
+job_output=$(mktemp "${TMPDIR:-/tmp}/jetAnalysis-cloneForest.XXXXXX")
+trap 'rm -f "$job_output"' EXIT
 
-echo "Host:             $(hostname)"
-echo "Input file:       $input_file"
-echo "Output directory: $output_directory"
-echo "Output file:      $output_file"
-
-root -l -b -q "$macro_call"
+status=0
+if root -l -b -q "$macro_call" >"$job_output" 2>&1; then
+    :
+else
+    status=$?
+fi
 
 # cloneForest reports failures from a void function, so ROOT can still return
 # zero.  Make missing or empty output visible to Condor as a failed job.
 if [[ ! -s "$output_file" ]]; then
-    echo "Error: cloneForest did not create a nonempty output: $output_file" >&2
-    exit 1
+    status=1
 fi
+
+if [[ $status -ne 0 ]]; then
+    {
+        echo "cloneForest failed (status $status)"
+        echo "Host: $(hostname)"
+        echo "Input file: $input_file"
+        echo "Output file: $output_file"
+        echo "Last 64 KiB of combined ROOT output:"
+        tail -c 65536 "$job_output"
+    } >&2
+fi
+
+exit "$status"

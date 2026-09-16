@@ -266,6 +266,8 @@ def draw_unfolding_closure(
     x_title: str = "#eta_{CM}",
     y_title: str = "Entries",
     ratio_range: tuple[float, float] = (0.5, 1.5),
+    measured_ratio_option: str = "",
+    unfolded_ratio_option: str = "",
     x_range: tuple[float, float] | None = None,
     annotations: Iterable[str] = (),
     output: str | Path | None = None,
@@ -277,19 +279,26 @@ def draw_unfolding_closure(
 ):
     """Compare measured and unfolded yields with a truth/reference histogram.
 
-    Ratios use ROOT's standard independent-error propagation for display.  The
+    Each ratio option is passed to ROOT histogram division: ``""`` selects
+    standard independent errors and ``"B"`` selects binomial errors. The
     unfolded bins are correlated, so quantitative inference should use the
     saved unfolding covariance rather than treating these ratio points as
     statistically independent.
     """
     if ratio_range[0] >= ratio_range[1]:
         raise ValueError("ratio_range must be increasing")
+    for option_name, option in (
+        ("measured_ratio_option", measured_ratio_option),
+        ("unfolded_ratio_option", unfolded_ratio_option),
+    ):
+        if option not in {"", "B"}:
+            raise ValueError(f"{option_name} must be '' or 'B'")
     measured_ratio = measured.Clone(f"{ratio_name_prefix}MeasuredToTarget")
     unfolded_ratio = unfolded.Clone(f"{ratio_name_prefix}UnfoldedToTarget")
     measured_ratio.SetDirectory(0)
     unfolded_ratio.SetDirectory(0)
-    measured_ratio.Divide(target)
-    unfolded_ratio.Divide(target)
+    measured_ratio.Divide(measured, target, 1.0, 1.0, measured_ratio_option)
+    unfolded_ratio.Divide(unfolded, target, 1.0, 1.0, unfolded_ratio_option)
     for histogram, role in (
         (target, target_role), (measured, "reco"), (unfolded, "unfolded"),
         (measured_ratio, "reco"), (unfolded_ratio, "unfolded"),
@@ -373,6 +382,8 @@ def draw_unfolding_closure_by_pt(
     object_name_prefix: str = "ClosurePt",
     eta_range: tuple[float, float] | None = None,
     ratio_range: tuple[float, float] = (0.5, 1.5),
+    measured_ratio_option: str = "",
+    unfolded_ratio_option: str = "",
     annotation_prefix: Iterable[str] = (),
     save_png: bool = False,
     grid: bool = False,
@@ -426,6 +437,8 @@ def draw_unfolding_closure_by_pt(
             measured_label=measured_label, unfolded_label=unfolded_label,
             y_title="1/N dN/d#eta_{CM}" if normalize else "Entries",
             ratio_range=ratio_range,
+            measured_ratio_option=measured_ratio_option,
+            unfolded_ratio_option=unfolded_ratio_option,
             ratio_target_label=ratio_target_label,
             x_range=eta_range, annotations=annotations,
             output=Path(output_dir) / f"{output_tag}_{output_suffix}_pt_{low:g}_{high:g}.pdf",
@@ -633,6 +646,7 @@ def draw_regularization_metrics(
     save_png: bool = False,
     grid: bool = True,
     log_y: bool = False,
+    annotations: Iterable[str] = (),
     canvas_name: str | None = None,
     style: PlotStyle = DEFAULT_PLOT_STYLE,
 ):
@@ -697,7 +711,8 @@ def draw_regularization_metrics(
     selected.SetLineStyle(2)
     selected.Draw()
     labels = draw_text_block(
-        canvas, (f"{mode.capitalize()} MSE minimum: {selected_iterations}",),
+        canvas, (*tuple(annotations),
+                 f"{mode.capitalize()} MSE minimum: {selected_iterations}"),
         style=style,
     )
     canvas.Modified()
@@ -708,11 +723,12 @@ def draw_regularization_metrics(
 
 
 def draw_toy_input_diagnostic(
-    prior,
-    folded,
+    toy_truth,
+    toy_reco_expectation,
     data_errors,
     toy,
     *,
+    annotations: Iterable[str] = (),
     output: str | Path | None = None,
     save_png: bool = False,
     grid: bool = True,
@@ -730,18 +746,19 @@ def draw_toy_input_diagnostic(
     canvas.Divide(2, 1)
     canvas.cd(1)
     set_pad_style(ROOT.gPad, grid_x=grid, grid_y=grid, style=style)
-    set_unfolding_1d_style(prior, "gen", style=style)
-    prior.SetTitle(";global truth bin;Entries")
-    prior.Draw("E1")
+    set_unfolding_1d_style(toy_truth, "gen", style=style)
+    toy_truth.SetTitle(";global truth bin;Entries")
+    toy_truth.Draw("E1")
     truth_legend = ROOT.TLegend(0.58, 0.78, 0.88, 0.88)
     set_legend_style(truth_legend, style=style)
-    truth_legend.AddEntry(prior, "Target distorted truth", "p")
+    truth_legend.AddEntry(toy_truth, "Yield-matched toy truth", "p")
     truth_legend.Draw()
+    truth_labels = draw_text_block(ROOT.gPad, annotations, style=style)
 
     canvas.cd(2)
     set_pad_style(ROOT.gPad, grid_x=grid, grid_y=grid, style=style)
     reco_spectra = (
-        (folded, "reco", "Inclusive-reco toy mean"),
+        (toy_reco_expectation, "reco", "Inclusive-reco toy mean"),
         (data_errors, "fake", "Trigger data (error source)"),
         (toy, "unfolded", "Representative inclusive-reco toy"),
     )
@@ -756,11 +773,12 @@ def draw_toy_input_diagnostic(
         histogram.Draw("E1" if index == 0 else "E1 SAME")
         reco_legend.AddEntry(histogram, label, "p")
     reco_legend.Draw()
+    reco_labels = draw_text_block(ROOT.gPad, annotations, style=style)
     canvas.Modified()
     canvas.Update()
     save_canvas(canvas, output, save_png=save_png)
     canvas._unfolding_objects = [
-        truth_legend, reco_legend, prior,
+        truth_legend, reco_legend, *truth_labels, *reco_labels, toy_truth,
         *(histogram for histogram, _, _ in reco_spectra),
     ]
     return canvas
@@ -776,6 +794,7 @@ def draw_regularization_metrics_by_pt(
     save_png: bool = False,
     grid: bool = True,
     log_y: bool = False,
+    annotations: Iterable[str] = (),
     style: PlotStyle = DEFAULT_PLOT_STYLE,
 ):
     """Plot per-pT averages using the same absolute/relative definitions."""
@@ -844,7 +863,8 @@ def draw_regularization_metrics_by_pt(
             legend.AddEntry(histogram, label, "lp")
         legend.Draw()
         labels = draw_text_block(
-            canvas, (f"{low:g} < p_{{T}}^{{ave}} < {high:g} GeV",), style=style,
+            canvas, (*tuple(annotations),
+                     f"{low:g} < p_{{T}}^{{ave}} < {high:g} GeV"), style=style,
         )
         canvas.Modified()
         canvas.Update()

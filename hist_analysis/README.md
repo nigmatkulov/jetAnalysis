@@ -183,9 +183,10 @@ nor plotted in this mode. The CP5 generator distribution is
 overridden with `CP5_GEN_FILE`; CP5 output names receive a `_cp5` suffix. At
 the standard eta-cut index 5, the notebook projects pseudorapidity shapes in the
 same 16 trigger-specific half-open pTave intervals used by
-`06_data_dijet_distributions.ipynb`. The shapes are normalized by their
-bin-width integral to produce true unit-area `1/N dN/deta_CM` densities, with
-data/MC-gen and MC-reco/MC-gen ratios. It also compares data, MC-reco, and
+`06_data_dijet_distributions.ipynb`. `ETA_NORMALIZATION` selects unit
+bin-content-sum (`integral`, the default) or true unit-area density
+(`bin_width`) normalization, with matching y-axis labels and data/MC-gen and
+MC-reco/MC-gen ratios. It also compares data, MC-reco, and
 MC-gen Forward/Backward ratios built from the unnormalized projections using
 independent-error propagation; these distributions are displayed from zero,
 with Data/MC-gen and MC-reco/MC-gen lower panels. Three final 1200 x 1200
@@ -194,11 +195,13 @@ overlays, one for ratios to generator MC, and one for the data/MC F/B overlays.
 Their 1200-pixel PNG outputs provide at least 200 DPI up to a 6-inch figure,
 and trigger names are omitted from the summary legends.
 F/B construction and the subsequent comparisons use independent errors. The
-default ratio ranges are 0.75--1.25 for pTave, 0.8--1.15 for the full-eta
-ratios to generator MC, and 0.8--1.2 for the Forward/Backward ratios to
-generator MC. They are configured independently with `PTAVE_RATIO_RANGE`,
-`ETA_RATIO_RANGE`, and `FB_RATIO_RANGE`; `FB_RANGE` configures the upper F/B
-panels. The input data
+default ratio ranges are 0.75--1.25 for pTave, 0.75--1.15 for the full-eta
+ratios to generator MC, 0.75--1.25 for Forward/Backward, and 0.8--1.2 for the
+subsequent Forward/Backward ratios to generator MC. All four y-axis ranges are
+configured independently in `RATIO_Y_RANGES`. With `SAVE_RATIO_HISTOGRAMS`
+enabled, the notebook writes every displayed ratio as an individually named
+`TH1` in `dijet_data_vs_mc_ratios<comparison_suffix>.root`; configure the stem
+with `RATIO_ROOT_BASENAME`. The input data
 directory and output directory can be overridden with `PPB_DATA_DIR` and
 `DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`,
 `Pbgoing`, or `pgoing`, and `DATA_SELECTION` to `jetId`, `trkMax`, or `noSel`;
@@ -222,9 +225,19 @@ reconstructed-bin purity, and truth-bin efficiency, and all unfolded inputs are
 the corresponding combined-direction data files.
 The factorized calculation applies purity, unfolds matched migrations with
 RooUnfoldBayes, and then corrects for efficiency; 12 iterations are the
-default. The workflow writes one ROOT result per direction with the unfolded
-yield, transformed covariance, response diagnostics, trigger provenance, and
-forward-folded reconstructed-level validation. Per-interval plots compare data
+default. Before any pT projection or unfolding, every trigger TH2 is multiplied
+by its cumulative MinimumBias-scale weight from the provenance-compatible JSON
+written by `06_data_trigger_stitching.ipynb`; ROOT scales the stored `Sumw2`
+errors at the same time. The notebook requires exactly one JSON matching the
+configured data direction, jet selection, dijet CM observable, eta projection,
+and dijet eta-cut index. Set `TRIGGER_STITCHING_WEIGHTS_FILE` to select an
+explicit artifact when unfolding one direction. Stitching-weight uncertainties
+are correlated normalization uncertainties: they are retained in output
+metadata and are not added independently to each eta-bin statistical variance.
+Output filenames include `data_stitched` so they cannot be confused with older
+unweighted results. The workflow writes one ROOT result per direction with the
+unfolded yield, transformed covariance, response diagnostics, trigger
+provenance, and forward-folded reconstructed-level validation. Per-interval plots compare data
 before and after unfolding in both unnormalized yield and independently
 normalized eta shape; the normalized distributions are presentation-only
 supplements to the unnormalized unfolded results.
@@ -490,7 +503,11 @@ the folded matched-reco prediction by the controlled fake/matched-reco ratio;
 no controlled/studied sample-size normalization is applied. The folded signal,
 transferred fake component, total forward-folded spectrum, and
 forward-folded/reco ratios are stored in the ROOT output; the fake-handling
-decision is recorded in its metadata.
+decision is recorded in its metadata. `RECO_TO_GEN_RATIO_OPTION`,
+`UNFOLDED_TO_GEN_RATIO_OPTION`, and `FORWARD_FOLDED_TO_RECO_RATIO_OPTION`
+independently select ROOT standard (`''`) or binomial (`'B'`) displayed ratio
+errors for flattened and per-pTave comparisons; the selected options are saved
+in the ROOT metadata.
 
 The recommended unfolding validation order is:
 
@@ -501,48 +518,65 @@ The recommended unfolding validation order is:
 4. Run `05_unfold2D_regularization.ipynb` to study the Bayesian iteration count.
 
 The regularization notebook uses the same factorized unfolding convention as
-the closure notebooks. `INITIAL_TRUTH_MODE` chooses the inclusive truth that it
-forward-folds: `mixed_prior` preserves the original mixed-prior behavior,
-`cp5` reads the configurable `hGenDijetPtEtaCM` histogram from a CP5 ROOT file,
-and `gaussian` generates a seeded Gaussian eta shape with configurable mean,
-sigma, and samples per pT bin. The Gaussian option preserves the pTave marginal
-of an embedding Gen histogram selected by `GAUSSIAN_PT_ETA_CUT_INDEX` (index 5,
-the 1.9 eta cut, by default). `CP5_INITIAL_TRUTH_FILE` may be set in the
-configuration cell or with the environment variable of the same name. Output
-and cache names include the initial-truth choice so incompatible studies do not
-overwrite or reuse one another. The notebook forward-folds the selected truth
-with the inclusive full-MC response and restores fakes through the binwise MC
+the closure notebooks and separates two truth roles explicitly.
+`RESPONSE_GENERATOR`, `RESPONSE_DIRECTION`, and `RESPONSE_FILE_STEM` select the
+MC that constructs the response matrix, purity, efficiency, and RooUnfold
+Bayesian prior. `TOY_TRUTH_MODEL` independently chooses the known truth that is
+forward-folded to generate pseudo-data: `mixed_prior`, `cp5`, or `gaussian`.
+This choice does not replace RooUnfold's response-training Bayesian prior.
+The CP5 option reads `CP5_TOY_TRUTH_HISTOGRAM` from `CP5_TOY_TRUTH_FILE`. The
+Gaussian option generates only the eta shape; its pTave marginal is copied from
+the configured response generator using `GAUSSIAN_PT_SOURCE_ETA_CUT_INDEX`.
+Output and cache names explicitly contain both `response-...` and
+`toytruth-...` tags, and figures repeat both roles in their annotations. The
+notebook forward-folds the selected toy truth with the inclusive response and
+restores fakes through the binwise response-MC
 fake/matched-reco ratio. Because pTave migrates between response blocks, it does
 not copy reco-block normalization factors directly onto truth. Instead it
 iteratively scales truth pTave blocks and forward-folds after every update until
-the folded reco block yields match the raw yield of each explicitly selected
-data trigger. The converged truth is therefore exactly the truth used to
+the folded reco block yields match the stitched yield of each explicitly
+selected data trigger. Properly stitched yields require more relaxation steps
+than the former raw-trigger inputs, so `YIELD_MATCH_MAX_ITERATIONS` defaults to
+2000 while retaining the `1e-8` convergence tolerance. The converged truth is
+therefore exactly the truth used to
 generate the toy mean, within `YIELD_MATCH_TOLERANCE`. The folded contents retain
-the MC prior shape, while their bin errors are replaced by the absolute
+the selected toy-truth shape, while their bin errors are replaced by the absolute
 trigger-stitched data errors. A seeded common ensemble of `N_TOYS` inclusive-reco
 histograms is generated with
 `x_i ~ Normal(mu_i, sigma_i)`: only the bin contents fluctuate, while every
 toy retains the data error `sigma_i`. Each toy is multiplied by full-MC purity,
-unfolded with the matched-only response, and divided by full-MC efficiency
-before its bias and variance are evaluated against the inclusive-truth prior.
+unfolded with the matched-only response and its response-training Bayesian
+prior, and divided by response-MC efficiency before its bias and variance are
+evaluated against the known toy truth.
+Before those errors are copied, every experimental trigger TH2 is multiplied
+by its cumulative MinimumBias-scale weight from the provenance-compatible JSON
+written by `06_data_trigger_stitching.ipynb`; ROOT scales its stored `Sumw2`
+errors at the same time. The notebook requires exactly one JSON matching the
+configured data direction, jet selection, dijet CM observable, eta projection,
+and dijet eta-cut index. Set `TRIGGER_STITCHING_WEIGHTS_FILE` to select an
+explicit artifact when needed. Stitching-weight uncertainties are correlated
+normalization uncertainties and are recorded in metadata rather than added as
+independent eta-bin statistical errors. The artifact path, tag, cumulative
+weights, and histogram keys participate in cache validation, so an unstitched
+or differently stitched toy cache is not reused.
 Set `RESAMPLE_NEGATIVE_TOY_BIN = True` to reject negative Gaussian draws and
 redraw until each bin is nonnegative. This is a lower-truncated Gaussian and
 shifts sparse-bin means upward; setting it to `False` restores the strict
 bin-level stop controlled by `STOP_ON_NEGATIVE_TOY_BIN`. `PTAVE_BIN_SET = 'test'` is a
 fast workflow check, while `standard` is the intended analysis binning.
-All MC, prior, sparse-response, and data projections use the same configured
+All response-MC, toy-truth, sparse-response, and data projections use the same configured
 eta acceptance, expanded to complete histogram-bin edges when necessary. The
 broad test intervals use MinimumBias for 50--100 GeV, Jet80 for 100--180 GeV,
 and Jet100 above 180 GeV; the standard intervals retain the finer established
 trigger transitions.
 
 For every iteration, bin `i` uses
-`bias_i = mean(unfolded_i) - prior_i`, unbiased toy variance with the `N_TOYS-1`
+`bias_i = mean(unfolded_i) - toy_truth_i`, unbiased toy variance with the `N_TOYS-1`
 denominator, and `MSE_i = bias_i^2 + variance_i`. The notebook plots averages
 of these per-bin quantities in both absolute and truth-relative form; it never
 averages signed biases before squaring. For any of these quantities `q_i`, the
 **Mean metric** is `(1/N_bins) sum_i q_i` and retains yield-squared units. The
-**Mean fractional metric** is `(1/N_valid) sum_i q_i/prior_i^2`; it is
+**Mean fractional metric** is `(1/N_valid) sum_i q_i/toy_truth_i^2`; it is
 dimensionless and gives each valid bin equal fractional weight rather than
 applying one global normalization to the absolute mean. Equal eta-bin widths
 need no additional correction. `REGULARIZATION_SELECTION_MODE = 'absolute'`
@@ -551,24 +585,37 @@ contribution from bins with larger absolute discrepancies. Set it to `relative`
 when typical fractional per-bin performance is the desired objective, or to
 `both` to report and store both minima. Because later closure and output code
 requires one iteration, `both` uses the absolute minimum as that primary result.
-Bins with zero or negligible prior
+Bins with zero or negligible toy truth
 are reported and excluded from relative summaries. The first minimum of the global
 configured MSE is reported as the recommended iteration count. A boundary minimum
 warns that the configured scan may not bracket the optimum. This recommendation
-is conditional on the selected response, distorted prior, binning, and data
+is conditional on the selected response, toy truth, binning, and data
 uncertainty model. `LOG_REGULARIZATION_METRICS_Y = True` uses logarithmic y axes
 for the global and optional per-pTave Bias-squared, Variance, and MSE comparison
-canvases; set it to `False` for linear axes. With the current defaults the
-notebook performs 10,000 sequential
-unfolding calls, so use a small `N_TOYS` and `MAX_ITERATIONS` for a preliminary
-code check. Outputs are written below `output/unfold2D_regularization/`; set
+canvases; set it to `False` for linear axes. The legacy backend performs
+`N_TOYS * MAX_ITERATIONS` separate RooUnfold calls. The default compiled C++17
+backend instead advances every toy through the full iteration range once and
+parallelizes toy chunks over `REGULARIZATION_SCAN_WORKERS`; zero selects the
+available hardware threads. Build it with `cmake -S hist_analysis/cpp -B
+build/regularization-scan -DCMAKE_BUILD_TYPE=Release` followed by `cmake --build
+build/regularization-scan --parallel`. The bridge also accepts
+`JETANALYSIS_REGULARIZATION_SCAN_LIBRARY` for a nonstandard library location.
+Both backends skip per-toy covariance construction by default because those
+matrices do not enter ensemble bias or variance. The selected final unfolding
+still calculates and stores its full covariance. Set
+`CALCULATE_TOY_COVARIANCE = True` in the notebook only when per-toy covariance
+construction is explicitly needed by the legacy backend; it substantially
+increases runtime. The compiled backend returns metric moments rather than all
+unfolded histograms, so `STORE_ITERATION_DISTRIBUTIONS` must be `False`; select
+the legacy backend for the optional complete unfolded-toy archive. Outputs are written
+below `output/unfold2D_regularization/`; set
 `DIJET_UNFOLD2D_REGULARIZATION_OUTPUT_DIR` to redirect them.
-Every generated filename includes `_seed_<RANDOM_SEED>`. With
+Every generated filename includes `_toyseed_<TOY_ENSEMBLE_RANDOM_SEED>`. With
 `USE_INTERMEDIATE_CACHE = True`, the inclusive-reco toy distributions and all
 per-iteration mean, bias, bias-squared, variance, and MSE distributions are
 stored as compact ROOT caches beneath `output/unfold2D_regularization/intermediate/`.
-With the default `STORE_ITERATION_DISTRIBUTIONS = True`, a separate, potentially
-large ROOT file also records the eta projections, flattened training inputs,
+With the legacy backend and `STORE_ITERATION_DISTRIBUTIONS = True`, a separate,
+potentially large ROOT file also records the eta projections, flattened training inputs,
 response matrix and accounting diagnostics, purity and efficiency, forward-fold
 components, inclusive and purity-corrected toys, every efficiency-corrected
 unfolded toy grouped by iteration, and every metric distribution. This is the
@@ -576,9 +623,13 @@ complete reproducibility input for the metric calculation; eta slices of a
 flattened result can be recovered from its documented pT-block layout.
 Cache metadata includes input-histogram fingerprints, binning, correction
 factors, toy settings, iteration range, and seed. Compatible caches are loaded
-on rerun, skipping toy generation and completed RooUnfold scans; mismatched or
-incomplete caches are regenerated. Cache files are installed atomically so an
-interrupted write is not reused as a completed result.
+on rerun, skipping toy generation and completed RooUnfold scans. An atomic scan
+checkpoint is replaced after every completed Bayesian-iteration scan point. If
+execution stops, the next run resumes at the following iteration. When complete
+iteration distributions are enabled, their temporary ROOT archive is flushed
+at the same boundary and must agree with the metric checkpoint before that
+prefix is reused. Mismatched caches are regenerated, and a partial iteration is
+never advertised as complete.
 The scan always unfolds and evaluates the complete flattened distribution.
 Optional per-pT metric figures are diagnostic slices of the global-bin results
 and never select independent iteration counts.
@@ -640,6 +691,25 @@ independent-error propagation and are displayed within
 `CORRECTED_RAW_DIRECTION_RATIO_RANGE`. Set `PPB_DATA_DIR`,
 `DATA_JET_OUTPUT_DIR`, or `DATA_DIJET_OUTPUT_DIR` to override input and output
 locations.
+
+Use `notebooks/06_data_trigger_stitching.ipynb` to extract multiplicative
+MinimumBias-scale weights for the MinimumBias, Jet60, Jet80, and Jet100 data
+streams. The default projects `hRecoInclusiveJetPtEtaLab` over the half-open
+range `-1.6 <= eta_Lab < 1.6`; `OBSERVABLE` and `FRAME` select inclusive jets
+or dijets in Lab or CM coordinates. For dijets, `DIJET_ETA_CUT_INDEX` selects
+the production-level single-jet acceptance, while `PROJECTION_ETA_RANGE`
+selects the dijet-axis interval used for the pTave projection. The notebook
+matches Jet60 to MB in 90--140 GeV, Jet80 to Jet60 in 110--180 GeV, and Jet100
+to Jet80 in 130--200 GeV using ratios of unnormalized overlap integrals with
+independent statistical-error propagation. It writes raw and rescaled adjacent
+trigger comparisons, a final four-trigger overlay with ratios to MB, and the
+local and cumulative weights in JSON and CSV beneath
+`output/data_trigger_stitching/`. Every artifact filename records the data
+direction, jet selection, observable, frame, projected eta range, applicable
+dijet jet-eta cut, and all three trigger-matching ranges. The CSV repeats that
+provenance in flat columns alongside the histogram keys, overlap integrals,
+local factors, and cumulative MB-scale weights. Set
+`DATA_TRIGGER_STITCHING_OUTPUT_DIR` to redirect those outputs.
 
 For `DIRECTION = 'combined'`, the unfolding notebook reads
 `<generator>/<generator>_<stem>.root`. For `pgoing` or `Pbgoing`, it reads

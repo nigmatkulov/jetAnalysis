@@ -155,7 +155,7 @@ class RooUnfoldResponseBundle:
 @dataclass
 class UnfoldingResult:
     histogram: object
-    covariance: object
+    covariance: object | None
     algorithm: object
     scaled_measured: object
 
@@ -764,6 +764,7 @@ def unfold_bayes(
     *,
     iterations: int,
     handle_fakes: bool = True,
+    calculate_covariance: bool = True,
     suppress_native_output: bool = False,
     name: str = "hUnfoldedEtaCM",
     title: str = ";global #eta_{CM} bin;Entries",
@@ -773,8 +774,10 @@ def unfold_bayes(
     The response inputs and measured spectrum are multiplied by the common
     response scale before unfolding. RooUnfold therefore returns a spectrum
     scaled by S and a covariance scaled by S^2. This function divides those
-    products by S and S^2, respectively. The Bayesian probabilities and the
-    regularizing prior shape are unchanged by the common scale.
+    products by S and S^2, respectively. Set ``calculate_covariance=False`` for
+    ensemble scans that use only unfolded bin contents; the returned covariance
+    is then ``None``. The Bayesian probabilities and the regularizing prior
+    shape are unchanged by the common scale.
     """
 
     if iterations <= 0:
@@ -791,11 +794,13 @@ def unfold_bayes(
     algorithm.SetVerbose(-1)
     with _silence_native_stdout(suppress_native_output):
         unfolded = algorithm.Hunfold().Clone(name)
-        covariance = algorithm.Eunfold(ROOT.RooUnfolding.kCovariance)
+        covariance = (algorithm.Eunfold(ROOT.RooUnfolding.kCovariance)
+                      if calculate_covariance else None)
     unfolded.SetTitle(title)
     unfolded.SetDirectory(0)
     unfolded.Scale(1.0 / response_bundle.scale)
-    covariance *= 1.0 / (response_bundle.scale * response_bundle.scale)
+    if covariance is not None:
+        covariance *= 1.0 / (response_bundle.scale * response_bundle.scale)
     return UnfoldingResult(unfolded, covariance, algorithm, scaled_measured)
 
 
@@ -1436,9 +1441,12 @@ def scan_bayes_regularization(
     max_iterations: int,
     selection_mode: str = "absolute",
     handle_fakes: bool = True,
+    calculate_covariance: bool = False,
     efficiency=None,
     progress=None,
     unfolded_callback=None,
+    initial_metrics: Sequence[ToyMetricResult] = (),
+    iteration_callback=None,
 ) -> RegularizationScanResult:
     """Unfold a common toy ensemble at every iteration and summarize metrics.
 
@@ -1446,6 +1454,9 @@ def scan_bayes_regularization(
     ``handle_fakes=False`` for factorized unfolding.  In that mode ``efficiency``
     converts every unfolded matched-truth toy to inclusive truth before bias and
     variance are evaluated, matching the observable represented by ``truth``.
+    Per-toy covariance matrices are disabled by default because the ensemble
+    metrics use only unfolded bin contents. Set ``calculate_covariance=True``
+    only for diagnostics that explicitly require those matrices.
     ``selection_mode='absolute'`` selects the minimum mean MSE in the actual
     bin contents. ``'relative'`` instead gives every non-negligible truth bin
     equal weight after division by its own truth squared. ``'both'`` records
@@ -1459,8 +1470,16 @@ def scan_bayes_regularization(
         raise ValueError("selection_mode must be 'absolute', 'relative', or 'both'")
     if efficiency is not None:
         validate_common_binning([truth, efficiency], label="regularization efficiency")
-    metrics = []
-    for iterations in range(1, max_iterations + 1):
+    metrics = list(initial_metrics)
+    completed_iterations = tuple(result.iterations for result in metrics)
+    expected_iterations = tuple(range(1, len(metrics) + 1))
+    if completed_iterations != expected_iterations:
+        raise ValueError(
+            "initial_metrics must contain contiguous iterations starting at 1"
+        )
+    if len(metrics) > max_iterations:
+        raise ValueError("initial_metrics exceed max_iterations")
+    for iterations in range(len(metrics) + 1, max_iterations + 1):
         if progress is not None:
             progress(iterations, max_iterations)
         n_bins = truth.GetNbinsX()
@@ -1470,6 +1489,7 @@ def scan_bayes_regularization(
             unfolded = unfold_bayes(
                 roounfold_module, response_bundle, toy, iterations=iterations,
                 handle_fakes=handle_fakes,
+                calculate_covariance=calculate_covariance,
                 suppress_native_output=True,
                 name=f"hUnfoldedToy{toy_index}_iter{iterations}",
             ).histogram
@@ -1498,6 +1518,21 @@ def scan_bayes_regularization(
         metrics.append(_toy_metrics_from_moments(
             truth, sums, sums_squared, len(toys), iterations=iterations,
         ))
+        if iteration_callback is not None:
+            iteration_callback(tuple(metrics))
+    return _assemble_regularization_scan(metrics, max_iterations, selection_mode)
+
+
+def _assemble_regularization_scan(
+    metrics: Sequence[ToyMetricResult],
+    max_iterations: int,
+    selection_mode: str,
+) -> RegularizationScanResult:
+    """Construct summaries and iteration choices from per-iteration metrics."""
+
+    metrics = tuple(metrics)
+    if len(metrics) != max_iterations:
+        raise ValueError("Regularization metrics do not cover the requested scan")
     summaries = {}
     for mode in ("absolute", "relative"):
         histogram = ROOT.TH2D(
@@ -1522,9 +1557,54 @@ def scan_bayes_regularization(
     selected = (relative_selected if selection_mode == "relative"
                 else absolute_selected)
     return RegularizationScanResult(
-        tuple(metrics), summaries["absolute"], summaries["relative"], selected,
+        metrics, summaries["absolute"], summaries["relative"], selected,
         selection_mode, absolute_selected, relative_selected,
     )
+
+
+def scan_bayes_regularization_compiled(
+    response_bundle: RooUnfoldResponseBundle,
+    toys: Sequence,
+    truth,
+    *,
+    max_iterations: int,
+    efficiency,
+    project_root: str | Path,
+    worker_count: int = 0,
+    selection_mode: str = "absolute",
+    progress=None,
+    iteration_callback=None,
+) -> RegularizationScanResult:
+    """Run the one-pass, parallel numeric Bayesian scan in the C++17 kernel."""
+
+    if selection_mode not in {"absolute", "relative", "both"}:
+        raise ValueError("selection_mode must be 'absolute', 'relative', or 'both'")
+    if worker_count < 0:
+        raise ValueError("worker_count must be non-negative")
+    validate_common_binning([truth, efficiency], label="compiled regularization truth")
+    from hist_analysis.python.compiled_regularization import (
+        scan_compiled_bayes_moments,
+    )
+
+    if progress is not None:
+        progress(0, max_iterations)
+    moments = scan_compiled_bayes_moments(
+        response_bundle.scaled_matrix, response_bundle.scaled_truth, efficiency,
+        toys, max_iterations=max_iterations, project_root=project_root,
+        worker_count=worker_count,
+    )
+    metrics = []
+    for iteration in range(1, max_iterations + 1):
+        sums = [0.0, *moments.sums[iteration - 1]]
+        sums_squared = [0.0, *moments.sums_squared[iteration - 1]]
+        metrics.append(_toy_metrics_from_moments(
+            truth, sums, sums_squared, moments.n_toys, iterations=iteration,
+        ))
+        if iteration_callback is not None:
+            iteration_callback(tuple(metrics))
+        if progress is not None:
+            progress(iteration, max_iterations)
+    return _assemble_regularization_scan(metrics, max_iterations, selection_mode)
 
 
 def load_unfolding_inputs(filename: str | Path,
@@ -1629,6 +1709,29 @@ class RegularizationDistributionWriter:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.temporary = self.path.with_suffix(self.path.suffix + ".tmp")
         self.metadata = _normalized_metadata(metadata)
+        self.completed_iterations = 0
+        if self.temporary.is_file():
+            existing = open_root_file(str(self.temporary), "READ")
+            try:
+                actual = _read_cache_metadata(
+                    existing, metadata_name="cacheConfiguration"
+                )
+                reusable = (
+                    actual is not None
+                    and not bool(actual.get("complete", False))
+                    and _cache_matches(actual, self.metadata)
+                )
+                if reusable:
+                    self.completed_iterations = int(
+                        actual.get("completed_iterations", 0)
+                    )
+            finally:
+                existing.Close()
+            if reusable:
+                self.output = open_root_file(str(self.temporary), "UPDATE")
+                self._closed = False
+                return
+            self.temporary.unlink()
         self.output = open_root_file(str(self.temporary), "RECREATE")
         self._closed = False
         try:
@@ -1644,7 +1747,7 @@ class RegularizationDistributionWriter:
                         )
             self.output.cd()
             payload = json.dumps(
-                {**self.metadata, "complete": False},
+                {**self.metadata, "complete": False, "completed_iterations": 0},
                 sort_keys=True, separators=(",", ":"),
             )
             ROOT.TNamed("cacheConfiguration", payload).Write()
@@ -1673,6 +1776,28 @@ class RegularizationDistributionWriter:
         if histogram.Write(name) <= 0:
             raise OSError(f"Failed to write {directory_name}/{name}")
 
+    def checkpoint(self, completed_iterations: int) -> None:
+        """Flush a completed iteration boundary to the resumable temporary file."""
+
+        if self._closed:
+            raise RuntimeError("Cannot checkpoint a closed distribution store")
+        if completed_iterations < 1:
+            raise ValueError("completed_iterations must be positive")
+        self.output.cd()
+        payload = json.dumps(
+            {
+                **self.metadata,
+                "complete": False,
+                "completed_iterations": completed_iterations,
+            },
+            sort_keys=True, separators=(",", ":"),
+        )
+        ROOT.TNamed("cacheConfiguration", payload).Write(
+            "cacheConfiguration", ROOT.TObject.kOverwrite,
+        )
+        self.output.Flush()
+        self.completed_iterations = completed_iterations
+
     def finalize(self, scan: RegularizationScanResult) -> None:
         """Write metric distributions, mark the file complete, and install it."""
 
@@ -1699,6 +1824,7 @@ class RegularizationDistributionWriter:
             {
                 **self.metadata,
                 "complete": True,
+                "completed_iterations": len(scan.metrics),
                 "selected_iterations": scan.selected_iterations,
                 "absolute_selected_iterations": scan.absolute_selected_iterations,
                 "relative_selected_iterations": scan.relative_selected_iterations,
@@ -1720,6 +1846,13 @@ class RegularizationDistributionWriter:
             self.output.Close()
             self._closed = True
         self.temporary.unlink(missing_ok=True)
+
+    def suspend(self) -> None:
+        """Close while preserving a checkpointed temporary file for resumption."""
+
+        if not self._closed:
+            self.output.Close()
+            self._closed = True
 
 
 def regularization_distribution_file_matches(
@@ -1833,6 +1966,89 @@ def write_regularization_scan_cache(
         metadata_name="cacheConfiguration",
     )
     os.replace(temporary, path)
+
+
+def write_regularization_scan_checkpoint(
+    filename: str | Path,
+    metrics: Sequence[ToyMetricResult],
+    metadata: Mapping,
+) -> None:
+    """Atomically checkpoint all fully completed regularization iterations."""
+
+    completed = tuple(metrics)
+    if not completed:
+        return
+    expected = tuple(range(1, len(completed) + 1))
+    if tuple(result.iterations for result in completed) != expected:
+        raise ValueError("Checkpoint metrics must be contiguous from iteration 1")
+    path = Path(filename)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    histograms = tuple(
+        histogram
+        for result in completed
+        for histogram in (
+            result.mean, result.bias, result.bias_squared, result.variance, result.mse,
+        )
+    )
+    checkpoint_metadata = {
+        **metadata,
+        "cache_kind": "regularization_scan_checkpoint",
+        "completed_iterations": len(completed),
+        "valid_relative_bins": list(completed[0].valid_relative_bins),
+        "absolute_metrics": [result.absolute for result in completed],
+        "relative_metrics": [result.relative for result in completed],
+    }
+    write_unfolding_output(
+        temporary, histograms=histograms, metadata=checkpoint_metadata,
+        metadata_name="cacheConfiguration",
+    )
+    os.replace(temporary, path)
+
+
+def load_regularization_scan_checkpoint(
+    filename: str | Path,
+    *,
+    max_iterations: int,
+    metadata: Mapping,
+) -> tuple[ToyMetricResult, ...]:
+    """Load the contiguous completed prefix of a compatible scan checkpoint."""
+
+    path = Path(filename)
+    if not path.is_file():
+        return ()
+    root_file = open_root_file(str(path), "READ")
+    try:
+        actual = _read_cache_metadata(root_file, metadata_name="cacheConfiguration")
+        expected = {**metadata, "cache_kind": "regularization_scan_checkpoint"}
+        if not _cache_matches(actual, expected):
+            return ()
+        completed = int(actual.get("completed_iterations", 0))
+        if completed < 1 or completed > max_iterations:
+            return ()
+        valid_bins = tuple(int(value) for value in actual["valid_relative_bins"])
+        absolute_values = actual.get("absolute_metrics", ())
+        relative_values = actual.get("relative_metrics", ())
+        if len(absolute_values) != completed or len(relative_values) != completed:
+            return ()
+        metrics = []
+        for iterations in range(1, completed + 1):
+            histograms = []
+            for key in ("Mean", "Bias", "BiasSquared", "Variance", "MSE"):
+                source = root_file.Get(f"hRegularization{key}_iter{iterations}")
+                if not source:
+                    return ()
+                histogram = source.Clone()
+                histogram.SetDirectory(0)
+                histograms.append(histogram)
+            metrics.append(ToyMetricResult(
+                iterations, *histograms,
+                dict(absolute_values[iterations - 1]),
+                dict(relative_values[iterations - 1]), valid_bins,
+            ))
+        return tuple(metrics)
+    finally:
+        root_file.Close()
 
 
 def load_regularization_scan_cache(
