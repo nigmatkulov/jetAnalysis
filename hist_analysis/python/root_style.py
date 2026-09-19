@@ -15,8 +15,9 @@ COLORS = (
     ROOT.kOrange + 7, ROOT.kGreen + 2, ROOT.kAzure + 1,
     ROOT.kPink + 1, ROOT.kCyan + 1, ROOT.kTeal + 1,
     ROOT.kGray + 1, ROOT.kSpring + 5, ROOT.kViolet + 1,
+    ROOT.kRed, ROOT.kBlue, ROOT.kBlack, ROOT.kOrange + 7,
 )
-MARKERS = (20, 21, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32)
+MARKERS = (20, 21, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 43, 44)
 
 # Semantic colors for gen/reco unfolding diagnostics. Keep these mappings in
 # one place so a physics role has the same appearance in every notebook panel.

@@ -36,6 +36,9 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
                  overlay_text_size: float = 0.018,
                  style_indices: Mapping[str, int] | None = None,
                  show_legend: bool = True,
+                 legend_columns: int = 1,
+                 legend_text_size: float | None = None,
+                 right_margin: float | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
     """Draw histograms with optional same-label functions and text box."""
 
@@ -47,6 +50,12 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
         raise ValueError("x_range must satisfy low < high")
     if y_range is not None and y_range[0] >= y_range[1]:
         raise ValueError("y_range must satisfy low < high")
+    if isinstance(legend_columns, bool) or not isinstance(legend_columns, int) or legend_columns < 1:
+        raise ValueError("legend_columns must be a positive integer")
+    if legend_text_size is not None and legend_text_size <= 0.0:
+        raise ValueError("legend_text_size must be positive")
+    if right_margin is not None and not 0.0 < right_margin < 0.8:
+        raise ValueError("right_margin must lie between 0 and 0.8")
     if overlay_functions is not None:
         unknown_labels = set(overlay_functions) - set(histograms)
         if unknown_labels:
@@ -73,6 +82,8 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
     set_pad_style(canvas, grid_x=grid, grid_y=grid, style=style)
     canvas.SetLeftMargin(style.single_panel_left_margin)
     canvas.SetBottomMargin(style.single_panel_bottom_margin)
+    if right_margin is not None:
+        canvas.SetRightMargin(right_margin)
     canvas.SetLogy(log_y)
 
     maximum = max(
@@ -82,6 +93,9 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
     )
     legend = ROOT.TLegend(*(legend_bounds or (0.60, 0.70, 0.88, 0.88)))
     set_legend_style(legend, style=style)
+    legend.SetNColumns(legend_columns)
+    if legend_text_size is not None:
+        legend.SetTextSize(legend_text_size)
     for index, (label, histogram) in enumerate(histograms.items()):
         style_index = index if style_indices is None else style_indices.get(label, index)
         set_1d_style(histogram, style_index, style=style)
@@ -156,11 +170,24 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
                  x_range: tuple[float, float] | None = None,
                  y_range: tuple[float, float] | None = None,
                  ratio_option: str = "",
+                 ratio_pairs: Mapping[str, tuple[str, str]] | None = None,
+                 ratio_y_title: str | None = None,
+                 legend_bounds: tuple[float, float, float, float] | None = None,
+                 annotation_x: float | None = None,
+                 annotation_y: float | None = None,
+                 right_margin: float | None = None,
                  style_indices: Mapping[str, int] | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
     """Draw an overlay and ratios to an explicitly named nominal histogram.
 
     ``draw_nominal_ratio=False`` suppresses the trivial nominal/self ratio.
+    ``ratio_pairs`` optionally maps displayed ratio labels to explicit
+    ``(numerator, denominator)`` histogram labels instead of dividing every
+    curve by ``nominal``.
+    ``ratio_y_title`` overrides the automatically generated lower-panel title.
+    ``legend_bounds`` and the annotation coordinates allow crowded overlays to
+    reserve separate non-overlapping regions for labels.
+    ``right_margin`` can reserve a sidebar for those labels on both pads.
     ``x_range`` is applied to both panels, while ``reference_line_x_range`` can
     independently constrain the horizontal ratio reference line. ``y_range``
     constrains the upper-panel distributions. ``ratio_option`` is passed to
@@ -176,6 +203,18 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
         raise KeyError(f"Nominal {nominal!r} is not among {list(histograms)}")
     if not histograms:
         raise ValueError("No histograms supplied")
+    if ratio_pairs is not None:
+        missing_ratio_labels = {
+            label
+            for pair in ratio_pairs.values()
+            for label in pair
+            if label not in histograms
+        }
+        if missing_ratio_labels:
+            raise KeyError(
+                "Ratio pairs reference unknown histograms: "
+                f"{sorted(missing_ratio_labels)}"
+            )
 
     if style_indices is None:
         style_histograms(histograms)
@@ -203,9 +242,11 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
     )
     top.SetBottomMargin(style.ratio_top_bottom_margin)
     top.SetLeftMargin(style.ratio_left_margin)
+    top.SetRightMargin(style.right_margin if right_margin is None else right_margin)
     bottom.SetTopMargin(style.ratio_bottom_top_margin)
     bottom.SetBottomMargin(style.ratio_bottom_margin)
     bottom.SetLeftMargin(style.ratio_left_margin)
+    bottom.SetRightMargin(style.right_margin if right_margin is None else right_margin)
     top.SetGridx(grid)
     top.SetGridy(grid)
     bottom.SetGridx(grid)
@@ -220,7 +261,7 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
         for hist in histograms.values()
         for bin_index in range(1, hist.GetNbinsX() + 1)
     )
-    legend = ROOT.TLegend(0.68, 0.72, 0.88, 0.88)
+    legend = ROOT.TLegend(*(legend_bounds or (0.68, 0.72, 0.88, 0.88)))
     set_legend_style(legend, style=style)
     for index, (label, histogram) in enumerate(histograms.items()):
         histogram.SetTitle(title)
@@ -247,20 +288,45 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
         histogram.Draw("E1" if index == 0 else "E1 SAME")
         legend.AddEntry(histogram, label, "p")
     legend.Draw()
-    annotation_objects = draw_text_block(top, annotation_lines, style=style)
+    annotation_objects = draw_text_block(
+        top, annotation_lines, x=annotation_x, y=annotation_y, style=style,
+    )
 
     bottom.cd()
     ratios = {}
-    for index, (label, histogram) in enumerate(histograms.items()):
-        if label == nominal and not draw_nominal_ratio:
-            continue
+    configured_ratios = tuple(
+        ratio_pairs.items() if ratio_pairs is not None else (
+            (label, (label, nominal))
+            for label in histograms
+            if label != nominal or draw_nominal_ratio
+        )
+    )
+    for index, (label, (numerator_label, denominator_label)) in enumerate(
+        configured_ratios
+    ):
         ratio = ratio_to_nominal(
-            histogram, histograms[nominal], name=f"ratio_{index}",
+            histograms[numerator_label], histograms[denominator_label],
+            name=f"ratio_{index}",
             option=ratio_option,
         )
+        if ratio_pairs is not None:
+            repeated_numerator = sum(
+                pair[0] == numerator_label
+                for _, pair in configured_ratios
+            ) > 1
+            style_label = denominator_label if repeated_numerator else numerator_label
+            ratio_style_index = (
+                style_indices.get(style_label, index)
+                if style_indices is not None else index
+            )
+            set_1d_style(ratio, ratio_style_index, style=style)
         ratios[label] = ratio
         ratio.SetTitle("")
-        ratio.GetYaxis().SetTitle(f"Ratio to {nominal}")
+        ratio.GetYaxis().SetTitle(
+            ratio_y_title or (
+                "Ratio" if ratio_pairs is not None else f"Ratio to {nominal}"
+            )
+        )
         ratio.GetXaxis().SetTitle(x_title)
         ratio.SetMinimum(ratio_range[0])
         ratio.SetMaximum(ratio_range[1])

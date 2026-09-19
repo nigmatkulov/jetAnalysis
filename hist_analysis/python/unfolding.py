@@ -1192,6 +1192,46 @@ def scale_pt_blocks(
     return result
 
 
+def flattened_pt_range_integral(
+    histogram,
+    layout: FlattenedBinning,
+    pt_range: tuple[float, float],
+) -> float:
+    """Integrate complete flattened pT blocks inside a half-open range.
+
+    The requested boundaries must coincide with configured block boundaries;
+    a flattened histogram contains no information with which to split a block.
+    """
+
+    if histogram.GetNbinsX() != layout.n_global_bins:
+        raise ValueError("Histogram size does not match layout")
+    low, high = map(float, pt_range)
+    if not low < high:
+        raise ValueError("pT integration range must be increasing")
+    selected = [
+        pt_index
+        for pt_index, (block_low, block_high) in enumerate(layout.pt_intervals)
+        if block_low >= low and block_high <= high
+    ]
+    if not selected:
+        raise ValueError(f"No complete pT blocks lie inside [{low:g}, {high:g})")
+    covered_low = layout.pt_intervals[selected[0]][0]
+    covered_high = layout.pt_intervals[selected[-1]][1]
+    if covered_low != low or covered_high != high:
+        raise ValueError(
+            f"pT range [{low:g}, {high:g}) does not align with flattened "
+            f"block boundaries; covered range would be "
+            f"[{covered_low:g}, {covered_high:g})"
+        )
+    return sum(
+        histogram.Integral(
+            layout.global_bin(pt_index, 1),
+            layout.global_bin(pt_index, layout.n_eta_bins),
+        )
+        for pt_index in selected
+    )
+
+
 def match_truth_to_reco_pt_yields(
     response_bundle: RooUnfoldResponseBundle,
     truth,
@@ -1284,6 +1324,79 @@ def copy_histogram_errors(source, error_reference, *, name: str):
     return result
 
 
+def copy_histogram_relative_errors(
+    source,
+    error_reference,
+    *,
+    name: str,
+    source_zero_relative_tolerance: float = 1.0e-12,
+    layout: FlattenedBinning | None = None,
+    use_nearest_reference_for_empty: bool = False,
+):
+    """Clone source contents with fractional errors taken from a reference.
+
+    For every populated source bin, the assigned absolute error is the source
+    content times ``reference_error / abs(reference_content)``. Source contents
+    no larger than ``source_zero_relative_tolerance`` times the largest source
+    bin are treated as floating-point zero. If requested, a materially populated
+    source bin whose reference bin is empty inherits the relative uncertainty
+    from the nearest populated reference bin in the same pT block. Ties select
+    the lower global bin. Without that policy, an empty reference raises.
+    """
+
+    validate_common_binning([source, error_reference], label="relative-error inputs")
+    if layout is not None and source.GetNbinsX() != layout.n_global_bins:
+        raise ValueError("Relative-error input size does not match layout")
+    if source_zero_relative_tolerance < 0.0:
+        raise ValueError("source_zero_relative_tolerance must be non-negative")
+    result = source.Clone(name)
+    result.SetDirectory(0)
+    maximum_source_content = max(
+        abs(source.GetBinContent(bin_index))
+        for bin_index in range(1, source.GetNbinsX() + 1)
+    )
+    source_zero_threshold = source_zero_relative_tolerance * maximum_source_content
+    for bin_index in range(1, source.GetNbinsX() + 1):
+        source_content = source.GetBinContent(bin_index)
+        reference_content = error_reference.GetBinContent(bin_index)
+        reference_error = error_reference.GetBinError(bin_index)
+        if abs(source_content) <= source_zero_threshold:
+            result.SetBinContent(bin_index, 0.0)
+            result.SetBinError(bin_index, 0.0)
+            continue
+        if reference_content == 0.0 or reference_error <= 0.0:
+            if not use_nearest_reference_for_empty:
+                raise ValueError(
+                    "Cannot transfer a relative uncertainty from empty reference "
+                    f"bin {bin_index} to populated source content {source_content:g}"
+                )
+            if layout is None:
+                first_bin, last_bin = 1, source.GetNbinsX()
+            else:
+                pt_index, _ = layout.indices(bin_index)
+                first_bin = layout.global_bin(pt_index, 1)
+                last_bin = layout.global_bin(pt_index, layout.n_eta_bins)
+            candidates = [
+                candidate
+                for candidate in range(first_bin, last_bin + 1)
+                if error_reference.GetBinContent(candidate) != 0.0
+                and error_reference.GetBinError(candidate) > 0.0
+            ]
+            if not candidates:
+                raise ValueError(
+                    f"No populated reference bin with statistical uncertainty in "
+                    f"the pT block containing global bin {bin_index}"
+                )
+            reference_bin = min(
+                candidates, key=lambda candidate: (abs(candidate - bin_index), candidate)
+            )
+            reference_content = error_reference.GetBinContent(reference_bin)
+            reference_error = error_reference.GetBinError(reference_bin)
+        relative_error = reference_error / abs(reference_content)
+        result.SetBinError(bin_index, abs(source_content) * relative_error)
+    return result
+
+
 def make_gaussian_toys(
     expectation,
     *,
@@ -1292,12 +1405,15 @@ def make_gaussian_toys(
     layout: FlattenedBinning | None = None,
     stop_on_negative: bool = True,
     resample_negative: bool = False,
+    smear_zero_content: bool = True,
     name_prefix: str = "hRecoToy",
 ) -> list:
     """Generate paired Gaussian toys while preserving input bin errors.
 
-    When ``resample_negative`` is true, negative draws are rejected until a
-    nonnegative value is obtained. This produces a lower-truncated Gaussian,
+    When ``smear_zero_content`` is false, bins whose expectation is exactly
+    zero remain zero in every toy even when the uncertainty is nonzero.  When
+    ``resample_negative`` is true, non-positive draws are rejected until a
+    positive value is obtained. This produces a lower-truncated Gaussian,
     not the original Gaussian distribution.
     """
 
@@ -1315,8 +1431,9 @@ def make_gaussian_toys(
             sigma = expectation.GetBinError(bin_index)
             if not math.isfinite(mean) or not math.isfinite(sigma) or sigma < 0.0:
                 raise ValueError(f"Invalid Gaussian parameters in bin {bin_index}")
-            value = rng.gauss(mean, sigma) if sigma > 0.0 else mean
-            while value < 0.0 and resample_negative and sigma > 0.0:
+            should_smear = smear_zero_content or mean != 0.0
+            value = rng.gauss(mean, sigma) if should_smear and sigma > 0.0 else mean
+            while value <= 0.0 and resample_negative and sigma > 0.0:
                 value = rng.gauss(mean, sigma)
             if value < 0.0 and stop_on_negative:
                 pt_text = "unknown"

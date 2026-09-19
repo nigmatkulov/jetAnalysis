@@ -16,12 +16,13 @@ from hist_analysis.python.unfolding import (
     RooUnfoldResponseBundle,
     as_pt_intervals, calculate_response_diagnostics,
     calculate_closure_metrics,
-    calculate_toy_metrics, copy_histogram_errors, histogram_fingerprint,
+    calculate_toy_metrics, copy_histogram_errors, copy_histogram_relative_errors,
+    histogram_fingerprint,
     load_regularization_scan_cache, load_regularization_scan_checkpoint,
     load_toy_cache, make_gaussian_toys,
     regularization_distribution_file_matches,
     match_pt_block_yields, match_truth_to_reco_pt_yields,
-    scale_pt_blocks,
+    scale_pt_blocks, flattened_pt_range_integral,
     extract_eta_block, flatten_pt_eta_projections, project_eta_by_pt,
     flatten_sparse_response, scan_bayes_regularization,
     unflatten_to_eta_projections,
@@ -41,6 +42,20 @@ class UnfoldingHelpersTest(unittest.TestCase):
         layout = FlattenedBinning(((0.0, 40.0), (40.0, 80.0)), 3)
         self.assertEqual(layout.global_bin(1, 2), 5)
         self.assertEqual(layout.indices(5), (1, 2))
+
+    def test_flattened_pt_range_integral_requires_complete_blocks(self):
+        layout = FlattenedBinning(
+            ((50.0, 60.0), (60.0, 80.0), (80.0, 100.0)), 2,
+        )
+        histogram = ROOT.TH1D("pt_range_integral", "", 6, 0.5, 6.5)
+        for bin_index in range(1, 7):
+            histogram.SetBinContent(bin_index, float(bin_index))
+        self.assertEqual(
+            flattened_pt_range_integral(histogram, layout, (60.0, 100.0)),
+            3.0 + 4.0 + 5.0 + 6.0,
+        )
+        with self.assertRaisesRegex(ValueError, "does not align"):
+            flattened_pt_range_integral(histogram, layout, (55.0, 100.0))
 
     def test_project_flatten_and_unflatten_round_trip(self):
         source = ROOT.TH2D("source", "", 4, 0, 80, 3, -1.5, 1.5)
@@ -290,6 +305,59 @@ class UnfoldingHelpersTest(unittest.TestCase):
             self.assertEqual(left_toy.GetBinError(1), 2.0)
             self.assertEqual(left_toy.GetBinError(2), 3.0)
 
+    def test_relative_errors_are_transferred_to_source_normalization(self):
+        source = ROOT.TH1D("relative_error_source", "", 2, 0.5, 2.5)
+        reference = ROOT.TH1D("relative_error_reference", "", 2, 0.5, 2.5)
+        source.SetBinContent(1, 50.0)
+        reference.SetBinContent(1, 200.0)
+        reference.SetBinError(1, 20.0)
+        reference.SetBinContent(2, 0.0)
+        reference.SetBinError(2, 4.0)
+        transferred = copy_histogram_relative_errors(
+            source, reference, name="relative_error_transferred",
+        )
+        self.assertAlmostEqual(transferred.GetBinContent(1), 50.0)
+        self.assertAlmostEqual(transferred.GetBinError(1), 5.0)
+        self.assertEqual(transferred.GetBinError(2), 0.0)
+
+        source.SetBinContent(2, 1.0)
+        with self.assertRaisesRegex(ValueError, "empty reference bin 2"):
+            copy_histogram_relative_errors(
+                source, reference, name="relative_error_invalid",
+            )
+
+    def test_relative_error_transfer_removes_numerical_zero_residue(self):
+        source = ROOT.TH1D("relative_error_residue_source", "", 2, 0.5, 2.5)
+        reference = ROOT.TH1D("relative_error_residue_reference", "", 2, 0.5, 2.5)
+        source.SetBinContent(1, 1.0e4)
+        source.SetBinContent(2, 1.5e-12)
+        reference.SetBinContent(1, 100.0)
+        reference.SetBinError(1, 10.0)
+        transferred = copy_histogram_relative_errors(
+            source, reference, name="relative_error_residue_transferred",
+        )
+        self.assertEqual(transferred.GetBinContent(2), 0.0)
+        self.assertEqual(transferred.GetBinError(2), 0.0)
+
+    def test_empty_data_bin_uses_nearest_neighbor_in_same_pt_block(self):
+        layout = FlattenedBinning(((50.0, 60.0), (60.0, 70.0)), 3)
+        source = ROOT.TH1D("neighbor_error_source", "", 6, 0.5, 6.5)
+        reference = ROOT.TH1D("neighbor_error_reference", "", 6, 0.5, 6.5)
+        for bin_index in range(1, 7):
+            source.SetBinContent(bin_index, 10.0)
+        reference.SetBinContent(2, 100.0)
+        reference.SetBinError(2, 20.0)
+        reference.SetBinContent(6, 50.0)
+        reference.SetBinError(6, 5.0)
+        transferred = copy_histogram_relative_errors(
+            source, reference, name="neighbor_error_transferred", layout=layout,
+            use_nearest_reference_for_empty=True,
+        )
+        self.assertAlmostEqual(transferred.GetBinError(1), 2.0)
+        self.assertAlmostEqual(transferred.GetBinError(3), 2.0)
+        self.assertAlmostEqual(transferred.GetBinError(4), 1.0)
+        self.assertAlmostEqual(transferred.GetBinError(5), 1.0)
+
     def test_seeded_intermediate_caches_validate_metadata(self):
         expectation = ROOT.TH1D("cache_expectation", "", 2, 0.5, 2.5)
         expectation.SetBinContent(1, 10.0)
@@ -397,8 +465,22 @@ class UnfoldingHelpersTest(unittest.TestCase):
         toys = make_gaussian_toys(
             expectation, n_toys=20, random_seed=5, resample_negative=True,
         )
-        self.assertTrue(all(toy.GetBinContent(1) >= 0.0 for toy in toys))
+        self.assertTrue(all(toy.GetBinContent(1) > 0.0 for toy in toys))
         self.assertTrue(all(toy.GetBinError(1) == 1.0 for toy in toys))
+
+    def test_zero_expectation_bins_can_be_kept_empty(self):
+        expectation = ROOT.TH1D("zero_preserved_expectation", "", 2, 0.5, 2.5)
+        expectation.SetBinContent(1, 0.0)
+        expectation.SetBinError(1, 10.0)
+        expectation.SetBinContent(2, 20.0)
+        expectation.SetBinError(2, 2.0)
+        toys = make_gaussian_toys(
+            expectation, n_toys=20, random_seed=11,
+            stop_on_negative=False, smear_zero_content=False,
+        )
+        self.assertTrue(all(toy.GetBinContent(1) == 0.0 for toy in toys))
+        self.assertTrue(all(toy.GetBinError(1) == 10.0 for toy in toys))
+        self.assertTrue(any(toy.GetBinContent(2) != 20.0 for toy in toys))
 
     def test_toy_metrics_use_per_bin_bias_and_unbiased_variance(self):
         truth = ROOT.TH1D("metric_truth", "", 2, 0.5, 2.5)
