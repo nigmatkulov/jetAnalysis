@@ -64,6 +64,40 @@ set `ROOUNFOLD_ROOT` to override that location.
 
 ## Starting point
 
+ROOT figures produced by MC, systematic, and simulation-only unfolding
+notebooks default to a `CMS Simulation` left header and
+`pPb 174.6 nb^{-1} (8.16 TeV)` on the right. Notebooks whose filenames contain
+`data` instead default to `CMS Preliminary` with the same pPb luminosity and
+energy; their configurable left label can later be changed to `CMS`. Notebooks expose
+`CMS_HEADER_LEFT` and `CMS_HEADER_RIGHT` in their setup configuration and enable
+the header through the shared `root_style.configure_cms_header` save path, so
+both helper-generated and notebook-local canvases receive the same header.
+The standalone pp tune workflow, `03_pythia_standalone_check.ipynb`, instead
+defaults to `pp (8.16 TeV)` for both ROOT and mplhep output. Shared literal
+labels live in `python/plot_labels.py`; mplhep helpers otherwise default to the
+pPb MC header.
+
+Every ROOT canvas saved through `python/root_style.py` can also be re-rendered
+with mplhep while retaining the original ROOT output. Set the environment
+variable `HIST_ANALYSIS_SAVE_MPLHEP=1` before starting Jupyter, or call
+`configure_mplhep_export(True)` in a notebook. Python PDFs are written to an
+`mplhep/` directory beside the ROOT PDFs. The canvas exporter handles TH1
+plots, overlays, ratio pads, TH2 maps, and recursively nested multi-panel
+canvases; set `HIST_ANALYSIS_SAVE_MPLHEP_PNG=1` or pass `save_png=True` to its
+configuration function for PNG copies.
+Every notebook exposes `SAVE_MPLHEP` and `SAVE_MPLHEP_PNG` in its setup cell;
+the default is `False` except in the standalone PYTHIA tune workflow, whose
+existing dedicated mplhep export remains enabled by default.
+The generic exporter copies the final displayed x- and y-axis limits from each
+ROOT pad, including log-scale limits and independent limits in multi-panel
+canvases. A specific call can override them with `mplhep_x_range` or
+`mplhep_y_range` in `save_canvas`; the standalone histogram-aware mplhep
+helpers retain their existing explicit `x_range`, `y_range`, and `ratio_range`
+arguments.
+The shared mplhep curve cycle supports eight simultaneous curves and alternates
+filled and open circles, triangles, squares, and diamonds. CP5 remains a filled
+red circle and CUETP8M1 an open blue circle regardless of their overlay order.
+
 Run `notebooks/01_inventory.ipynb` first to check the configured directory tree,
 find ROOT files, and inspect top-level object keys.
 
@@ -156,19 +190,53 @@ binomial option is exposed. `DIRECTION` selects Pb-going, p-going, or combined
 pPb input, while `CP5_FILE` configures the pp input. Outputs go beneath
 `output/mc_fb_generator_check/` by default.
 
-Use `notebooks/03_mc_cp5_check.ipynb` for the standalone pp 8.16 TeV PYTHIA
-CP5 generator sample. Its `local` source resolves to
-`$HOME/cernbox/ana/pPb8160/pythia/cp5tune/cp5_gen_dijet_histograms.root`; it
-overlays inclusive-jet etaCM shapes and their Forward/Backward
-ratios in user-configurable jet-pT intervals, and plots dijet etaCM plus Forward/Backward for either the compact
-test or standard pTave bins at one configurable per-jet eta acceptance. It also
-overlays all selected dijet etaCM intervals with distinct indexed colors and
-markers. Multi-curve legends remain inside the plotting frame with compact text
-and reserved vertical headroom so they do not cover data points; redundant
-single-curve legends are hidden. Full
-eta shapes use the selected display normalization; F/B always divides the
-unnormalized stored forward and backward weighted yields with independent-error
-propagation. Outputs go beneath `output/mc_cp5_check/` by default.
+Use `notebooks/03_pythia_standalone_check.ipynb` to compare the standalone pp
+8.16 TeV PYTHIA CP5 and CUETP8M1 generator samples. The defaults resolve to
+`$HOME/cernbox/ana/pPb8160/pythia/cp5tune/cp5_gen_dijet_histograms.root` and
+`$HOME/cernbox/ana/pPb8160/pythia/cuep8m1tune/cuep8m1_gen_dijet_histograms.root`;
+environment variables can override either file. `TUNES` enables both samples or
+selects one for a single-tune check. The notebook overlays the tunes and draws
+CUETP8M1/CP5 ratios for inclusive-jet and dijet full-eta and Forward/Backward
+distributions. It also compares inclusive-jet pT spectra in five eta windows
+(`[-3.2,-2.4)`, `[-2.4,-1.4)`, `[-1.4,1.4)`, `[1.4,2.4)`, and
+`[2.4,3.2)`), event-weight distributions, and separate unweighted and weighted
+pThat distributions. Full eta shapes use the selected display normalization. F/B
+always divides unnormalized forward and backward weighted yields, and both F/B
+and tune-to-tune ratios use independent-error propagation. Outputs go beneath
+`output/pythia_standalone_check/` by default. Set `SAVE_MPLHEP = True` to retain
+all ROOT figures and additionally export the final 1D comparisons, ratios, and
+2D response maps as 8 x 8 inch mplhep CMS-style PDFs beneath the `mplhep/`
+subdirectory. `MPLHEP_STYLE` configures the figure, axis, tick, annotation,
+legend, CMS-label, marker, and colorbar font sizes; `annotation_y` controls the
+vertical position of in-frame descriptive text. CP5 uses filled red circles,
+CUETP8M1 uses open blue circles, and six additional deterministic color/marker
+combinations support overlays with up to eight curves. `SAVE_MPLHEP_PNG` adds
+200 DPI PNG copies. Dijet x-axis limits extend one projected bin width beyond
+the configured absolute-eta selection so the final accepted bin is fully shown.
+`MPLHEP_CMS_HEADER_LEFT` accepts `CMS Simulation`, `CMS Preliminary`, or `CMS`.
+`MPLHEP_CMS_HEADER_RIGHT` accepts a math-text-capable label such as
+`pp (8.16 TeV)` or `pPb 174.6 nb$^{-1}$ (8.16 TeV)`.
+The notebook applies the same configurable header and tune semantics to its
+ROOT canvases through `ROOT_PLOT_STYLE` and `ROOT_CURVE_STYLES`: CP5 is a filled
+red circle and CUETP8M1 is an open blue circle. These settings are passed as
+optional shared-plotting arguments, so other notebooks retain their defaults.
+The default `DIJET_Y_RANGE = (0.00, 0.14)` fixes a common y-axis range for all
+full dijet eta distributions. `MPLHEP_STYLE.capsize` controls the end-cap size
+for both vertical statistical errors and horizontal bin-width bars.
+Set `FULL_ETA_Y_RANGE` to an ordered `(low, high)` pair to enforce one common
+y-axis range across every inclusive-jet and dijet full-eta figure; when unset,
+the existing `INCLUSIVE_Y_RANGE` and `DIJET_Y_RANGE` controls remain active.
+The mplhep renderer omits markers and error bars for bins whose content is zero
+without modifying the source ROOT histograms. Its one-dimensional markers carry
+horizontal error bars spanning half the bin width in each direction, in
+addition to the stored vertical statistical uncertainties.
+For each enabled tune it also draws the weighted
+`hGenDijetPtAveOverPTHatVsPTHat` map and applies `TH2::FitSlicesY` to extract
+the Gaussian mean of `pTave/pTHat` in every pTHat bin. The configurable
+`FIT_SLICES_MIN_ENTRIES` controls the minimum slice population; the response
+map and fitted-mean display ranges are configured independently. These
+diagnostics are filled before the final dijet pT and delta-phi cuts and are
+intended to expose rare upward migrations, not to impose an event veto.
 
 Use `notebooks/03_mc_dijet_smearing_effect.ipynb` to compare nominal Gen, Gen with
 the default pT smearing, Gen with eta-dependent smearing, nominal Reco, and Reco

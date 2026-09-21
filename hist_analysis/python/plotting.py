@@ -9,13 +9,28 @@ import ROOT
 
 from hist_analysis.python.histogram_ops import ratio_to_nominal, style_histograms
 from hist_analysis.python.root_style import (
-    DEFAULT_PLOT_STYLE, PlotStyle, draw_text_block, save_canvas, set_1d_style,
-    set_legend_style, set_pad_style, style_single_panel_axes,
+    DEFAULT_PLOT_STYLE, PlotStyle, apply_curve_style, draw_cms_header,
+    draw_text_block, save_canvas, set_1d_style, set_legend_style, set_pad_style,
+    style_single_panel_axes,
 )
 
 
 def figure_title(generator: str, direction: str, observable: str) -> str:
     return f"{generator} {direction} {observable}"
+
+
+def _remember_display_ranges(pad, histograms: Iterable[object]) -> None:
+    """Attach the final ROOT pad ranges for later histogram-aware exports."""
+
+    x_range = (float(pad.GetUxmin()), float(pad.GetUxmax()))
+    y_range = (float(pad.GetUymin()), float(pad.GetUymax()))
+    if pad.GetLogx():
+        x_range = (10.0 ** x_range[0], 10.0 ** x_range[1])
+    if pad.GetLogy():
+        y_range = (10.0 ** y_range[0], 10.0 ** y_range[1])
+    for histogram in histograms:
+        histogram._root_display_x_range = x_range
+        histogram._root_display_y_range = y_range
 
 
 def draw_overlay(histograms: Mapping[str, object], *, title: str,
@@ -39,6 +54,9 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
                  legend_columns: int = 1,
                  legend_text_size: float | None = None,
                  right_margin: float | None = None,
+                 curve_styles: Mapping[str, tuple[int, int]] | None = None,
+                 cms_header_left: str | None = None,
+                 cms_header_right: str | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
     """Draw histograms with optional same-label functions and text box."""
 
@@ -91,14 +109,17 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
         for histogram in histograms.values()
         for bin_index in range(1, histogram.GetNbinsX() + 1)
     )
-    legend = ROOT.TLegend(*(legend_bounds or (0.60, 0.70, 0.88, 0.88)))
+    legend = ROOT.TLegend(*(legend_bounds or (0.65, 0.75, 0.88, 0.85)))
     set_legend_style(legend, style=style)
     legend.SetNColumns(legend_columns)
     if legend_text_size is not None:
         legend.SetTextSize(legend_text_size)
     for index, (label, histogram) in enumerate(histograms.items()):
         style_index = index if style_indices is None else style_indices.get(label, index)
-        set_1d_style(histogram, style_index, style=style)
+        if curve_styles is not None and label in curve_styles:
+            apply_curve_style(histogram, *curve_styles[label], style=style)
+        else:
+            set_1d_style(histogram, style_index, style=style)
         style_single_panel_axes(histogram, style=style)
         histogram.SetTitle(title)
         histogram.GetXaxis().SetTitle(x_title)
@@ -120,6 +141,9 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
     if show_legend:
         legend.Draw()
     annotation_objects = draw_text_block(canvas, annotations, style=style)
+    header_objects = draw_cms_header(
+        canvas, cms_header_left, cms_header_right, style=style,
+    )
 
     line = None
     if reference_y is not None:
@@ -148,10 +172,11 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
 
     canvas.Modified()
     canvas.Update()
+    _remember_display_ranges(canvas, histograms.values())
     save_canvas(canvas, output, save_png=save_png)
     canvas._overlay_objects = [
         *([legend] if show_legend else []),
-        *annotation_objects, *histograms.values(), *drawn_functions,
+        *annotation_objects, *header_objects, *histograms.values(), *drawn_functions,
         *([] if line is None else [line]),
         *([] if text_box is None else [text_box, *text_lines]),
     ]
@@ -177,6 +202,9 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
                  annotation_y: float | None = None,
                  right_margin: float | None = None,
                  style_indices: Mapping[str, int] | None = None,
+                 curve_styles: Mapping[str, tuple[int, int]] | None = None,
+                 cms_header_left: str | None = None,
+                 cms_header_right: str | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
     """Draw an overlay and ratios to an explicitly named nominal histogram.
 
@@ -216,7 +244,13 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
                 f"{sorted(missing_ratio_labels)}"
             )
 
-    if style_indices is None:
+    if curve_styles is not None:
+        for index, (label, histogram) in enumerate(histograms.items()):
+            if label in curve_styles:
+                apply_curve_style(histogram, *curve_styles[label], style=style)
+            else:
+                set_1d_style(histogram, index, style=style)
+    elif style_indices is None:
         style_histograms(histograms)
     else:
         for index, (label, histogram) in enumerate(histograms.items()):
@@ -241,6 +275,7 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
         f"bottom_{suffix}", "bottom", 0.0, 0.0, 1.0, style.ratio_fraction,
     )
     top.SetBottomMargin(style.ratio_top_bottom_margin)
+    top.SetTopMargin(style.top_margin)
     top.SetLeftMargin(style.ratio_left_margin)
     top.SetRightMargin(style.right_margin if right_margin is None else right_margin)
     bottom.SetTopMargin(style.ratio_bottom_top_margin)
@@ -261,7 +296,7 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
         for hist in histograms.values()
         for bin_index in range(1, hist.GetNbinsX() + 1)
     )
-    legend = ROOT.TLegend(*(legend_bounds or (0.68, 0.72, 0.88, 0.88)))
+    legend = ROOT.TLegend(*(legend_bounds or (0.65, 0.75, 0.88, 0.85)))
     set_legend_style(legend, style=style)
     for index, (label, histogram) in enumerate(histograms.items()):
         histogram.SetTitle(title)
@@ -291,6 +326,12 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
     annotation_objects = draw_text_block(
         top, annotation_lines, x=annotation_x, y=annotation_y, style=style,
     )
+    canvas.cd()
+    canvas.SetLeftMargin(top.GetLeftMargin())
+    canvas.SetRightMargin(top.GetRightMargin())
+    header_objects = draw_cms_header(
+        canvas, cms_header_left, cms_header_right, style=style,
+    )
 
     bottom.cd()
     ratios = {}
@@ -309,6 +350,10 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
             name=f"ratio_{index}",
             option=ratio_option,
         )
+        if curve_styles is not None and numerator_label in curve_styles:
+            apply_curve_style(
+                ratio, *curve_styles[numerator_label], style=style,
+            )
         if ratio_pairs is not None:
             repeated_numerator = sum(
                 pair[0] == numerator_label
@@ -359,10 +404,12 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
 
     canvas.cd()
     canvas.Update()
+    _remember_display_ranges(top, histograms.values())
+    _remember_display_ranges(bottom, ratios.values())
     save_canvas(canvas, output, save_png=save_png)
     # Keep drawn ROOT objects alive for notebook display.
     canvas._closure_objects = [
-        top, bottom, legend, line, *annotation_objects,
+        top, bottom, legend, line, *annotation_objects, *header_objects,
         *histograms.values(), *ratios.values(),
     ]
     return canvas, ratios

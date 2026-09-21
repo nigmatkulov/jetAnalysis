@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Iterable
 
 import ROOT
+
+from hist_analysis.python.plot_labels import (
+    CMS_HEADER_CHOICES, CMS_SIMULATION_HEADER, PPB_HEADER_RIGHT,
+)
 
 
 # ROOT equivalents of the ordering used by plotMcClosures.C::set1DStyle.
@@ -93,9 +98,91 @@ class PlotStyle:
     palette_y2: float = 0.90
     palette_label_size: float = 0.035
     palette_right_margin: float = 0.12
+    cms_header_text_size: float = 0.040
+    cms_header_y: float = 0.975
 
 
 DEFAULT_PLOT_STYLE = PlotStyle()
+
+_DEFAULT_CMS_HEADER_LEFT: str | None = CMS_SIMULATION_HEADER
+_DEFAULT_CMS_HEADER_RIGHT: str | None = PPB_HEADER_RIGHT
+_SAVE_MPLHEP = os.environ.get("HIST_ANALYSIS_SAVE_MPLHEP", "0") == "1"
+_SAVE_MPLHEP_PNG = os.environ.get("HIST_ANALYSIS_SAVE_MPLHEP_PNG", "0") == "1"
+
+
+def configure_cms_header(left: str | None, right: str | None) -> None:
+    """Configure the header automatically added when canvases are saved."""
+
+    if left is not None and left not in CMS_HEADER_CHOICES:
+        raise ValueError(
+            f"left CMS header must be one of {CMS_HEADER_CHOICES}, got {left!r}"
+        )
+    if right is not None and (not isinstance(right, str) or not right.strip()):
+        raise ValueError("right CMS header must be None or a non-empty string")
+    global _DEFAULT_CMS_HEADER_LEFT, _DEFAULT_CMS_HEADER_RIGHT
+    _DEFAULT_CMS_HEADER_LEFT = left
+    _DEFAULT_CMS_HEADER_RIGHT = right
+
+
+def configure_mplhep_export(enabled: bool, *, save_png: bool = False) -> None:
+    """Enable optional Python re-rendering for every canvas saved thereafter."""
+
+    if not isinstance(enabled, bool) or not isinstance(save_png, bool):
+        raise TypeError("enabled and save_png must be bool")
+    global _SAVE_MPLHEP, _SAVE_MPLHEP_PNG
+    _SAVE_MPLHEP = enabled
+    _SAVE_MPLHEP_PNG = save_png
+
+
+def draw_cms_header(pad, left: str | None, right: str | None, *,
+                    style: PlotStyle = DEFAULT_PLOT_STYLE):
+    """Draw an optional CMS header above the ROOT plotting frame."""
+
+    if not left and not right:
+        return []
+    left_labels = {
+        "CMS Simulation": "#bf{CMS} #it{Simulation}",
+        "CMS Preliminary": "#bf{CMS} #it{Preliminary}",
+        "CMS": "#bf{CMS}",
+    }
+    if left not in left_labels:
+        raise ValueError(
+            "left CMS header must be CMS Simulation, CMS Preliminary, or CMS"
+        )
+    pad.cd()
+    objects = []
+    left_text = ROOT.TLatex(
+        pad.GetLeftMargin(), style.cms_header_y, left_labels[left],
+    )
+    left_text.SetNDC(True)
+    left_text.SetTextFont(style.font)
+    left_text.SetTextSize(style.cms_header_text_size)
+    left_text.SetTextAlign(13)
+    left_text.Draw()
+    objects.append(left_text)
+    if right:
+        right_text = ROOT.TLatex(
+            1.0 - pad.GetRightMargin(), style.cms_header_y,
+            right.replace("$", ""),
+        )
+        right_text.SetNDC(True)
+        right_text.SetTextFont(style.font)
+        right_text.SetTextSize(style.cms_header_text_size)
+        right_text.SetTextAlign(33)
+        right_text.Draw()
+        objects.append(right_text)
+    pad._cms_header_objects = objects
+    return objects
+
+
+def apply_curve_style(histogram, color: int, marker: int, *,
+                      style: PlotStyle = DEFAULT_PLOT_STYLE) -> None:
+    """Apply an explicit ROOT color and marker while retaining shared axes."""
+
+    set_1d_style(histogram, style=style)
+    histogram.SetLineColor(color)
+    histogram.SetMarkerColor(color)
+    histogram.SetMarkerStyle(marker)
 
 
 def set_pad_style(pad, *, grid_x: bool = True, grid_y: bool = True,
@@ -242,11 +329,40 @@ def set_legend_style(legend, *, style: PlotStyle = DEFAULT_PLOT_STYLE) -> None:
     legend.SetTextSize(style.legend_text_size)
 
 
-def save_canvas(canvas, pdf_path: str | Path | None, *, save_png: bool = False) -> None:
+def _clear_canvas_titles(pad) -> None:
+    """Remove ROOT title boxes that would overlap a configured CMS header."""
+
+    primitives = pad.GetListOfPrimitives()
+    if primitives is None:
+        return
+    for primitive in tuple(primitives):
+        if primitive.InheritsFrom("TH1"):
+            primitive.SetTitle("")
+        elif primitive.InheritsFrom("TPad"):
+            _clear_canvas_titles(primitive)
+    title_box = primitives.FindObject("title")
+    if title_box is not None:
+        primitives.Remove(title_box)
+
+
+def save_canvas(canvas, pdf_path: str | Path | None, *, save_png: bool = False,
+                mplhep_x_range: tuple[float, float] | None = None,
+                mplhep_y_range: tuple[float, float] | None = None) -> None:
     """Save PDF and, when requested, a same-named PNG."""
 
     if pdf_path is None:
         return
+    if _DEFAULT_CMS_HEADER_LEFT or _DEFAULT_CMS_HEADER_RIGHT:
+        _clear_canvas_titles(canvas)
+    if (
+        (_DEFAULT_CMS_HEADER_LEFT or _DEFAULT_CMS_HEADER_RIGHT)
+        and not getattr(canvas, "_cms_header_objects", None)
+    ):
+        draw_cms_header(
+            canvas, _DEFAULT_CMS_HEADER_LEFT, _DEFAULT_CMS_HEADER_RIGHT,
+        )
+        canvas.Modified()
+        canvas.Update()
     path = Path(pdf_path)
     if path.suffix.lower() != ".pdf":
         raise ValueError(f"Canvas output must have a .pdf suffix: {path}")
@@ -254,3 +370,13 @@ def save_canvas(canvas, pdf_path: str | Path | None, *, save_png: bool = False) 
     canvas.SaveAs(str(path))
     if save_png:
         canvas.SaveAs(str(path.with_suffix(".png")))
+    if _SAVE_MPLHEP:
+        from hist_analysis.python.mplhep_plotting import save_canvas as save_mplhep_canvas
+        mplhep_path = path.parent / "mplhep" / path.name
+        save_mplhep_canvas(
+            canvas, output=mplhep_path,
+            cms_header_left=_DEFAULT_CMS_HEADER_LEFT or CMS_SIMULATION_HEADER,
+            cms_header_right=_DEFAULT_CMS_HEADER_RIGHT or PPB_HEADER_RIGHT,
+            save_png=_SAVE_MPLHEP_PNG,
+            x_range=mplhep_x_range, y_range=mplhep_y_range,
+        )
