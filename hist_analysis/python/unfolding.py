@@ -812,6 +812,7 @@ def prepare_factorized_corrections(
     matched_truth,
     *,
     name_prefix: str = "hFactorized",
+    tolerance: float = 1.0e-9,
 ) -> FactorizedCorrectionInputs:
     """Remove fakes with reco-bin purity and calculate truth-bin efficiency.
 
@@ -828,6 +829,8 @@ def prepare_factorized_corrections(
     in every multiplication here.
     """
 
+    if tolerance < 0.0:
+        raise ValueError("Factorized-correction tolerance must be non-negative")
     validate_common_binning(
         [measured, training_measured, matched_measured],
         label="factorized fake correction inputs",
@@ -843,7 +846,8 @@ def prepare_factorized_corrections(
     for bin_index in range(1, measured.GetNbinsX() + 1):
         inclusive = training_measured.GetBinContent(bin_index)
         matched = matched_measured.GetBinContent(bin_index)
-        if inclusive < 0.0 or matched < 0.0 or matched > inclusive + 1.0e-9 * max(1.0, inclusive):
+        allowed = tolerance * max(1.0, abs(inclusive), abs(matched))
+        if inclusive < -allowed or matched < -allowed or matched > inclusive + allowed:
             raise ValueError(
                 f"Invalid reco purity inputs in bin {bin_index}: "
                 f"matched={matched:g}, inclusive={inclusive:g}"
@@ -857,7 +861,8 @@ def prepare_factorized_corrections(
     for bin_index in range(1, training_truth.GetNbinsX() + 1):
         inclusive = training_truth.GetBinContent(bin_index)
         matched = matched_truth.GetBinContent(bin_index)
-        if inclusive < 0.0 or matched < 0.0 or matched > inclusive + 1.0e-9 * max(1.0, inclusive):
+        allowed = tolerance * max(1.0, abs(inclusive), abs(matched))
+        if inclusive < -allowed or matched < -allowed or matched > inclusive + allowed:
             raise ValueError(
                 f"Invalid truth efficiency inputs in bin {bin_index}: "
                 f"matched={matched:g}, inclusive={inclusive:g}"

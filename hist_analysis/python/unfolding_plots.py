@@ -696,8 +696,8 @@ def draw_regularization_metrics(
             histogram.SetMaximum(1.25 * maximum if maximum > 0.0 else 1.0)
             if log_y:
                 histogram.SetMinimum(0.5 * min(positive_values))
-        histogram.Draw("LP" if index == 0 else "LP SAME")
-        legend.AddEntry(histogram, label, "lp")
+        histogram.Draw("E1" if index == 0 else "E1 SAME")
+        legend.AddEntry(histogram, label, "pe")
     legend.Draw()
     # Each canvas marks the minimum belonging to the metric it displays. This
     # remains meaningful when the scan reports both absolute and relative optima.
@@ -859,8 +859,8 @@ def draw_regularization_metrics_by_pt(
                 histogram.SetMaximum(1.25 * maximum if maximum > 0.0 else 1.0)
                 if log_y:
                     histogram.SetMinimum(0.5 * min(positive_values))
-            histogram.Draw("LP" if index == 0 else "LP SAME")
-            legend.AddEntry(histogram, label, "lp")
+            histogram.Draw("E1" if index == 0 else "E1 SAME")
+            legend.AddEntry(histogram, label, "pe")
         legend.Draw()
         labels = draw_text_block(
             canvas, (*tuple(annotations),

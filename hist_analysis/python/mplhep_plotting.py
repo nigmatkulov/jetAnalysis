@@ -60,9 +60,12 @@ def _curve_style(label: str, index: int):
 
     normalized = label.upper().replace(" ", "")
     if "CUETP8M1" in normalized or "CUEP8M1" in normalized:
-        return "CUETP8M1", "tab:blue", "o", "none"
+        display_label = label if any(token in normalized for token in ("OFFICIAL", "STANDALONE")) else "CUEP8M1"
+        marker_face = "tab:blue" if "OFFICIAL" in normalized else "none"
+        return display_label, "tab:blue", "o", marker_face
     if "CP5" in normalized:
-        return label, "tab:red", "o", "tab:red"
+        marker_face = "none" if "STANDALONE" in normalized else "tab:red"
+        return label, "tab:red", "o", marker_face
     color, marker, filled = MPLHEP_CURVE_STYLES[index % len(MPLHEP_CURVE_STYLES)]
     return label, color, marker, color if filled else "none"
 
@@ -309,7 +312,7 @@ def save_comparison(
     x_label: str,
     y_label: str,
     ratios: Mapping[str, object] | None = None,
-    ratio_label: str = "CUETP8M1 / CP5",
+    ratio_label: str = "CUEP8M1 / CP5",
     x_range: tuple[float, float] | None = None,
     y_range: tuple[float, float] | None = None,
     ratio_range: tuple[float, float] | None = None,

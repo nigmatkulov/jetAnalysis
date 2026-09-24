@@ -96,7 +96,7 @@ helpers retain their existing explicit `x_range`, `y_range`, and `ratio_range`
 arguments.
 The shared mplhep curve cycle supports eight simultaneous curves and alternates
 filled and open circles, triangles, squares, and diamonds. CP5 remains a filled
-red circle and CUETP8M1 an open blue circle regardless of their overlay order.
+red circle and CUEP8M1 an open blue circle regardless of their overlay order.
 
 Run `notebooks/01_inventory.ipynb` first to check the configured directory tree,
 find ROOT files, and inspect top-level object keys.
@@ -191,12 +191,12 @@ pPb input, while `CP5_FILE` configures the pp input. Outputs go beneath
 `output/mc_fb_generator_check/` by default.
 
 Use `notebooks/03_pythia_standalone_check.ipynb` to compare the standalone pp
-8.16 TeV PYTHIA CP5 and CUETP8M1 generator samples. The defaults resolve to
+8.16 TeV PYTHIA CP5 and CUEP8M1 generator samples. The defaults resolve to
 `$HOME/cernbox/ana/pPb8160/pythia/cp5tune/cp5_gen_dijet_histograms.root` and
 `$HOME/cernbox/ana/pPb8160/pythia/cuep8m1tune/cuep8m1_gen_dijet_histograms.root`;
 environment variables can override either file. `TUNES` enables both samples or
 selects one for a single-tune check. The notebook overlays the tunes and draws
-CUETP8M1/CP5 ratios for inclusive-jet and dijet full-eta and Forward/Backward
+CUEP8M1/CP5 ratios for inclusive-jet and dijet full-eta and Forward/Backward
 distributions. It also compares inclusive-jet pT spectra in five eta windows
 (`[-3.2,-2.4)`, `[-2.4,-1.4)`, `[-1.4,1.4)`, `[1.4,2.4)`, and
 `[2.4,3.2)`), event-weight distributions, and separate unweighted and weighted
@@ -209,7 +209,7 @@ all ROOT figures and additionally export the final 1D comparisons, ratios, and
 subdirectory. `MPLHEP_STYLE` configures the figure, axis, tick, annotation,
 legend, CMS-label, marker, and colorbar font sizes; `annotation_y` controls the
 vertical position of in-frame descriptive text. CP5 uses filled red circles,
-CUETP8M1 uses open blue circles, and six additional deterministic color/marker
+CUEP8M1 uses open blue circles, and six additional deterministic color/marker
 combinations support overlays with up to eight curves. `SAVE_MPLHEP_PNG` adds
 200 DPI PNG copies. Dijet x-axis limits extend one projected bin width beyond
 the configured absolute-eta selection so the final accepted bin is fully shown.
@@ -218,7 +218,7 @@ the configured absolute-eta selection so the final accepted bin is fully shown.
 `pp (8.16 TeV)` or `pPb 174.6 nb$^{-1}$ (8.16 TeV)`.
 The notebook applies the same configurable header and tune semantics to its
 ROOT canvases through `ROOT_PLOT_STYLE` and `ROOT_CURVE_STYLES`: CP5 is a filled
-red circle and CUETP8M1 is an open blue circle. These settings are passed as
+red circle and CUEP8M1 is an open blue circle. These settings are passed as
 optional shared-plotting arguments, so other notebooks retain their defaults.
 The default `DIJET_Y_RANGE = (0.00, 0.14)` fixes a common y-axis range for all
 full dijet eta distributions. `MPLHEP_STYLE.capsize` controls the end-cap size
@@ -237,6 +237,19 @@ the Gaussian mean of `pTave/pTHat` in every pTHat bin. The configurable
 map and fitted-mean display ranges are configured independently. These
 diagnostics are filled before the final dijet pT and delta-phi cuts and are
 intended to expose rare upward migrations, not to impose an event veto.
+
+Use `notebooks/03_mc_standalone_vs_official.ipynb` to validate standalone
+generator-level dijet results against the corresponding official analysis
+outputs. The default pairs are combined standard PYTHIA `pythia_jetId.root`
+versus standalone CUEP8M1, and CP5 `HiForestMiniAOD_hist.root` versus
+standalone CP5. For each tune and configured pTave interval, it overlays the
+independently normalized dijet eta shapes with a Standalone/Official ratio and
+the unnormalized Forward/Backward distributions with their corresponding
+ratio. Every division uses independent-error propagation. The CUEP8M1 pair
+compares stored pPb-oriented and standalone pp outputs as a validation
+diagnostic rather than treating their collision systems as equivalent. Set
+`SAVE_MPLHEP = True` to retain the ROOT PDFs and add parallel mplhep PDFs in
+the output directory's `mplhep/` subdirectory; `SAVE_MPLHEP_PNG` adds PNGs.
 
 Use `notebooks/03_mc_dijet_smearing_effect.ipynb` to compare nominal Gen, Gen with
 the default pT smearing, Gen with eta-dependent smearing, nominal Reco, and Reco
@@ -258,34 +271,40 @@ error option, `''` or `'B'`.
 
 Use `notebooks/07_dijet_data_vs_mc.ipynb` to compare nominal reconstructed data,
 eta-dependent JER-default reconstructed embedding MC, generator-level embedding
-MC, and generator-level PYTHIA CP5 dijet pTave spectra for MinimumBias, Jet60,
-Jet80, and Jet100. The MC-reco curve uses
+MC, and standalone generator-level PYTHIA CUEP8M1 and CP5 dijet pTave spectra
+for MinimumBias, Jet60, Jet80, and Jet100. The MC-reco curve uses
 `hRecoDijetPtEtaCMJerDefExtra`; data reco and embedding MC gen use
 `hRecoDijetPtEtaCM` and `hGenDijetPtEtaCM_{eta_cut_index}`, respectively. Each
 curve is normalized independently over the configured half-open pTave interval.
-The CP5 generator distribution is `hGenDijetPtEtaCM`. Set
+Both standalone tune distributions use `hGenDijetPtEtaCM`. Set
 `CP5_INPUT_SOURCE` to `cernbox`, `local`, or `auto`; `local` defaults to
 `$HOME/cernbox/ana/pPb8160/pythia/cp5tune/cp5_gen_dijet_histograms.root`.
-The `CP5_GEN_FILE` environment variable overrides every source default.
-Combined outputs receive an `_embedding_cp5`
-suffix. At
+The `CP5_GEN_FILE` environment variable overrides every CP5 source default.
+CUEP8M1 defaults to
+`$HOME/cernbox/ana/pPb8160/pythia/cuep8m1tune/cuep8m1_gen_dijet_histograms.root`
+and `CUEP8M1_GEN_FILE` overrides it. Combined outputs receive an
+`_embedding_cuep8m1_cp5` suffix. At
 the standard eta-cut index 5, the notebook projects pseudorapidity shapes in the
 same 16 trigger-specific half-open pTave intervals used by
 `06_data_dijet_distributions.ipynb`. `ETA_NORMALIZATION` selects unit
 bin-content-sum (`integral`, the default) or true unit-area density
 (`bin_width`) normalization, with matching y-axis labels and simultaneous
-generator-referenced lower panels. Full-eta plots are produced in three groups:
-MC Reco (MC Emb.) with MC Gen (MC Emb.) and Data; MC Gen (MC Emb.) with MC Gen
-(PYTHIA CP5) and Data; and MC Gen (PYTHIA CP5) with Data. The same groups are
-used for Forward/Backward ratios built from the unnormalized projections using
-independent-error propagation. The three-curve generator comparison shows both
-Data/MC Gen (MC Emb.) and Data/MC Gen (PYTHIA CP5) in its lower panel. Every
-lower panel is titled `Ratio to Gen`. Separate 1200 x 1200 summary
+reference-specific lower panels. Full-eta plots are produced in four groups:
+MC Reco (MC Emb.) with MC Gen (MC Emb.) and Data; PYTHIA CUEP8M1 with PYTHIA
+CP5 and Data; PYTHIA CUEP8M1 with Data; and PYTHIA CP5 with Data. The same
+groups are used for Forward/Backward ratios built from the unnormalized
+projections using independent-error propagation. The three-curve tune
+comparison shows both Data/PYTHIA CUEP8M1 and Data/PYTHIA CP5 in its lower
+panel. Tune-comparison lower panels are titled `Data / PYTHIA`; the embedding
+closure is titled `Ratio to Gen`. CUEP8M1 uses an open blue circle and CP5 a
+filled red circle. Separate 1200 x 1200 summary
 canvases collect all 16 intervals for every comparison group. Their annotations
 and legends are placed across the top inside each plot frame, with vertical
 headroom reserved so they do not overlap markers.
 Their 1200-pixel PNG outputs provide at least 200 DPI up to a 6-inch figure,
-and trigger names are omitted from the summary legends.
+and trigger names are omitted from the summary legends. The standalone pp tune
+curves are shape references and are not treated as detector-level pPb
+predictions.
 F/B construction and the subsequent comparisons use independent errors. The
 default ratio ranges are 0.75--1.25 for pTave, 0.75--1.15 for the full-eta
 ratios to generator MC, 0.75--1.25 for Forward/Backward, and 0.8--1.2 for the
@@ -311,24 +330,29 @@ separately.
 Use `notebooks/05_unfold2D_data.ipynb` to unfold the reconstructed data in the
 same 16 trigger-specific pTave intervals used by
 `06_data_dijet_distributions.ipynb`. MinimumBias supplies 50--80 GeV, Jet60
-80--100 GeV, Jet80 100--120 GeV, and Jet100 120--500 GeV. The combined-direction
-embedding sample supplies the flattened two-dimensional response,
-reconstructed-bin purity, and truth-bin efficiency, and all unfolded inputs are
-the corresponding combined-direction data files.
+80--100 GeV, Jet80 100--120 GeV, and Jet100 120--500 GeV. `DATA_DIRECTIONS`
+selects combined, Pb-going, or p-going data, while `RESPONSE_DIRECTION`
+independently selects the combined-, Pb-going-, or p-going embedding response.
+`RESPONSE_VARIANT` selects the same `jer_def_extra`,
+`nominal`, `controlled`, or `studied` response definitions available in the
+regularization workflow.
 The factorized calculation applies purity, unfolds matched migrations with
-RooUnfoldBayes, and then corrects for efficiency; 12 iterations are the
-default. Before any pT projection or unfolding, every trigger TH2 is multiplied
-by its cumulative MinimumBias-scale weight from the provenance-compatible JSON
-written by `06_data_trigger_stitching.ipynb`; ROOT scales the stored `Sumw2`
-errors at the same time. The notebook requires exactly one JSON matching the
-configured data direction, jet selection, dijet CM observable, eta projection,
-and dijet eta-cut index. Set `TRIGGER_STITCHING_WEIGHTS_FILE` to select an
-explicit artifact when unfolding one direction. Stitching-weight uncertainties
+RooUnfoldBayes, and then corrects for efficiency; 5 iterations are the current
+default and should be updated when the regularization result changes; it can be
+overridden with `UNFOLD2D_DATA_ITERATIONS`. Before any pT projection or
+unfolding, every trigger TH2 is multiplied
+by its cumulative MinimumBias-scale weight from the provenance-compatible
+combined-direction JSON written by `06_data_trigger_stitching.ipynb`; ROOT
+scales the stored `Sumw2` errors at the same time. Stitching provides only the
+common trigger exposure scale and is therefore independent of the selected
+data/response direction. Set `TRIGGER_STITCHING_WEIGHTS_FILE` to select an
+explicit compatible combined artifact. Stitching-weight uncertainties
 are correlated normalization uncertainties: they are retained in output
 metadata and are not added independently to each eta-bin statistical variance.
 Output filenames include `data_stitched` so they cannot be confused with older
 unweighted results. The workflow writes one ROOT result per direction with the
-unfolded yield, transformed covariance, response diagnostics, trigger
+unfolded yield, transformed covariance, response diagnostics, purity and
+efficiency, zero-efficiency/empty-bin accounting, trigger
 provenance, and forward-folded reconstructed-level validation. Per-interval plots compare data
 before and after unfolding in both unnormalized yield and independently
 normalized eta shape; the normalized distributions are presentation-only
@@ -625,6 +649,23 @@ This choice does not replace RooUnfold's response-training Bayesian prior.
 The CP5 option reads `CP5_TOY_TRUTH_HISTOGRAM` from `CP5_TOY_TRUTH_FILE`. The
 Gaussian option generates only the eta shape; its pTave marginal is copied from
 the configured response generator using `GAUSSIAN_PT_SOURCE_ETA_CUT_INDEX`.
+Both regularization notebooks default to the standalone CP5 file
+`$HOME/cernbox/ana/pPb8160/pythia/cp5tune/cp5_gen_dijet_histograms.root` and
+the eta-cut-indexed `hGenDijetPtEtaCM_5` truth histogram. Their compact default
+comparison uses 50 toys, six Bayesian iterations, and random seed 12345.
+`UNFOLD2D_RESPONSE_DIRECTION` can override the configured `combined`,
+`Pbgoing`, or `pgoing` response direction. The response direction controls the
+migration matrix, misses, fakes, purity, efficiency, and Bayesian prior. Both
+regularization notebooks deliberately keep `STITCHING_DIRECTION = 'combined'`:
+the combined data provide the common MB exposure and per-bin relative
+statistical precision, independently of the selected response direction.
+`RESPONSE_GENERATOR` selects `embedding` or `pythia`, while
+`RESPONSE_VARIANT` selects one coherent stored response set:
+`jer_def_extra` (the default), `nominal`, `controlled`, or `studied`. Each
+variant switches the training truth, reconstructed spectrum, migration matrix,
+misses, and fakes together. The variant is included in full-notebook output and
+cache tags and in the tutorial output directory, preventing results from
+different response definitions from overwriting or reusing one another.
 Output and cache names explicitly contain both `response-...` and
 `toytruth-...` tags, and figures repeat both roles in their annotations. The
 notebook forward-folds the selected toy truth with the inclusive response and
@@ -813,11 +854,19 @@ boundary-limited result as complete.
 The scan always unfolds and evaluates the complete flattened distribution.
 Optional per-pT metric figures are diagnostic slices of the global-bin results
 and never select independent iteration counts.
+After selecting the global iteration count, the notebook always unfolds the
+configured `ETA_COMPARISON_TOY_NUMBERS` at that iteration and deconvolutes the
+target truth, mean unfolded ensemble, and selected unfolded toys into the
+original pTave blocks. One unnormalized eta overlay and unfolded/truth ratio is
+written per pTave interval. These projected histograms and ratios are also
+stored in the final ROOT output; the iteration choice remains global.
 The inspection cell below the scan accepts a zero-based toy model number, a
 tuple of Bayesian iterations, and a stored random seed. It reads the complete
 distribution ROOT file without unfolding again, reconstructs each pTave eta
 distribution, and writes separate target-truth/unfolded overlays and
-unfolded/target-truth ratio canvases.
+unfolded/target-truth ratio canvases. All overlay curves and ratios use markers
+with `E1` uncertainty bars; the regularization notebook does not use ROOT's
+line-only `HIST` drawing option for overlays.
 A second inspection cell accepts a seed and a tuple of zero-based toy numbers.
 It compares the stored inclusive-reco toy fluctuations with their common
 forward-folded expectation and draws the toy/expectation ratio for every pTave

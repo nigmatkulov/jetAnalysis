@@ -350,21 +350,24 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
             name=f"ratio_{index}",
             option=ratio_option,
         )
-        if curve_styles is not None and numerator_label in curve_styles:
-            apply_curve_style(
-                ratio, *curve_styles[numerator_label], style=style,
-            )
         if ratio_pairs is not None:
             repeated_numerator = sum(
                 pair[0] == numerator_label
                 for _, pair in configured_ratios
             ) > 1
             style_label = denominator_label if repeated_numerator else numerator_label
-            ratio_style_index = (
-                style_indices.get(style_label, index)
-                if style_indices is not None else index
+            if curve_styles is not None and style_label in curve_styles:
+                apply_curve_style(ratio, *curve_styles[style_label], style=style)
+            else:
+                ratio_style_index = (
+                    style_indices.get(style_label, index)
+                    if style_indices is not None else index
+                )
+                set_1d_style(ratio, ratio_style_index, style=style)
+        elif curve_styles is not None and numerator_label in curve_styles:
+            apply_curve_style(
+                ratio, *curve_styles[numerator_label], style=style,
             )
-            set_1d_style(ratio, ratio_style_index, style=style)
         ratios[label] = ratio
         ratio.SetTitle("")
         ratio.GetYaxis().SetTitle(
