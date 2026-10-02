@@ -52,8 +52,8 @@ void usage() {
 // Eta shifts for pPb 8.16 TeV collisions, used for etaCM calculation
 const int nEtaShifts = 13;
 static constexpr std::array<float, nEtaShifts> etaShift{0.460, 0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470, 0.475, 0.480, 0.485, 0.490 };
-const int nEtaCuts = 9;
-static constexpr std::array<float, nEtaCuts> etaCuts{1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4, 3.0};
+const int nEtaCuts = 8;
+static constexpr std::array<float, nEtaCuts> etaCuts{1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4, 3.0};
 // Run IDs used for the data-taking-period comparison histograms.
 const int nDiagnosticRuns = 5;
 const int nDiagnosticRunHistograms = nDiagnosticRuns + 1;

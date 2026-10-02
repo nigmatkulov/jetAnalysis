@@ -10,6 +10,7 @@ Requirements:
     ROOT >= 6.28
 """
 
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -72,13 +73,32 @@ def _clone_object(obj):
 #------------------------------------------------------------
 # Path resolution
 #------------------------------------------------------------
+def produced_histogram_path(*parts: str) -> Path:
+    """Canonical single-underscore filename for a reusable histogram bundle."""
+    return (Path(__file__).resolve().parents[1] / "root_files"
+            / "produced_histograms" / ("_".join(parts) + ".root"))
+
+
+def find_produced_histogram_file(*parts: str) -> Path | None:
+    """Prefer canonical bundles, accepting legacy double-underscore filenames."""
+    canonical = produced_histogram_path(*parts)
+    legacy = canonical.parent / ("__".join(parts) + ".root")
+    return next((path for path in (canonical, legacy) if path.is_file()), None)
+
+
 def resolve_direction_file(base_dir: Path,
                            generator: str,
                            direction: str,
-                           stem: str) -> Path:
+                           stem: str,
+                           *,
+                           prefer_produced: bool = True) -> Path:
     """
     Build a direction-specific output path.
     """
+    if prefer_produced and stem == "jetId":
+        produced = find_produced_histogram_file("official_mc", generator, direction)
+        if produced is not None:
+            return produced
     return base_dir / generator / direction / f"{generator}_{direction}_{stem}.root"
 
 
@@ -87,19 +107,122 @@ def resolve_direction_file(base_dir: Path,
 #------------------------------------------------------------
 def resolve_combined_file(base_dir: Path,
                           generator: str,
-                          stem: str) -> Path:
+                          stem: str,
+                          *,
+                          prefer_produced: bool = True) -> Path:
     """
     Build a combined-orientation output path.
     """
 
+    if prefer_produced and stem == "jetId":
+        produced = find_produced_histogram_file("official_mc", generator, "combined")
+        if produced is not None:
+            return produced
     return base_dir / generator / f"{generator}_{stem}.root"
+
+
+def normalize_unfolding_direction(dataset: str, direction: str) -> str:
+    """Return the physical direction label for an unfolding dataset.
+
+    The pp CP5 production has no beam orientation.  Treat any configured
+    direction as ``pp`` so switching the dataset does not also require editing
+    a stale pPb direction setting.
+    """
+
+    if dataset in {"pythia_cp5", "pythia_cuep8m1", "pythia_cp5_standalone"}:
+        return "pp"
+    if dataset in {"embedding", "pythia"}:
+        if direction not in {"combined", "Pbgoing", "pgoing"}:
+            raise ValueError(
+                f"{dataset} direction must be 'combined', 'Pbgoing', or "
+                f"'pgoing', got {direction!r}"
+            )
+        return direction
+    raise ValueError(f"Unsupported unfolding dataset {dataset!r}")
+
+
+def resolve_unfolding_mc_file(base_dir: Path,
+                              dataset: str,
+                              direction: str,
+                              stem: str = "jetId") -> Path:
+    """Resolve an MC file that contains a complete unfolding response.
+
+    ``embedding`` and ``pythia`` use the standard direction-aware production
+    layout. ``pythia_cp5`` is the pp MiniAOD analysis output and therefore has
+    no beam direction; callers must select ``pp`` for that dataset.
+    """
+
+    direction = normalize_unfolding_direction(dataset, direction)
+    produced = find_produced_histogram_file("official_mc", dataset, direction)
+    if dataset == "pythia_cp5" and "CP5_UNFOLDING_FILE" in os.environ:
+        return Path(os.environ["CP5_UNFOLDING_FILE"]).expanduser()
+    if stem == "jetId" and produced is not None:
+        return produced
+    if dataset in {"embedding", "pythia"}:
+        if direction == "combined":
+            return resolve_combined_file(base_dir, dataset, stem)
+        return resolve_direction_file(base_dir, dataset, direction, stem)
+    if dataset == "pythia_cp5":
+        return Path(os.environ.get(
+            "CP5_UNFOLDING_FILE",
+            base_dir / "pythia" / "cp5tune" / "HiForestMiniAOD_hist.root",
+        )).expanduser()
+    raise ValueError(
+        f"Unsupported unfolding MC dataset {dataset!r}; expected "
+        "'embedding', 'pythia', or 'pythia_cp5'"
+    )
+
+
+def resolve_unfolding_truth_file(base_dir: Path,
+                                 dataset: str,
+                                 direction: str,
+                                 stem: str = "jetId") -> Path:
+    """Resolve a generator-truth source used as an unfolding/closure target."""
+
+    direction = normalize_unfolding_direction(dataset, direction)
+    standalone_names = {
+        "pythia_cuep8m1": "cuep8m1",
+        "pythia_cp5_standalone": "cp5",
+    }
+    overrides = {
+        "pythia_cuep8m1": "CUEP8M1_GEN_FILE",
+        "pythia_cp5_standalone": "CP5_GEN_FILE",
+    }
+    if dataset in overrides and overrides[dataset] in os.environ:
+        return Path(os.environ[overrides[dataset]]).expanduser()
+    if dataset in standalone_names:
+        produced = find_produced_histogram_file("standalone", standalone_names[dataset], "pp")
+        if produced is not None:
+            return produced
+    if dataset in {"embedding", "pythia", "pythia_cp5"}:
+        return resolve_unfolding_mc_file(base_dir, dataset, direction, stem)
+    standalone_defaults = {
+        "pythia_cuep8m1": (
+            "CUEP8M1_GEN_FILE",
+            base_dir / "pythia" / "cuep8m1tune"
+            / "cuep8m1_gen_dijet_histograms.root",
+        ),
+        "pythia_cp5_standalone": (
+            "CP5_GEN_FILE",
+            base_dir / "pythia" / "cp5tune" / "cp5_gen_dijet_histograms.root",
+        ),
+    }
+    if dataset in standalone_defaults:
+        environment_name, default = standalone_defaults[dataset]
+        return Path(os.environ.get(environment_name, default)).expanduser()
+    raise ValueError(
+        f"Unsupported unfolding truth dataset {dataset!r}; expected embedding, "
+        "pythia, pythia_cp5, pythia_cuep8m1, or pythia_cp5_standalone"
+    )
 
 
 def resolve_data_file(data_dir: Path,
                       trigger: str,
                       direction: str = "combined",
                       selection: str = "jetId",
-                      vertex_filter: str = "dz1p0") -> Path:
+                      vertex_filter: str = "dz1p0",
+                      *,
+                      prefer_produced: bool = True) -> Path:
     """Build a merged experimental-data output path.
 
     Trigger aliases used by the data notebooks map to the lowercase stems
@@ -135,6 +258,11 @@ def resolve_data_file(data_dir: Path,
         )
 
     data_dir = Path(data_dir)
+    if prefer_produced and selection == "jetId" and vertex_filter == "dz1p0":
+        produced_trigger = "minimumbias" if trigger_stem == "mb" else trigger_stem
+        produced = find_produced_histogram_file("data", "data", direction, produced_trigger)
+        if produced is not None:
+            return produced
     vertex_suffix = "" if vertex_filter == "dz1p0" else f"_{vertex_filter}"
     if direction == "combined":
         return data_dir / f"{trigger_stem}_ak4_{selection}{vertex_suffix}.root"

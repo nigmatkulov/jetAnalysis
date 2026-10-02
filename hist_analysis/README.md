@@ -24,6 +24,67 @@ identified explicitly. Forward/backward ratios always use independent-error
 propagation because their positive- and reflected-negative-eta bins are not a
 subset relationship.
 
+## Reusable histogram production
+
+Run `notebooks/00_produce_reusable_histograms.ipynb` explicitly before the
+consumer notebooks. It resolves 12 data sources (four triggers in three beam
+orientations), seven official-MC sources (Embedding and PYTHIA in three
+orientations plus ForestMiniAOD CP5), and standalone CUEP8M1 and CP5. It writes
+one dedicated ROOT file per source below `root_files/produced_histograms/`.
+
+Every output retains the original histogram objects, ROOT metadata and keys, including all
+official-MC unfolding truth, measured, response, miss, fake, and classification
+families. It additionally stores raw weighted-yield nominal and systematic dijet eta (CM and Lab), Forward, and
+Backward TH1 projections for every available eta-cut index and every interval
+in both `DIJET_PTAVE_BINS` and `TEST_DIJET_PTAVE_BINS`. Projection keys use the
+readable form
+`h<Level>DijetEta<Frame>_etaCut<value>_<standard|test>_ptAve<low>to<high>`,
+for example `hGenDijetEtaCM_etaCut1p9_standard_ptAve60to70`.
+The shared `DIJET_ETA_CUTS` table maps upstream indices 0–7 to
+1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4, and 3.0. A decimal becomes `p`,
+including `3p0`. These are cuts already applied to both jets upstream,
+using the frame and selected jet collection of the source family; they are
+not an extra selection on the projected dijet eta. The nominal production
+accepts leading/subleading pT >= 50/40 GeV, |delta phi| >= 2pi/3, and
+per-jet |eta| <= the selected cut. Its minimum pTave is 45 GeV, while the
+configured reusable projection catalog starts at 50 GeV; that catalog does
+not include the 45–50 GeV interval. Flow bins are excluded from these
+projections. Run-ID diagnostics are copied but are not eta-cut-index families.
+The `histogramProductionMetadata` `TNamed` records source path, size and
+modification time, schema version 2, the eta-cut index-to-value table, shared
+bin definitions, and the complete copied/projected
+key inventories.
+
+The shared data and dijet-closure consumers load these stored TH1 projections
+when given a produced file. Standard file resolvers prefer the produced files
+when available, while the production notebook explicitly resolves the original
+sources. Custom ranges and older produced files without a stored projection use in-memory
+projections of the retained TH2. Unfolding retains its in-memory TH2/THnSparse
+projections so pT and eta acceptance migrations remain explicit. Explicit CP5
+file overrides take precedence over the produced catalog, and non-`jetId` stems
+continue to resolve their requested source selections. Old data sources inspected during this review have the previous eight-cut order
+(indices 6/7 = 2.4/3.0; the updated standard 1.9 cut is now index 4). Regenerate them before running notebook 00; production
+now rejects source-title disagreements before writing any bundles. The existing
+official and standalone MC outputs also retain the previous nine-cut order
+starting at 1.4. Rebuild their histogram outputs to adopt the new eight-cut order
+starting at 1.5. The standalone analyzer macros already have the new table;
+rerun them on stored generator inputs rather than generating new PYTHIA events. All notebook
+`ETA_CUTS` settings use the shared table, including notebooks that formerly
+listed 2.5 or omitted 2.3. Rerun notebook 00 after
+changing sources: the resolvers do not automatically regenerate or freshness-check
+produced files. Plot normalization and F/B construction remain consumer-side; F/B
+still divides unnormalized Forward and Backward yields with ROOT independent
+errors. The existing EPPS21 theory ROOT file is validated in place and its
+limited available theory pTave intervals are not expanded or reinterpreted.
+
+Canonical filenames use single separators, for example
+`official_mc_pythia_combined.root`, `standalone_cp5_pp.root`, and
+`data_data_combined_jet80.root`. Readers prefer canonical files but also
+accept older double-separator filenames and index-based projection keys.
+Rerun notebook 00 to write the physical-value names; upstream copied keys
+retain their indices for unfolding compatibility. See the
+[cut and naming review](REUSABLE_HISTOGRAM_REVIEW.md).
+
 ## Data locations
 
 The direction-dependent outputs are stored under:
@@ -284,7 +345,7 @@ CUEP8M1 defaults to
 `$HOME/cernbox/ana/pPb8160/pythia/cuep8m1tune/cuep8m1_gen_dijet_histograms.root`
 and `CUEP8M1_GEN_FILE` overrides it. Combined outputs receive an
 `_embedding_cuep8m1_cp5` suffix. At
-the standard eta-cut index 5, the notebook projects pseudorapidity shapes in the
+the standard eta-cut index 4, the notebook projects pseudorapidity shapes in the
 same 16 trigger-specific half-open pTave intervals used by
 `06_data_dijet_distributions.ipynb`. `ETA_NORMALIZATION` selects unit
 bin-content-sum (`integral`, the default) or true unit-area density

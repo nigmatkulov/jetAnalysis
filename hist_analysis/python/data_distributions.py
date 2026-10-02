@@ -10,6 +10,8 @@ from IPython.display import display
 
 from hist_analysis.python.histogram_io import load_histogram
 from hist_analysis.python.histogram_ops import normalize_histogram, ratio_to_nominal
+from hist_analysis.python.histogram_production import ETA_KEY_PATTERN, load_eta_projection, resolve_eta_source_key
+from hist_analysis.config.histograms import DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS
 from hist_analysis.python.plotting import draw_closure, draw_overlay
 from hist_analysis.python.projections import project_semantic_th2
 from hist_analysis.python.root_style import (
@@ -34,7 +36,27 @@ def project_data_histogram(
         raise ValueError(f"Unsupported observable: {observable!r}")
     if isinstance(rebin, bool) or not isinstance(rebin, int) or rebin < 1:
         raise ValueError(f"rebin must be a positive integer, got {rebin!r}")
-    source = load_histogram(str(filename), key)
+    path = Path(filename)
+    interval = tuple(selection_range) if selection_range is not None else None
+    if (observable == "eta" and ETA_KEY_PATTERN.match(key)
+            and path.parent.name == "produced_histograms"
+            and (interval in DIJET_PTAVE_BINS or interval in TEST_DIJET_PTAVE_BINS)):
+        if interval in DIJET_PTAVE_BINS:
+            binning = "standard"
+        elif interval in TEST_DIJET_PTAVE_BINS:
+            binning = "test"
+        try:
+            projection = load_eta_projection(
+                path, key, binning, interval,
+            )
+        except KeyError:
+            pass  # Legacy produced file: project its retained TH2 below.
+        else:
+            if rebin > 1:
+                projection.Rebin(rebin)
+            projection.SetName(name)
+            return normalize_histogram(projection, normalization)
+    source = load_histogram(str(filename), resolve_eta_source_key(filename, key))
     if not source.InheritsFrom("TH2"):
         raise TypeError(f"{key!r} in {filename} is not a TH2")
     source.Rebin2D(
