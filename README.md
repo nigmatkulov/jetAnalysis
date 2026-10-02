@@ -404,6 +404,17 @@ inspecting and comparing analysis outputs:
 - `python/`: reusable ROOT object I/O, projection, histogram-operation, inventory, plotting, and flattened RooUnfold helpers. `unfolding.py` owns common projection, flattening, response, diagnostic, Bayesian-unfolding, and ROOT-output logic; `unfolding_plots.py` owns the corresponding diagnostics and closure figures.
 - `output/`: generated figures and ROOT artifacts; this directory is ignored by Git.
 
+Reusable histogram production starts with `hist_analysis/notebooks/00_produce_reusable_histograms.ipynb`.
+The current per-jet eta cuts are `(1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4, 3.0)`;
+1.9 is index 4. Persisted projection names encode physical values, for example
+`etaCut1p5` and `etaCut1p9`, while copied upstream keys retain their indices.
+Readers prefer reusable bundles and retain source-file and in-memory projection fallbacks.
+Rebuild official MC, data, and standalone histogram outputs before producing bundles
+for this table. Standalone samples need histogram analysis rerun on saved generator
+inputs, without regenerating PYTHIA events. See the
+[cut and naming review](hist_analysis/REUSABLE_HISTOGRAM_REVIEW.md) and
+[notebook workflow](hist_analysis/README.md#reusable-histogram-production).
+
 Start Jupyter with the project Python environment from the repository root:
 
 ```bash
@@ -470,7 +481,7 @@ After changes to the histogram-analysis Python modules, check their syntax with:
 
 ```bash
 py-env/bin/python -m compileall -q hist_analysis/config hist_analysis/python
-py-env/bin/python -m unittest tests.test_unfolding -v
+py-env/bin/python -m unittest tests.test_unfolding tests.test_histogram_production -v
 ```
 
 Generated build products, ROOT outputs, notebook checkpoints, and files beneath

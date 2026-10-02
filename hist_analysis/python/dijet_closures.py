@@ -8,6 +8,8 @@ from typing import Iterable
 
 from hist_analysis.python.histogram_io import load_histogram
 from hist_analysis.python.histogram_ops import normalize_histogram
+from hist_analysis.python.histogram_production import load_eta_projection, resolve_eta_source_key
+from hist_analysis.config.histograms import DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS
 from hist_analysis.python.projections import project_semantic_th2
 
 
@@ -32,7 +34,25 @@ def _key(template: str, eta_cut_index: int) -> str:
 
 def _project_eta(filename: Path, key: str, ptave_range: tuple[float, float],
                  *, name: str, rebin_eta: int):
-    source = load_histogram(str(filename), key)
+    interval = tuple(ptave_range)
+    if (filename.parent.name == "produced_histograms"
+            and (interval in DIJET_PTAVE_BINS or interval in TEST_DIJET_PTAVE_BINS)):
+        if interval in DIJET_PTAVE_BINS:
+            binning = "standard"
+        elif interval in TEST_DIJET_PTAVE_BINS:
+            binning = "test"
+        try:
+            projected = load_eta_projection(
+                filename, key, binning, interval,
+            )
+        except KeyError:
+            pass  # Legacy produced file: project its retained TH2 below.
+        else:
+            if rebin_eta > 1:
+                projected.Rebin(rebin_eta)
+            projected.SetName(name)
+            return projected
+    source = load_histogram(str(filename), resolve_eta_source_key(filename, key))
     if not source.InheritsFrom("TH2"):
         raise TypeError(f"{key!r} in {filename} is not a TH2")
     source.Rebin2D(1, rebin_eta)
