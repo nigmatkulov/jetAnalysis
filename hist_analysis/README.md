@@ -35,10 +35,11 @@ orientations), seven official-MC sources (Embedding and PYTHIA in three
 orientations plus ForestMiniAOD CP5), and standalone CUEP8M1 and CP5. It writes
 one dedicated ROOT file per source below `root_files/produced_histograms/`.
 
-Every output retains the original histogram objects, ROOT metadata and keys, including all
+Every output retains full histogram objects, ROOT metadata and keys, including all
 official-MC unfolding truth, measured, response, miss, fake, and classification
-families. It additionally stores raw weighted-yield nominal and systematic dijet eta (CM and Lab), Forward, and
-Backward TH1 projections for every available eta-cut index and every interval
+families. Legacy Forward/Backward objects are skipped rather than copied.
+It additionally stores raw weighted-yield nominal and systematic full dijet eta
+(CM and Lab) TH1 projections for every available eta-cut index and every interval
 in both `DIJET_PTAVE_BINS` and `TEST_DIJET_PTAVE_BINS`. Projection keys use the
 readable form
 `h<Level>DijetEta<Frame>_etaCut<value>_<standard|test>_ptAve<low>to<high>`,
@@ -54,7 +55,7 @@ configured reusable projection catalog starts at 50 GeV; that catalog does
 not include the 45–50 GeV interval. Flow bins are excluded from these
 projections. Run-ID diagnostics are copied but are not eta-cut-index families.
 The `histogramProductionMetadata` `TNamed` records source path, size and
-modification time, schema version 2, the eta-cut index-to-value table, shared
+modification time, schema version 3, the full-only hemisphere convention, the eta-cut index-to-value table, shared
 bin definitions, and the complete copied/projected
 key inventories.
 
@@ -1113,8 +1114,9 @@ forward/backward and closure ratios use ROOT `TH1::Divide`. Forward and backward
 inputs are not normalized before division.
 
 Reco is enabled in red (`set_1d_style` index 0) and Gen in blue (index 1). Ref,
-smeared Gen, or smeared Reco curves can be added by supplying their CM, Forward,
-and Backward key templates. Individual full-distribution and F/B x-axis ranges
+smeared Gen, or smeared Reco curves can be added by supplying their full CM
+key template. Legacy Forward/Backward fields in `DijetClosureCurve` are accepted
+for calling compatibility but are ignored. Individual full-distribution and F/B x-axis ranges
 extend 0.1 beyond the selected eta cut; eta-cut overlays extend 0.1 beyond the
 largest selected cut. Full-shape ratio limits, F/B limits, and F/B double-ratio
 limits are configured separately.
@@ -1180,3 +1182,98 @@ interval on axis 0, then use `Projection(2, 1)` for x versus etaCM. A mean x
 computed from this distribution uses x-bin centers and therefore has finite
 binning precision. Preserve flow bins and state their treatment when plotting.
 The validation commands and review limits are recorded in [reusable histogram review](REUSABLE_HISTOGRAM_REVIEW.md).
+
+## Full-eta Forward/Backward folding
+
+`processForestSimple.C` stores only full dijet eta distributions. Separate
+Forward/Backward allocations, fills, and output keys are removed for nominal
+Gen/Reco/Ref/RefSel, generator smearing, reconstructed JER/JEU, unfolding
+measured companions, and weighted generator eta-shift diagnostics. Full,
+response, miss/fake, classification, and event histograms retain their names,
+binning, selections, weights, and fill order.
+
+`python/forward_backward.py::fold_eta_histogram` produces detached unnormalized
+Forward and Backward TH1 or TH2 objects from a full distribution. TH2 inputs
+have pTave on x and eta on y. The positive half supplies Forward; the reversed
+negative half supplies Backward, with |eta| edges. Contents and Sumw2 errors
+are copied, never interpolated. Symmetric bins with zero as an edge are
+required; asymmetric or zero-straddling bins raise an error. Eta underflow
+maps to Backward overflow and eta overflow to Forward overflow; TH2 pT flow
+bins are retained. The usual pT projection excludes pT flow bins.
+
+Closure/systematic preparation folds the raw projection before eta rebinning
+or normalization. F/B uses `TH1::Divide(..., "")`; zero denominators retain
+ROOT's zero-content/zero-error result. Later comparison ratios keep their own
+configured error option. Data, pointing, and data/MC consumers use the same
+folding primitive through `data_distributions.forward_backward_from_full`.
+The legacy C++ plotter uses the matching `cpp/eta_folding.h` implementation.
+Its obsolete weighted-key F/B routine now reads the nominal full histogram,
+and its former binomial F/B error option is corrected to independent errors;
+this affects that routine's statistical errors, not the ratio definition.
+
+Schema 3 reusable bundles omit hemisphere objects/projections even when their
+source is an older ROOT file. Consumers use the full keys in both old and new
+files; regenerate notebook 00 bundles to recover the storage saving. Existing
+schema 2 full projections remain readable. Standalone generator ROOT inputs
+need no format change for these consumers: their full histograms suffice.
+
+A full histogram cannot recover the event's side of an exact bin edge after
+reflection. For example, ROOT can place eta = -1.5 in the full bin whose
+reflected center is in the 1.4–1.5 interval, while filling abs(eta) directly
+places it in 1.5–1.6. Floating-point edges can produce the analogous positive
+side difference, including around zero. Full-only folding with these small
+differences was explicitly selected; no sparse edge corrections are stored.
+Full distributions and total event yields are unchanged.
+
+Validation used the first 1000 entries of real pp CP5 and Pb-going embedding
+pT-hat-80 forests. Old/new processing selected 974 and 831 events respectively.
+Each new output has 564 exactly unchanged retained objects (including response
+contents/errors) and removes 378 hemisphere objects. All derived hemisphere
+contents and errors agree on these samples. The read-only comparison command
+in the top-level README also compares F/B projections in the shared standard
+pTave intervals after eta rebinning by two.
+
+An audit of the existing combined embedding/Pythia outputs found differences
+in 442/58 backward bins respectively, with maximum relative content changes
+0.1321%/0.03724%; Pythia also has 874 forward-bin differences, up to 0.09383%.
+The checked MinimumBias and CP5 outputs match in both hemispheres. These counts
+refer to native-bin TH2 comparisons (198 pairs per MC output; 24 for data),
+not to changes in full histograms or to a claimed bound on all future samples.
+Weighted/negative yields, zero denominators, flow bins, exact edges, C++/Python
+agreement, old-source handling, and full-only reusable closure are covered by
+`tests/test_forward_backward.py`.
+
+The complete archived-file audit (including eta-shift histograms and flow bins)
+checked 3379 rebinned F/B projections per MC output and 408 for MinimumBias.
+Embedding had 11 differing ratio bins (maximum relative change 0.0001701%);
+Pythia had 342 (maximum 0.002580%). Both contents and errors agree for all
+checked MinimumBias and CP5 ratio bins. On each 1000-event before/after sample,
+all 3005 F/B projections agree in contents and errors. Reproduce an archived
+single-file audit with:
+
+```bash
+PYTHONPATH=. py-env/bin/python tests/compare_full_eta_outputs.py source.root --audit-existing
+```
+
+This audit reads old stored hemispheres only as validation references; analysis
+consumers always derive their hemispheres from the full distribution.
+
+A synthetic data check also exercises nominal/JEU threshold crossings, both
+collision systems and beam orientations, and deliberately concentrates entries
+on eta edges. Its 58 retained objects agree exactly and 48 hemisphere objects
+are removed. Its folded F/B can differ substantially (up to 75% in this
+artificial edge-dominated sample); the small archived-production differences
+above are measurements, not a universal error bound. Run the current-side
+check without forest inputs:
+
+```bash
+root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine(".L JetUncertainty.cc"); gROOT->ProcessLine(".L processForestSimple.C"); gROOT->ProcessLine(".L tests/test_dijet_full_eta_processing.C"); test_dijet_full_eta_processing();'
+```
+
+Validation also passed the Release build, CTest, all 49 Python tests, existing
+pp/pPb/response/x-correlation ROOT checks, C++ plot-macro loading, module
+compilation, and JSON/Python-cell syntax checks for all 31 notebooks. A
+clean-kernel run of the reco-to-gen closure notebook used the new 1000-event
+embedding output, one 50–100 GeV interval and the standard 1.9 acceptance;
+all six PDFs were produced. The other full notebooks were not executed in
+this change. Production sources and pre-existing ROOT artifacts were read-only.

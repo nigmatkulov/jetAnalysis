@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from hist_analysis.python.forward_backward import fold_eta_histogram
 from hist_analysis.python.histogram_io import load_histogram
 from hist_analysis.python.histogram_ops import normalize_histogram
 from hist_analysis.python.histogram_production import load_eta_projection, resolve_eta_source_key
@@ -19,8 +20,8 @@ class DijetClosureCurve:
 
     label: str
     cm_key: str
-    forward_key: str
-    backward_key: str
+    forward_key: str = ""  # Deprecated compatibility fields; never read.
+    backward_key: str = ""
 
 
 def _key(template: str, eta_cut_index: int) -> str:
@@ -147,23 +148,19 @@ def build_dijet_gen_comparisons(
     backward = {}
     selected_keys = {}
     for index, curve in enumerate(curve_list):
-        keys = {
-            "cm": _key(curve.cm_key, eta_cut_index),
-            "forward": _key(curve.forward_key, eta_cut_index),
-            "backward": _key(curve.backward_key, eta_cut_index),
-        }
-        full[curve.label] = _project_eta(
+        keys = {"cm": _key(curve.cm_key, eta_cut_index)}
+        raw = _project_eta(
             path, keys["cm"], ptave_range,
-            name=f"dijet_closure_cm_{index}", rebin_eta=rebin_eta,
+            name=f"dijet_closure_cm_{index}", rebin_eta=1,
         )
-        forward[curve.label] = _project_eta(
-            path, keys["forward"], ptave_range,
-            name=f"dijet_closure_forward_{index}", rebin_eta=rebin_eta,
+        forward[curve.label], backward[curve.label] = fold_eta_histogram(
+            raw, name=f"dijet_closure_{index}",
         )
-        backward[curve.label] = _project_eta(
-            path, keys["backward"], ptave_range,
-            name=f"dijet_closure_backward_{index}", rebin_eta=rebin_eta,
-        )
+        if rebin_eta > 1:
+            raw.Rebin(rebin_eta)
+            forward[curve.label].Rebin(rebin_eta)
+            backward[curve.label].Rebin(rebin_eta)
+        full[curve.label] = raw
         selected_keys[curve.label] = keys
 
     _validate_common_binning(full, observable="full eta")

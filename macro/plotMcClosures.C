@@ -1,3 +1,4 @@
+#include "../hist_analysis/cpp/eta_folding.h"
 // ROOT headers
 #include "TFile.h"
 #include "TH1.h"
@@ -336,7 +337,7 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         //
         // Retrieve reco histograms
         //
-        hRecoDijetPtEtaCMForward[iEtaCM] = dynamic_cast<TH2D *>( f->Get( Form("hRecoDijetPtEtaForwardArr_%d", iEtaCM) ) );
+        hRecoDijetPtEtaCMForward[iEtaCM] = dynamic_cast<TH2D *>( eta_folding::get(f, Form("hRecoDijetPtEtaForwardArr_%d", iEtaCM)) );
         if ( !hRecoDijetPtEtaCMForward[iEtaCM] ) {
             std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << iEtaCM << " not found in data file." << std::endl;
             return;
@@ -345,7 +346,7 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         hRecoDijetPtEtaCMForward[iEtaCM]->RebinY(rebinPseudoRapidity);
         hRecoDijetPtEtaCMForward[iEtaCM]->SetName( Form("hRecoDijetPtEtaCMForward_%d", iEtaCM) );
 
-        hRecoDijetPtEtaCMBackward[iEtaCM] = dynamic_cast<TH2D *>( f->Get( Form("hRecoDijetPtEtaBackwardArr_%d", iEtaCM) ) );
+        hRecoDijetPtEtaCMBackward[iEtaCM] = dynamic_cast<TH2D *>( eta_folding::get(f, Form("hRecoDijetPtEtaBackwardArr_%d", iEtaCM)) );
         if ( !hRecoDijetPtEtaCMBackward[iEtaCM] ) {
             std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << iEtaCM << " not found in data file." << std::endl;
             return;
@@ -357,7 +358,7 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         //
         // Retrieve gen histograms
         //
-        hGenDijetPtEtaCMForward[iEtaCM] = dynamic_cast<TH2D *>( f->Get( Form("hGenDijetPtEtaForwardArr_%d", iEtaCM) ) );
+        hGenDijetPtEtaCMForward[iEtaCM] = dynamic_cast<TH2D *>( eta_folding::get(f, Form("hGenDijetPtEtaForwardArr_%d", iEtaCM)) );
         if ( !hGenDijetPtEtaCMForward[iEtaCM] ) {
             std::cerr << "Error: hGenDijetPtEtaForwardArr_" << iEtaCM << " not found in data file." << std::endl;
             return;
@@ -366,7 +367,7 @@ void dijetClosures(TFile *f, int collisionSystem = 1, double collisionEnergy = 8
         hGenDijetPtEtaCMForward[iEtaCM]->RebinY(rebinPseudoRapidity);
         hGenDijetPtEtaCMForward[iEtaCM]->SetName( Form("hGenDijetPtEtaCMForward_%d", iEtaCM) );
 
-        hGenDijetPtEtaCMBackward[iEtaCM] = dynamic_cast<TH2D *>( f->Get( Form("hGenDijetPtEtaBackwardArr_%d", iEtaCM) ) );
+        hGenDijetPtEtaCMBackward[iEtaCM] = dynamic_cast<TH2D *>( eta_folding::get(f, Form("hGenDijetPtEtaBackwardArr_%d", iEtaCM)) );
         if ( !hGenDijetPtEtaCMBackward[iEtaCM] ) {
             std::cerr << "Error: hGenDijetPtEtaBackwardArr_" << iEtaCM << " not found in data file." << std::endl;
             return;
@@ -1257,20 +1258,16 @@ void plotForwardBackwardRatios(TFile *f, int collisionSystem = 1, double collisi
         directionStr = "combined";
     }
 
-    TH2D *hForward2D = dynamic_cast<TH2D *>(f->Get("hRecoDijetPtEtaCMForwardWeighted"));
-    if (!hForward2D) {
-        std::cerr << "Error: hRecoDijetPtEtaCMForwardWeighted not found in file." << std::endl;
+    auto *full = dynamic_cast<TH2D *>(f->Get("hRecoDijetPtEtaCM"));
+    if (!full) {
+        std::cerr << "Error: hRecoDijetPtEtaCM not found in file." << std::endl;
         return;
     }
-    hForward2D->SetName("hForward2D");
-    hForward2D->SetDirectory(0);
-    TH2D *hBackward2D = dynamic_cast<TH2D *>(f->Get("hRecoDijetPtEtaCMBackwardWeighted"));
-    if (!hBackward2D) {
-        std::cerr << "Error: hRecoDijetPtEtaCMBackwardWeighted not found in file." << std::endl;
-        return;
-    }
-    hBackward2D->SetName("hBackward2D");
-    hBackward2D->SetDirectory(0);
+    auto forward = eta_folding::fold(*full, false, "hForward2D");
+    auto backward = eta_folding::fold(*full, true, "hBackward2D");
+    auto *hForward2D = static_cast<TH2D *>(forward.get());
+    auto *hBackward2D = static_cast<TH2D *>(backward.get());
+
 
 
     // int dijetPtVals[] { 50, 80, 100, 140 };
@@ -1291,7 +1288,7 @@ void plotForwardBackwardRatios(TFile *f, int collisionSystem = 1, double collisi
 
         // Create ratio
         TH1D *hFwdBwdRatio = dynamic_cast<TH1D *>(hForward1D->Clone(Form("hFwdBwdRatio_%d_%d", ptLow, ptHi)));
-        hFwdBwdRatio->Divide(hForward1D, hBackward1D, 1., 1., "b");
+        hFwdBwdRatio->Divide(hForward1D, hBackward1D, 1., 1., "");
         set1DStyle(hFwdBwdRatio, 2);
 
         TCanvas *c = new TCanvas("c", "c", 800, 800);
@@ -1351,7 +1348,7 @@ void plotDijetFBRatiosForEta(int collisionSystem, double collisionEnergy, TStrin
     // Loop over dijet eta_CM cuts |eta_CM|<1.4, 1.5, 1.6, 1.7, 1.8, 1.9
     for (int iEta{0}; iEta<6; iEta++) {
 
-        hExpPbgoingForward2D[iEta] = dynamic_cast<TH2D *>(fExpPbgoing->Get( Form("hRecoDijetPtEtaForwardArr_%d", iEta) ));
+        hExpPbgoingForward2D[iEta] = dynamic_cast<TH2D *>(eta_folding::get(fExpPbgoing, Form("hRecoDijetPtEtaForwardArr_%d", iEta)));
         if (!hExpPbgoingForward2D[iEta]) {
             std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << iEta << " not found in experimental Pb-going file." << std::endl;
             return;
@@ -1359,7 +1356,7 @@ void plotDijetFBRatiosForEta(int collisionSystem, double collisionEnergy, TStrin
         hExpPbgoingForward2D[iEta]->SetName(Form("hExpPbgoingForward2D_%d", iEta));
         hExpPbgoingForward2D[iEta]->SetDirectory(0);
         hExpPbgoingForward2D[iEta]->RebinY(2);
-        hExpPbgoingBackward2D[iEta] = dynamic_cast<TH2D *>(fExpPbgoing->Get( Form("hRecoDijetPtEtaBackwardArr_%d", iEta) ));
+        hExpPbgoingBackward2D[iEta] = dynamic_cast<TH2D *>(eta_folding::get(fExpPbgoing, Form("hRecoDijetPtEtaBackwardArr_%d", iEta)));
         if (!hExpPbgoingBackward2D[iEta]) {
             std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << iEta << " not found in experimental Pb-going file." << std::endl;
             return;
@@ -1368,7 +1365,7 @@ void plotDijetFBRatiosForEta(int collisionSystem, double collisionEnergy, TStrin
         hExpPbgoingBackward2D[iEta]->SetDirectory(0);
         hExpPbgoingBackward2D[iEta]->RebinY(2);
 
-        hExpPgoingForward2D[iEta] = dynamic_cast<TH2D *>(fExpPgoing->Get( Form("hRecoDijetPtEtaForwardArr_%d", iEta) ));
+        hExpPgoingForward2D[iEta] = dynamic_cast<TH2D *>(eta_folding::get(fExpPgoing, Form("hRecoDijetPtEtaForwardArr_%d", iEta)));
         if (!hExpPgoingForward2D[iEta]) {
             std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << iEta << " not found in experimental p-going file." << std::endl;
             return;
@@ -1376,7 +1373,7 @@ void plotDijetFBRatiosForEta(int collisionSystem, double collisionEnergy, TStrin
         hExpPgoingForward2D[iEta]->SetName(Form("hExpPgoingForward2D_%d", iEta));
         hExpPgoingForward2D[iEta]->SetDirectory(0);
         hExpPgoingForward2D[iEta]->RebinY(2);
-        hExpPgoingBackward2D[iEta] = dynamic_cast<TH2D *>(fExpPgoing->Get( Form("hRecoDijetPtEtaBackwardArr_%d", iEta) ));
+        hExpPgoingBackward2D[iEta] = dynamic_cast<TH2D *>(eta_folding::get(fExpPgoing, Form("hRecoDijetPtEtaBackwardArr_%d", iEta)));
         if (!hExpPgoingBackward2D[iEta]) {
             std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << iEta << " not found in experimental p-going file." << std::endl;
             return;
@@ -1385,7 +1382,7 @@ void plotDijetFBRatiosForEta(int collisionSystem, double collisionEnergy, TStrin
         hExpPgoingBackward2D[iEta]->SetDirectory(0);
         hExpPgoingBackward2D[iEta]->RebinY(2);
 
-        hMcPbgoingForward2D[iEta] = dynamic_cast<TH2D *>(fMcPbgoing->Get( Form("hRecoDijetPtEtaForwardArr_%d", iEta) ));
+        hMcPbgoingForward2D[iEta] = dynamic_cast<TH2D *>(eta_folding::get(fMcPbgoing, Form("hRecoDijetPtEtaForwardArr_%d", iEta)));
         if (!hMcPbgoingForward2D[iEta]) {
             std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << iEta << " not found in MC Pb-going file." << std::endl;
             return;
@@ -1393,7 +1390,7 @@ void plotDijetFBRatiosForEta(int collisionSystem, double collisionEnergy, TStrin
         hMcPbgoingForward2D[iEta]->SetName(Form("hMcPbgoingForward2D_%d", iEta));
         hMcPbgoingForward2D[iEta]->SetDirectory(0);
         hMcPbgoingForward2D[iEta]->RebinY(2);
-        hMcPbgoingBackward2D[iEta] = dynamic_cast<TH2D *>(fMcPbgoing->Get( Form("hRecoDijetPtEtaBackwardArr_%d", iEta) ));
+        hMcPbgoingBackward2D[iEta] = dynamic_cast<TH2D *>(eta_folding::get(fMcPbgoing, Form("hRecoDijetPtEtaBackwardArr_%d", iEta)));
         if (!hMcPbgoingBackward2D[iEta]) {
             std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << iEta << " not found in MC Pb-going file." << std::endl;
             return;
@@ -1402,7 +1399,7 @@ void plotDijetFBRatiosForEta(int collisionSystem, double collisionEnergy, TStrin
         hMcPbgoingBackward2D[iEta]->SetDirectory(0);
         hMcPbgoingBackward2D[iEta]->RebinY(2);
 
-        hMcPgoingForward2D[iEta] = dynamic_cast<TH2D *>(fMcPgoing->Get( Form("hRecoDijetPtEtaForwardArr_%d", iEta) ));
+        hMcPgoingForward2D[iEta] = dynamic_cast<TH2D *>(eta_folding::get(fMcPgoing, Form("hRecoDijetPtEtaForwardArr_%d", iEta)));
         if (!hMcPgoingForward2D[iEta]) {
             std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << iEta << " not found in MC p-going file." << std::endl;
             return;
@@ -1410,7 +1407,7 @@ void plotDijetFBRatiosForEta(int collisionSystem, double collisionEnergy, TStrin
         hMcPgoingForward2D[iEta]->SetName(Form("hMcPgoingForward2D_%d", iEta));
         hMcPgoingForward2D[iEta]->SetDirectory(0);
         hMcPgoingForward2D[iEta]->RebinY(2);
-        hMcPgoingBackward2D[iEta] = dynamic_cast<TH2D *>(fMcPgoing->Get( Form("hRecoDijetPtEtaBackwardArr_%d", iEta) ));
+        hMcPgoingBackward2D[iEta] = dynamic_cast<TH2D *>(eta_folding::get(fMcPgoing, Form("hRecoDijetPtEtaBackwardArr_%d", iEta)));
         if (!hMcPgoingBackward2D[iEta]) {
             std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << iEta << " not found in MC p-going file." << std::endl;
             return;
@@ -2347,7 +2344,7 @@ void plotNpdfToDataComparison(int collisionSystem, double collisionEnergy, TStri
         //
 
         // Forward
-        hData2DEtaCMForward[iEta] = dynamic_cast<TH2D *>( fData->Get( Form("hRecoDijetPtEtaForwardArr_%d", etaCMCutSize - iEta - 1) ) );
+        hData2DEtaCMForward[iEta] = dynamic_cast<TH2D *>( eta_folding::get(fData, Form("hRecoDijetPtEtaForwardArr_%d", etaCMCutSize - iEta - 1)) );
         if ( !hData2DEtaCMForward[iEta] ) {
             std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << etaCMCutSize - iEta - 1 << " not found in data file." << std::endl;
             return;
@@ -2363,7 +2360,7 @@ void plotNpdfToDataComparison(int collisionSystem, double collisionEnergy, TStri
         hDataEtaCMForward[iEta]->SetMarkerColor( p8Colors[iEta] );
 
         // Backward
-        hData2DEtaCMBackward[iEta] = dynamic_cast<TH2D *>( fData->Get( Form("hRecoDijetPtEtaBackwardArr_%d", etaCMCutSize - iEta - 1) ) );
+        hData2DEtaCMBackward[iEta] = dynamic_cast<TH2D *>( eta_folding::get(fData, Form("hRecoDijetPtEtaBackwardArr_%d", etaCMCutSize - iEta - 1)) );
         if ( !hData2DEtaCMBackward[iEta] ) {
             std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << etaCMCutSize - iEta - 1 << " not found in data file." << std::endl;
             return;
@@ -2992,7 +2989,7 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
         //
 
         // Forward
-        hData2DForwardCMEta[iEta] = dynamic_cast<TH2D *>( fData->Get( Form("hRecoDijetPtEtaForwardArr_%d", etaCMCutSize - iEta - 1) ) );
+        hData2DForwardCMEta[iEta] = dynamic_cast<TH2D *>( eta_folding::get(fData, Form("hRecoDijetPtEtaForwardArr_%d", etaCMCutSize - iEta - 1)) );
         if ( !hData2DForwardCMEta[iEta] ) {
             std::cerr << "Error: hRecoDijetPtEtaForwardArr_" << etaCMCutSize - iEta - 1 << " not found in data file." << std::endl;
             return;
@@ -3008,7 +3005,7 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
         hDataForwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
 
         // Backward
-        hData2DBackwardCMEta[iEta] = dynamic_cast<TH2D *>( fData->Get( Form("hRecoDijetPtEtaBackwardArr_%d", etaCMCutSize - iEta - 1) ) );
+        hData2DBackwardCMEta[iEta] = dynamic_cast<TH2D *>( eta_folding::get(fData, Form("hRecoDijetPtEtaBackwardArr_%d", etaCMCutSize - iEta - 1)) );
         if ( !hData2DBackwardCMEta[iEta] ) {
             std::cerr << "Error: hRecoDijetPtEtaBackwardArr_" << etaCMCutSize - iEta - 1 << " not found in data file." << std::endl;
             return;
@@ -3043,7 +3040,7 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
         //
 
         // Forward
-        hPythia2DForwardCMEta[iEta] = dynamic_cast<TH2D *>( fPythia->Get( Form("hGenDijetPtEtaForwardArr_%d", etaCMCutSize - iEta - 1) ) );
+        hPythia2DForwardCMEta[iEta] = dynamic_cast<TH2D *>( eta_folding::get(fPythia, Form("hGenDijetPtEtaForwardArr_%d", etaCMCutSize - iEta - 1)) );
         if ( !hPythia2DForwardCMEta[iEta] ) {
             std::cerr << "Error: hGenDijetPtEtaForwardArr_" << etaCMCutSize - iEta - 1 << " not found in pythia file." << std::endl;
             return;
@@ -3057,7 +3054,7 @@ void plotPdfAndPythiaToDataComparison(int collisionSystem, double collisionEnerg
         hPythiaForwardCMEta[iEta]->SetMarkerColor( p8Colors[iEta] );
 
         // Backward
-        hPythia2DBackwardCMEta[iEta] = dynamic_cast<TH2D *>( fPythia->Get( Form("hGenDijetPtEtaBackwardArr_%d", etaCMCutSize - iEta - 1) ) );
+        hPythia2DBackwardCMEta[iEta] = dynamic_cast<TH2D *>( eta_folding::get(fPythia, Form("hGenDijetPtEtaBackwardArr_%d", etaCMCutSize - iEta - 1)) );
         if ( !hPythia2DBackwardCMEta[iEta] ) {
             std::cerr << "Error: hGenDijetPtEtaBackwardArr_" << etaCMCutSize - iEta - 1 << " not found in pythia file." << std::endl;
             return;
@@ -5601,7 +5598,7 @@ void plotDiJetClosures(int collisionSystem, double collisionEnergy, TString date
     std::array<std::unique_ptr<TH2D>, nEtaCuts> hRecoDijetPtEtaBackwardArrJerDefNinetySF;
 
     auto loadHist2D = [&](const char *histName) -> std::unique_ptr<TH2D> {
-        TH2D *raw = dynamic_cast<TH2D*>(f->Get(histName));
+        TH2D *raw = dynamic_cast<TH2D*>(eta_folding::get(f.get(), histName));
         if ( !raw || raw->IsZombie() ) {
             std::cerr << "Error: Could not retrieve " << histName << " from file " << inputFileName.Data() << std::endl;
             return nullptr;
@@ -6713,7 +6710,7 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
         hGenDijetEtaCMShifted[iEta]->SetLineWidth(lineWidth);
         hGenDijetEtaCMShifted[iEta]->SetMarkerSize(markerSize);
 
-        hGenDijetEtaCMForwardShifted[iEta] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMForwardShifted_%d", iEta) ) );
+        hGenDijetEtaCMForwardShifted[iEta] = dynamic_cast<TH1D*>( eta_folding::get(f, Form("hGenDijetEtaCMForwardShifted_%d", iEta)) );
         if ( !hGenDijetEtaCMForwardShifted[iEta] ) {
             std::cerr << Form("Error: Could not retrieve hGenDijetEtaCMForwardShifted_%d from file.", iEta) << std::endl;
             return;
@@ -6728,7 +6725,7 @@ void plotGenEtaShiftCheck(int collisionSystem, double collisionEnergy, TString d
         hGenDijetEtaCMForwardShifted[iEta]->SetLineWidth(lineWidth);
         hGenDijetEtaCMForwardShifted[iEta]->SetMarkerSize(markerSize);
 
-        hGenDijetEtaCMBackwardShifted[iEta] = dynamic_cast<TH1D*>( f->Get( Form("hGenDijetEtaCMBackwardShifted_%d", iEta) ) );
+        hGenDijetEtaCMBackwardShifted[iEta] = dynamic_cast<TH1D*>( eta_folding::get(f, Form("hGenDijetEtaCMBackwardShifted_%d", iEta)) );
         if ( !hGenDijetEtaCMBackwardShifted[iEta] ) {
             std::cerr << Form("Error: Could not retrieve hGenDijetEtaCMBackwardShifted_%d from file.", iEta) << std::endl;
             return;
@@ -8338,7 +8335,7 @@ void plotDijetJerSystematics(int collisionSystem, double collisionEnergy, TStrin
 
     std::cout << "Reading histograms from file: " << inputFileName.Data() << std::endl;
     auto loadHist2D = [&](const char *histName) -> std::unique_ptr<TH2D> {
-        TH2D *raw = dynamic_cast<TH2D*>(f->Get(histName));
+        TH2D *raw = dynamic_cast<TH2D*>(eta_folding::get(f.get(), histName));
         if ( !raw || raw->IsZombie() ) {
             std::cerr << "Error: Could not retrieve " << histName << " from file " << inputFileName.Data() << std::endl;
             return nullptr;

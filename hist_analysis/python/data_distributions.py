@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from array import array
 from pathlib import Path
 
 import ROOT
 from IPython.display import display
 
+from hist_analysis.python.forward_backward import fold_eta_histogram, forward_backward_ratio
 from hist_analysis.python.histogram_io import load_histogram
 from hist_analysis.python.histogram_ops import normalize_histogram, ratio_to_nominal
 from hist_analysis.python.histogram_production import ETA_KEY_PATTERN, load_eta_projection, resolve_eta_source_key
@@ -72,39 +72,8 @@ def project_data_histogram(
 def forward_backward_from_full(full, *, name: str):
     """Fold a full CM eta histogram and form F/B with independent ROOT errors."""
 
-    axis = full.GetXaxis()
-    middle_bin = axis.FindBin(0.0 + 0.001)
-    positive_bins = full.GetNbinsX() - middle_bin + 1
-    negative_bins = middle_bin - 1
-    output_bins = min(positive_bins, negative_bins)
-    if output_bins < 1:
-        raise ValueError(f"{full.GetName()} has no bins on both sides of eta=0")
-
-    edges = [axis.GetBinLowEdge(middle_bin)]
-    edges.extend(
-        axis.GetBinUpEdge(middle_bin + offset)
-        for offset in range(output_bins)
-    )
-    forward = ROOT.TH1D(f"{name}_forward", "", output_bins, array("d", edges))
-    backward = ROOT.TH1D(f"{name}_backward", "", output_bins, array("d", edges))
-    forward.Sumw2()
-    backward.Sumw2()
-    forward.SetDirectory(0)
-    backward.SetDirectory(0)
-
-    for output_bin in range(1, output_bins + 1):
-        forward_bin = middle_bin + output_bin - 1
-        backward_bin = middle_bin - output_bin
-        forward.SetBinContent(output_bin, full.GetBinContent(forward_bin))
-        forward.SetBinError(output_bin, full.GetBinError(forward_bin))
-        backward.SetBinContent(output_bin, full.GetBinContent(backward_bin))
-        backward.SetBinError(output_bin, full.GetBinError(backward_bin))
-
-    ratio = forward.Clone(name)
-    ratio.SetDirectory(0)
-    ratio.Divide(forward, backward, 1.0, 1.0, "")
-    ratio._forward_backward_inputs = (forward, backward)
-    return ratio
+    forward, backward = fold_eta_histogram(full, name=name)
+    return forward_backward_ratio(forward, backward, name=name)
 
 
 def _tag(text: str) -> str:

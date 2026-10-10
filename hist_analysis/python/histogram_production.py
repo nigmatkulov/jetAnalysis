@@ -22,7 +22,7 @@ from hist_analysis.python.projections import project_semantic_th2
 ROOT_FILES_DIR = Path(__file__).resolve().parents[1] / "root_files"
 PRODUCTION_DIR = ROOT_FILES_DIR / "produced_histograms"
 ETA_KEY_PATTERN = re.compile(
-    r"^(?!.*(?:XPb|Xp|Run_))(h(?:Gen|Ref|RefSel|Reco)Dijet[A-Za-z0-9]*PtEta(?:CM|LabUnflipped|Lab|Forward|Backward)[A-Za-z0-9]*)_(\d+)$"
+    r"^(?!.*(?:XPb|Xp|Run_))(h(?:Gen|Ref|RefSel|Reco)Dijet[A-Za-z0-9]*PtEta(?:CM|LabUnflipped|Lab)[A-Za-z0-9]*)_(\d+)$"
 )
 UNFOLDING_MARKERS = (
     "Unfold", "VsReco", "Miss", "Fake", "PairClassification",
@@ -264,6 +264,10 @@ def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
                     projected_keys.append(key)
 
         for key in sorted(source_keys):
+            # Legacy sources may still contain redundant hemisphere objects.
+            # Consumers always fold their full distributions, even for these files.
+            if "Dijet" in key and ("Forward" in key or "Backward" in key):
+                continue
             obj = source.Get(key)
             if not obj or (
                 not obj.InheritsFrom("TH1")
@@ -276,7 +280,8 @@ def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
 
         source_stat = source_path.stat()
         metadata = {
-            "schema_version": 2,
+            "schema_version": 3,
+            "hemisphere_convention": "fold full eta bins before normalization; no stored Forward/Backward",
             "eta_cut_index_to_value": dict(enumerate(cut_values)),
             "eta_cut_mapping_source": "current_production_table",
             "eta_cut_convention": "upstream cuts on both jets; no additional dijet-eta cut",
