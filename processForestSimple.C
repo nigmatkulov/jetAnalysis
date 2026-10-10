@@ -292,9 +292,9 @@ class JERSmearingHelper {
         /// Hash-based standard-normal draw. The entropy follows the CMS JER
         /// recommendation: jet kinematics, event rho, and event identity. The
         /// round distinguishes optional pseudo-experiment replicas. Because the
-        /// JER variation is deliberately absent, intending a common draw at
-        /// fixed round. The caller's index-dependent round can still change
-        /// after sorting; see P03 in PHYSICS_REVIEW.md.
+        /// JER variation is deliberately absent: all branches share one draw.
+        /// The caller freezes the initial jet index before any response sort
+        /// and combines it with the replica index to form round.
         double normalDeviate(const float jetPt, const float jetEta, const float rho,
                              const UInt_t runId, const UInt_t lumiId,
                              const ULong64_t eventId, const int round) const {
@@ -403,8 +403,47 @@ struct RecoJet {
 
     // Historical name: in Hybrid/Stochastic modes this is SMEARED RECO pT;
     // only TruthToPseudoReco constructs it around the matched reference pT.
-    float refPtSmeared; // momentum used by JER-varied reco ordering/selection
+    float refPtSmeared; // unit-SF JER with the base resolution
+    float refPtSmearedEta = -1.f; // unit-SF JER with eta-dependent resolution
+    float refPtSmearedJerDef = -1.f;
+    float refPtSmearedJerUp = -1.f;
+    float refPtSmearedJerDown = -1.f;
+    // All existing output branches: unit, x2, x0.9, base Down/Def/Up,
+    // eta-dependent Down/Def/Up. Cache travels with the jet through sorting.
+    std::array<float, 9> jerMomenta{};
+    int smearingIndex = -1; // index in initial corrected-pT ordering, before response sorts
 };
+
+// Cache every branch from ONE draw before any response-specific sorting.
+// The caller supplies a replica draw hashed with the stable initial jet index.
+void cacheRecoJetSmearing(RecoJet &jet, const JERSmearingHelper &jer,
+                         JERSmearingMode mode, bool useEtaDependentJER,
+                         double normal) {
+    const bool hasReference = jet.refPt > 0.;
+    auto momentum = [&](double sf, bool etaDependent) -> float {
+        if (!hasReference && mode == JERSmearingMode::TruthToPseudoReco) return -1.f;
+        const double dEta = hasReference ? jet.recoEta - jet.refEta : 0.;
+        const double dPhi = hasReference ? std::remainder(
+            static_cast<double>(jet.recoPhi - jet.refPhi), TMath::TwoPi()) : 0.;
+        const double resolution = jer.resolution(jet.recoPt, jet.recoEta, etaDependent);
+        const bool goodMatch = hasReference && std::hypot(dEta, dPhi) < 0.2 &&
+            std::abs(jet.recoPt - jet.refPt) < 3.0 * resolution * jet.recoPt;
+        return jer.smearRecoMomentum(jet.recoPt, hasReference ? jet.refPt : jet.recoPt,
+                                     jet.recoEta, sf, etaDependent, mode, goodMatch, normal);
+    };
+    jet.refPtSmeared = momentum(1., false);
+    jet.refPtSmearedEta = momentum(1., true);
+    for (int scale = 0; scale < 9; ++scale) {
+        double sf = scale == 1 ? 2. : scale == 2 ? 0.9f : 1.;
+        if (scale >= 3) sf = jer.JERScaleFactorSystematics(
+            jet.recoEta, (scale == 3 || scale == 6) ? -1 :
+                         (scale == 4 || scale == 7) ? 0 : 1);
+        jet.jerMomenta[scale] = momentum(sf, useEtaDependentJER || scale >= 6);
+    }
+    jet.refPtSmearedJerDown = jet.jerMomenta[3];
+    jet.refPtSmearedJerDef = jet.jerMomenta[4];
+    jet.refPtSmearedJerUp = jet.jerMomenta[5];
+}
 
 //________________
 /// Find the two highest-pT jets without sorting the full collection.
@@ -2553,7 +2592,8 @@ void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, 
                       std::unique_ptr<TH2D> *controlledFakeArr = nullptr,
                       std::unique_ptr<THnSparseF> *studiedResponseArr = nullptr,
                       std::unique_ptr<TH2D> *studiedMissArr = nullptr,
-                      std::unique_ptr<TH2D> *studiedFakeArr = nullptr) {
+                      std::unique_ptr<TH2D> *studiedFakeArr = nullptr,
+                      int jerVariation = -1) {
 
     if (!isMc) return; // Only prepare unfolding for MC
     
@@ -2575,13 +2615,16 @@ void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, 
             return a.pt > b.pt;
     });
 
-    // P03: this mutates the caller's collection. Later smearing seeds include
-    // the collection index, so a rank swap can change their normal deviates.
+    // Cached momenta and stable draw identities travel with jets through sorting.
+    // The default accessor preserves direct helper calls with refPtSmeared.
+    auto measuredPt = [jerVariation](const RecoJet &jet) {
+        return jerVariation < 0 ? jet.refPtSmeared : jet.jerMomenta[jerVariation];
+    };
     // Sort reco jets by the caller-prepared smeared pT so the selected measured
     // dijet matches the response, miss, fake, and classification outputs for
     // the requested JER variation.
-    std::sort(recoJets.begin(), recoJets.end(), [](const RecoJet &a, const RecoJet &b) {
-        return a.refPtSmeared > b.refPtSmeared;
+    std::sort(recoJets.begin(), recoJets.end(), [&](const RecoJet &a, const RecoJet &b) {
+        return measuredPt(a) > measuredPt(b);
     });
 
     //
@@ -2661,13 +2704,13 @@ void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, 
         recoLeadingJet = recoJets[0];
         recoSubleadingJet = recoJets[1];
 
-        recoLeadingJetPt = recoLeadingJet.refPtSmeared;
+        recoLeadingJetPt = measuredPt(recoLeadingJet);
         recoLeadingJetEtaCM = etaCM(recoLeadingJet.recoEta,
                                     analysis_contract::kNominalEtaShift,
                                     isPbGoing, isMc, isPp);
         recoLeadingJetPhi = recoLeadingJet.recoPhi;
 
-        recoSubleadingJetPt = recoSubleadingJet.refPtSmeared;
+        recoSubleadingJetPt = measuredPt(recoSubleadingJet);
         recoSubleadingJetEtaCM = etaCM(recoSubleadingJet.recoEta,
                                        analysis_contract::kNominalEtaShift,
                                        isPbGoing, isMc, isPp);
@@ -3204,101 +3247,72 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
 
         // Number of iterations for smearing
         const int nSmearRounds = jerSmearingMode == JERSmearingMode::TruthToPseudoReco ? 10 : 1;
-        // 1.0, double, and 90% scale factors; nominal down/default/up; and
-        // eta-dependent down/default/up variations.
-        std::array<float, 9> jerScaleFactors = {1.f, 2.f, 0.9f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
+        // Freeze identity before the first response sort, including later replicas.
+        for (size_t i = 0; i < recoJets.size(); ++i)
+            recoJets[i].smearingIndex = static_cast<int>(i);
 
-        // Loop over smearing rounds
         for (int iIter = 0; iIter < nSmearRounds; ++iIter) {
-
-            // Loop over the scale factors for JER smearing
-            for (int iScale = 0; iScale < static_cast<int>(jerScaleFactors.size()); ++iScale) {
-                
-                // Loop over reconstructed jets and apply JER smearing
-                for (size_t iJet = 0; iJet < recoJets.size(); ++iJet) {
-                    auto &recoJet = recoJets[iJet];
+            for (auto &jet : recoJets) {
+                const double normal = fJERSmearingHelper->normalDeviate(
+                    jet.recoPt, jet.recoEta, eventRho, run, lumi, evt,
+                    iIter * static_cast<int>(recoJets.size()) + jet.smearingIndex);
+                cacheRecoJetSmearing(jet, *fJERSmearingHelper, jerSmearingMode,
+                                    useEtaDependentJER, normal);
+            }
+            for (int iScale = 0; iScale < 9; ++iScale) {
+                for (auto &recoJet : recoJets) {
                     const bool hasReference = recoJet.refPt > 0.;
-                    if (!hasReference && jerSmearingMode == JERSmearingMode::TruthToPseudoReco) {
-                        recoJet.refPtSmeared = -1.f;
-                        continue;
-                    }
-                    double scaleFactor = jerScaleFactors[iScale];
-                    if (iScale >= 3) {
-                        const int sfVariation = (iScale == 3 || iScale == 6) ? -1 :
-                                                (iScale == 4 || iScale == 7) ? 0 : 1;
-                        scaleFactor = fJERSmearingHelper->JERScaleFactorSystematics(recoJet.recoEta, sfVariation);
-                    }
-                    const bool etaDependent = useEtaDependentJER || iScale >= 6;
-                    const double dEta = hasReference
-                        ? static_cast<double>(recoJet.recoEta - recoJet.refEta) : 0.;
-                    const double dPhi = hasReference ? std::remainder(
-                        static_cast<double>(recoJet.recoPhi - recoJet.refPhi), TMath::TwoPi()) : 0.;
-                    const double resolution = fJERSmearingHelper->resolution(
-                        recoJet.recoPt, recoJet.recoEta, etaDependent);
-                    const bool hasGoodGenMatch = hasReference && std::hypot(dEta, dPhi) < 0.2 &&
-                        std::abs(recoJet.recoPt - recoJet.refPt) < 3.0 * resolution * recoJet.recoPt;
-                    // P03: iJet changes after prepareUnfolding sorts recoJets.
-                    // Omitting iScale from the hash alone does not guarantee
-                    // common draws across all Down/Default/Up variations.
-                    const double normal = fJERSmearingHelper->normalDeviate(
-                        recoJet.recoPt, recoJet.recoEta, eventRho, run, lumi, evt,
-                        iIter * static_cast<int>(recoJets.size()) + static_cast<int>(iJet));
-                    recoJet.refPtSmeared = fJERSmearingHelper->smearRecoMomentum(
-                        recoJet.recoPt, hasReference ? recoJet.refPt : recoJet.recoPt,
-                        recoJet.recoEta, scaleFactor,
-                        etaDependent, jerSmearingMode, hasGoodGenMatch, normal);
-                    
                     // Retain at most the first ten diagnostic replicas; the
                     // official Hybrid/Stochastic modes execute only iIter=0.
                     if (iIter > 9) continue; 
 
                     if (!hasReference) continue;
                     if (iScale == 0) { // JER def no SF (x1.0)
-                        hs.hRecoInclusiveJetJESDefNoSFPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                        hs.hRecoInclusiveJetJESDefNoSFPtEta->Fill(recoJet.jerMomenta[iScale] / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
                     }
                     if (iScale == 1) { // JER def double SF (x2.0)
-                        hs.hRecoInclusiveJetJESDefDoublePtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                        hs.hRecoInclusiveJetJESDefDoublePtEta->Fill(recoJet.jerMomenta[iScale] / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
                     }
                     if (iScale == 2) { // JER def ninety SF (x0.9)
-                        hs.hRecoInclusiveJetJESDefNinetyPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                        hs.hRecoInclusiveJetJESDefNinetyPtEta->Fill(recoJet.jerMomenta[iScale] / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
                     }
                     if (iScale == 3) { // JER down
-                        hs.hRecoInclusiveJetJESDownPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                        hs.hRecoInclusiveJetJESDownPtEta->Fill(recoJet.jerMomenta[iScale] / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
                     }   
                     if (iScale == 4) { // JER def
-                        hs.hRecoInclusiveJetJESDefPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                        hs.hRecoInclusiveJetJESDefPtEta->Fill(recoJet.jerMomenta[iScale] / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
                     }
                     if (iScale == 5) { // JER up
-                        hs.hRecoInclusiveJetJESUpPtEta->Fill(recoJet.refPtSmeared / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
+                        hs.hRecoInclusiveJetJESUpPtEta->Fill(recoJet.jerMomenta[iScale] / recoJet.refPt, recoJet.refPt, recoJet.refEta, weight);
                     }
                 } // for (const auto &recoJet : recoJets)
 
                 if (iScale == 0) { // JER def no SF (x1.0)
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerDefNoSF);
                 }
                 else if (iScale == 1) { // JER def double SF (x2.0)
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerDefDoubleSF);
                 }
                 else if (iScale == 2) { // JER def ninety SF (x0.9)
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerDefNinetySF);
                 }
                 else if (iScale == 3) { // JER down
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerDown,
                                             hs.hRefDijetPtEtaCMArrJerDown);
                 }
                 else if (iScale == 4) { // JER def
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerDef,
                                             hs.hRefDijetPtEtaCMArrJerDef);
 
                     // For the first iteration, fill the nominal histograms with the default 
                     // JER smearing for unfolding purposes
                     if (iIter == 0) {
-                        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                        fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                                 hs.hRecoDijetPtEtaCMArrJerDefUnfold);
                         prepareUnfolding(isPp, isPbGoing, isMc, weight, genJets, recoJets,
                                          hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr,
@@ -3310,36 +3324,37 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
                                          hs.hRecoDijetPtEtaCMFakeControlledSampleArr,
                                          hs.hGenDijetPtEtaCMVsRecoPtEtaCMStudiedSampleArr,
                                          hs.hGenDijetPtEtaCMMissStudiedSampleArr,
-                                         hs.hRecoDijetPtEtaCMFakeStudiedSampleArr);
+                                         hs.hRecoDijetPtEtaCMFakeStudiedSampleArr, iScale);
                     }
                 }
                 else if (iScale == 5) { // JER up
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerUp,
                                             hs.hRefDijetPtEtaCMArrJerUp);
                 }
                 else if (iScale == 6) { // JER down with eta-dependent scaling
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerDownExtra);
                 }
                 else if (iScale == 7) { // JER default with eta-dependent scaling
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerDefExtra);
                     if (iIter == 0) {
-                        fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                        fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                                 hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold);
                         prepareUnfolding(isPp, isPbGoing, isMc, weight, genJets, recoJets,
                                          hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr,
                                          hs.hGenDijetPtEtaCMMissJerDefExtraArr,
                                          hs.hRecoDijetPtEtaCMFakeJerDefExtraArr,
-                                         hs.hUnfoldingPairClassificationJerDefExtraArr);
+                                         hs.hUnfoldingPairClassificationJerDefExtraArr,
+                                         nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, iScale);
                     }
                 }
                 else if (iScale == 8) { // JER up with eta-dependent scaling
-                    fillRecoDijetSystematic([](const RecoJet &jet) { return jet.refPtSmeared; },
+                    fillRecoDijetSystematic([iScale](const RecoJet &jet) { return jet.jerMomenta[iScale]; },
                                             hs.hRecoDijetPtEtaCMArrJerUpExtra);
                 }
-            } // for (int iScale = 0; iScale < static_cast<int>(jerScaleFactors.size()); ++iScale)
+            } // for (int iScale = 0; iScale < 9; ++iScale)
         } // for (int iIter = 0; iIter < nSmearRounds; ++iIter)
 
     } // if (isMc)
@@ -4005,7 +4020,7 @@ int main(int argc, char* argv[]) {
     bool isPythia = ((mcType != 0) && (mcType == 2));
     // P01: isMc is bool, so this is true for BOTH mcType=1 and mcType=2.
     // Consequently the Unembedded calibration branch below is unreachable.
-    // Kept unchanged for this annotation-only review; see PHYSICS_REVIEW.md.
+    // Selector retained pending a calibration decision; see PHYSICS_REVIEW.md.
     bool isEmbedding = (isMc == 1);
     bool isPbGoing = (isPbGoingDir == 1);
 
