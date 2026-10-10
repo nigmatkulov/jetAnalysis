@@ -16,7 +16,13 @@ void writePpBranchFixture(const TString &path, float scale) {
         skim.Branch(name, &zero, Form("%s/I", name));
     file.mkdir("hiEvtAnalyzer")->cd();
     TTree events("HiTree", "events");
-    Float_t eventPtHat, eventVz, eventWeightValue;
+    Float_t eventPtHat, eventVz, eventWeightValue, rhoValue;
+    events.Branch("rho", &rhoValue, "rho/F");
+    UInt_t eventRun = 1, eventLumi = 2;
+    ULong64_t eventId;
+    events.Branch("run", &eventRun, "run/i");
+    events.Branch("lumi", &eventLumi, "lumi/i");
+    events.Branch("evt", &eventId, "evt/l");
     events.Branch("pthat", &eventPtHat, "pthat/F");
     events.Branch("vz", &eventVz, "vz/F");
     events.Branch("weight", &eventWeightValue, "weight/F");
@@ -32,6 +38,8 @@ void writePpBranchFixture(const TString &path, float scale) {
     for (auto name : {"jtPfCHM", "jtPfCEM", "jtPfNHM", "jtPfNEM", "jtPfMUM"})
         jets.Branch(name, &zero, Form("%s[nref]/I", name));
     for (int i = 0; i < 2; ++i) {
+        eventId = static_cast<ULong64_t>(scale) * 100 + i;
+        rhoValue = scale * 10 + i;
         eventPtHat = i == 0 ? 1.f : 1000.f;
         eventVz = i == 0 ? 0.f : 14.f;
         eventWeightValue = (i == 0 ? 2.f : -0.5f) * scale;
@@ -100,6 +108,10 @@ void test_pp_processing() {
         hlt.GetMaximum("ngen");
         for (int i = 0; i < 4; ++i) {
             check(hlt.GetEntry(i) > 0, "failed to read fixture entry");
+            check(run == 1 && lumi == 2 && evt == static_cast<ULong64_t>((i / 2 + 1) * 100 + i % 2),
+                  "EventID must update across entries and input files");
+            check(eventRho == (i / 2 + 1) * 10 + i % 2,
+                  "rho must update across entries and input files");
             check(ptHat == (i % 2 == 0 ? 1.f : 1000.f),
                   "pthat must be read from the event tree, not the jet tree");
             if (isPp) {

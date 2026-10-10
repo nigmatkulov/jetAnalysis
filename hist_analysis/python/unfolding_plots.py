@@ -21,6 +21,7 @@ from hist_analysis.python.root_style import (
 from hist_analysis.python.unfolding import (
     FlattenedBinning, extract_eta_block,
 )
+from hist_analysis.python.plotting import draw_closure, draw_overlay
 
 
 def range_covering_histogram_bins(histogram, requested_range):
@@ -451,6 +452,193 @@ def draw_unfolding_closure_by_pt(
         unfolded_ratios.append(unfolded_ratio)
         canvases.append(canvas)
     return unfolded_by_pt, measured_ratios, unfolded_ratios, canvases
+
+
+def draw_factorized_correction_steps_by_pt(
+    inclusive_measured,
+    signal_measured,
+    matched_unfolded,
+    efficiency_corrected_unfolded,
+    purity,
+    efficiency,
+    measured_templates: Sequence,
+    truth_templates: Sequence,
+    layout: FlattenedBinning,
+    *,
+    output_dir: str | Path,
+    output_tag: str,
+    annotations: Iterable[str] = (),
+    eta_range: tuple[float, float] | None = None,
+    ratio_range: tuple[float, float] = (0.5, 1.5),
+    save_png: bool = False,
+    grid: bool = False,
+):
+    """Plot every correction in the factorized unfolding chain by pTave.
+
+    The three canvases in each pTave interval show the fixed response
+    corrections, the inclusive-to-signal purity correction, and the
+    matched-to-inclusive truth efficiency correction.  Inputs are cloned by
+    ``extract_eta_block``; the histograms used by unfolding are not modified.
+    """
+
+    if len(measured_templates) != layout.n_pt_bins:
+        raise ValueError("Measured templates do not match flattening layout")
+    if len(truth_templates) != layout.n_pt_bins:
+        raise ValueError("Truth templates do not match flattening layout")
+    output_dir = Path(output_dir)
+    canvases = []
+    objects = []
+    for pt_index, (low, high) in enumerate(layout.pt_intervals):
+        pt_annotation = (
+            *tuple(annotations),
+            f"{low:g} < p_{{T}}^{{ave}} < {high:g} GeV",
+        )
+        measured_template = measured_templates[pt_index]
+        truth_template = truth_templates[pt_index]
+        blocks = {
+            "purity": extract_eta_block(
+                purity, measured_template, layout, pt_index,
+                name=f"hPurityStepPt{pt_index}",
+            ),
+            "efficiency": extract_eta_block(
+                efficiency, truth_template, layout, pt_index,
+                name=f"hEfficiencyStepPt{pt_index}",
+            ),
+            "inclusive_reco": extract_eta_block(
+                inclusive_measured, measured_template, layout, pt_index,
+                name=f"hInclusiveRecoStepPt{pt_index}",
+            ),
+            "signal_reco": extract_eta_block(
+                signal_measured, measured_template, layout, pt_index,
+                name=f"hSignalRecoStepPt{pt_index}",
+            ),
+            "matched_unfolded": extract_eta_block(
+                matched_unfolded, truth_template, layout, pt_index,
+                name=f"hMatchedUnfoldedStepPt{pt_index}",
+            ),
+            "unfolded": extract_eta_block(
+                efficiency_corrected_unfolded, truth_template, layout, pt_index,
+                name=f"hEfficiencyCorrectedUnfoldedStepPt{pt_index}",
+            ),
+        }
+        specifications = (
+            (
+                "correction_factors",
+                {"Purity": blocks["purity"], "Efficiency": blocks["efficiency"]},
+                "Purity", "Correction factor", "Efficiency / purity",
+                {"Purity": (ROOT.kRed, 20), "Efficiency": (ROOT.kBlue, 21)},
+            ),
+            (
+                "purity_step",
+                {
+                    "Inclusive reco": blocks["inclusive_reco"],
+                    "Purity-corrected reco": blocks["signal_reco"],
+                },
+                "Inclusive reco", "Entries", "Purity-corrected / inclusive",
+                {
+                    "Inclusive reco": (ROOT.kRed, 20),
+                    "Purity-corrected reco": (ROOT.kRed, 24),
+                },
+            ),
+            (
+                "efficiency_step",
+                {
+                    "Matched unfolded": blocks["matched_unfolded"],
+                    "Efficiency-corrected unfolded": blocks["unfolded"],
+                },
+                "Efficiency-corrected unfolded", "Entries", "Matched / corrected",
+                {
+                    "Matched unfolded": (ROOT.kGray + 2, 26),
+                    "Efficiency-corrected unfolded": (ROOT.kBlack, 22),
+                },
+            ),
+        )
+        for (suffix, displayed, nominal, y_title, ratio_y_title,
+             curve_styles) in specifications:
+            canvas, ratios = draw_closure(
+                displayed, nominal=nominal, title="", x_title="#eta_{CM}",
+                y_title=y_title, ratio_y_title=ratio_y_title,
+                ratio_range=ratio_range, draw_nominal_ratio=False,
+                log_y=False, x_range=eta_range, annotations=pt_annotation,
+                output=output_dir / (
+                    f"{output_tag}_{suffix}_pt_{low:g}_{high:g}.pdf"
+                ),
+                save_png=save_png, grid=grid,
+                canvas_name=f"canvas_{output_tag}_{suffix}_pt{pt_index}",
+                curve_styles=curve_styles,
+            )
+            canvases.append(canvas)
+            objects.extend((*displayed.values(), *ratios.values()))
+    return canvases, objects
+
+
+def draw_flattened_comparison_by_pt(
+    distributions: Mapping[str, object],
+    templates: Sequence,
+    layout: FlattenedBinning,
+    *,
+    nominal: str,
+    output_dir: str | Path,
+    output_tag: str,
+    y_title: str = "Entries",
+    ratio_y_title: str = "Ratio",
+    annotations: Iterable[str] = (),
+    eta_range: tuple[float, float] | None = None,
+    ratio_range: tuple[float, float] = (0.5, 1.5),
+    normalize: bool = False,
+    curve_styles: Mapping[str, tuple[int, int]] | None = None,
+    save_png: bool = False,
+    grid: bool = False,
+):
+    """Draw the same flattened-histogram comparison in every pTave block."""
+
+    if nominal not in distributions:
+        raise KeyError(f"Unknown nominal distribution {nominal!r}")
+    if len(templates) != layout.n_pt_bins:
+        raise ValueError("Templates do not match flattening layout")
+    output_dir = Path(output_dir)
+    canvases = []
+    objects = []
+    for pt_index, (low, high) in enumerate(layout.pt_intervals):
+        displayed = {}
+        for label, flattened in distributions.items():
+            block = extract_eta_block(
+                flattened, templates[pt_index], layout, pt_index,
+                name=f"h{output_tag}{pt_index}{len(displayed)}",
+            )
+            if normalize:
+                integral = block.Integral("width")
+                if integral <= 0.0:
+                    raise ValueError(
+                        f"Cannot normalize {block.GetName()} with integral {integral}"
+                    )
+                block.Scale(1.0 / integral)
+            displayed[label] = block
+        plot_options = {
+            "title": "", "x_title": "#eta_{CM}",
+            "y_title": ("1/N dN/d#eta_{CM}" if normalize else y_title),
+            "log_y": False, "x_range": eta_range,
+            "annotations": (
+                *tuple(annotations),
+                f"{low:g} < p_{{T}}^{{ave}} < {high:g} GeV",
+            ),
+            "output": output_dir / f"{output_tag}_pt_{low:g}_{high:g}.pdf",
+            "save_png": save_png, "grid": grid,
+            "canvas_name": f"canvas_{output_tag}_pt{pt_index}",
+        }
+        if len(displayed) == 1:
+            canvas = draw_overlay(displayed, **plot_options)
+            ratios = {}
+        else:
+            canvas, ratios = draw_closure(
+                displayed, nominal=nominal, ratio_y_title=ratio_y_title,
+                ratio_range=ratio_range, draw_nominal_ratio=False,
+                curve_styles=curve_styles,
+                **plot_options,
+            )
+        canvases.append(canvas)
+        objects.extend((*displayed.values(), *ratios.values()))
+    return canvases, objects
 
 
 def draw_response_components(

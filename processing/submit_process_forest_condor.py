@@ -13,9 +13,8 @@ needed by HTCondor:
 5. Call ``condor_submit`` unless ``--dry-run`` was requested.
 
 The physics-facing command-line options deliberately mirror the current
-``processForestSimple.C`` executable interface.  In particular, this script
-does not expose the JEU, JER, pT-hat-upper-bound, or event-limit arguments used
-by older analysis executables.
+``processForestSimple.C`` executable interface, including the JER smearing mode
+and optional analysis-derived eta dependence.
 
 Generated files are grouped into a uniquely named *campaign directory*::
 
@@ -161,6 +160,16 @@ def parse_args() -> argparse.Namespace:
         type=bounded_int("--vertex-filter-selection", 0, 2),
         default=0,
         help="0=dz1p0, 1=Gplus, 2=Vtx1 (default: 0)",
+    )
+    parser.add_argument(
+        "--jer-smearing-mode",
+        type=bounded_int("--jer-smearing-mode", 0, 2),
+        default=0,
+        help="0=CMS hybrid, 1=forced stochastic, 2=truth-to-pseudo-reco (default: 0)",
+    )
+    parser.add_argument(
+        "--eta-dependent-jer", action="store_true",
+        help="Multiply the central JER by the analysis-derived eta shape",
     )
     parser.add_argument(
         "--files-per-job", type=positive_int, default=10, help="Default: 10"
@@ -432,6 +441,9 @@ def main() -> int:
                         str(args.trigger_id),
                         str(args.reco_jet_selection),
                         str(args.vertex_filter_selection),
+                        "pPb",
+                        str(args.jer_smearing_mode),
+                        str(int(args.eta_dependent_jer)),
                     )
                 ),
                 "output = /dev/null",

@@ -3,6 +3,8 @@ project(processForestSimple
         VERSION 1.0 
         LANGUAGES C CXX)
 
+option(DO_MIXED_PRIOR "Produce the optional mixed-prior unfolding histograms" OFF)
+
         # Set default build type to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING
@@ -67,6 +69,9 @@ add_executable(processForestSimple
 )
 target_link_libraries(processForestSimple ${ROOT_LIBRARIES})
 target_include_directories(processForestSimple PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS}) #${ROOT_INCLUDE_DIRS}
+if(DO_MIXED_PRIOR)
+    target_compile_definitions(processForestSimple PRIVATE DO_MIXED_PRIOR)
+endif()
 
 include(CTest)
 if(BUILD_TESTING)

@@ -92,7 +92,7 @@ class CondorLoggingTest(unittest.TestCase):
                     str(PROCESSING / "run_process_forest_condor.sh"),
                     str(PROJECT_ROOT), str(executable), str(input_list),
                     str(directory / "output.root"), "0", "1", "0", "1",
-                    "2", "0",
+                    "2", "0", "pPb", "0", "0",
                 ],
                 check=False, capture_output=True,
             )

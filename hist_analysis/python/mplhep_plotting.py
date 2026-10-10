@@ -59,13 +59,21 @@ def _curve_style(label: str, index: int):
     """Return semantic or deterministic color, marker, and fill settings."""
 
     normalized = label.upper().replace(" ", "")
+    if normalized == "DATA":
+        return label, "black", "s", "black"
     if "CUETP8M1" in normalized or "CUEP8M1" in normalized:
-        display_label = label if any(token in normalized for token in ("OFFICIAL", "STANDALONE")) else "CUEP8M1"
+        display_label = (
+            label
+            if "/" in label or any(token in normalized for token in ("OFFICIAL", "STANDALONE"))
+            else "CUEP8M1"
+        )
         marker_face = "tab:blue" if "OFFICIAL" in normalized else "none"
         return display_label, "tab:blue", "o", marker_face
     if "CP5" in normalized:
         marker_face = "none" if "STANDALONE" in normalized else "tab:red"
         return label, "tab:red", "o", marker_face
+    if "EPPS21" in normalized:
+        return label, "tab:green", "D", "tab:green"
     color, marker, filled = MPLHEP_CURVE_STYLES[index % len(MPLHEP_CURVE_STYLES)]
     return label, color, marker, color if filled else "none"
 
@@ -167,8 +175,50 @@ def _leaf_pads(container):
 def _pad_histograms(pad):
     return [
         item for item in pad.GetListOfPrimitives()
-        if item.InheritsFrom("TH1") and not item.InheritsFrom("THStack")
+        if (
+            item.InheritsFrom("TH1")
+            and not item.InheritsFrom("THStack")
+            and not item.GetName().startswith("hframe")
+        )
     ]
+
+
+def _pad_graphs(pad):
+    return [
+        item for item in pad.GetListOfPrimitives()
+        if item.InheritsFrom("TGraphAsymmErrors")
+    ]
+
+
+def _pad_frame(pad):
+    for item in pad.GetListOfPrimitives():
+        if item.InheritsFrom("TH1") and item.GetName().startswith("hframe"):
+            return item
+    return None
+
+
+def _graph_arrays(graph):
+    count = graph.GetN()
+    return {
+        "x": [float(graph.GetPointX(index)) for index in range(count)],
+        "y": [float(graph.GetPointY(index)) for index in range(count)],
+        "xlow": [float(graph.GetErrorXlow(index)) for index in range(count)],
+        "xhigh": [float(graph.GetErrorXhigh(index)) for index in range(count)],
+        "ylow": [float(graph.GetErrorYlow(index)) for index in range(count)],
+        "yhigh": [float(graph.GetErrorYhigh(index)) for index in range(count)],
+    }
+
+
+def _root_color(color_index: int) -> str:
+    import ROOT
+
+    color = ROOT.gROOT.GetColor(color_index)
+    return color.AsHexString() if color else "black"
+
+
+def _graph_marker(marker_style: int) -> tuple[str, bool]:
+    markers = {20: "o", 21: "s", 22: "^", 23: "v", 24: "o", 25: "s", 26: "^", 33: "D"}
+    return markers.get(marker_style, "D"), marker_style not in {24, 25, 26, 32}
 
 
 def _root_pad_range(pad, axis: str) -> tuple[float, float]:
@@ -203,6 +253,22 @@ def _legend_labels(pad):
     return labels
 
 
+def _pad_ptave_annotations(pad):
+    """Return NDC pTave-selection labels drawn on a ROOT pad."""
+
+    annotations = []
+    for primitive in pad.GetListOfPrimitives():
+        if not primitive.InheritsFrom("TLatex"):
+            continue
+        label = primitive.GetTitle()
+        if "p_{T}^{ave}" not in label:
+            continue
+        annotations.append((
+            float(primitive.GetX()), float(primitive.GetY()), _root_label(label),
+        ))
+    return annotations
+
+
 def save_canvas(
     canvas,
     *,
@@ -218,7 +284,10 @@ def save_canvas(
 
     plt, hep = _mplhep()
     hep.style.use("CMS")
-    pads = [pad for pad in _leaf_pads(canvas) if _pad_histograms(pad)]
+    pads = [
+        pad for pad in _leaf_pads(canvas)
+        if _pad_histograms(pad) or _pad_graphs(pad)
+    ]
     if not pads:
         raise ValueError(f"Canvas {canvas.GetName()} contains no drawable histograms")
     count = len(pads)
@@ -235,6 +304,7 @@ def save_canvas(
     flat_axes = list(axes.flat)
     for axis, pad in zip(flat_axes, pads):
         histograms = _pad_histograms(pad)
+        graphs = _pad_graphs(pad)
         legend_labels = _legend_labels(pad)
         two_dimensional = [hist for hist in histograms if hist.InheritsFrom("TH2")]
         if two_dimensional:
@@ -246,6 +316,27 @@ def save_canvas(
             )
             artists.cbar.ax.tick_params(labelsize=style.colorbar_tick_size)
         else:
+            for graph in graphs:
+                if graph.GetFillStyle() == 0 and graph.GetMarkerSize() > 0.0:
+                    continue
+                arrays = _graph_arrays(graph)
+                normalized_name = graph.GetName().lower()
+                if "pdf" in normalized_name:
+                    color, hatch, alpha = "tab:green", None, 0.20
+                elif "scale" in normalized_name:
+                    color, hatch, alpha = "tab:orange", "////", 0.14
+                else:
+                    color = _root_color(graph.GetFillColor())
+                    hatch = "////" if graph.GetFillStyle() >= 3000 else None
+                    alpha = 0.28 if hatch is None else 0.12
+                axis.fill_between(
+                    arrays["x"],
+                    [value - error for value, error in zip(arrays["y"], arrays["ylow"])],
+                    [value + error for value, error in zip(arrays["y"], arrays["yhigh"])],
+                    color=color, alpha=alpha,
+                    hatch=hatch, edgecolor=color, linewidth=0.8,
+                    label=legend_labels.get(graph.GetName()),
+                )
             for index, histogram in enumerate(histograms):
                 values, edges, errors = _th1_arrays(histogram)
                 label = legend_labels.get(histogram.GetName(), histogram.GetName())
@@ -258,9 +349,27 @@ def save_canvas(
                     markersize=style.marker_size * font_scale,
                     capsize=style.capsize,
                 )
+            for graph in graphs:
+                if graph.GetFillStyle() != 0 or graph.GetMarkerSize() <= 0.0:
+                    continue
+                arrays = _graph_arrays(graph)
+                color = _root_color(graph.GetMarkerColor())
+                marker, filled = _graph_marker(graph.GetMarkerStyle())
+                axis.errorbar(
+                    arrays["x"], arrays["y"],
+                    xerr=(arrays["xlow"], arrays["xhigh"]),
+                    yerr=(arrays["ylow"], arrays["yhigh"]),
+                    linestyle="none", marker=marker, color=color,
+                    markerfacecolor=color if filled else "none",
+                    markeredgecolor=color,
+                    markersize=style.marker_size * font_scale,
+                    capsize=style.capsize,
+                    label=legend_labels.get(graph.GetName(), graph.GetName()),
+                )
             if any(label for label in legend_labels.values()):
                 axis.legend(fontsize=style.legend_text_size * font_scale)
-        reference = histograms[-1]
+        frame = _pad_frame(pad)
+        reference = frame if frame is not None else histograms[-1]
         axis.set_xlabel(
             _root_label(reference.GetXaxis().GetTitle()),
             fontsize=style.axis_title_size * font_scale,
@@ -278,6 +387,12 @@ def save_canvas(
             axis.grid(True, alpha=0.25)
         else:
             axis.grid(False)
+        for x_position, y_position, label in _pad_ptave_annotations(pad):
+            axis.text(
+                x_position, y_position, label,
+                transform=axis.transAxes, ha="left", va="top",
+                fontsize=style.annotation_text_size * font_scale,
+            )
     for axis in flat_axes[count:]:
         axis.remove()
     rendered_right = cms_header_right.replace("nb^{-1}", r"nb$^{-1}$")
