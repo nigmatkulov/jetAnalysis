@@ -91,6 +91,39 @@ void test_pp_processing() {
     check(isGoodEvent(true, true, 0, 0), "pPb should accept the in-range event");
     ptHat = 1000.f;
     check(!isGoodEvent(true, true, 0, 0), "pPb must retain the pthat range cut");
+    // Shared boundaries belong to the next pT-hat sample in BOTH the cut and
+    // lookup table. Check each interval, not just a single representative edge.
+    const float edges[] = {15.f, 30.f, 50.f, 80.f, 120.f, 170.f, 220.f,
+                           280.f, 370.f, 460.f, 540.f, 8160.f};
+    const double coefficients[] = {
+        1.0404701e-06 * 961104, 7.7966624e-08 * 952110,
+        1.0016052e-08 * 952554, 1.3018269e-09 * 996844,
+        2.2648493e-10 * 964681, 4.0879112e-11 * 999260,
+        1.1898939e-11 * 964336, 3.3364433e-12 * 995036,
+        7.6612402e-13 * 958160, 2.1341026e-13 * 981427,
+        7.9191586e-14 * 1000000
+    };
+    for (int i = 0; i < 11; ++i) {
+        setPtHatRange(static_cast<int>(edges[i]));
+        for (bool direction : {false, true}) {
+            ptHat = std::nextafter(edges[i], -std::numeric_limits<float>::infinity());
+            check(!isGoodEvent(direction, true, 0, 0), "pPb must reject below lower edge");
+            ptHat = edges[i];
+            check(isGoodEvent(direction, true, 0, 0), "pPb must include lower edge");
+            check(eventWeight(ptHat, 0.f, constantVzWeight, 100) == coefficients[i] / 100. / 2.,
+                  "lower pthat edge must use the current sample's coefficient");
+            ptHat = std::nextafter(edges[i+1], -std::numeric_limits<float>::infinity());
+            check(isGoodEvent(direction, true, 0, 0), "pPb must accept just below upper edge");
+            check(eventWeight(ptHat, 0.f, constantVzWeight, 100) == coefficients[i] / 100. / 2.,
+                  "interior pthat weight changed");
+            ptHat = edges[i+1];
+            check(!isGoodEvent(direction, true, 0, 0), "pPb must exclude upper edge");
+            check(isGoodEvent(direction, true, 0, 0, true), "pp must ignore pthat edges");
+        }
+    }
+    check(eventWeight(60.f, 0.f, constantVzWeight, 50) ==
+          2. * eventWeight(60.f, 0.f, constantVzWeight, 100),
+          "documented invocation-size normalization changed unexpectedly");
     const TString prefix = Form("%s/HiForest_pp_branches_%d", gSystem->TempDirectory(),
                                 gSystem->GetPid());
     const TString first = prefix + "_1.root", second = prefix + "_2.root";
