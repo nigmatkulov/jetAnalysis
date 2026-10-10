@@ -46,7 +46,7 @@ class HistogramProductionTest(unittest.TestCase):
                 self.assertEqual(projected.GetBinError(projected.FindBin(.15)), 2.5)
                 self.assertEqual(file.Get('jerSmearingMode').GetTitle(), '0')
                 metadata = json.loads(file.Get('histogramProductionMetadata').GetTitle())
-                self.assertEqual(metadata['schema_version'], 2)
+                self.assertEqual(metadata['schema_version'], 3)
                 self.assertEqual(metadata['eta_cut_index_to_value']['4'], 1.9)
                 self.assertEqual(file.Get(sparse.GetName()).GetBinContent(0, array('i', [0]*4)), 2.5)
             finally:

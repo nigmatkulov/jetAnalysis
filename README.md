@@ -194,9 +194,8 @@ and Up jet momenta with the corresponding eta-binned scale factor. It reorders
 the complete reconstructed-jet collection independently for each variation,
 then reapplies the leading/subleading pT and delta-phi selections. The
 `hRecoDijetPtEtaCMJer{Down,Def,Up}_<cut>` histograms store the varied dijet
-pTave on x and the average reconstructed jet etaCM on y. Their Forward and
-Backward companions store positive etaCM or the absolute value of negative
-etaCM. Matched-reference companions use the same varied reco pTave and selected
+pTave on x and the average reconstructed jet etaCM on y. Forward and Backward are derived from their full etaCM bins during analysis;
+no separate hemisphere objects are stored. Matched-reference companions use the same varied reco pTave and selected
 reco pair but fill reference dijet eta. The first Default realization also
 fills the nominal JER unfolding response, miss, fake, and pair-classification
 objects. MC output files record `jerSmearingMode` and `useEtaDependentJER` as
@@ -483,6 +482,17 @@ Reusable projection keys encode the physical per-jet acceptance, such as
 compatibility with older reusable files; copied upstream ROOT keys remain
 unchanged. Regenerate reusable bundles with notebook 00 to adopt the new names.
 
+Dijet Forward and Backward histograms are no longer stored by the producer,
+including nominal, systematic, smearing, and eta-shift families. Analysis folds
+raw full-eta bins through `hist_analysis/python/forward_backward.py`, copies
+contents and errors, and uses ROOT independent-error division for F/B. Older
+ROOT files remain usable through their full histograms; stored hemisphere keys
+are ignored. Exact-edge entries can differ from the former event-by-event
+`abs(eta)` filling because ROOT's reflected bin intervals have the opposite
+edge convention. This small, explicitly accepted difference does not change
+full distributions, selections, weights, or responses. See the
+[folding and validation details](hist_analysis/README.md#full-eta-forwardbackward-folding).
+
 MC production also writes selected generator-level CM correlations of jet-based
 `xPb`, `xp`, and `xPb/xp` with dijet eta and pTave. Existing selections and
 histogram keys are preserved; see the definitions and new sparse keys in the
@@ -576,3 +586,14 @@ root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine("
 
 These checks complement a small real-forest run; they do not validate remote
 input availability or complete notebook execution.
+
+To compare producer versions on the same forest input, keep the old and new
+ROOT outputs and run this read-only check:
+
+```bash
+PYTHONPATH=. py-env/bin/python tests/compare_full_eta_outputs.py before.root after.root
+```
+
+It requires exact agreement of every retained object and that only hemisphere
+keys were removed. It reports content/error differences in derived hemispheres
+and F/B projections separately, including the accepted bin-edge differences.
