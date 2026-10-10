@@ -78,6 +78,9 @@ void JetUncertainty::Initialize(std::string FileName) {
 
             BinRanges.push_back(Ranges);
             int N = atoi(Parts[nvar * 2].c_str());
+            // Text payload triples are pT and two fractional uncertainties;
+            // retain the parser's low/high ordering for GetUncertainty users.
+            // These are relative shifts, not absolute uncertainties in GeV.
             std::vector<double> pt, errorlow, errorhigh;
 
             for (int i = 0; i + 2 < N; i = i + 3) {

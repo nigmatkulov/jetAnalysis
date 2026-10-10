@@ -6,6 +6,12 @@ current executable interface; the obsolete JEU, JER, and upper-pT-hat arguments
 from the historical `submit_dijetAna_pPb8160.sh` workflow are intentionally not
 included.
 
+For pPb MC, the producer normalizes by the entry count of each invocation.
+Splitting one pT-hat sample across sublists and summing outputs therefore needs
+an explicit common-denominator or merge-rescaling convention; it is not
+partition invariant. Data has unit weights and pp MC uses stored weights, so
+this specific limitation concerns pPb MC. See [physics review P04](../PHYSICS_REVIEW.md#p04--mediumhigh-for-absolute-mc-yields-ppb-normalization-depends-on-job-partitioning).
+
 The commands in this document are intended to be run from the `processing/`
 directory, which is also the conventional submission directory:
 

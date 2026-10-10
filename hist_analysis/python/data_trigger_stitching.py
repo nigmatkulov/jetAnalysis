@@ -208,6 +208,9 @@ def derive_scale(reference, candidate, *, reference_label: str,
             f"Non-positive matching integral in {pt_range}: "
             f"{reference_integral=}, {candidate_integral=}"
         )
+    # This propagation assumes independent trigger integrals. Overlapping
+    # events and reuse of an intermediate trigger in chained scales introduce
+    # covariance; reported scale errors do not include that covariance.
     local = reference_integral / candidate_integral
     local_error = local * hypot(
         reference_error / reference_integral,
@@ -228,6 +231,8 @@ def derive_scale(reference, candidate, *, reference_label: str,
 def scaled_clone(histogram, factor: float, name: str):
     clone = histogram.Clone(name)
     clone.SetDirectory(0)
+    # Applies the central scale only. StitchingScale's uncertainty is a shared
+    # normalization nuisance, not an independent per-bin Sumw2 contribution.
     clone.Scale(factor)
     return clone
 

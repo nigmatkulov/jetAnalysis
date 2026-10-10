@@ -14,6 +14,9 @@ def fold_eta_histogram(full, *, name: str):
     Eta flow bins become the corresponding hemisphere overflow. Interior
     exact-edge entries follow the full histogram's ROOT bin assignment.
     """
+    # Folding is a permutation/copy of whole bins, so stored weighted errors
+    # survive even for signed weights. SetBinContent does not reconstruct the
+    # original event count or exact within-bin moments; use integrals for yields.
     dimension = full.GetDimension()
     if dimension not in (1, 2):
         raise TypeError("Eta folding requires a TH1 or TH2")
@@ -59,6 +62,9 @@ def forward_backward_ratio(forward, backward, *, name: str):
     """Divide raw hemispheres using ROOT independent-error propagation."""
     ratio = forward.Clone(name)
     ratio.SetDirectory(0)
+    # F and B are disjoint hemispheres, not pass/total. ROOT's default assumes
+    # independent bins; a zero B produces content=error=0 (undefined physics
+    # ratio, not evidence of a measured zero). No cross-bin covariance is stored.
     ratio.Divide(forward, backward, 1., 1., '')
     ratio._forward_backward_inputs = (forward, backward)
     return ratio

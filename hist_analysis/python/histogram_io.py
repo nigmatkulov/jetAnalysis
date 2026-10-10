@@ -65,6 +65,8 @@ def _is_supported_object(obj, class_names: tuple[str, ...]) -> bool:
 # Object cloning
 #------------------------------------------------------------
 def _clone_object(obj):
+    # A borrowed TFile::Get object dies with its file. Clone while the file is
+    # open, then detach TH1-derived objects before the caller closes the file.
     clone = obj.Clone()
     if hasattr(clone, "SetDirectory"):
         clone.SetDirectory(0)

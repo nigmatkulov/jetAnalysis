@@ -38,6 +38,9 @@ def project_semantic_th2(obj, observable: str, selection_range=None, *, name: st
     target = _semantic_axis_index(obj, observable)
     selection = 1 - target
     selection_axis = obj.GetXaxis() if selection == 0 else obj.GetYaxis()
+    # Select complete source bins, not fractions of bins. The 0.001 inward
+    # offset implements [low, high) only for suitably aligned/coarse axes.
+    # Unspecified selections exclude flow bins in the integrated coordinate.
     first, last = _range_to_bins(selection_axis, selection_range)
     projection_name = name or f"{obj.GetName()}_{observable}_projection"
     if target == 0:
@@ -89,6 +92,9 @@ def project_histogram(obj, spec: Mapping[str, Any] | None = None, *, name: str |
         if axis_index is None:
             raise ValueError("THnSparse projection requires 'axis_index' in spec")
 
+        # SetRange mutates the source THnSparse and persists after this call.
+        # Repeated callers must reset ranges or pass an independent clone; see
+        # P08 in PHYSICS_REVIEW.md for the resulting selection-state hazard.
         axis_ranges = spec.get("axis_ranges", {})
         for idx, value_range in axis_ranges.items():
             axis = obj.GetAxis(idx)

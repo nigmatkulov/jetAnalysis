@@ -70,6 +70,9 @@ def build_output_file(config: RunnerConfig, pt_hat_sample: int) -> Path:
     return config.output_dir / f"{generator}" / f"{direction}" / f"{generator}_{direction}_ptHat{pt_hat_sample}.root"
 
 
+# One invocation per pT-hat input. Producer normalization uses that invocation's
+# entry count, so any future per-file splitting needs a sample-level convention
+# before merging (PHYSICS_REVIEW.md P04).
 def build_command(config: RunnerConfig, pt_hat_sample: int) -> list[str]:
     input_file = build_input_file(config, pt_hat_sample)
     output_file = build_output_file(config, pt_hat_sample)

@@ -487,6 +487,9 @@ def flatten_sparse_response(
                     reco_axis.FindBin(reco_low + 0.001),
                     reco_axis.FindBin(reco_high - 0.001),
                 )
+                # ROOT Projection(yDim, xDim): output x=reco, y=truth. This
+                # reverses the sparse storage ordering intentionally to match
+                # RooUnfold's measured-on-x response convention.
                 block = sparse_response.Projection(gen_eta_axis, reco_eta_axis)
                 for local_gen_eta, source_gen_eta in enumerate(gen_eta_bins, 1):
                     global_gen = layout.global_bin(gen_pt_index, local_gen_eta)
@@ -584,6 +587,11 @@ def calculate_response_diagnostics(
     matched_truth = response.ProjectionY(f"{response.GetName()}MatchedTruth")
     matched_measured.SetDirectory(0)
     matched_truth.SetDirectory(0)
+    # Inclusive-minus-matched counts also recover events absent from stored
+    # miss fills (P02). Therefore the residual over explicit misses need not
+    # be solely an acceptance-boundary migration. TH1::Add treats operands as
+    # independent for errors, although the matched population is a subset;
+    # these diagnostic error bars are not subset-covariance estimates.
     effective_miss = training_truth.Clone(f"{response.GetName()}EffectiveMiss")
     effective_miss.Add(matched_truth, -1.0)
     effective_fake = training_measured.Clone(f"{response.GetName()}EffectiveFake")

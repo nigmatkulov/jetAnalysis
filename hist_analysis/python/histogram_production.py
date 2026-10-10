@@ -223,6 +223,9 @@ def _write_object(output, obj, name: str) -> None:
 def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
     """Produce one dedicated ROOT file from a catalog entry."""
 
+    # This stage caches raw yields and original response objects; it applies
+    # neither luminosity/trigger normalization nor unfolding corrections.
+    # Recorded source metadata is provenance, not automatic cache invalidation.
     source_path = Path(entry["source"])
     output_path = Path(entry["output"])
     if not source_path.is_file():

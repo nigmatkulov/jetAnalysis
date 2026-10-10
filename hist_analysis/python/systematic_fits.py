@@ -110,6 +110,9 @@ def calculate_bin_by_bin_systematic(
                 "evaluation_range must contain finite values with low < high"
             )
 
+    # Output contents are fractional nuisance magnitudes (e.g. 0.05=5%),
+    # not shifted spectra or statistical errors. Average and envelope are
+    # different prescriptions; zero errors do not imply a certain systematic.
     systematic = up_ratio.Clone(name)
     systematic.SetDirectory(0)
     systematic.Reset()

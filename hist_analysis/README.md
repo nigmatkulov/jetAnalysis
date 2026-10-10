@@ -27,6 +27,23 @@ identified explicitly. Forward/backward ratios always use independent-error
 propagation because their positive- and reflected-negative-eta bins are not a
 subset relationship.
 
+## Physics interpretation and known limitations
+
+The [project physics review](../PHYSICS_REVIEW.md) maps the annotated producer
+and analysis helpers and separates confirmed defects from analysis conventions.
+Stored miss/category spectra omit events with fewer than two selected reco
+jets; inclusive-minus-matched accounting recovers their yield, so the residual
+labelled boundary migration can also contain that omission. JER templates share
+events, but their stochastic draws are not guaranteed identical after rank
+changes. Calibration selection and job-dependent pPb normalization require
+validation before interpreting production results.
+
+Unit-area TH1 errors, trigger-scale errors, and comparison-ratio errors do not
+encode the complete shared-event/normalization covariance. Fixed purity and
+efficiency omit finite-MC response uncertainty. Use these diagnostics with that
+scope; a final measurement needs an explicit covariance and nuisance treatment.
+A zero-denominator F/B bin is undefined even though ROOT stores zero in it.
+
 ## Reusable histogram production
 
 Run `notebooks/00_produce_reusable_histograms.ipynb` explicitly before the
@@ -478,7 +495,9 @@ are scaled by 100 and plotted with the y-axis title
 `JER Rel. Syst. Uncrt. (%)`, matching the macro's percent-plot convention.
 The `JerDown`, `JerDef`, and `JerUp` inputs must come from one production with
 one common `jerSmearingMode` and `useEtaDependentJER` setting. The templates
-share events and deterministic random deviates and are not binomial subsets;
+share events and intend common deterministic random deviates, but the current
+in-place response sort can change the hashed jet index (review finding P03).
+They are not binomial subsets;
 their comparison ratios therefore default to ordinary, not ROOT `B`, error
 propagation. The extracted envelope is a shape uncertainty because each full
 eta distribution is independently normalized. Evaluate any normalization or
