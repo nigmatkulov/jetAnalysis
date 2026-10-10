@@ -69,6 +69,9 @@ void validate(const ScanInput& input) {
   }
 }
 
+// Conditional migration P(measured i | matched truth j), column-normalized.
+// The separate truth efficiency is applied after each Bayesian estimate, not
+// included in the migration kernel or in the prior update.
 std::vector<double> normalizedResponse(const ScanInput& input) {
   std::vector<double> result(input.response);
   for (std::size_t truth = 0; truth < input.nTruthBins; ++truth) {
@@ -141,9 +144,14 @@ void scanToyRange(const ScanInput& input, const std::vector<double>& response,
         if (!std::isfinite(inclusive)) {
           throw std::runtime_error("unfolded toy contains a non-finite value");
         }
+        // Per-bin ensemble moments only; cross-bin products/covariances are
+        // not accumulated by this accelerated regularization metric scan.
         output.sums[offset + truth] += inclusive;
         output.sumsSquared[offset + truth] += inclusive * inclusive;
       }
+      // Update the MATCHED-truth prior, consistent with factorized unfolding.
+      // Feeding the efficiency-corrected inclusive vector back here would
+      // define a different iteration and disagree with the Python workflow.
       prior = unfolded;
       normalize(prior);
     }

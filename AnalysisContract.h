@@ -3,6 +3,8 @@
 
 #include <cmath>
 
+// Shared producer/test contract. Momenta are in GeV; angles are in radians.
+// These constants define the fiducial selection, not histogram display ranges.
 namespace analysis_contract {
 
 constexpr float kNominalEtaShift = 0.465f;
@@ -13,6 +15,11 @@ constexpr float kTwoPiOverThree = 2.09439510239319549f;
 constexpr float kDijetMatchDeltaR = 0.2f;
 
 // pp retains the stored detector orientation; pPb uses the legacy beam convention.
+// First orient the lab axis, then subtract shift: etaCM = etaLab - shift.
+// The different data/MC signs encode the forest coordinate convention; the
+// direction flag alone is not sufficient to interpret the stored eta sign.
+// This is a shifted pseudorapidity observable (massless approximation), not
+// an exact Lorentz boost of a massive jet four-vector or true rapidity y.
 inline float etaCM(float eta, float shift, bool isPbGoing, bool isMc,
                    bool isPp = false) {
     if (isPp) return eta;
@@ -26,6 +33,9 @@ inline float etaLab(float eta, bool isPbGoing, bool isMc, bool isPp = false) {
     return isPbGoing ? eta : -eta;
 }
 
+// Select the globally leading two jets first, then require BOTH to be inside
+// etaMax. This differs from finding the two leading jets inside acceptance.
+// Boundaries are inclusive; deltaPhi must already be wrapped into [-pi, pi].
 inline bool passesDijetSelection(float leadingPt, float subleadingPt,
                                  float leadingEtaCM, float subleadingEtaCM,
                                  float deltaPhi, float etaMax) {

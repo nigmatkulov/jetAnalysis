@@ -12,6 +12,10 @@
 
 namespace eta_folding {
 // Match python/forward_backward.py: mirror complete bins, never interpolate.
+// Positive signed eta is Forward. Reverse negative bin indices for Backward.
+// Copy both sum(w) and sqrt(sum(w^2)); reflection of binned data cannot recover
+// the original assignment of entries exactly on a negative interior edge.
+// Histogram entries/moments are not reconstructed event-level statistics.
 inline std::unique_ptr<TH1> fold(const TH1 &full, bool backward, const char *name) {
     const auto *two = dynamic_cast<const TH2 *>(&full);
     if (full.GetDimension() != 1 && full.GetDimension() != 2)
@@ -63,6 +67,8 @@ inline TH1 *get(TFile *file, TString key) {
     auto *full = dynamic_cast<TH1 *>(file->Get(fullKey));
     if (!full) return nullptr;
     auto result = fold(*full, backward, (key + "_from_full").Data());
+    // Transfer the derived histogram to file ownership, matching TFile::Get.
+    // A caller retaining it past file closure must clone/detach it first.
     result->SetDirectory(file);
     return result.release();
 }

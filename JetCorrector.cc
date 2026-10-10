@@ -69,6 +69,9 @@ double JetCorrector::GetCorrection() {
 
 //_________________
 double JetCorrector::GetCorrectedPT() {
+    // Apply files in their supplied order. Each level sees the pT corrected
+    // by the previous level, so multiplying factors evaluated at raw pT would
+    // generally produce a different result. Eta/phi/area/rho remain fixed.
     double PT = JetPT;
 
     //std::cout << "GetCorrectedPT first: " << PT << std::endl;

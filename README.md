@@ -2,6 +2,15 @@
 
 This repository contains the `processForestSimple` analysis used to process CMS jet forest ROOT files. The code reads input trees through ROOT `TChain`s, applies event selection and jet corrections, fills histograms, and writes the output to a ROOT file.
 
+## Physics conventions and review
+
+See [PHYSICS_REVIEW.md](PHYSICS_REVIEW.md) for the annotated execution map,
+confirmed calibration/response/smearing issues, and statistical limitations.
+The review leaves analysis behavior unchanged. In particular, validate the MC
+JEC selector, stored truth misses, stochastic-draw identity, and pPb sample
+normalization before regenerating production outputs or interpreting absolute
+yields. Histogram titles alone do not imply bin-width or luminosity normalization.
+
 ## Project layout
 
 - `processForestSimple.C`: main analysis macro and compiled program source.
@@ -173,7 +182,9 @@ tests, `pT_pseudo = pT_ref * (1 + N(0,SF*resolution))`.
 
 Stochastic normal deviates are generated deterministically from a hash of jet
 pT, jet eta, event rho when available, run, lumi, event ID, and replica index.
-The JER variation is not part of the hash, so Down/Default/Up use the same draw.
+The JER variation is not part of the hash. Common draws are intended, but the
+current caller also hashes the collection index, and an in-place unfolding sort
+can change that index between variations (review finding P03).
 If a resulting correction is non-finite or non-positive, the correction factor
 is reset to one. Forests without a supported rho branch use `rho=0` with a
 runtime warning; EventID is required.
@@ -297,8 +308,10 @@ It writes `<input-stem>_hist.root` and `<input-stem>_hist.log` under
 `$HOME/cernbox/ana/pPb8160/pythia/cp5tune/`. On this workstation those directories
 are `/Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/forest/` and its parent.
 The runner invokes `processForestSimple` as Pythia MC in `pp` mode. It passes
-direction 1 to select the existing Pb-going unembedded pPb JEC configuration;
-the direction does not alter pp eta. It uses tight jet ID and trigger ID 0.
+direction 1 to select the existing Pb-going pPb JEC configuration. The current
+Boolean `isEmbedding` selector actually chooses the Embedded MC payload even
+for PYTHIA (review finding P01); pp does not have a separate calibration branch.
+The direction does not alter pp eta. It uses tight jet ID and trigger ID 0.
 These analysis choices are constants near the top of the script. JER mode and
 eta dependence are selected with the same `--jer-smearing-mode` and
 `--eta-dependent-jer` options as the pPb runners.

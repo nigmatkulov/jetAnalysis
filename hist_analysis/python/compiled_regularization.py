@@ -76,6 +76,9 @@ def scan_compiled_bayes_moments(
     if any(toy.GetNbinsX() != n_measured for toy in toys):
         raise ValueError("Compiled scan toy does not match response measured bins")
 
+    # ABI is row-major [measured, truth], matching ROOT x/y semantics above.
+    # Keep all array buffers alive through the ctypes call; the C++ code reads
+    # their addresses synchronously and returns moments, not a full covariance.
     response = array("d", (
         response_matrix.GetBinContent(measured, truth)
         for measured in range(1, n_measured + 1)

@@ -18,5 +18,8 @@ TEST_DIJET_PTAVE_BINS = [(50, 100), (100, 180), (180, 300), (300, 500), (500, 10
 
 DIJET_ETA_CUTS = (1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4, 3.0)
 
-# processForestSimple.C etaCuts index for |eta_CM^jet| < 1.9.
+# Producer acceptance is inclusive (<=1.9) on BOTH selected jets; this index
+# does not impose an additional cut on the average dijet eta. The legacy plot
+# selection label above uses '>' although the implemented delta-phi cut is >=.
+# processForestSimple.C etaCuts index for |eta_CM^jet| <= 1.9.
 STANDARD_DIJET_ETA_CUT_INDEX = DIJET_ETA_CUTS.index(1.9)

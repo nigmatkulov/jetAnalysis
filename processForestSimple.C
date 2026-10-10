@@ -1,3 +1,18 @@
+/**
+ * Analysis stages: validate aligned forest trees -> select events -> apply JEC
+ * -> veto MC tails -> fill gen/reference diagnostics -> remove reco jets that
+ * fail the configured ID -> fill nominal/systematic reco and response objects.
+ *
+ * Observable: pTave=(pT1+pT2)/2, eta_dijet=(eta1+eta2)/2. The latter is not
+ * the pseudorapidity of the summed dijet four-vector. etaCM is the oriented
+ * lab pseudorapidity shifted by 0.465 (see AnalysisContract.h).
+ *
+ * Histograms store weighted yields, not densities or cross sections by title
+ * alone. Sumw2 stores per-fill sum(w^2); repeated smears of one event are
+ * correlated and do not constitute independent collision statistics.
+ * Full signed-eta histograms are the source for downstream hemisphere folding.
+ * Known physics-sensitive limitations are catalogued in PHYSICS_REVIEW.md.
+ */
 #include "TFile.h"
 #include "TH1.h"
 #include "TH2.h"
@@ -72,6 +87,8 @@ static constexpr std::array<float, nDiagnosticRuns> diagnosticRunPileup{
     0.04f, 0.25f, 0.1f, 0.004f, 0.2f
 };
 
+// One event-level split is reused by truth, reco, response, miss and fake fills.
+// The PRNG restarts per invocation: splitting depends on entry order/file grouping.
 bool isFillControlledSample = true;
 
 #ifdef DO_MIXED_PRIOR
@@ -105,6 +122,8 @@ std::vector<float> etaBinEdges = {-3.60f, -3.46f, -3.31f, -3.17f, -3.02f, -2.88f
 // Range for the selection
 float ptHatRange[2] { 0.f, 8160.f};
 
+// Event info variables. These globals are branch buffers, overwritten by each
+// GetEntry; run/lumi/evt also participate in deterministic smearing seeds.
 // Event info variables
 float ptHat;
 Float_t inputEventWeight; // hiEvtAnalyzer/HiTree/weight, used directly for pp MC.
@@ -149,11 +168,11 @@ float recoJetPfNEF[maxJets];      // reconstructed jet neutral electromagnetic f
 float recoJetPfCHF[maxJets];      // reconstructed jet charged hadron fraction
 float recoJetPfMUF[maxJets];      // reconstructed jet muon fraction
 float recoJetPfCEF[maxJets];      // reconstructed jet charged electromagnetic fraction
-int   recoJetPfCHM[maxJets];      // reconstructed jet charged muon fraction
-int   recoJetPfCEM[maxJets];      // reconstructed jet charged electromagnetic fraction
-int   recoJetPfNHM[maxJets];      // reconstructed jet neutral hadron fraction
-int   recoJetPfNEM[maxJets];      // reconstructed jet neutral electromagnetic fraction
-int   recoJetPfMUM[maxJets];      // reconstructed jet muon fraction
+int   recoJetPfCHM[maxJets];      // charged-hadron multiplicity (forest jtPfCHM)
+int   recoJetPfCEM[maxJets];      // charged-electromagnetic multiplicity
+int   recoJetPfNHM[maxJets];      // neutral-hadron multiplicity
+int   recoJetPfNEM[maxJets];      // neutral-electromagnetic multiplicity
+int   recoJetPfMUM[maxJets];      // muon multiplicity
 
 float refJetPt[maxJets];   // reference jet pT
 float refJetEta[maxJets];  // reference jet eta
@@ -205,7 +224,7 @@ class JERSmearingHelper {
         /// Return the JER value for given pt and eta
         double evalJERScalingFactorForPtEta(const double &pt, const double &eta) const {
             if ( std::abs(eta) < 0.8 || std::abs(eta) > 2.6 ) {
-                return 1.0; // No smearing for |eta| < 0.8 or |eta| > 2.6
+                return 1.0; // No EXTRA eta multiplier; the base pT resolution still applies
             }
             else {
                 for (const auto &jerFunc : fJERSmearFuncVsEtaVec) {
@@ -250,6 +269,8 @@ class JERSmearingHelper {
             return 1.0; // No scale factor is defined outside the configured eta bins
         }
 
+        // Fractional MC resolution sigma(pT)/pT, distinct from the data/MC SF.
+        // Clamp the evaluation point, not the jet momentum, to the fit domain.
         double resolution(const float pt, const float eta, const bool useEtaDependence) const {
             if ( !fJERSmearFuncVsPt ) {
                 throw std::runtime_error("JERSmearingHelper: JER smearing function not set.");
@@ -271,7 +292,9 @@ class JERSmearingHelper {
         /// Hash-based standard-normal draw. The entropy follows the CMS JER
         /// recommendation: jet kinematics, event rho, and event identity. The
         /// round distinguishes optional pseudo-experiment replicas. Because the
-        /// JER variation is deliberately absent, Down/Default/Up share one draw.
+        /// JER variation is deliberately absent, intending a common draw at
+        /// fixed round. The caller's index-dependent round can still change
+        /// after sorting; see P03 in PHYSICS_REVIEW.md.
         double normalDeviate(const float jetPt, const float jetEta, const float rho,
                              const UInt_t runId, const UInt_t lumiId,
                              const ULong64_t eventId, const int round) const {
@@ -303,6 +326,10 @@ class JERSmearingHelper {
                                 const double scaleFactor, const bool useEtaDependence,
                                 const JERSmearingMode mode, const bool hasGoodGenMatch,
                                 const double normal) const {
+            // Hybrid rescales an existing reco-truth residual. Stochastic adds
+            // only the extra width needed beyond MC; SF<1 cannot sharpen an
+            // unmatched jet, so its additional stochastic width is zero.
+            // TruthToPseudoReco instead models the FULL resolution around truth.
             const double jer = resolution(recoPt, eta, useEtaDependence);
             double smearedPt{recoPt};
             if (mode == JERSmearingMode::Hybrid && hasGoodGenMatch) {
@@ -374,7 +401,9 @@ struct RecoJet {
     float recoPtJeuUp;
     float recoPtJeuDown;
 
-    float refPtSmeared; // reference jet pT after smearing
+    // Historical name: in Hybrid/Stochastic modes this is SMEARED RECO pT;
+    // only TruthToPseudoReco constructs it around the matched reference pT.
+    float refPtSmeared; // momentum used by JER-varied reco ordering/selection
 };
 
 //________________
@@ -648,10 +677,16 @@ double eventWeight(const float &ptHat, const float &vz, TF1 &fVzWeight, Long64_t
         return storedWeight;
     }
 
+    // P04: eventsInSample is the entries in THIS invocation, before cuts.
+    // Splitting one pT-hat sample into separately normalized outputs and adding
+    // them changes its total normalization. Use a campaign-level convention
+    // before interpreting merged pPb yields as a cross section.
     double genWeight = 1.0;
     double vzWeight = 1./ fVzWeight.Eval( vz );
     // vzWeight = 1.;
-    // Magic numbers are (cross section x Nevents generated)
+    // Legacy per-event cross-section coefficients times reference generated
+    // counts. Their provenance/units require campaign validation; this code
+    // does not obtain a cross section from the input forest metadata.
     if (ptHat > 15.0 && ptHat <= 30.)       { genWeight = 1.0404701e-06 * 961104 ; }
     else if (ptHat > 30. && ptHat <= 50.)   { genWeight = 7.7966624e-08 * 952110 ; }
     else if (ptHat > 50. && ptHat <= 80.)   { genWeight = 1.0016052e-08 * 952554 ; }
@@ -859,6 +894,9 @@ float deltaPhi(const float &phi1, const float &phi2) {
 void createHistograms(Histograms &hs, const bool &isMc = false) {
 
 
+    // Preserve Sumw2 before weighted filling, including sparse response cells.
+    // TH2 conventions are usually x=pT, y=eta, but some inclusive response
+    // diagnostics use other axes; downstream semantic projections check ranges.
     std::cout << "Creating histograms...";
     // Standard eta binning for L2L3 corrections
     double jetEtaL2L3StdVals[] = { -5.191, -4.889, -4.716, -4.538, -4.363, -4.191, 
@@ -1754,6 +1792,8 @@ void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChai
             return false;
         }
 
+        // Friends are read by entry number, not joined by run/lumi/evt. All
+        // required trees must represent the same event ordering in each file.
         const std::array<const char *, 4> requiredTrees{
             "hltanalysis/HltTree",
             "hiEvtAnalyzer/HiTree",
@@ -2046,6 +2086,10 @@ bool passesVertexFilter(const int &vertexFilterSelection) {
 bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &triggerId,
                  const int &vertexFilterSelection, bool isPp = false) {
 
+    // MC bypasses HLT, but retains pPb skim cuts; pp uses only vz and HLT.
+    // triggerId=0 means no explicit HLT requirement, not a checked MB trigger.
+    // P04: pPb pT-hat cuts include both endpoints, unlike the weight intervals
+    // (lower, upper]. Exact boundary entries need an explicit sample convention.
     bool goodTrigger{false};
     if (isMc) {
         if (!isPp && (ptHat < ptHatRange[0] || ptHat > ptHatRange[1])) {
@@ -2102,6 +2146,9 @@ void loadRecoJets(std::vector<RecoJet> &recoJets, JetCorrector &jec, const bool 
     // Loop over reco jets and add them to the vector, applying necessary corrections and selections
     for (int iRecoJet{0}; iRecoJet < nRecoJets; ++iRecoJet) {
 
+        // Recompute corrected pT from rawpt using the configured text files;
+        // the forest's corrected jtpt is not the momentum used here. Eta/phi
+        // remain detector coordinates for calibration lookup and jet ID.
         // Retrieve the raw pT and apply JEC to get the corrected pT
         jec.SetJetPT( recoJetPtRaw[iRecoJet] );
         jec.SetJetEta( recoJetEta[iRecoJet] );
@@ -2137,6 +2184,9 @@ void loadRecoJets(std::vector<RecoJet> &recoJets, JetCorrector &jec, const bool 
 void fillOverweightHistograms(std::vector<GenJet> &genJets, std::vector<RecoJet> &recoJets, const double &weight, 
                               Histograms &hs, const bool &isPythia, bool &isGenOverweight, bool &isRecoOverweight) {
     
+    // Tail veto acts on the whole event before configured reco jet ID and
+    // before gen/reco fiducial dijet cuts. It is an MC sample-cleaning model,
+    // not a detector efficiency; all downstream physics histograms inherit it.
     isGenOverweight = {false};
     isRecoOverweight = {false};
 
@@ -2344,6 +2394,10 @@ void processGenDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, 
 
             genFullArr[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
             if (genFullArr == hs.hGenDijetPtEtaCMArr) {
+                // LO massless two-jet estimators, not generator-record Bjorken
+                // x: higher-order radiation, jet masses and eta vs y enter as
+                // approximations. For pp, the historical xPb name means the
+                // negative-z proton estimator; there is no Pb beam.
                 // Both supported collision systems use sqrt(sNN) = 8.16 TeV.
                 const double xp = (leadingJetSyst.pt * std::exp(leadEtaCM) +
                                    subleadingJetSyst.pt * std::exp(subleadEtaCM)) / 8160.;
@@ -2408,6 +2462,10 @@ void processGenDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, 
     //
 
     // Number of smearing iterations (runs) per scale.
+    // Diagnostic replicas carry the full event weight (no 1/nSmearRuns).
+    // Dijet spectra receive 20 fills/event, inclusive diagnostics only 10.
+    // Compare normalized shapes or account explicitly for these multiplicities;
+    // Sumw2 alone does not encode correlations between same-event replicas.
     int nSmearRuns = 20; // adjust as needed
 
     // Scale index map: 0: 1.0f (Default), 1: 2.0f (Double), 2: 0.9f (Ninety), 3: 1.0f (Extra/eta-dependent)
@@ -2516,6 +2574,8 @@ void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, 
             return a.pt > b.pt;
     });
 
+    // P03: this mutates the caller's collection. Later smearing seeds include
+    // the collection index, so a rank swap can change their normal deviates.
     // Sort reco jets by the caller-prepared smeared pT so the selected measured
     // dijet matches the response, miss, fake, and classification outputs for
     // the requested JER variation.
@@ -2690,6 +2750,10 @@ void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, 
             classificationArr[iCut]->Fill(pairCategory, weight);
         }
 
+        // Axis contract: [gen pTave, gen eta, reco pTave, reco eta]. Both
+        // selected pairs must match directly or with swapped leading roles.
+        // A selected but mismatched pair contributes BOTH a truth miss and a
+        // reco fake, while classification gets exactly one category entry.
         // Fill the response matrix for matched pairs, and fill the appropriate 
         // histograms for gen-only or reco-only pairs
         if (matchedPair) {
@@ -2784,6 +2848,8 @@ void processRecoJets(const bool isPp, const bool &isPbGoing, const bool &isMc, c
                 hs.hRefSelInclusiveJetTrkMaxPtEtaCM->Fill(recoJet.refPt, refJetEtaCM, weight);
             }
         }
+        // This inclusive family always uses method 2, independently of the
+        // runtime method used to prune the collection for dijets below.
         // Acceptance for reco jets with jetId selection applied
         if ( isGoodRecoJet(recoJet, 2) ) {
             hs.hRecoInclusiveJetPtEtaLabUnflipped->Fill(recoJet.recoPt, recoJet.recoEta,  weight);
@@ -2872,6 +2938,9 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
     // std::cout << "  hs: " << &hs << std::endl;
     // std::cout << "  fJERSmearingHelper: " << fJERSmearingHelper << std::endl;
 
+    // P02: this early return also bypasses prepareUnfolding. A selected gen
+    // pair with 0/1 ID-passing reco jets is absent from stored miss/category
+    // histograms, although downstream inclusive-minus-matched can recover it.
     // Must be at least 2 jets to form a dijet system
     if (recoJets.size() < 2) return;
 
@@ -2934,7 +3003,7 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
     // - `getPt`: callable taking `const RecoJet&` and returning the pT value
     //   used for ordering and dijet pT calculations (float-like).
     // - Finds the two highest-pT jets without sorting the full collection.
-    // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
+    // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| >= 2π/3 cuts, computes
     //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
     //   full 2D histograms; analysis folds hemispheres from these.
     // - Matched-reference arrays retain the selected reconstructed pTave on x
@@ -2942,6 +3011,9 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
     //   eta acceptance to the reference jets.
     // - Passing different accessors (e.g. `recoPt`, `recoPtJerUp`) lets this
     //   lambda fill nominal and systematic variations without duplicating code.
+    // Re-selection allows pT rank changes and threshold migrations, including
+    // events that fail nominal pT but pass a variation. Acceptance is imposed
+    // AFTER choosing the pair; no replacement by lower-ranked in-range jets.
     std::vector<RecoJet> recoJetSortFallback;
     recoJetSortFallback.reserve(recoJets.size());
     auto fillRecoDijetSystematic = [&](auto getPt,
@@ -3144,6 +3216,9 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
                         recoJet.recoPt, recoJet.recoEta, etaDependent);
                     const bool hasGoodGenMatch = hasReference && std::hypot(dEta, dPhi) < 0.2 &&
                         std::abs(recoJet.recoPt - recoJet.refPt) < 3.0 * resolution * recoJet.recoPt;
+                    // P03: iJet changes after prepareUnfolding sorts recoJets.
+                    // Omitting iScale from the hash alone does not guarantee
+                    // common draws across all Down/Default/Up variations.
                     const double normal = fJERSmearingHelper->normalDeviate(
                         recoJet.recoPt, recoJet.recoEta, eventRho, run, lumi, evt,
                         iIter * static_cast<int>(recoJets.size()) + static_cast<int>(iJet));
@@ -3152,7 +3227,8 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
                         recoJet.recoEta, scaleFactor,
                         etaDependent, jerSmearingMode, hasGoodGenMatch, normal);
                     
-                    // Skip filling histograms for the first 10 iterations to avoid overfilling
+                    // Retain at most the first ten diagnostic replicas; the
+                    // official Hybrid/Stochastic modes execute only iIter=0.
                     if (iIter > 9) continue; 
 
                     if (!hasReference) continue;
@@ -3265,7 +3341,7 @@ void processRefDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, 
     // - `getPt`: callable taking `const RecoJet&` and returning the pT value
     //   used for ordering and dijet pT calculations (float-like).
     // - Finds the two highest-pT jets without sorting the full collection.
-    // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| > 2π/3 cuts, computes
+    // - Applies pT (lead >= 50, sublead >= 40) and |Δφ| >= 2π/3 cuts, computes
     //   the dijet pT average using `getPt`, and fills the provided per-eta-cut
     //   corresponding reference-level 2D histograms.
     std::vector<RecoJet> refJetSortFallback;
@@ -3293,6 +3369,9 @@ void processRefDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, 
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
     };
 
+    // RefSel is the matched-reference collection BEFORE configured reco ID
+    // pruning (see processEvents order). It is not an independent inclusive
+    // generator sample and should not be interpreted as a truth efficiency.
     // Fill nominal dijet histograms
     fillRefDijetSystematic([](const RecoJet &jet) { return jet.refPt; },
                            hs.hRefSelDijetPtEtaCMArr);
@@ -3689,6 +3768,8 @@ void processEvents(const bool isPp, const bool &isPbGoing, const bool &isMc, con
     validateJetCount("nref");
     if (isMc) validateJetCount("ngen");
 
+    // Reproducible split within an invocation; restarting on multiple files
+    // repeats the split sequence and changes its relation to event identity.
     Long64_t nEntries = mainTree.GetEntries();
     std::mt19937 sampleSplitGenerator(0x5eed1234u);
     std::bernoulli_distribution fillControlledSample(0.60);
@@ -3734,6 +3815,9 @@ void processEvents(const bool isPp, const bool &isPbGoing, const bool &isMc, con
             nextPrintAt += printEvery;
         }
 
+        // P05: unlike etaLab/etaCM this legacy vz transform has no pp guard.
+        // pp uses an even |vz| cut and stored weights, so selection is unchanged,
+        // but its signed vertex diagnostics still depend on isPbGoing.
         // Flip vz to properly account for the p-going and Pb-going directions
         // in data and MC. Definition is proton beam going in +z direction
         if (isMc) {
@@ -3898,6 +3982,9 @@ int main(int argc, char* argv[]) {
 
     bool isMc = (mcType != 0);
     bool isPythia = ((mcType != 0) && (mcType == 2));
+    // P01: isMc is bool, so this is true for BOTH mcType=1 and mcType=2.
+    // Consequently the Unembedded calibration branch below is unreachable.
+    // Kept unchanged for this annotation-only review; see PHYSICS_REVIEW.md.
     bool isEmbedding = (isMc == 1);
     bool isPbGoing = (isPbGoingDir == 1);
 
@@ -3909,6 +3996,9 @@ int main(int argc, char* argv[]) {
     std::vector< std::string > fJECFileNames;
     std::string fJEUFileName;
 
+    // The correction family is selected by MC/direction, not collisionSystem:
+    // pp currently reuses these pPb calibrations (P05). A pp physics comparison
+    // requires establishing that this is the intended calibration convention.
     if (isMc) {
         if (isPbGoingDir) {
             if (isEmbedding) {

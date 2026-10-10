@@ -153,6 +153,9 @@ def build_dijet_gen_comparisons(
             path, keys["cm"], ptave_range,
             name=f"dijet_closure_cm_{index}", rebin_eta=1,
         )
+        # Fold at native signed-eta binning before rebinning: merging across
+        # zero first would lose the hemisphere split. Keep raw F/B separate
+        # from the unit-area full shape prepared below.
         forward[curve.label], backward[curve.label] = fold_eta_histogram(
             raw, name=f"dijet_closure_{index}",
         )

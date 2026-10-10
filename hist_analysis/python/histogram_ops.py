@@ -55,6 +55,9 @@ def normalize_histogram(histogram, mode: str = "none", *,
         raise ValueError(
             f"Cannot normalize {histogram.GetName()!r}: integral is {integral}"
         )
+    # ROOT rescales diagonal errors with a fixed integral. Estimating that
+    # integral from these same bins creates correlations not represented in
+    # the returned TH1; this is a shape-display convention, not full covariance.
     result.Scale(1.0 / integral, "width" if mode == "bin_width" else "")
     return result
 
@@ -129,6 +132,9 @@ def ratio_to_nominal(histogram, nominal, *, name: str | None = None,
             ratio.SetBinContent(bin_index, 1.0 if nominal.GetBinContent(bin_index) != 0 else 0.0)
             ratio.SetBinError(bin_index, 0.0)
         return ratio
+    # B is appropriate only for a genuine numerator subset of the denominator.
+    # Reco/gen, normalized shapes, or systematic/nominal curves usually lack
+    # that relationship; default independent errors omit shared-event covariance.
     ratio.Divide(histogram, nominal, 1.0, 1.0, option)
     return ratio
 
