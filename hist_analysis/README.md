@@ -35,9 +35,8 @@ Older producer outputs omit events with fewer than two selected reco jets from
 stored miss/category spectra. The updated producer fills those events in both
 response families and the nominal training/test split. Inclusive-minus-matched
 accounting also recovers their yield in older outputs, so their residual labelled
-boundary migration can contain that historical omission. JER templates share
-events, but their stochastic draws are not guaranteed identical after rank
-changes. Calibration selection and job-dependent pPb normalization require
+boundary migration can contain that historical omission. JER templates share events. The updated producer caches their common draws
+before sorting; older outputs can use different draws after rank changes. Calibration selection and job-dependent pPb normalization require
 validation before interpreting production results.
 
 Unit-area TH1 errors, trigger-scale errors, and comparison-ratio errors do not
@@ -497,8 +496,8 @@ are scaled by 100 and plotted with the y-axis title
 `JER Rel. Syst. Uncrt. (%)`, matching the macro's percent-plot convention.
 The `JerDown`, `JerDef`, and `JerUp` inputs must come from one production with
 one common `jerSmearingMode` and `useEtaDependentJER` setting. The templates
-share events and intend common deterministic random deviates, but the current
-in-place response sort can change the hashed jet index (review finding P03).
+share events and common deterministic random deviates. Older producer versions
+allowed an in-place response sort to change the hashed jet index (P03); the updated producer freezes that index and caches momenta.
 They are not binomial subsets;
 their comparison ratios therefore default to ordinary, not ROOT `B`, error
 propagation. The extracted envelope is a shape uncertainty because each full

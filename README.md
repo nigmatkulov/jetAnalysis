@@ -8,9 +8,9 @@ See [PHYSICS_REVIEW.md](PHYSICS_REVIEW.md) for the annotated execution map,
 confirmed calibration/response/smearing issues, and statistical limitations.
 The follow-up fixes stored truth misses for events with fewer than two selected
 reco jets and makes pPb pT-hat selection/weight intervals consistently half-open.
-The MC JEC selector, stochastic-draw identity, and job-dependent pPb sample
-normalization remain unresolved; see the review before interpreting absolute
-yields. Histogram titles alone do not imply bin-width or luminosity normalization.
+JER variations now cache one shared draw per physical jet/replica before sorting.
+The MC JEC selector and job-dependent pPb sample normalization remain unresolved;
+see the review before interpreting absolute yields. Histogram titles alone do not imply bin-width or luminosity normalization.
 
 ## Project layout
 
@@ -183,9 +183,17 @@ tests, `pT_pseudo = pT_ref * (1 + N(0,SF*resolution))`.
 
 Stochastic normal deviates are generated deterministically from a hash of jet
 pT, jet eta, event rho when available, run, lumi, event ID, and replica index.
-The JER variation is not part of the hash. Common draws are intended, but the
-current caller also hashes the collection index, and an in-place unfolding sort
-can change that index between variations (review finding P03).
+The JER variation is not part of the hash. The initial corrected-pT jet index
+is frozen before response sorting and is combined with the replica index.
+All nine existing momentum branches are cached on each jet before selecting
+any varied pair; response sorting therefore cannot change its random draw.
+`RecoJet::refPtSmeared` stores unit-SF smearing with base resolution,
+`refPtSmearedEta` stores unit-SF smearing with eta-dependent resolution, and
+`refPtSmearedJerDef/Up/Down` store the scale-factor variations using the
+configured resolution. The internal `jerMomenta` cache also retains x2, x0.9,
+and eta-dependent Down/Default/Up branches. Hybrid/Stochastic unit-SF smearing
+adds no stochastic width; mode 2 retains full-resolution smearing around truth.
+The named fields describe the current replica (the last replica after mode 2).
 If a resulting correction is non-finite or non-positive, the correction factor
 is reset to one. Forests without a supported rho branch use `rho=0` with a
 runtime warning; EventID is required.
@@ -600,7 +608,7 @@ For response-pair classification and generator jet-x correlations, run the
 synthetic ROOT checks from the repository root (no forest inputs required):
 
 ```bash
-root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine(".L JetUncertainty.cc"); gROOT->ProcessLine(".L processForestSimple.C"); gROOT->ProcessLine(".L tests/test_unfolding_processing.C"); test_unfolding_processing(); gROOT->ProcessLine(".L tests/test_unfolding_missing_reco.C"); test_unfolding_missing_reco(); gROOT->ProcessLine(".L tests/test_x_correlations.C"); test_x_correlations();'
+root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine(".L JetUncertainty.cc"); gROOT->ProcessLine(".L processForestSimple.C"); gROOT->ProcessLine(".L tests/test_unfolding_processing.C"); test_unfolding_processing(); gROOT->ProcessLine(".L tests/test_jer_cached_momenta.C"); test_jer_cached_momenta(); gROOT->ProcessLine(".L tests/test_unfolding_missing_reco.C"); test_unfolding_missing_reco(); gROOT->ProcessLine(".L tests/test_x_correlations.C"); test_x_correlations();'
 ```
 
 These checks complement a small real-forest run; they do not validate remote
@@ -616,3 +624,13 @@ PYTHONPATH=. py-env/bin/python tests/compare_full_eta_outputs.py before.root aft
 It requires exact agreement of every retained object and that only hemisphere
 keys were removed. It reports content/error differences in derived hemispheres
 and F/B projections separately, including the accepted bin-edge differences.
+
+To verify that both real Pb-going JEC payloads load and evaluate distinctly:
+
+```bash
+root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine(".L tests/test_jec_payloads.C"); test_jec_payloads();'
+```
+
+This payload check does not certify the main program's selector. Inspect its
+`JEC files` log and accepted input paths separately; the current standalone
+PYTHIA selector still incorrectly chooses Embedded JEC (P01).

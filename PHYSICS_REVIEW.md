@@ -3,8 +3,10 @@
 Reviewed 2026-10-10 against the working version following `4a8ab4c`.
 The original review added comments and documentation only. A subsequent fix
 restores missing-reco truth accounting (P02) and changes pPb pT-hat event and
-weight intervals to `[low, high)` (boundary portion of P04). Calibration files,
-random numbers, histogram keys and the job-normalization denominator are unchanged.
+weight intervals to `[low, high)` (boundary portion of P04). A further fix
+caches JER momenta with stable draw identity across variations and replicas
+(P03). Calibration files, histogram keys and the job-normalization denominator
+are unchanged; stochastic outputs after rank swaps can change.
 Findings below distinguish demonstrated implementation defects from conventions
 that need an analysis decision. Passing regression tests does not certify the
 calibration or statistical model for a measurement.
@@ -87,14 +89,14 @@ Events with at least two selected reco jets follow the existing path.
 `tests/test_unfolding_missing_reco.C` exercises the actual caller across frames,
 directions, smearing modes, eta cuts, splits and positive/negative weights.
 
-### P03 — High for stochastic systematics: sorting changes the random-draw identity
+### P03 — Fixed: sorting changed the random-draw identity
 
-The JER hash excludes the variation index, but its `round` includes `iJet`.
-`prepareUnfolding`, called at scale indices 4 and 7, sorts the shared reco
-collection by varied momentum. If a pair changes rank, the same physical jet
-gets a different index in subsequent variations and therefore a different
-normal deviate. The claimed common draw across all Down/Default/Up templates
-is not guaranteed. Hybrid jets with good matches do not use the deviate, but
+Before the fix, the JER hash excluded the variation index, but its `round`
+included `iJet`. `prepareUnfolding`, called at scale indices 4 and 7, sorted the
+shared reco collection by varied momentum. If a pair changed rank, the same
+physical jet got a different index in subsequent variations and therefore a
+different normal deviate. The claimed common draw across all Down/Default/Up
+templates was not guaranteed. Hybrid jets with good matches do not use the deviate, but
 unmatched/stochastic jets and pseudo-reco diagnostic replicas can be affected.
 
 A synthetic hybrid pair with reco/reference pT 100/120 and 99/81 GeV swaps rank
@@ -104,15 +106,24 @@ changing the hash round from 0 to 1 changed the deviate from **-0.726256** to
 **-0.802291**. This demonstrates the two ingredients of the defect, without
 claiming a measured production-spectrum difference.
 
-Storing `refPtSmearedDef`, `refPtSmearedUp`, and `refPtSmearedDown` on each
-`RecoJet` can solve this if all are computed from one cached normal deviate
-before any sorting. The values then travel with the jet. Reinitializing the same
-seed alone is insufficient if its hash includes a changing rank. Each variation
-still needs its own pair selection; eta-dependent branches and pseudo-reco
-replicas need the same stable-identity treatment. No JER change is applied here.
-A fix should preserve a stable original jet identifier or cache each replica's
-draw before any sorting. Validate the identity of each jet's draw, including
-rank swaps, unmatched jets, and all systematic branches.
+The implementation now freezes each jet's initial corrected-pT index and
+computes one normal deviate per jet/replica before sorting. `RecoJet` stores
+`refPtSmeared` (base unit SF), `refPtSmearedEta` (eta-dependent unit SF), and
+`refPtSmearedJerDef/Up/Down` (configured-resolution SF variations). An internal
+nine-value cache retains every historical template, including x2, x0.9 and
+eta-dependent Down/Default/Up. All values travel with their jet. Each variation
+still independently selects its leading pair; unfolding explicitly selects its
+nominal or eta-dependent cache entry. The default direct-helper interface still
+uses `refPtSmeared`. Mode 2 refreshes the cache per replica, retaining stable jet
+identity across all ten replicas. No resolution constants or match cuts change.
+
+`tests/test_jer_cached_momenta.C` exercises the actual caller, rank swaps,
+unmatched jets, all modes, both resolution configurations, and the final
+pseudo-reco replica. It compares every cached branch with the stable-identity
+draw and verifies that response selection preserves the cache. Histogram keys,
+binning and output paths are unchanged. Stochastic branches after a rank swap
+can change numerically, as intended; these are common-draw corrections, not new
+random seeds or resolution inputs.
 
 ### P04 — Medium/high for absolute MC yields: pPb normalization depends on job partitioning
 
@@ -296,3 +307,95 @@ spectra and matched responses were unchanged. These subsets do not establish
 the frequency of exact pT-hat boundaries; synthetic tests exercise those edges.
 CTest passed 1/1, Python regressions passed 49/49, and syntax checks passed.
 Full production and notebook outputs are not regenerated.
+
+## JER implementation and full pT-hat-80 audit (2026-10-10)
+
+### Input and calibration routing (P01)
+
+Ran the compiled executable on the complete, existing Pb-going pPb pT-hat-80
+files, with trigger 0, jet-ID method 2, vertex filter 0, hybrid JER, and base
+resolution. Outputs and logs were written to `/tmp`; production inputs and
+histogram outputs were not overwritten.
+
+| Mode | Input below `$HOME/cernbox/ana/pPb8160/` | Entries | Selected |
+| --- | --- | ---: | ---: |
+| Embedding (`mcType=1`) | `embedding/Pbgoing/forest/HiForestSkim_pPb_MC_pthat80_Pbgoing_embedded.root` | 783686 | 639706 |
+| PYTHIA (`mcType=2`) | `pythia/Pbgoing/forest/HiForestSkim_pPb_MC_pthat80_Pbgoing_unembedded.root` | 984016 | 802116 |
+
+Each input was accepted into the chains (accepted=1, skipped=0), and both runs
+finished. The `JEC files` log selected
+`aux_files/pPb_8160/JEC/Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt`
+in BOTH runs. This is correct for embedding and inconsistent with the existing
+Unembedded branch for standalone PYTHIA. The input routing is correct; P01 is
+confirmed as a calibration-selector defect. The logged vector is passed to
+`JetCorrector`, whose initializer constructs `SingleJetCorrector` for each file.
+`tests/test_jec_payloads.C` independently loaded/evaluated both real Pb-going
+payloads and reproduced the distinct correction values in P01. This is not a
+validation of their physical suitability. No JEC selector or payload changed.
+Both forests lacked a supported rho branch and used the documented rho=0 hash.
+
+Reproduce the new-version runs from the repository root, choosing mcType 1 or 2:
+
+```bash
+build/processForestSimple "$HOME/cernbox/ana/pPb8160/embedding/Pbgoing/forest/HiForestSkim_pPb_MC_pthat80_Pbgoing_embedded.root" /tmp/jer-embedding-full.root 1 1 80 0 2 0 pPb
+build/processForestSimple "$HOME/cernbox/ana/pPb8160/pythia/Pbgoing/forest/HiForestSkim_pPb_MC_pthat80_Pbgoing_unembedded.root" /tmp/jer-pythia-full.root 2 1 80 0 2 0 pPb
+```
+
+### Size of the previously omitted misses (P02)
+
+Compared full-sample outputs with the pre-fix executable (`7602717` behavior).
+The nominal truth, nominal unfolding-measured spectrum, and nominal matched
+response were identical, including errors, at every eta-cut index. Thus the
+nominal factorized workflow's efficiency and unfolding inputs do not change:
+it already uses matched/inclusive truth, recovering missing events indirectly.
+Stored misses and gen-pass/reco-fail diagnostics were incomplete instead.
+
+The table integrates all pT/eta bins, including flow bins, of the nominal
+objects. Percentages are weighted; the omitted counts are unweighted events.
+
+| Sample | Jet `|etaCM|` cut | Omitted events | Omitted / selected truth | Omitted / corrected misses |
+| --- | ---: | ---: | ---: | ---: |
+| Embedding | 1.9 | 0 | 0% | 0% |
+| Embedding | 3.0 | 11 | 0.002215% | 0.013745% |
+| PYTHIA | 1.9 | 3 | 0.0007212% | 0.0088849% |
+| PYTHIA | 3.0 | 231 | 0.036109% | 0.207226% |
+
+For matched yield M, correct misses L, and omitted misses D, the correct
+single-bin efficiency is M/(M+L), whereas an explicit-miss consumer previously
+obtained M/(M+L-D). Dividing a measured yield by the latter undercorrects it by
+D/(M+L). This gives a per-bin or global-efficiency estimate, not a measured
+shift from a full multidimensional unfolding. For broad-acceptance PYTHIA, the
+global efficiency changes from 0.826049 to 0.825750 under that explicit-miss
+prescription. The current matched/inclusive-truth workflow already has the
+latter value, subject to histogram floating-point precision.
+
+Small integrated effects can hide larger shape effects. After integrating all
+pT and grouping dijet eta into width-0.2 bins, the largest omitted/truth fraction
+among bins with effective truth entries >=100 was at eta `[2.8,3.0)` for the
+3.0 jet acceptance: 0.3559% for embedding and 3.4622% for PYTHIA. At acceptance
+1.9 the maxima were 0% and 0.004202%, respectively. These are generator dijet
+CM eta bins. Sparse pT/eta tails can behave differently. This one pT-hat sample
+and the existing Embedded JEC choice do not establish an all-sample measurement
+bias. No full notebook unfolding was rerun or inferred to have shifted.
+
+### JER regression and output differences (P03)
+
+Release configure/build passed (only the two existing unused-parameter
+warnings). CTest passed 1/1; Python regressions passed 49/49; compileall and
+`git diff --check` passed. ROOT tests passed for cached JER momenta, missing-reco
+accounting, all seven response categories, pp/pPb weights and boundaries,
+x-correlations, and the two real JEC payloads. Context7 ROOT documentation was
+consulted for sparse-projection behavior; numerical conclusions use the local
+histograms and implementation.
+
+Compared the full embedding sample with the pre-JER-fix executable (`f89754e`):
+483/564 objects were exactly identical. The 81 changed objects were confined to
+JER Up and eta-dependent JER templates/response/miss/fake/classification objects,
+which previously could use draws reassigned after nominal sorting. Nominal
+response, nominal measured/truth spectra, baseline spectra, event selection,
+and all keys were unchanged. On the 1000-entry pp subset, unchanged object
+counts were 557/564 (hybrid), 483/564 (stochastic), and 422/564 (pseudo-reco).
+Pseudo-reco diagnostic templates can change in later replicas too, since their
+jet identity is now stable across replicas; its first-replica nominal unfolding
+response remains unchanged. No data-dependent notebook was executed, and no
+production histogram files were replaced.
