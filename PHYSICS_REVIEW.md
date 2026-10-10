@@ -1,8 +1,10 @@
 # Physics and implementation review
 
 Reviewed 2026-10-10 against the working version following `4a8ab4c`.
-This review adds comments and documentation only. Selections, calibration files,
-weights, random numbers, histogram keys, and numerical algorithms are unchanged.
+The original review added comments and documentation only. A subsequent fix
+restores missing-reco truth accounting (P02) and changes pPb pT-hat event and
+weight intervals to `[low, high)` (boundary portion of P04). Calibration files,
+random numbers, histogram keys and the job-normalization denominator are unchanged.
 Findings below distinguish demonstrated implementation defects from conventions
 that need an analysis decision. Passing regression tests does not certify the
 calibration or statistical model for a measurement.
@@ -51,14 +53,18 @@ payloads and input sample; the present review does not assign a numerical bias.
 A proposed fix is to test `mcType == 1`, followed by explicit decisions about
 which payload pp should use. Validate printed calibration paths, corrected jet
 pT, threshold migrations, and response accounting before regenerating outputs.
-No calibration was switched in this review.
+No calibration was switched. As a concrete payload comparison, a 100 GeV
+jet at eta 0 in the Pb-going branch is corrected to 105.000 GeV by Embedded
+and 105.504 GeV by Unembedded; at eta +1.5 the values are 111.738 and
+113.252 GeV. These are evaluations of the current files, not production yield
+bias estimates. The difference can affect threshold acceptance and pair ordering.
 
-### P02 — High: the caller drops truth misses with fewer than two selected reco jets
+### P02 — Fixed: truth misses with fewer than two selected reco jets
 
-`processRecoJets` removes ID-failing jets. `processRecoDijets` then returns
-immediately when fewer than two remain, before either call to
+`processRecoJets` removes ID-failing jets. Before the fix, `processRecoDijets`
+returned immediately when fewer than two remained, before either call to
 `prepareUnfolding`. A selected generator dijet with zero or one selected reco
-jet is therefore missing from the explicit miss and classification objects.
+jet was therefore missing from the explicit miss and classification objects.
 `prepareUnfolding` itself correctly supports this case when called directly.
 The existing seven-category unit check calls that helper directly and does not
 exercise the early return in its caller.
@@ -71,10 +77,15 @@ The factorized Python workflow derives effective misses from inclusive truth
 minus the matched response marginal, so it can recover the missing yield.
 However, its residual over stored misses then includes this caller omission,
 not just migrations outside the flattened acceptance. Direct consumers of
-stored misses can underestimate inefficiency. A fix must invoke response
-accounting on every MC event without indexing a missing reco pair, then check
-`truth = matched truth + misses` and `measured = matched reco + fakes` over the
-same acceptance.
+older stored misses can underestimate inefficiency. The caller now invokes
+`prepareUnfolding` before the early return for both nominal and eta-dependent
+response families. Selected truth contributes one event weight to misses and
+gen-pass/reco-fail classification, with Sumw2 receiving the squared weight.
+The nominal controlled/studied split is preserved. No smearing replica, measured
+yield, fake, or matched-response entry is added. Truth-failing events add nothing.
+Events with at least two selected reco jets follow the existing path.
+`tests/test_unfolding_missing_reco.C` exercises the actual caller across frames,
+directions, smearing modes, eta cuts, splits and positive/negative weights.
 
 ### P03 — High for stochastic systematics: sorting changes the random-draw identity
 
@@ -93,6 +104,12 @@ changing the hash round from 0 to 1 changed the deviate from **-0.726256** to
 **-0.802291**. This demonstrates the two ingredients of the defect, without
 claiming a measured production-spectrum difference.
 
+Storing `refPtSmearedDef`, `refPtSmearedUp`, and `refPtSmearedDown` on each
+`RecoJet` can solve this if all are computed from one cached normal deviate
+before any sorting. The values then travel with the jet. Reinitializing the same
+seed alone is insufficient if its hash includes a changing rank. Each variation
+still needs its own pair selection; eta-dependent branches and pseudo-reco
+replicas need the same stable-identity treatment. No JER change is applied here.
 A fix should preserve a stable original jet identifier or cache each replica's
 draw before any sorting. Validate the identity of each jet's draw, including
 rank swaps, unmatched jets, and all systematic branches.
@@ -109,14 +126,24 @@ also alter the merged shape. One invocation per complete pT-hat sample is the
 local runner convention; arbitrary MC sublists need a shared denominator or
 an explicitly documented merge rescaling.
 
-Additionally, pPb event selection includes `[low,high]`, whereas weight-table
-intervals use `(low,high]`. An entry exactly at a lower boundary uses the
-preceding weight interval (pT-hat exactly 15 uses the fallback coefficient).
-Whether such events occur, or adjacent generated samples overlap there, was
-not established. Sample cross sections, reference counts, and units are not
-fully traceable from code alone. Validate campaign metadata and boundary
-conventions before using absolute yields. pp uses its stored weight directly
-and does not have this entry-count normalization.
+The boundary inconsistency is now fixed: both pPb event selection and the
+weight-table lookup use `[low, high)`. For example, pT-hat exactly 50 GeV is
+rejected by the 30–50 sample and accepted by the 50–80 sample with its own
+coefficient. This is independent of the invocation-size denominator: changing
+interval endpoints cannot make separately normalized jobs additive.
+
+For N accepted entries with coefficient C and unit vertex correction, one full
+job gives each event C/N and total C. Two equal jobs each give C/(N/2), and their
+sum is 2C. More generally, the denominator is input entries before selection;
+each job contributes C times its own selected fraction. Unequal job sizes weight
+those fractions (and bin shapes) differently from a full-chain invocation.
+A shared full-sample denominator, or multiplying each output by N_job/N_sample
+before merging, restores additivity under the same coefficient/selection scheme.
+Neither normalization prescription is implemented without campaign metadata.
+Sample cross sections, reference counts, and units are not fully traceable from
+code alone. pp uses its stored weight directly and has no such entry-count
+normalization. Boundary tests cover every configured pPb interval in both
+directions and confirm that the pp range bypass remains unchanged.
 
 ### P07 — Medium: a legacy reco/gen shape ratio requests binomial errors
 
@@ -230,7 +257,7 @@ ROOT sources describe library behavior; the physics findings above follow from
 this repository's definitions and control flow, not from Context7 certifying an
 analysis convention.
 
-## Validation and remaining work
+## Original review validation and remaining work
 
 Checks run successfully:
 
@@ -247,9 +274,25 @@ Checks run successfully:
   notebook files were not edited.
 - `git diff --check` passed.
 
-No full production or data-dependent notebook was executed: this change has no
-executable edits, and confirming numerical physics fixes requires a separate
+No full production or data-dependent notebook was executed in the original
+annotation-only review; numerical physics fixes required a separate
 calibration/input convention decision. The synthetic diagnostics expose existing
 behavior rather than claiming it has been repaired. Full production regeneration, external payload certification,
 and execution of all data-dependent notebooks are outside this review. Fixing
-P01–P04 changes physics outputs and needs its own explicitly validated change.
+P01–P04 changes physics outputs and needs its own explicitly validated change;
+the follow-up below addresses P02 and only the boundary portion of P04.
+
+## Follow-up validation
+
+The missing-reco and half-open-boundary fixes are executable changes, unlike
+the original annotation-only review. Release build, CTest, Python regressions
+and ROOT caller/boundary/category/x-correlation checks were rerun. The caller
+regression covers 960 combinations, checking both miss families and absence of
+measured/fake/response fills. On 1000-entry real-input subsets, all 564 pPb objects were identical. In pp,
+559/564 were identical; only the expected five miss/classification objects
+changed, each by a weighted integral of 0.00333732014. Selected-event counts
+remained 831 (pPb) and 974 (pp), and histogram keys, measured spectra, fake
+spectra and matched responses were unchanged. These subsets do not establish
+the frequency of exact pT-hat boundaries; synthetic tests exercise those edges.
+CTest passed 1/1, Python regressions passed 49/49, and syntax checks passed.
+Full production and notebook outputs are not regenerated.

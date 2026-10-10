@@ -31,9 +31,11 @@ subset relationship.
 
 The [project physics review](../PHYSICS_REVIEW.md) maps the annotated producer
 and analysis helpers and separates confirmed defects from analysis conventions.
-Stored miss/category spectra omit events with fewer than two selected reco
-jets; inclusive-minus-matched accounting recovers their yield, so the residual
-labelled boundary migration can also contain that omission. JER templates share
+Older producer outputs omit events with fewer than two selected reco jets from
+stored miss/category spectra. The updated producer fills those events in both
+response families and the nominal training/test split. Inclusive-minus-matched
+accounting also recovers their yield in older outputs, so their residual labelled
+boundary migration can contain that historical omission. JER templates share
 events, but their stochastic draws are not guaranteed identical after rank
 changes. Calibration selection and job-dependent pPb normalization require
 validation before interpreting production results.

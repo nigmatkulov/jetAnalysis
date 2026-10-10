@@ -6,9 +6,10 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 
 See [PHYSICS_REVIEW.md](PHYSICS_REVIEW.md) for the annotated execution map,
 confirmed calibration/response/smearing issues, and statistical limitations.
-The review leaves analysis behavior unchanged. In particular, validate the MC
-JEC selector, stored truth misses, stochastic-draw identity, and pPb sample
-normalization before regenerating production outputs or interpreting absolute
+The follow-up fixes stored truth misses for events with fewer than two selected
+reco jets and makes pPb pT-hat selection/weight intervals consistently half-open.
+The MC JEC selector, stochastic-draw identity, and job-dependent pPb sample
+normalization remain unresolved; see the review before interpreting absolute
 yields. Histogram titles alone do not imply bin-width or luminosity normalization.
 
 ## Project layout
@@ -228,8 +229,13 @@ there is no pT-hat range cut. The pp event selection uses only `|vz| <= 15 cm`
 selection and pT-hat-dependent overweight-event rejection remain in effect.
 
 Both pp and pPb MC read `hiEvtAnalyzer/HiTree/pthat` (lowercase). The pPb
-pT-hat range cut, generator normalization, vertex weighting, and event filters
-remain unchanged. Required MC branch names and scalar `Float_t` types are
+pT-hat range cut and weight-table lookup both use `[low, high)`: an exact shared
+boundary belongs to the next interval. Generator normalization, vertex weighting,
+and event filters otherwise retain their existing behavior. The pPb weight still
+divides by the input entries in the current invocation, so splitting a sample
+into jobs and directly summing their outputs changes its normalization. Use a
+complete sample per invocation until a shared normalization convention is defined.
+Required MC branch names and scalar `Float_t` types are
 checked in every input file.
 
 Corrections, vertex orientation, default macro paths, and other analysis settings
@@ -594,7 +600,7 @@ For response-pair classification and generator jet-x correlations, run the
 synthetic ROOT checks from the repository root (no forest inputs required):
 
 ```bash
-root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine(".L JetUncertainty.cc"); gROOT->ProcessLine(".L processForestSimple.C"); gROOT->ProcessLine(".L tests/test_unfolding_processing.C"); test_unfolding_processing(); gROOT->ProcessLine(".L tests/test_x_correlations.C"); test_x_correlations();'
+root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine(".L JetUncertainty.cc"); gROOT->ProcessLine(".L processForestSimple.C"); gROOT->ProcessLine(".L tests/test_unfolding_processing.C"); test_unfolding_processing(); gROOT->ProcessLine(".L tests/test_unfolding_missing_reco.C"); test_unfolding_missing_reco(); gROOT->ProcessLine(".L tests/test_x_correlations.C"); test_x_correlations();'
 ```
 
 These checks complement a small real-forest run; they do not validate remote

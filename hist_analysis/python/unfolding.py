@@ -587,8 +587,8 @@ def calculate_response_diagnostics(
     matched_truth = response.ProjectionY(f"{response.GetName()}MatchedTruth")
     matched_measured.SetDirectory(0)
     matched_truth.SetDirectory(0)
-    # Inclusive-minus-matched counts also recover events absent from stored
-    # miss fills (P02). Therefore the residual over explicit misses need not
+    # Inclusive-minus-matched counts also recover events absent from older
+    # producer miss fills (P02, now fixed). The residual over explicit misses need not
     # be solely an acceptance-boundary migration. TH1::Add treats operands as
     # independent for errors, although the matched population is a subset;
     # these diagnostic error bars are not subset-covariance estimates.

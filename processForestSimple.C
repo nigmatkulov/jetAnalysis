@@ -684,20 +684,21 @@ double eventWeight(const float &ptHat, const float &vz, TF1 &fVzWeight, Long64_t
     double genWeight = 1.0;
     double vzWeight = 1./ fVzWeight.Eval( vz );
     // vzWeight = 1.;
+    // Half-open lookup intervals [low, high), consistent with isGoodEvent.
     // Legacy per-event cross-section coefficients times reference generated
     // counts. Their provenance/units require campaign validation; this code
     // does not obtain a cross section from the input forest metadata.
-    if (ptHat > 15.0 && ptHat <= 30.)       { genWeight = 1.0404701e-06 * 961104 ; }
-    else if (ptHat > 30. && ptHat <= 50.)   { genWeight = 7.7966624e-08 * 952110 ; }
-    else if (ptHat > 50. && ptHat <= 80.)   { genWeight = 1.0016052e-08 * 952554 ; }
-    else if (ptHat > 80. && ptHat <= 120.)  { genWeight = 1.3018269e-09 * 996844 ; }
-    else if (ptHat > 120.&& ptHat <= 170.)  { genWeight = 2.2648493e-10 * 964681 ; }
-    else if (ptHat > 170. && ptHat <= 220.) { genWeight = 4.0879112e-11 * 999260 ; }
-    else if (ptHat > 220. && ptHat <= 280.) { genWeight = 1.1898939e-11 * 964336 ; }
-    else if (ptHat > 280. && ptHat <= 370.) { genWeight = 3.3364433e-12 * 995036 ; }
-    else if (ptHat > 370. && ptHat <= 460.) { genWeight = 7.6612402e-13 * 958160 ; }
-    else if (ptHat > 460. && ptHat <= 540.) { genWeight = 2.1341026e-13 * 981427 ; }
-    else if (ptHat > 540.)                  { genWeight = 7.9191586e-14 * 1000000; }
+    if (ptHat >= 15.0 && ptHat < 30.)       { genWeight = 1.0404701e-06 * 961104 ; }
+    else if (ptHat >= 30. && ptHat < 50.)   { genWeight = 7.7966624e-08 * 952110 ; }
+    else if (ptHat >= 50. && ptHat < 80.)   { genWeight = 1.0016052e-08 * 952554 ; }
+    else if (ptHat >= 80. && ptHat < 120.)  { genWeight = 1.3018269e-09 * 996844 ; }
+    else if (ptHat >= 120. && ptHat < 170.)  { genWeight = 2.2648493e-10 * 964681 ; }
+    else if (ptHat >= 170. && ptHat < 220.) { genWeight = 4.0879112e-11 * 999260 ; }
+    else if (ptHat >= 220. && ptHat < 280.) { genWeight = 1.1898939e-11 * 964336 ; }
+    else if (ptHat >= 280. && ptHat < 370.) { genWeight = 3.3364433e-12 * 995036 ; }
+    else if (ptHat >= 370. && ptHat < 460.) { genWeight = 7.6612402e-13 * 958160 ; }
+    else if (ptHat >= 460. && ptHat < 540.) { genWeight = 2.1341026e-13 * 981427 ; }
+    else if (ptHat >= 540.)                  { genWeight = 7.9191586e-14 * 1000000; }
     genWeight /= eventsInSample;
 
     return genWeight * vzWeight;
@@ -2067,7 +2068,7 @@ void setPtHatRange(const int &ptHatSample) {
     else if (ptHatSample == 370) { ptHatRange[0] = 370.; ptHatRange[1] = 460.; }
     else if (ptHatSample == 460) { ptHatRange[0] = 460.; ptHatRange[1] = 540.; }
     else if (ptHatSample == 540) { ptHatRange[0] = 540.; ptHatRange[1] = 8160.; }
-    std::cout << Form(": [%.1f, %.1f]", ptHatRange[0], ptHatRange[1]) << std::endl;
+    std::cout << Form(": [%.1f, %.1f)", ptHatRange[0], ptHatRange[1]) << std::endl;
 }
 
 //________________
@@ -2088,11 +2089,11 @@ bool isGoodEvent(const bool &isPbGoing, const bool &isMc, const int &triggerId,
 
     // MC bypasses HLT, but retains pPb skim cuts; pp uses only vz and HLT.
     // triggerId=0 means no explicit HLT requirement, not a checked MB trigger.
-    // P04: pPb pT-hat cuts include both endpoints, unlike the weight intervals
-    // (lower, upper]. Exact boundary entries need an explicit sample convention.
+    // pPb sample cuts and weight lookup both use [low, high), assigning each
+    // shared pT-hat boundary to the sample beginning at that value.
     bool goodTrigger{false};
     if (isMc) {
-        if (!isPp && (ptHat < ptHatRange[0] || ptHat > ptHatRange[1])) {
+        if (!isPp && (ptHat < ptHatRange[0] || ptHat >= ptHatRange[1])) {
             return false;
         }
         goodTrigger = {true};
@@ -2938,11 +2939,31 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
     // std::cout << "  hs: " << &hs << std::endl;
     // std::cout << "  fJERSmearingHelper: " << fJERSmearingHelper << std::endl;
 
-    // P02: this early return also bypasses prepareUnfolding. A selected gen
-    // pair with 0/1 ID-passing reco jets is absent from stored miss/category
-    // histograms, although downstream inclusive-minus-matched can recover it.
-    // Must be at least 2 jets to form a dijet system
-    if (recoJets.size() < 2) return;
+    // With fewer than two selected reco jets, no momentum variation can form
+    // a measured pair. Still account for a selected truth pair as a miss in
+    // BOTH response families, once per event (not once per smearing replica).
+    // prepareUnfolding guards the absent pair before inspecting its momenta.
+    if (recoJets.size() < 2) {
+        if (isMc) {
+            prepareUnfolding(isPp, isPbGoing, isMc, weight, genJets, recoJets,
+                             hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr,
+                             hs.hGenDijetPtEtaCMMissArr,
+                             hs.hRecoDijetPtEtaCMFakeArr,
+                             hs.hUnfoldingPairClassificationArr,
+                             hs.hGenDijetPtEtaCMVsRecoPtEtaCMControlledSampleArr,
+                             hs.hGenDijetPtEtaCMMissControlledSampleArr,
+                             hs.hRecoDijetPtEtaCMFakeControlledSampleArr,
+                             hs.hGenDijetPtEtaCMVsRecoPtEtaCMStudiedSampleArr,
+                             hs.hGenDijetPtEtaCMMissStudiedSampleArr,
+                             hs.hRecoDijetPtEtaCMFakeStudiedSampleArr);
+            prepareUnfolding(isPp, isPbGoing, isMc, weight, genJets, recoJets,
+                             hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr,
+                             hs.hGenDijetPtEtaCMMissJerDefExtraArr,
+                             hs.hRecoDijetPtEtaCMFakeJerDefExtraArr,
+                             hs.hUnfoldingPairClassificationJerDefExtraArr);
+        }
+        return;
+    }
 
     std::sort(recoJets.begin(), recoJets.end(), [](const RecoJet &a, const RecoJet &b) { return a.recoPt > b.recoPt; });
 
