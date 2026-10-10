@@ -7,6 +7,9 @@ Workspace for ROOT-file inventory, event diagnostics, inclusive-jet efficiency a
 - `notebooks/`: Jupyter workflows for inventory, event diagnostics, inclusive-jet validation, closures, JES/JER, beam orientation, and unfolding.
 - `python/`: reusable PyROOT helpers for histogram I/O, projections, normalization, fitting, and plotting. `python/root_style.py` defines the shared `PlotStyle`, canvas geometry, axes, annotations, legends, and palette styling.
 - `config/`: input locations, closure bins, the common eta range, and the standard dijet eta-cut index.
+- `root_files/`: reusable analysis inputs and locally produced histogram
+  bundles. Generated bundles live in the ignored `produced_histograms/`
+  subdirectory.
 - `output/`: generated PDFs, optional PNGs, and derived ROOT files. This directory is ignored by Git.
 
 Notebook filenames use `_mc_` for MC-only validation workflows and `_data_`
@@ -185,8 +188,9 @@ Use `notebooks/02_mc_jet_selection.ipynb` to compare Reco, matched Ref, RefSel,
 and Gen inclusive-jet eta shapes for the standard jet ID, track-maximum-only,
 and no-selection stages in Lab and CM frames. It displays the underlying 2D maps,
 then produces configured pT-interval full-distribution overlays and separate
-ratio canvases containing Reco/Gen, Ref/Gen, and RefSel/Gen. Ratios always use
-ROOT option `B` binomial errors. Integral, eta-range, bin-width, and stored-yield
+ratio canvases containing Reco/Gen, Ref/Gen, and RefSel/Gen. Ratios default to
+ROOT independent-error propagation; binomial errors require a true subset
+efficiency and do not describe these normalized shape comparisons. Integral, eta-range, bin-width, and stored-yield
 modes are supported; `LOG_Y` controls the full-distribution y-axis scale. CM
 1D canvases include solid black boundaries at `|eta_CM|=2.4` and dashed black
 boundaries at `|eta_CM|=1.9`, with both boundary types listed in the legend.
@@ -199,7 +203,11 @@ scan pT and eta dependence, and draw the corresponding two-dimensional response
 maps. The notebook also normalizes JER-versus-eta curves to unit central-bin mean
 
 within `-0.8 < eta < 0.8` and writes those derived histograms to a ROOT file in
-`output/jes_jer/`.
+`output/jes_jer/`. Its production JER parameterization remains the fitted
+Gaussian response width `sigma`. Separate diagnostic plots compare `sigma`
+with the formally relative `sigma/mu`, propagating the fitted mean and width
+errors independently, so JES non-closure is visible rather than absorbed into
+the smearing width.
 
 Use `notebooks/02_mc_jet_JEC_check.ipynb` to compare raw and JEC-corrected MC
 inclusive-jet eta projections in configurable pT intervals. Each raw or
@@ -321,7 +329,12 @@ eta-dependent smeared Gen, and nominal Reco are required; add or remove other
 catalog entries with `OPTIONAL_CURVE_LABELS`. Before normalization, raw
 full-distribution overlays and ratios are written after scaling accumulated generator-smeared curves by
 `1/N_SMEAR_RUNS` (20 by default) and accumulated Reco-smeared curves by
-`1/N_RECO_SMEAR_RUNS` (10 by default). Normalized full-shape overlays, ratios to
+`1/N_RECO_SMEAR_RUNS` (10 by default). Set `N_RECO_SMEAR_RUNS = 1`
+for current hybrid or stochastic production (`jerSmearingMode` metadata
+`hybrid` or `stochastic`); keep 10 only for truth-to-pseudo-reco production.
+Generator-smeared histograms still accumulate 20 trials in every mode.
+The notebook does not infer these multiplicities from metadata, so check the
+source production before making raw-yield comparisons. Normalized full-shape overlays, ratios to
 Gen and eta-dependent smeared Gen, unnormalized forward/backward overlays, and
 their ratios to both references are also written, for nine separate single-panel
 canvases per pTave interval using the shared ROOT styles. Generator-level and
@@ -392,8 +405,11 @@ Use `notebooks/05_unfold2D_data.ipynb` to unfold the reconstructed data in the
 same 16 trigger-specific pTave intervals used by
 `06_data_dijet_distributions.ipynb`. MinimumBias supplies 50--80 GeV, Jet60
 80--100 GeV, Jet80 100--120 GeV, and Jet100 120--500 GeV. `DATA_DIRECTIONS`
-selects combined, Pb-going, or p-going data, while `RESPONSE_DIRECTION`
-independently selects the combined-, Pb-going-, or p-going embedding response.
+selects combined, Pb-going, or p-going data. `RESPONSE_DATASET` independently
+selects `embedding`, direction-aware `pythia`, or the full `pythia_cp5`
+MiniAOD production. `RESPONSE_DIRECTION` selects `combined`, `Pbgoing`, or
+`pgoing` for pPb inputs; it is automatically normalized to `pp` for CP5. The selected response dataset supplies
+one coherent set of Gen, Reco, migration, miss, and fake histograms.
 `RESPONSE_VARIANT` selects the same `jer_def_extra`,
 `nominal`, `controlled`, or `studied` response definitions available in the
 regularization workflow.
@@ -417,7 +433,10 @@ efficiency, zero-efficiency/empty-bin accounting, trigger
 provenance, and forward-folded reconstructed-level validation. Per-interval plots compare data
 before and after unfolding in both unnormalized yield and independently
 normalized eta shape; the normalized distributions are presentation-only
-supplements to the unnormalized unfolded results.
+supplements to the unnormalized unfolded results. Per-interval response Gen and
+Reco marginals, purity and efficiency, inclusive and purity-corrected data, and
+matched and efficiency-corrected unfolded spectra expose every correction step
+with linear y axes and ratios to the explicitly named nominal curve.
 
 Use `notebooks/04_systematics_beam_orientation.ipynb` to compare p-going and
 Pb-going single-jet and dijet eta projections. Gen and Reco levels are enabled
@@ -445,16 +464,25 @@ and F/B fit families. `FIT_WEIGHT_OPTION = 'W'` uses ROOT's unit-weight fit for
 every non-empty bin; set it to `''` to use the histogram bin uncertainties.
 Set `SHOW_FIT_RESULTS = False` to hide the compact parameter and
 chi-square/ndf box while retaining the fitted curves and numeric summaries.
-Following `macro/systematics.C::calculateSystUncrtBinByBin` on `main`, the
-notebook also calculates the unsmoothed relative JER uncertainty in each bin as
-`(|Up/Def - 1| + |Down/Def - 1|) / 2`, evaluating the fitted Up/Def and Down/Def
-functions at the bin center as in the macro's `useFit` path. Set
-`SYSTEMATIC_COMBINATION = 'average'` to use the mean instead. The default is
-`'maximum'`, namely `max(|Up/Def - 1|, |Down/Def - 1|)`.
+As in the `useFit` path of
+`macro/systematics.C::calculateSystUncrtBinByBin` on `main`, the notebook
+evaluates the fitted Up/Def and Down/Def functions at each bin center. With
+`SYSTEMATIC_COMBINATION = 'average'`, it uses
+`(|Up/Def - 1| + |Down/Def - 1|) / 2`. The notebook default is the more
+conservative `'maximum'`, namely
+`max(|Up/Def - 1|, |Down/Def - 1|)`.
 Before the optional
 smoothing step, the retained systematic histograms remain fractional; display clones
 are scaled by 100 and plotted with the y-axis title
 `JER Rel. Syst. Uncrt. (%)`, matching the macro's percent-plot convention.
+The `JerDown`, `JerDef`, and `JerUp` inputs must come from one production with
+one common `jerSmearingMode` and `useEtaDependentJER` setting. The templates
+share events and deterministic random deviates and are not binomial subsets;
+their comparison ratios therefore default to ordinary, not ROOT `B`, error
+propagation. The extracted envelope is a shape uncertainty because each full
+eta distribution is independently normalized. Evaluate any normalization or
+selection-efficiency component separately if the measured result is not
+shape-normalized.
 Systematic bins that overlap the selected eta acceptance are included, even
 when rebinning places their centers beyond the cut. For such boundary bins the
 fit is evaluated at `ETA_CUT` (or `-ETA_CUT`) so it is never evaluated beyond
@@ -520,9 +548,12 @@ always performed with standard independent-error propagation.
 
 Use `notebooks/04_systematics_pointing_resolution.ipynb` to estimate the dijet
 pointing-resolution uncertainty in embedding or Pythia MC. It projects the Y
-axis of nominal `hRecoDijetPtEtaCM_<eta cut>` and pointing-reference
+axis of matched-pair `hRecoDijetPtEtaCMPointingRes_<eta cut>` and pointing-reference
 `hRefDijetPtEtaCMPointingRes_<eta cut>` in common half-open reconstructed-pTave
-intervals. Full shapes are independently normalized to unit integral.
+intervals. Both inputs require reference-matched dijets and use reconstructed
+pTave. Reco applies the eta acceptance to reconstructed jets, while Ref applies
+it to the matched reference jets. Full shapes are independently normalized to
+unit integral.
 Each Forward/Backward ratio is folded from its unnormalized full projection,
 starting Forward at `FindBin(0 + 0.001)` and reflecting the bins below zero,
 with independent errors. The one-sided uncertainty is
@@ -534,9 +565,9 @@ uncertainties. Full-shape Reco/Ref and the later F/B-to-F/B comparison
 independently allow standard or ROOT option `B` errors.
 
 The same notebook also produces a full-distribution-only Lab-frame estimator
-from `hRecoDijetPtEtaLab_<lab eta cut>` and
+from `hRecoDijetPtEtaLabPointingRes_<lab eta cut>` and
 `hRefDijetPtEtaLabPointingRes_<lab eta cut>`. `LAB_ETA_CUT_INDEX` is configured
-separately from the CM selection and defaults to index 6, corresponding to
+separately from the CM selection and defaults to `DIJET_ETA_CUTS.index(2.3)` (index 5), corresponding to
 `|eta_Lab^jet| < 2.3`. It reuses the configured pTave intervals, Reco/Ref fit,
 one-sided uncertainty, ratio-band, CSV, and outward smoothing workflows, with
 the Lab smoothing origin fixed at zero. No Lab Forward/Backward ratio is made.
@@ -553,7 +584,9 @@ produces comparison plots and therefore has no extracted uncertainty to export.
 Use `notebooks/05_unfold2D_gen_and_prior.ipynb` to compare nominal Gen dijet
 `etaCM` projections with the mixed-Gaussian prior
 `hGenDijetPtEtaCMMixedPrior_<eta cut>` in every configured half-open interval
-from the selected shared pTave bin set. The prior is an equal mixture of a
+from the selected shared pTave bin set. Producing these optional input
+histograms requires configuring the C++ build with `-DDO_MIXED_PRIOR=ON`.
+The prior is an equal mixture of a
 broad left Gaussian (`mean=-0.5`, `sigma=0.96`) and a narrow right Gaussian
 (`mean=0.7`, `sigma=0.64`), formed by reweighting the nominal
 `mean=0`, `sigma=0.8` Gen shape. It writes raw weighted-yield and
@@ -584,7 +617,8 @@ efficiency. The notebook retains the conventional RooUnfold fake/miss treatment
 as a validation reference and writes a direct comparison of the two methods.
 This factorization keeps all pTave-eta migrations and is valid when simulation
 describes the reco-bin purity and truth-bin efficiency. Zero-efficiency truth
-bins stop the workflow because they cannot be recovered. Purity and efficiency
+bins with nonzero unfolded content stop the workflow because they cannot be
+recovered; empty zero-efficiency bins remain zero. Purity and efficiency
 are treated as response inputs; their finite-MC uncertainty must be assessed
 with response variations or toys rather than added again during each bin-wise
 operation. The notebook writes the
@@ -592,6 +626,11 @@ flattened input spectra, response and miss/fake diagnostics, unfolded result,
 closure ratios, covariance matrix, serialized response, and configuration
 metadata to
 `output/unfold2D/<generator>_<direction>_unfold2D_jerDefExtra_eta_<cut>_iter_<iterations>.root`.
+`GENERATOR` accepts `embedding`, direction-aware `pythia`, or `pythia_cp5`.
+For CP5, any leftover pPb `DIRECTION` value is automatically normalized to
+`pp`. The CP5 response defaults to
+`pythia/cp5tune/HiForestMiniAOD_hist.root` and can be overridden with
+`CP5_UNFOLDING_FILE`.
 Set `DIJET_UNFOLD2D_OUTPUT_DIR` to redirect these generated artifacts without
 editing the notebook configuration.
 Set `COMPARISON_TARGET` to `gen` or `ref` to choose the denominator and target
@@ -611,7 +650,11 @@ The projection/response diagnostics are produced for every configured pTave
 interval; the flattened-response and final closure canvases are also saved as
 PDFs in the same directory. For every pTave interval, the notebook extracts the
 unfolded eta distribution, overlays it with the original gen and reco
-projections, and plots reco/gen and unfolded/gen ratios.
+projections, and plots reco/gen and unfolded/gen ratios. It also writes explicit
+per-interval panels for purity versus efficiency, inclusive versus
+purity-corrected reco, and matched versus efficiency-corrected unfolded yields.
+All dijet-distribution panels use linear y axes and comparison panels include a
+ratio to their named nominal curve.
 Those component and ratio histograms are stored in the ROOT output. Unfolding
 plots use the semantic styles from `python/root_style.py`: gen blue, reco red,
 miss orange, fake green, and unfolded black. Set `SAVE_PNG = True` in the
@@ -638,6 +681,9 @@ JER-smeared reconstructed coordinate as the controlled response matrix. Configur
 `PLOT_MISS_AND_FAKES` to show or hide controlled Miss/Fake diagnostics and use
 `DIJET_UNFOLD2D_STUDIED_CONTROLLED_OUTPUT_DIR` to redirect output from
 `output/unfold2D_studied_to_controlled/`.
+The controlled-to-studied workflow also plots every factorized correction step
+in each pTave interval: correction factors, studied inclusive and
+purity-corrected reco, matched unfolded, and efficiency-corrected unfolded.
 The reconstructed AK4 jets use the data-driven default JER smearing. The
 flattened space is restricted to the
 configured eta acceptance on both response axes and all spectra. Standard
@@ -684,7 +730,9 @@ decision is recorded in its metadata. `RECO_TO_GEN_RATIO_OPTION`,
 `UNFOLDED_TO_GEN_RATIO_OPTION`, and `FORWARD_FOLDED_TO_RECO_RATIO_OPTION`
 independently select ROOT standard (`''`) or binomial (`'B'`) displayed ratio
 errors for flattened and per-pTave comparisons; the selected options are saved
-in the ROOT metadata.
+in the ROOT metadata. The defaults are independent errors: unfolded/Gen and
+refolded/Reco are not binomial efficiencies. These display uncertainties omit
+shared-event covariance, which needs a separate correlated study.
 
 The recommended unfolding validation order is:
 
@@ -695,38 +743,76 @@ The recommended unfolding validation order is:
 4. Run `05_unfold2D_regularization.ipynb` to study the Bayesian iteration count.
 
 Use `05_unfold2D_regularization_tutorial.ipynb` when teaching or auditing that
-last step. It exposes every important intermediate distribution and follows one
-configured toy through purity correction, sequential RooUnfoldBayes iterations,
-and efficiency correction before running a deliberately small sequential toy
-ensemble. It never loads the compiled parallel regularization backend.
+last step. Its twelve numbered stages plot the flattened response matrix and,
+for every configured pTave interval, the response-training Gen and Reco
+marginals, purity and efficiency, self-normalized toy truth, toy-truth/prior
+shape comparison, globally rescaled truth and its forward-folded partner, the
+experimental-error transfer, selected toys before and after smearing,
+iteration-by-iteration unfolded comparisons to both truth roles, regularization
+metrics, and the selected-iteration comparisons. `SELECTED_TOY_NUMBERS` uses
+one-based labels and defaults to toys 1, 3, and 5; the same pseudo-experiments
+are reused downstream. `DISPLAY_ITERATIONS` selects the iteration curves shown
+before the complete sequential scan. Every per-pTave canvas carries an in-frame
+interval annotation. Every multi-distribution comparison includes a lower ratio
+panel to its explicitly identified nominal curve, using independent-error
+propagation. Dijet pseudorapidity distributions use linear y axes; only the
+bias--variance--MSE summary retains its configurable logarithmic scale. The
+tutorial never loads the compiled parallel regularization backend.
+
+The production regularization notebook writes the same twelve diagnostic
+stages as the tutorial while retaining its compiled ensemble scan. Zero-based
+`SELECTED_TOY_NUMBERS` defaults to `(0, 2, 4)`, corresponding to tutorial toys
+1, 3, and 5, and is reused for unsmeared, smeared, iteration-comparison, and
+optimal-iteration plots. `DISPLAY_ITERATIONS` controls only the displayed
+selected-toy curves; the statistical scan still evaluates every iteration.
 
 The regularization notebook uses the same factorized unfolding convention as
 the closure notebooks and separates two truth roles explicitly.
-`RESPONSE_GENERATOR`, `RESPONSE_DIRECTION`, and `RESPONSE_FILE_STEM` select the
+`RESPONSE_DATASET`, `RESPONSE_DIRECTION`, and `RESPONSE_FILE_STEM` select the
 MC that constructs the response matrix, purity, efficiency, and RooUnfold
 Bayesian prior. `TOY_TRUTH_MODEL` independently chooses the known truth that is
-forward-folded to generate pseudo-data: `mixed_prior`, `cp5`, or `gaussian`.
+forward-folded to generate pseudo-data: response-sample nominal Gen
+(`response_gen`), the response-sample `mixed_prior`, direction-aware
+`embedding` or `pythia`, standalone `pythia_cuep8m1`, full or standalone CP5
+(`pythia_cp5` or `pythia_cp5_standalone`), a completely `custom` input, or
+`gaussian` in the production notebook.
+`TOY_TRUTH_DIRECTION` selects the pPb orientation and is automatically
+normalized to `pp` for standalone tune inputs.
+`UNFOLD2D_TOY_TRUTH_FILE` optionally overrides the resolved file, and
+`UNFOLD2D_TOY_TRUTH_HISTOGRAM` overrides the default
+`hGenDijetPtEtaCM_<eta-cut-index>` key. Set `TOY_TRUTH_MODEL='custom'` with the
+file override to use any compatible TH2 truth distribution. The production
+notebook records both overrides in its ROOT metadata; the tutorial separates
+output directories by truth model and effective direction.
 This choice does not replace RooUnfold's response-training Bayesian prior.
 The CP5 option reads `CP5_TOY_TRUTH_HISTOGRAM` from `CP5_TOY_TRUTH_FILE`. The
 Gaussian option generates only the eta shape; its pTave marginal is copied from
 the configured response generator using `GAUSSIAN_PT_SOURCE_ETA_CUT_INDEX`.
-Both regularization notebooks default to the standalone CP5 file
-`$HOME/cernbox/ana/pPb8160/pythia/cp5tune/cp5_gen_dijet_histograms.root` and
-the eta-cut-indexed `hGenDijetPtEtaCM_5` truth histogram. Their compact default
-comparison uses 50 toys, six Bayesian iterations, and random seed 12345.
+Both regularization notebooks default to standalone CUEP8M1 toy truth
+(`TOY_TRUTH_MODEL = 'pythia_cuep8m1'`) and the standard-acceptance
+`hGenDijetPtEtaCM_4` truth histogram. The full scan defaults to 1000 toys and
+15 Bayesian iterations; the tutorial uses 50 toys and six iterations. Both
+use random seed 12345.
 `UNFOLD2D_RESPONSE_DIRECTION` can override the configured `combined`,
 `Pbgoing`, or `pgoing` response direction. The response direction controls the
 migration matrix, misses, fakes, purity, efficiency, and Bayesian prior. Both
 regularization notebooks deliberately keep `STITCHING_DIRECTION = 'combined'`:
 the combined data provide the common MB exposure and per-bin relative
 statistical precision, independently of the selected response direction.
-`RESPONSE_GENERATOR` selects `embedding` or `pythia`, while
+`RESPONSE_DATASET` selects `embedding`, `pythia`, or `pythia_cp5`, while
 `RESPONSE_VARIANT` selects one coherent stored response set:
-`jer_def_extra` (the default), `nominal`, `controlled`, or `studied`. Each
+`nominal` (the default), `jer_def_extra`, `controlled`, or `studied`. Each
 variant switches the training truth, reconstructed spectrum, migration matrix,
-misses, and fakes together. The variant is included in full-notebook output and
-cache tags and in the tutorial output directory, preventing results from
-different response definitions from overwriting or reusing one another.
+misses, and fakes together. In particular, `nominal` uses
+`hRecoDijetPtEtaCMJerDefUnfold_*`, while `controlled` and `studied` use their
+corresponding `hRecoDijetPtEtaCMJerDefUnfoldControlledSample_*` and
+`hRecoDijetPtEtaCMJerDefUnfoldStudiedSample_*` spectra. These are the
+first-round default-JER reconstructed distributions used to fill the matching
+response objects; `jer_def_extra` analogously uses
+`hRecoDijetPtEtaCMJerDefExtraUnfold_*`. The variant is included in
+full-notebook output and cache tags and in the tutorial output directory,
+preventing results from different response definitions from overwriting or
+reusing one another.
 Output and cache names explicitly contain both `response-...` and
 `toytruth-...` tags, and figures repeat both roles in their annotations. The
 notebook forward-folds the selected toy truth with the inclusive response and
@@ -933,13 +1019,21 @@ It compares the stored inclusive-reco toy fluctuations with their common
 forward-folded expectation and draws the toy/expectation ratio for every pTave
 eta interval, again without generating or unfolding toys.
 
-Use `notebooks/05_unfold2D_mc_direction.ipynb` for the beam-direction closure
-test. It constructs the response and its training truth/reco marginals, misses,
-fakes, and pair classification from Pb-going embedding, then unfolds the
-independent p-going embedding eta-dependent JER-default reco distribution and
-compares it with p-going generator truth. The notebook uses the same flattened
-bin mapping, RooUnfold response scaling, explicit fake handling, covariance,
-plotting styles, and ROOT output objects as `05_unfold2D_basics.ipynb`. Its output tag
+Use `notebooks/05_unfold2D_mc_direction.ipynb` for cross-direction or
+cross-generator closure tests. `RESPONSE_DATASET`/`RESPONSE_DIRECTION` select
+the coherent response, Gen, Reco, miss, and fake training set, while
+`UNFOLD_DATASET`/`UNFOLD_DIRECTION` independently select the MC Reco spectrum
+to unfold and the Gen truth used for closure. Each dataset accepts `embedding`,
+`pythia`, or `pythia_cp5`; CP5 direction settings are automatically normalized
+to `pp`. Its primary result uses the same
+purity, matched-migration, and efficiency factorization as
+`05_unfold2D_basics.ipynb`; the conventional inclusive RooUnfold fake/miss
+result is retained as a saved validation object. The notebook uses the same
+flattened bin mapping, RooUnfold response scaling, covariance, plotting styles,
+and ROOT output objects as `05_unfold2D_basics.ipynb`. Truth, reconstructed,
+miss, fake, and both response axes are restricted to the configured eta
+acceptance before flattening; full-axis empty bins are not part of the
+efficiency correction. Its output tag
 records both the response-training and test directions. Configure
 `FLATTENED_RATIO_TO_GEN_Y_RANGE` and `ETA_RATIO_TO_GEN_Y_RANGE` to set the
 ratio-to-gen y-axis ranges for the flattened closure and per-pTave eta panels,
@@ -1042,3 +1136,47 @@ The closure projection helpers identify pT and eta axes from their physical
 ranges because some existing reference-jet files contain misleading axis
 titles. Configured selection intervals are interpreted as half-open
 `[low, high)` ranges.
+
+## Display-ratio statistics
+
+Non-efficiency comparisons now default to ROOT independent-error propagation
+(`RATIO_OPTION = ''`), including JEC, selection shapes, smearing/closure,
+systematic shape and F/B comparisons, run-dependence, and studied/controlled
+unfolding ratios. Central values are unchanged. This is an approximation for
+correlated spectra, not a complete covariance treatment. The dedicated
+inclusive-jet efficiency/fake-rate notebook retains binomial defaults for its
+subset fractions. F/B construction always uses raw yields and independent
+errors, irrespective of later comparison options.
+
+## Generator-level jet x correlations
+
+`processForestSimple.C` adds weighted `THnSparseD` objects for each existing
+eta-cut index: `hGenDijetPtEtaCMXPb_<index>`, `hGenDijetPtEtaCMXp_<index>`,
+and `hGenDijetPtEtaCMXPbOverXp_<index>`. Axes are `(pTave, etaCM_dijet, x)`.
+They use the nominal, unsmeared selected generator dijet and its event weight,
+without replica multiplication. The first two axes retain the existing
+100 bins over 0–1000 GeV and 72 bins over −3.6–3.6. The last axis has 120
+logarithmic bins over 1e−5–10 for x, or 1e−4–1e4 for the ratio; values outside
+these ranges remain in flow bins. Estimates above one are retained.
+
+With sqrt(sNN) = 8160 GeV and the existing proton-positive CM convention:
+
+```
+xp_jets  = (pT1 exp(+eta1CM) + pT2 exp(+eta2CM)) / 8160
+xPb_jets = (pT1 exp(-eta1CM) + pT2 exp(-eta2CM)) / 8160
+```
+
+For pp these label the positive/negative light-cone estimates, not an actual
+lead beam. The massless approximation uses jet pseudorapidity rather than
+massive-jet rapidity. These are jet kinematic estimates, not generator incoming
+parton Bjorken x. Consequently they do not reproduce the ISR/FSR correlation
+in Fig. 1 of [CMS-HIN-16-003](https://arxiv.org/pdf/1805.04736).
+The attempt in `main:DiJetAnalysis.cc` uses delta eta in both the exponential
+and cosh; the exponential instead needs the pair's average eta in the
+balanced-jet limit, and unequal pT requires the individual-jet sums above.
+
+Notebook 00 copies these sparse objects unchanged. Select a half-open pTave
+interval on axis 0, then use `Projection(2, 1)` for x versus etaCM. A mean x
+computed from this distribution uses x-bin centers and therefore has finite
+binning precision. Preserve flow bins and state their treatment when plotting.
+The validation commands and review limits are recorded in [reusable histogram review](REUSABLE_HISTOGRAM_REVIEW.md).

@@ -704,6 +704,7 @@ def build_roounfold_response(
     diagnostics: ResponseDiagnostics | None = None,
     scale: float = 1.0e12,
     require_fakes: bool = True,
+    validation_tolerance: float = 1.0e-9,
     name: str = "responseEtaCM",
     title: str = "Flattened dijet pTave-etaCM response",
 ) -> RooUnfoldResponseBundle:
@@ -722,6 +723,8 @@ def build_roounfold_response(
 
     if scale <= 0.0:
         raise ValueError("Response scale must be positive")
+    if validation_tolerance < 0.0:
+        raise ValueError("Response validation tolerance must be non-negative")
     validate_common_binning(
         [training_truth, response_matrix.ProjectionY("_response_truth_binning")],
         label="response truth inputs",
@@ -746,7 +749,9 @@ def build_roounfold_response(
         for bin_index in range(1, training_measured.GetNbinsX() + 1):
             expected = scale * diagnostics.effective_fake.GetBinContent(bin_index)
             actual = response_fakes.GetBinContent(bin_index)
-            tolerance = 1.0e-9 * max(1.0, abs(expected), abs(actual))
+            tolerance = validation_tolerance * max(
+                1.0, abs(expected), abs(actual),
+            )
             if abs(actual - expected) > tolerance:
                 raise ValueError(
                     f"RooUnfold fake mismatch in bin {bin_index}: "
@@ -923,28 +928,38 @@ def apply_efficiency_correction(
     corrected = unfolded_matched.Clone(name)
     corrected.SetDirectory(0)
     corrected_covariance = covariance.Clone()
-    for row in range(unfolded_matched.GetNbinsX()):
-        row_efficiency = efficiency.GetBinContent(row + 1)
-        if row_efficiency <= 0.0:
-            raise ValueError(
-                f"Cannot efficiency-correct truth bin {row + 1}: "
-                f"efficiency={row_efficiency:g}"
-            )
+    inverse_efficiencies = []
+    for bin_index in range(1, unfolded_matched.GetNbinsX() + 1):
+        bin_efficiency = efficiency.GetBinContent(bin_index)
+        if bin_efficiency <= 0.0:
+            if (unfolded_matched.GetBinContent(bin_index) != 0.0
+                    or unfolded_matched.GetBinError(bin_index) != 0.0):
+                raise ValueError(
+                    f"Cannot efficiency-correct populated truth bin {bin_index}: "
+                    f"efficiency={bin_efficiency:g}"
+                )
+            # An empty training-truth bin has no efficiency definition and no
+            # unfolded yield to correct. Preserve it as an explicit empty bin.
+            inverse_efficiencies.append(0.0)
+            corrected.SetBinContent(bin_index, 0.0)
+            corrected.SetBinError(bin_index, 0.0)
+            continue
+        inverse_efficiencies.append(1.0 / bin_efficiency)
         corrected.SetBinContent(
-            row + 1, unfolded_matched.GetBinContent(row + 1) / row_efficiency,
+            bin_index,
+            unfolded_matched.GetBinContent(bin_index) / bin_efficiency,
         )
         corrected.SetBinError(
-            row + 1, unfolded_matched.GetBinError(row + 1) / row_efficiency,
+            bin_index,
+            unfolded_matched.GetBinError(bin_index) / bin_efficiency,
         )
-        for column in range(unfolded_matched.GetNbinsX()):
-            column_efficiency = efficiency.GetBinContent(column + 1)
-            if column_efficiency <= 0.0:
-                raise ValueError(
-                    f"Cannot efficiency-correct truth bin {column + 1}: "
-                    f"efficiency={column_efficiency:g}"
-                )
+
+    for row, row_inverse_efficiency in enumerate(inverse_efficiencies):
+        for column, column_inverse_efficiency in enumerate(inverse_efficiencies):
             corrected_covariance[row][column] = (
-                covariance[row][column] / (row_efficiency * column_efficiency)
+                covariance[row][column]
+                * row_inverse_efficiency
+                * column_inverse_efficiency
             )
     return corrected, corrected_covariance
 
@@ -1619,10 +1634,14 @@ def scan_bayes_regularization(
                 for bin_index in range(1, n_bins + 1):
                     bin_efficiency = efficiency.GetBinContent(bin_index)
                     if bin_efficiency <= 0.0:
-                        raise ValueError(
-                            f"Cannot efficiency-correct regularization truth bin "
-                            f"{bin_index}: efficiency={bin_efficiency:g}"
-                        )
+                        if (unfolded.GetBinContent(bin_index) != 0.0
+                                or unfolded.GetBinError(bin_index) != 0.0):
+                            raise ValueError(
+                                "Cannot efficiency-correct populated "
+                                f"regularization truth bin {bin_index}: "
+                                f"efficiency={bin_efficiency:g}"
+                            )
+                        continue
                     unfolded.SetBinContent(
                         bin_index,
                         unfolded.GetBinContent(bin_index) / bin_efficiency,

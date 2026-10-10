@@ -51,15 +51,17 @@ void validate(const ScanInput& input) {
   for (std::size_t truth = 0; truth < input.nTruthBins; ++truth) {
     priorTotal += input.trainingPrior[truth];
     const double efficiency = input.truthEfficiency[truth];
-    if (!std::isfinite(efficiency) || efficiency <= 0.0) {
-      throw std::invalid_argument("truthEfficiency must be finite and positive");
+    if (!std::isfinite(efficiency) || efficiency < 0.0) {
+      throw std::invalid_argument("truthEfficiency must be finite and nonnegative");
     }
     double columnTotal = 0.0;
     for (std::size_t measured = 0; measured < input.nMeasuredBins; ++measured) {
       columnTotal += input.response[measured * input.nTruthBins + truth];
     }
-    if (!(columnTotal > 0.0)) {
-      throw std::invalid_argument("every response truth column must be populated");
+    if (!(columnTotal > 0.0) &&
+        (input.trainingPrior[truth] != 0.0 || efficiency != 0.0)) {
+      throw std::invalid_argument(
+          "an empty response truth column requires zero prior and efficiency");
     }
   }
   if (!(priorTotal > 0.0)) {
@@ -74,8 +76,10 @@ std::vector<double> normalizedResponse(const ScanInput& input) {
     for (std::size_t measured = 0; measured < input.nMeasuredBins; ++measured) {
       total += result[measured * input.nTruthBins + truth];
     }
-    for (std::size_t measured = 0; measured < input.nMeasuredBins; ++measured) {
-      result[measured * input.nTruthBins + truth] /= total;
+    if (total > 0.0) {
+      for (std::size_t measured = 0; measured < input.nMeasuredBins; ++measured) {
+        result[measured * input.nTruthBins + truth] /= total;
+      }
     }
   }
   return result;
@@ -125,7 +129,15 @@ void scanToyRange(const ScanInput& input, const std::vector<double>& response,
 
       const std::size_t offset = iteration * nTruth;
       for (std::size_t truth = 0; truth < nTruth; ++truth) {
-        const double inclusive = unfolded[truth] / input.truthEfficiency[truth];
+        const double efficiency = input.truthEfficiency[truth];
+        if (efficiency == 0.0) {
+          if (unfolded[truth] != 0.0) {
+            throw std::runtime_error(
+                "zero-efficiency truth bin acquired non-zero unfolded content");
+          }
+          continue;
+        }
+        const double inclusive = unfolded[truth] / efficiency;
         if (!std::isfinite(inclusive)) {
           throw std::runtime_error("unfolded toy contains a non-finite value");
         }

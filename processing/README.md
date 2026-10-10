@@ -180,6 +180,15 @@ Options passed to `processForestSimple` are:
   with lepton veto, or `3` loose jet ID.
 - `--vertex-filter-selection`: `0` `pVertexFilterCutdz1p0` (nominal), `1`
   `pVertexFilterCutGplus`, or `2` `pVertexFilterCutVtx1`.
+- `--jer-smearing-mode`: `0` CMS hybrid (default), `1` forced CMS stochastic,
+  or `2` truth-to-pseudo-reco diagnostic. It affects MC only.
+- `--eta-dependent-jer`: multiply the central pT-dependent MC resolution by
+  the analysis-derived eta shape. It affects MC only.
+
+The generated worker command always passes `pPb` and both JER settings
+explicitly. For the recommended nominal MC production with the measured eta
+dependence, add `--jer-smearing-mode 0 --eta-dependent-jer`. Use distinct output
+directories for productions made with different JER settings.
 
 The default proxy is `voms_proxy.txt` in the `processing/` directory; override it with
 `--proxy /path/to/x509_proxy`. The proxy is copied into every sample directory

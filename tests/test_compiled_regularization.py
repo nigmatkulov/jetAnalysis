@@ -90,6 +90,30 @@ class CompiledRegularizationTest(unittest.TestCase):
                     single_worker.sums[iteration - 1][truth_bin], places=12,
                 )
 
+    def test_empty_zero_efficiency_truth_bin_remains_zero(self):
+        truth = ROOT.TH1D("compiledSparseTruth", "", 2, 0.5, 2.5)
+        measured = ROOT.TH1D("compiledSparseMeasured", "", 2, 0.5, 2.5)
+        matrix = ROOT.TH2D(
+            "compiledSparseMatrix", "", 2, 0.5, 2.5, 2, 0.5, 2.5,
+        )
+        matrix.SetBinContent(1, 1, 8.0)
+        matrix.SetBinContent(2, 1, 2.0)
+        truth.SetBinContent(1, 10.0)
+        measured.SetBinContent(1, 8.0)
+        measured.SetBinContent(2, 2.0)
+        efficiency = truth.Clone("compiledSparseEfficiency")
+        efficiency.SetBinContent(1, 0.8)
+        efficiency.SetBinContent(2, 0.0)
+        toy = measured.Clone("compiledSparseToy")
+
+        result = scan_compiled_bayes_moments(
+            matrix, truth, efficiency, [toy, toy.Clone("compiledSparseToy2")],
+            max_iterations=2, project_root=PROJECT_ROOT, worker_count=1,
+        )
+        for iteration in range(2):
+            self.assertEqual(result.sums[iteration][1], 0.0)
+            self.assertEqual(result.sums_squared[iteration][1], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

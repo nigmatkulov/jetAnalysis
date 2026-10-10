@@ -7,7 +7,7 @@ import argparse
 import os
 import subprocess
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Iterable
 
@@ -24,6 +24,8 @@ class RunnerConfig:
     trigger_id: int
     reco_jet_sel_method: int
     vertex_filter_selection: int = 0
+    jer_smearing_mode: int = 0
+    use_eta_dependent_jer: int = 0
     input_base: Path = DEFAULT_INPUT_BASE
     output_dir: Path = DEFAULT_OUTPUT_DIR
 
@@ -81,6 +83,9 @@ def build_command(config: RunnerConfig, pt_hat_sample: int) -> list[str]:
         str(config.trigger_id),
         str(config.reco_jet_sel_method),
         str(config.vertex_filter_selection),
+        "pPb",
+        str(config.jer_smearing_mode),
+        str(config.use_eta_dependent_jer),
     ]
 
 
@@ -130,6 +135,14 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         default=1,
         help="Number of pt-hat samples to run concurrently (default: 1).",
     )
+    parser.add_argument(
+        "--jer-smearing-mode", type=int, choices=(0, 1, 2), default=None,
+        help="0=CMS hybrid, 1=forced stochastic, 2=truth-to-pseudo-reco (default: script preset).",
+    )
+    parser.add_argument(
+        "--eta-dependent-jer", action=argparse.BooleanOptionalAction, default=None,
+        help="Enable or disable the analysis-derived eta shape (default: script preset).",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.workers < 1:
         parser.error("--workers must be at least 1")
@@ -173,6 +186,19 @@ def print_summary(results: list[SampleResult]) -> int:
 
 def main(config: RunnerConfig, pt_hat_samples: list[int], argv: Iterable[str] | None = None) -> int:
     args = parse_args(argv)
+    config = replace(
+        config,
+        jer_smearing_mode=(
+            config.jer_smearing_mode
+            if args.jer_smearing_mode is None
+            else args.jer_smearing_mode
+        ),
+        use_eta_dependent_jer=(
+            config.use_eta_dependent_jer
+            if args.eta_dependent_jer is None
+            else int(args.eta_dependent_jer)
+        ),
+    )
     workers = _clamp_workers(args.workers)
     if workers != args.workers:
         print(f"Using {workers} worker(s) based on available CPU cores.")

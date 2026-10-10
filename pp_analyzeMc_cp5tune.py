@@ -21,11 +21,13 @@ RECO_JET_SEL_METHOD = 2
 VERTEX_FILTER_SELECTION = 0
 
 
-def build_command(executable: Path, input_file: Path, output_file: Path) -> list[str]:
+def build_command(executable: Path, input_file: Path, output_file: Path,
+                  jer_smearing_mode: int, use_eta_dependent_jer: bool) -> list[str]:
     return [
         str(executable), str(input_file), str(output_file), str(MC_TYPE),
         str(IS_PB_GOING_DIR), "0",  # ptHatSample is unused in pp mode.
         str(TRIGGER_ID), str(RECO_JET_SEL_METHOD), str(VERTEX_FILTER_SELECTION), "pp",
+        str(jer_smearing_mode), str(int(use_eta_dependent_jer)),
     ]
 
 
@@ -53,6 +55,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--executable", type=Path, default=ROOT_DIR / "build" / "processForestSimple")
     parser.add_argument("--dry-run", action="store_true", help="Print commands without writing files.")
     parser.add_argument("--overwrite", action="store_true", help="Allow replacement of existing outputs/logs.")
+    parser.add_argument("--jer-smearing-mode", type=int, choices=(0, 1, 2), default=0,
+                        help="0=CMS hybrid, 1=forced stochastic, 2=truth-to-pseudo-reco.")
+    parser.add_argument("--eta-dependent-jer", action="store_true",
+                        help="Multiply the central JER by the analysis-derived eta shape.")
     args = parser.parse_args(argv)
     if args.workers < 1:
         parser.error("--workers must be at least 1")
@@ -66,7 +72,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error(f"No ROOT files found in {input_dir}")
     if input_dir == output_dir:
         parser.error("Input and output directories must differ")
-    commands = [build_command(executable, path, output_dir / f"{path.stem}_hist.root")
+    commands = [build_command(executable, path, output_dir / f"{path.stem}_hist.root",
+                              args.jer_smearing_mode, args.eta_dependent_jer)
                 for path in inputs]
     workers = min(args.workers, os.cpu_count() or 1, len(commands))
     print(f"Found {len(commands)} files; using {workers} worker(s).")

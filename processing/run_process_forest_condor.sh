@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-if [[ $# -ne 10 ]]; then
-    echo "Usage: $0 REPOSITORY EXECUTABLE INPUT_LIST OUTPUT_FILE MC_TYPE IS_PB_GOING PT_HAT TRIGGER_ID RECO_JET_SELECTION VERTEX_FILTER_SELECTION" >&2
+if [[ $# -ne 13 ]]; then
+    echo "Usage: $0 REPOSITORY EXECUTABLE INPUT_LIST OUTPUT_FILE MC_TYPE IS_PB_GOING PT_HAT TRIGGER_ID RECO_JET_SELECTION VERTEX_FILTER_SELECTION COLLISION_SYSTEM JER_SMEARING_MODE USE_ETA_DEPENDENT_JER" >&2
     exit 2
 fi
 
@@ -17,6 +17,9 @@ pt_hat=$7
 trigger_id=$8
 reco_jet_selection=$9
 vertex_filter_selection=${10}
+collision_system=${11}
+jer_smearing_mode=${12}
+use_eta_dependent_jer=${13}
 
 cd "$repository"
 mkdir -p "$(dirname "$output_file")"
@@ -33,7 +36,10 @@ if "$executable" \
         "$pt_hat" \
         "$trigger_id" \
         "$reco_jet_selection" \
-        "$vertex_filter_selection" >"$job_output" 2>&1; then
+        "$vertex_filter_selection" \
+        "$collision_system" \
+        "$jer_smearing_mode" \
+        "$use_eta_dependent_jer" >"$job_output" 2>&1; then
     :
 else
     status=$?

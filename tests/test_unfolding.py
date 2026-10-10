@@ -204,6 +204,27 @@ class UnfoldingHelpersTest(unittest.TestCase):
         self.assertAlmostEqual(metrics.mean_absolute_relative, 0.1)
         self.assertEqual(metrics.compared_bins, 2)
 
+    def test_efficiency_correction_keeps_empty_zero_efficiency_bin(self):
+        unfolded = ROOT.TH1D("empty_efficiency_unfolded", "", 2, 0.5, 2.5)
+        efficiency = ROOT.TH1D("empty_efficiency", "", 2, 0.5, 2.5)
+        unfolded.SetBinContent(1, 4.0)
+        unfolded.SetBinError(1, 2.0)
+        efficiency.SetBinContent(1, 0.5)
+        covariance = ROOT.TMatrixD(2, 2)
+        covariance[0][0] = 4.0
+        corrected, corrected_covariance = apply_efficiency_correction(
+            unfolded, covariance, efficiency,
+        )
+        self.assertEqual(corrected.GetBinContent(1), 8.0)
+        self.assertEqual(corrected.GetBinContent(2), 0.0)
+        self.assertEqual(corrected_covariance[0][0], 16.0)
+        self.assertEqual(corrected_covariance[0][1], 0.0)
+        self.assertEqual(corrected_covariance[1][1], 0.0)
+
+        unfolded.SetBinContent(2, 1.0)
+        with self.assertRaisesRegex(ValueError, "populated truth bin 2"):
+            apply_efficiency_correction(unfolded, covariance, efficiency)
+
     def test_sparse_response_keeps_off_diagonal_pt_migration(self):
         bins = array("i", [2, 2, 2, 2])
         low = array("d", [0.0, -1.0, 0.0, -1.0])

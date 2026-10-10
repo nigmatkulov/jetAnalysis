@@ -60,9 +60,14 @@ the existing outputs after the user's final eight-cut update. The final eight-cu
 production is exercised with synthetic ROOT inputs; full production/notebook
 execution awaits rebuilt source files. Persistent ROOT outputs were not changed.
 
-Only the requested C++ cut-table update is included in this commit; other
-C++ physics edits and unrelated working-tree changes remain uncommitted. The commit contains reusable-production integration,
-shared cut selections, reader compatibility, tests and focused documentation.
+The October 10 documentation review includes the current project changes in
+one commit, including JER modes, pointing pairs, generator x correlations,
+regularization, plotting, runners, and their tests. Synthetic branch-chain
+validation exposed disabled EventID/rho branches; branch activation now matches
+the deterministic-smearing inputs. This can change JER draws and smeared
+spectra while preserving event selections, weights, and unsmeared yields.
+The smearing-effect notebook's legacy ten-round Reco normalization must be set
+to one for hybrid/stochastic sources, as documented in the workflow README.
 
 ## Possible improvements
 
@@ -70,3 +75,21 @@ Store the actual cut table and selection provenance in upstream ROOT metadata
 so older cut orders can be verified without relying on titles. Optionally check
 source freshness before selecting a reusable bundle, and publish completed
 bundles through atomic replacement to prevent partial files after an I/O failure.
+
+## October 10 review validation
+
+Release and Debug builds completed with two unused-parameter warnings. CTest
+passed (1 test); the Python regression suite passed (44 tests). All 31 notebooks
+passed JSON and Python-cell syntax checks, Python modules compiled, and the
+Condor worker passed `bash -n`. Local Markdown links and `git diff --check`
+passed. Synthetic ROOT checks passed for pp/pPb weights and selections,
+EventID/rho updates across files, all seven response-pair classifications in
+both collision systems/orientations, and x-correlation coordinates, weights,
+errors, selections, and written output objects. The missing-rho fallback was
+also exercised before adding rho to the fixture.
+
+Full production and clean-kernel notebook execution were not rerun: the
+configured sources still require regeneration for the current cut table, as
+recorded above. Synthetic checks do not establish production-yield agreement
+or validate remote EOS/Condor availability. No generated ROOT files are part
+of this commit.
