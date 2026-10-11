@@ -423,7 +423,11 @@ embedding under `embedding/<direction>`, and Pythia under
 Use `--dry-run` to generate and inspect all sublists and submit descriptions
 without calling `condor_submit`. Run submission commands from `processing/`;
 that directory convention and the complete production/test commands are
-documented in `processing/README.md`.
+documented in [processing/README.md](processing/README.md).
+A dry run writes preparation files and proxy copies; it does not run the
+analysis or validate input availability. Output names omit the campaign ID,
+input partition and JER settings, so use separate output directories for
+configurations that must coexist.
 
 After jobs finish, `processing/retry_failed_io_jobs.py` can scan generated
 campaigns for ROOT input read failures and resubmit only the affected queue
@@ -583,10 +587,12 @@ campaign without submitting it:
 PYTHONDONTWRITEBYTECODE=1 py-env/bin/python -m py_compile \
   processing/submit_process_forest_condor.py \
   processing/submit_all_data_condor.py \
+  processing/submit_clone_forest_condor.py \
   processing/merge_data_outputs.py \
   processing/retry_failed_io_jobs.py \
   processing/check_data_filelists.py
 bash -n processing/run_process_forest_condor.sh
+bash -n processing/run_clone_forest_condor.sh
 py-env/bin/python processing/check_data_filelists.py --help
 py-env/bin/python processing/submit_process_forest_condor.py \
   processing/filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
