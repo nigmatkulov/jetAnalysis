@@ -10,13 +10,16 @@ For pPb MC, the producer normalizes by the entry count of each invocation.
 Splitting one pT-hat sample across sublists and summing outputs therefore needs
 an explicit common-denominator or merge-rescaling convention; it is not
 partition invariant. Data has unit weights and pp MC uses stored weights, so
-this specific limitation concerns pPb MC. See [physics review P04](../PHYSICS_REVIEW.md#p04--mediumhigh-for-absolute-mc-yields-ppb-normalization-depends-on-job-partitioning).
+this specific limitation concerns pPb MC. Neither the submitter nor the data merger
+applies an MC normalization correction. Keep the split fixed for comparisons;
+absolute yields and combinations of differently partitioned samples require a
+validated sample-wide normalization. The data merger below is not an MC merger.
 
 The commands in this document are intended to be run from the `processing/`
 directory, which is also the conventional submission directory:
 
 ```bash
-cd /afs/cern.ch/user/g/gnigmatk/soft/jetAnalysis/processing
+cd /path/to/jetAnalysis/processing
 ```
 
 Build the executable from this directory before submission:
@@ -26,13 +29,30 @@ cmake -S .. -B ../build -DCMAKE_BUILD_TYPE=Release
 cmake --build ../build -j
 ```
 
-Create or copy a valid proxy to the default protected location:
+Load the ROOT/CMS runtime on the submission host before building, and use a
+Linux build compatible with the selected worker environment. The repository,
+executable, calibration files under `aux_files/`, and generated sublists remain
+on shared storage; they are not bundled into the job. Do not rebuild or edit
+that shared analysis installation while a campaign is running.
+
+Create or copy a valid proxy to the default ignored location:
 
 ```bash
 voms-proxy-init --voms cms --valid 24:00
 cp "$(voms-proxy-info -path)" voms_proxy.txt
-voms-proxy-info -timeleft
+chmod 600 voms_proxy.txt
+voms-proxy-info -file voms_proxy.txt -timeleft
 ```
+
+A dry run still requires an existing executable (analysis submitter), macro
+(cloning submitter), input list, and proxy file. It creates campaign directories,
+sublists, submit files and proxy copies; the analysis submitter also creates the
+output directory. It does not validate proxy lifetime, open the ROOT inputs or
+run the analysis. Check proxy lifetime against queue wait plus runtime. Inspect
+all generated descriptions before repeating a command without `--dry-run`.
+The personal EOS paths below are examples and script defaults; replace them
+with shared writable paths for your account (`--output-base` for the bulk data
+wrapper, positional output directory for the general submitters).
 
 ### Clone the CP5 Pythia forests
 
@@ -57,7 +77,8 @@ The runner writes one ROOT output and one log per forest to the parent
 `cp5tune/` directory. The main `README.md` documents the pp physics behavior,
 file naming, parallel execution, and overwrite policy.
 
-Prepare and inspect the 657-job campaign without submitting it:
+Prepare and inspect the campaign without submitting it (one job per usable
+input-file entry; the printed count reflects the current list):
 
 ```bash
 ../py-env/bin/python submit_clone_forest_condor.py --dry-run
@@ -86,7 +107,7 @@ embedded MC samples. Their default output directories are respectively
 ../py-env/bin/python submit_clone_forest_condor.py \
   --sample embedded --beam pgoing --dry-run
 
-# Prepare both directions in one 22-job campaign
+# Prepare all 22 pT-hat lists in one campaign (one job per input file)
 ../py-env/bin/python submit_clone_forest_condor.py \
   --sample unembedded --beam all --dry-run
 
@@ -191,9 +212,20 @@ Options passed to `processForestSimple` are:
 - `--eta-dependent-jer`: multiply the central pT-dependent MC resolution by
   the analysis-derived eta shape. It affects MC only.
 
+This submitter supports pPb processing only: it has no collision-system option.
+For the pp CP5 sample use `pp_analyzeMc_cp5tune.py`, as described above.
+Embedding selects direction-specific Embedded JEC; standalone pPb PYTHIA selects
+direction-specific Unembedded JEC. The pp runner selects Pb-going pPb Unembedded
+JEC by the agreed analysis convention. No separate JEC payload option is exposed.
+
 The generated worker command always passes `pPb` and both JER settings
 explicitly. For the recommended nominal MC production with the measured eta
-dependence, add `--jer-smearing-mode 0 --eta-dependent-jer`. Use distinct output
+dependence, add `--jer-smearing-mode 0 --eta-dependent-jer`. The MC examples
+below enable this convention explicitly; omitting
+`--eta-dependent-jer` instead selects the default central-only standard family.
+The `Extra` family always uses the eta-dependent resolution; with the flag
+both families use it. In Hybrid mode it changes matching eligibility and
+stochastic fallback; matched jets retain residual scaling. Use distinct output
 directories for productions made with different JER settings.
 
 The default proxy is `voms_proxy.txt` in the `processing/` directory; override it with
@@ -224,8 +256,12 @@ MB_PD12_Pbgoing_data_jetId_job0003.root
 The generated input list and Condor log files have the same readable basename.
 Rerunning exactly the same configuration intentionally replaces matching ROOT
 outputs. Different beam directions, triggers, PDs, pT-hat samples, selection
-families, and job numbers cannot overwrite one another because those values are
-part of the filename. Reco selection methods `2` and `3` both use the requested
+families, and job numbers have distinct labels. However, campaign IDs, input
+list contents, split size and JER settings are NOT encoded in output basenames.
+A fresh campaign directory does not protect an existing ROOT output. Changing
+`--files-per-job` or the input list changes which files contribute to the same
+job number; use a separate output directory or a distinct `--name` for reruns
+that must coexist. Reco selection methods `2` and `3` both use the requested
 short label `jetId`; do not write tight- and loose-ID campaigns to the same
 output directory unless replacement is intended.
 
@@ -371,28 +407,32 @@ description for every supported pT-hat sample: 15, 30, 50, 80, 120, 170, 220,
   'filelists/pPb8160/MC_embedded/Pbgoing/MC_pthat{pt_hat}_Pbgoing_embedded.txt' \
   /eos/user/g/gnigmatk/ana/pPb8160/embedding/Pbgoing \
   --mc-type 1 --beam Pbgoing --pt-hat all \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 10 --reco-jet-selection 2 \
+  --jer-smearing-mode 0 --eta-dependent-jer
 
 # Embedded p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/MC_embedded/pgoing/MC_pthat{pt_hat}_pgoing_embedded.txt' \
   /eos/user/g/gnigmatk/ana/pPb8160/embedding/pgoing \
   --mc-type 1 --beam pgoing --pt-hat all \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 10 --reco-jet-selection 2 \
+  --jer-smearing-mode 0 --eta-dependent-jer
 
 # Pythia Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/MC_Unembedded/Pbgoing/MC_pthat{pt_hat}_Pbgoing_unembedded.txt' \
   /eos/user/g/gnigmatk/ana/pPb8160/pythia/Pbgoing \
   --mc-type 2 --beam Pbgoing --pt-hat all \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 10 --reco-jet-selection 2 \
+  --jer-smearing-mode 0 --eta-dependent-jer
 
 # Pythia p-going
 ../py-env/bin/python submit_process_forest_condor.py \
   'filelists/pPb8160/MC_Unembedded/pgoing/MC_pthat{pt_hat}_pgoing_unembedded.txt' \
   /eos/user/g/gnigmatk/ana/pPb8160/pythia/pgoing \
   --mc-type 2 --beam pgoing --pt-hat all \
-  --files-per-job 10 --reco-jet-selection 2
+  --files-per-job 10 --reco-jet-selection 2 \
+  --jer-smearing-mode 0 --eta-dependent-jer
 ```
 
 ## Monitoring and validation
@@ -411,12 +451,20 @@ condor_q -better-analyze CLUSTER_ID
 ```
 
 After completion, list nonempty error files and inspect scheduler termination
-states. Successful jobs intentionally have no `.out` file:
+states. Successful jobs intentionally have no `.out` file; their `.err` may be empty:
 
 ```bash
 find condor -type f -name '*.err' -size +0 -print
 find condor -type f -name '*.log' | sort | tail
 ```
+
+The retry scanner covers only its three listed read-error signatures. An empty
+retry report does not establish campaign completeness: held, aborted or
+unrelated failures, and skipped files without those signatures, still require
+manual review. The analysis worker does not independently reopen or validate
+its output after a zero exit status. Reconcile the expected sublist/job count,
+Condor termination status and produced files, and inspect ROOT keys and event
+counts on representative outputs before merging.
 
 Validate successful production through Condor exit status and the nonempty ROOT
 outputs written directly to the requested shared output directory. Run a small
@@ -446,6 +494,12 @@ default final filename:
 | `jetId` (default) | `2` or `3` | `_data_jetId_job*.root` | `_ak4_jetId.root` |
 | `trkMax` | `1` | `_data_trkMax_job*.root` | `_ak4_trkMax.root` |
 | `noSel` | `0` | `_data_noSel_job*.root` | `_ak4_noSel.root` |
+
+The merger does not consult Condor logs, verify campaign completeness or deduplicate
+events. Its recursive search can combine matching outputs from multiple runs.
+A `--name` prefix changes the source basename and is not matched by this merger's
+unprefixed patterns. Merge a directory containing exactly one intended campaign
+configuration; use a separate merge procedure for prefixed outputs.
 
 Reco-selection methods `2` (tight ID with lepton veto) and `3` (loose ID) both
 use the `jetId` filename label. The merger cannot distinguish them, so do not
