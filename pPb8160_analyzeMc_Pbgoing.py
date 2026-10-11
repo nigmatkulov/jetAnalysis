@@ -13,7 +13,7 @@ IS_PB_GOING_DIR = 1
 TRIGGER_ID = 0
 RECO_JET_SEL_METHOD = 2
 JER_SMEARING_MODE = 0  # 0=CMS hybrid, 1=forced stochastic, 2=truth-to-pseudo-reco
-USE_ETA_DEPENDENT_JER = 0  # 0=central pT resolution, 1=include fitted eta dependence
+USE_ETA_DEPENDENT_JER = 0  # 0=base standard + eta-dependent Extra; 1=eta-dependent in both
 PT_HAT_SAMPLES = [15, 30, 50, 80, 120, 170, 220, 280, 370, 460, 540]
 
 CONFIG = RunnerConfig(

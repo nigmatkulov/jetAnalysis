@@ -19,6 +19,8 @@ reco_jet_selection=$9
 vertex_filter_selection=${10}
 collision_system=${11}
 jer_smearing_mode=${12}
+# Submitter defaults to 0: keep base standard and eta-dependent Extra families.
+# Value 1 explicitly makes both families eta-dependent.
 use_eta_dependent_jer=${13}
 
 cd "$repository"

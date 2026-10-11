@@ -496,6 +496,11 @@ Before the optional
 smoothing step, the retained systematic histograms remain fractional; display clones
 are scaled by 100 and plotted with the y-axis title
 `JER Rel. Syst. Uncrt. (%)`, matching the macro's percent-plot convention.
+Default MC submission uses `useEtaDependentJER=0` and writes both the base
+`JerDown/Def/Up` and eta-dependent `JerDownExtra/DefExtra/UpExtra` families in
+one pass, including both unfolding response families. Select the matching
+family for the desired resolution model. Setting `useEtaDependentJER=1` makes
+the standard family eta-dependent too, so corresponding families coincide.
 The `JerDown`, `JerDef`, and `JerUp` inputs must come from one production with
 one common `jerSmearingMode` and `useEtaDependentJER` setting. The templates
 share events and common deterministic random deviates. Older producer versions

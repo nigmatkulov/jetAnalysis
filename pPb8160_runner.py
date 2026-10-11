@@ -144,7 +144,7 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--eta-dependent-jer", action=argparse.BooleanOptionalAction, default=None,
-        help="Enable or disable the analysis-derived eta shape (default: script preset).",
+        help="Use eta-dependent resolution also for standard JER branches; default preset keeps base standard and eta-dependent Extra families in one run.",
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.workers < 1:

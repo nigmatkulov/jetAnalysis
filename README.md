@@ -160,7 +160,7 @@ Argument order:
 8. `vertexFilterSelection` (`0` `pVertexFilterCutdz1p0`, `1` `pVertexFilterCutGplus`, `2` `pVertexFilterCutVtx1`)
 9. optional `collisionSystem` (`"pPb"` by default, or `"pp"`); selects frame transformations, MC branches, weighting, and event cuts
 10. optional `jerSmearingMode` (`0` by default): `0` CMS hybrid, `1` forced CMS stochastic, or `2` truth-to-pseudo-reco diagnostic
-11. optional `useEtaDependentJER` (`0` by default): multiply the central pT-dependent resolution by the analysis-derived eta shape when set to `1`
+11. optional `useEtaDependentJER` (`0` by default): `0` keeps base-resolution standard and eta-dependent `Extra` families in one run; `1` uses eta-dependent resolution for both
 
 Existing eight-argument calls retain the pPb boost, weighting, selection, and
 orientation conventions.
@@ -305,14 +305,17 @@ py-env/bin/python pPb8160_analyzeMc_Pbgoing.py --workers 4
 py-env/bin/python pPb8160_analyzeMc_pgoing.py --workers 4
 ```
 
-Both runners pass the JER configuration explicitly. Add
-`--jer-smearing-mode {0,1,2}` and either `--eta-dependent-jer` or
-`--no-eta-dependent-jer` as needed; the defaults
-are CMS hybrid and eta-independent resolution. For the nominal production with
-the analysis-derived eta resolution, use `--jer-smearing-mode 0
---eta-dependent-jer`. The direction-specific scripts expose the same preset
-defaults as `JER_SMEARING_MODE` and `USE_ETA_DEPENDENT_JER`; command-line
-options take precedence when the scripts are run.
+Both runners pass the JER configuration explicitly. The default is CMS
+Hybrid with `USE_ETA_DEPENDENT_JER=0`: a single run writes both base-resolution
+standard JER distributions and eta-dependent `Extra` distributions, including
+both unfolding response families. No second MC production is needed.
+Leave `--eta-dependent-jer` off to keep these families distinct.
+`--no-eta-dependent-jer` explicitly selects this default for the pPb runners.
+The optional `--eta-dependent-jer` override makes both families eta-dependent;
+corresponding cached momenta then agree. `--jer-smearing-mode {0,1,2}` selects
+the smearing algorithm independently. Direction-specific scripts expose the
+presets as `JER_SMEARING_MODE` and `USE_ETA_DEPENDENT_JER`; command-line options
+take precedence when the scripts are run.
 
 The runner keeps going after individual sample failures and prints a final summary of skipped and failed pt-hat jobs.
 Inputs are read from
@@ -398,7 +401,9 @@ The `processing/submit_process_forest_condor.py` workflow splits the tracked
 pPb 8.16 TeV file lists, creates readable output and log names, and invokes
 `processForestSimple` with the complete current interface. It passes `pPb`, the
 JER mode, and the eta-dependence switch explicitly. The submitter exposes these
-as `--jer-smearing-mode` and `--eta-dependent-jer`. It supports
+as `--jer-smearing-mode` and `--eta-dependent-jer`. By default, one MC pass
+keeps base standard and eta-dependent `Extra` families; omit
+`--eta-dependent-jer` to retain both distinct families. It supports
 individual or all MB primary datasets and individual or all MC pT-hat samples.
 Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in

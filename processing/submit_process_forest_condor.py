@@ -168,8 +168,8 @@ def parse_args() -> argparse.Namespace:
         help="0=CMS hybrid, 1=forced stochastic, 2=truth-to-pseudo-reco (default: 0)",
     )
     parser.add_argument(
-        "--eta-dependent-jer", action="store_true",
-        help="Multiply the central JER by the analysis-derived eta shape",
+        "--eta-dependent-jer", action="store_true", default=False,
+        help="Use eta-dependent resolution also for standard JER branches; default keeps base standard and eta-dependent Extra families in one run",
     )
     parser.add_argument(
         "--files-per-job", type=positive_int, default=10, help="Default: 10"
