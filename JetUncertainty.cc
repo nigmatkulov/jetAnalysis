@@ -20,6 +20,7 @@
 #include "JetUncertainty.h"
 
 #include <cstddef>
+#include <stdexcept>
 
 //________________
 void JetUncertainty::Initialize(std::string FileName) {
@@ -29,11 +30,17 @@ void JetUncertainty::Initialize(std::string FileName) {
     std::vector<Type> CurrentBinTypes;
 
     std::ifstream in(FileName.c_str());
+    if (!FileName.empty() && !in.is_open()) {
+        throw std::runtime_error("JetUncertainty: cannot open calibration file: " + FileName);
+    }
 
     while (in) {
         char ch[1048576];
         ch[0] = '\0';
-        in.getline(ch, 1048577, '\n');
+        in.getline(ch, sizeof(ch), '\n');
+        if (in.fail() && !in.eof()) {
+            throw std::runtime_error("JetUncertainty: calibration line exceeds buffer: " + FileName);
+        }
 
         if (ch[0] == '\0') continue;
 
@@ -78,6 +85,10 @@ void JetUncertainty::Initialize(std::string FileName) {
 
             BinRanges.push_back(Ranges);
             int N = atoi(Parts[nvar * 2].c_str());
+            if (N < 0 || N % 3 != 0 ||
+                Parts.size() < static_cast<std::size_t>(nvar * 2 + 1) + static_cast<std::size_t>(N)) {
+                throw std::runtime_error("JetUncertainty: invalid uncertainty triples in: " + FileName);
+            }
             // Text payload triples are pT and two fractional uncertainties;
             // retain the parser's low/high ordering for GetUncertainty users.
             // These are relative shifts, not absolute uncertainties in GeV.

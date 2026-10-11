@@ -92,16 +92,29 @@ def project_histogram(obj, spec: Mapping[str, Any] | None = None, *, name: str |
         if axis_index is None:
             raise ValueError("THnSparse projection requires 'axis_index' in spec")
 
-        # SetRange mutates the source THnSparse and persists after this call.
-        # Repeated callers must reset ranges or pass an independent clone; see
-        # P08 in PHYSICS_REVIEW.md for the resulting selection-state hazard.
-        axis_ranges = spec.get("axis_ranges", {})
-        for idx, value_range in axis_ranges.items():
-            axis = obj.GetAxis(idx)
-            low_bin, high_bin = _range_to_bins(axis, value_range)
-            axis.SetRange(low_bin, high_bin)
-
-        return _clone_detached(obj.Projection(axis_index))
+        # Range selections belong to this call, not the shared input object.
+        # Preserve the range bit too: an inactive axis includes flow bins,
+        # whereas an active [1, nbins] range excludes them.
+        axes = [obj.GetAxis(i) for i in range(obj.GetNdimensions())]
+        original_ranges = [
+            (axis.GetFirst(), axis.GetLast(), bool(axis.TestBit(ROOT.TAxis.kAxisRange)))
+            for axis in axes
+        ]
+        try:
+            for idx, value_range in spec.get("axis_ranges", {}).items():
+                axis = obj.GetAxis(idx)
+                low_bin, high_bin = _range_to_bins(axis, value_range)
+                axis.SetRange(low_bin, high_bin)
+            return _clone_detached(obj.Projection(axis_index))
+        finally:
+            for axis, (first, last, active) in zip(axes, original_ranges):
+                if not active:
+                    axis.SetRange(0, 0)
+                elif first == 0 and last == 0:
+                    # SetRange(0, 0) clears the range; (-1, 0) selects only underflow.
+                    axis.SetRange(-1, 0)
+                else:
+                    axis.SetRange(first, last)
 
     if obj.InheritsFrom("TH3"):
         if spec is None:

@@ -76,7 +76,7 @@ void usage() {
 const int nEtaShifts = 13;
 static constexpr std::array<float, nEtaShifts> etaShift{0.460, 0.463, 0.464, 0.465, 0.466, 0.467, 0.468, 0.469, 0.470, 0.475, 0.480, 0.485, 0.490 };
 const int nEtaCuts = 8;
-static constexpr std::array<float, nEtaCuts> etaCuts{1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4, 3.0};
+static constexpr std::array<float, nEtaCuts> etaCuts{1.5, 1.6, 1.7, 1.8, 1.9, 2.4, 2.5, 3.0};
 // Run IDs used for the data-taking-period comparison histograms.
 const int nDiagnosticRuns = 5;
 const int nDiagnosticRunHistograms = nDiagnosticRuns + 1;
@@ -2920,8 +2920,7 @@ void processRecoJets(const bool isPp, const bool &isPbGoing, const bool &isMc, c
 
         // Fill after the configured jet selection so the raw and corrected
         // histograms contain the same selected jet population.
-        hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Fill(
-            recoJet.recoPtRaw, recoJet.recoEta, weight);
+        hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Fill(recoJet.recoPtRaw, recoJet.recoEta, weight);
 
         // std::cout << Form("Jet: eta = %.2f, phi = %.2f, rawPt = %.1f, recoPt = %.1f", 
         //                   recoJet.recoEta, recoJet.recoPhi, recoJet.recoRawPt, recoJet.recoPt) << std::endl;
@@ -2934,7 +2933,7 @@ void processRecoJets(const bool isPp, const bool &isPbGoing, const bool &isMc, c
         //     hs.hRecoInclusiveJetEtaCMShifted[iShift]->Fill(recoJetEtaCM, weight);
         // } // for (int iShift{0}; iShift < nEtaShifts; ++iShift)
 
-        // Perform JES & JER smearing calculations
+        // Fill histograms for MC jets with and without matching gen jets
         if (isMc) {
             if (hasMatchingGenJet) {
                 // Fill histograms for reco jets with matching gen jets
@@ -4018,10 +4017,9 @@ int main(int argc, char* argv[]) {
 
     bool isMc = (mcType != 0);
     bool isPythia = ((mcType != 0) && (mcType == 2));
-    // P01: isMc is bool, so this is true for BOTH mcType=1 and mcType=2.
-    // Consequently the Unembedded calibration branch below is unreachable.
-    // Selector retained pending a calibration decision; see PHYSICS_REVIEW.md.
-    bool isEmbedding = (isMc == 1);
+    // Select by sample type, not the Boolean MC flag. Standalone PYTHIA
+    // (including pp MC) uses the direction-specific pPb Unembedded payload.
+    bool isEmbedding = (mcType == 1);
     bool isPbGoing = (isPbGoingDir == 1);
 
     // Define the standard eta bins for L2L3 corrections
@@ -4038,7 +4036,7 @@ int main(int argc, char* argv[]) {
     if (isMc) {
         if (isPbGoingDir) {
             if (isEmbedding) {
-                // PYTHIA+EPOS
+                // PYTHIA+EPOS (embedding)
                 fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
             }
             else {
@@ -4048,7 +4046,7 @@ int main(int argc, char* argv[]) {
         }
         else {
             if (isEmbedding) {
-                // PYTHIA+EPOS
+                // PYTHIA+EPOS (embedding)
                 fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_pgoing_Embedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
             }
             else {
@@ -4069,6 +4067,7 @@ int main(int argc, char* argv[]) {
         // New correction (with updated residuals)
         fJECFileNames.push_back( Form("%s/JEC/Summer16_07Aug2017GH_V11_DATA_L2L3Residual_AK4PF.txt", path2auxFiles) );
         
+        // JEU (Jet Energy Uncertainty)
         fJEUFileName = Form("%s/JEC/Summer16_23Sep2016HV4_DATA_Uncertainty_AK4PF.txt", path2auxFiles);
     } // else
 

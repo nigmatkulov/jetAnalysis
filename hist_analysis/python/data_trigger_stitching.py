@@ -10,7 +10,9 @@ from pathlib import Path
 
 import ROOT
 
+from hist_analysis.config.histograms import STANDARD_DIJET_ETA_CUT_INDEX
 from .histogram_io import load_histogram
+from .histogram_production import resolve_eta_source_key
 from .projections import project_semantic_th2
 from .root_style import (
     DEFAULT_PLOT_STYLE,
@@ -132,14 +134,14 @@ def dijet_histogram_key(filename, frame: str, eta_cut_index: int) -> str:
     if frame not in {"lab", "cm"}:
         raise ValueError("frame must be 'lab' or 'cm'")
     base = f"hRecoDijetPtEta{'Lab' if frame == 'lab' else 'CM'}"
-    indexed = f"{base}_{eta_cut_index}"
+    indexed = resolve_eta_source_key(filename, f"{base}_{eta_cut_index}")
     try:
         load_histogram(str(filename), indexed)
     except KeyError:
         pass
     else:
         return indexed
-    if eta_cut_index == 5:
+    if eta_cut_index == STANDARD_DIJET_ETA_CUT_INDEX:
         try:
             load_histogram(str(filename), base)
         except KeyError:

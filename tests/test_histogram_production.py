@@ -79,7 +79,7 @@ class HistogramProductionTest(unittest.TestCase):
         cpp = (Path(__file__).resolve().parents[1] / 'processForestSimple.C').read_text()
         values = re.search(r'etaCuts\{([^}]+)\}', cpp).group(1)
         self.assertEqual(tuple(float(value.strip()) for value in values.split(',')), DIJET_ETA_CUTS)
-        for index, label in enumerate(('1p5', '1p6', '1p7', '1p8', '1p9', '2p3', '2p4', '3p0')):
+        for index, label in enumerate(('1p5', '1p6', '1p7', '1p8', '1p9', '2p4', '2p5', '3p0')):
             self.assertEqual(projection_key(f'hGenDijetPtEtaCM_{index}', 'standard', (60, 70)),
                              f'hGenDijetEtaCM_etaCut{label}_standard_ptAve60to70')
         self.assertIsNone(ETA_KEY_PATTERN.match('hRecoDijetPtEtaCMRun_285480'))
@@ -182,15 +182,15 @@ class HistogramProductionTest(unittest.TestCase):
                 'schema_version': 2, 'eta_cut_index_to_value': dict(enumerate(old))})).Write()
             file.Close()
             original.Close()
-            # Current index 6 means 2.4; archived source metadata determines its index.
-            actual = project_data_histogram(output, 'hRecoDijetPtEtaCM_6', 'eta', (60, 70), name='old_2p4')
+            # Current index 5 means 2.4; archived source metadata determines its index.
+            actual = project_data_histogram(output, 'hRecoDijetPtEtaCM_5', 'eta', (60, 70), name='old_2p4')
             self.assertEqual(actual.Integral(), 7.)
             closure = _project_eta(output, 'hRecoDijetPtEtaCM_7', (60, 70), name='old_3p0', rebin_eta=1)
             self.assertEqual(closure.Integral(), 8.)
-            custom = project_data_histogram(output, 'hRecoDijetPtEtaCM_6', 'eta', (60, 80), name='custom_old')
+            custom = project_data_histogram(output, 'hRecoDijetPtEtaCM_5', 'eta', (60, 80), name='custom_old')
             self.assertEqual(custom.Integral(), 7.)
-            with self.assertRaisesRegex(ValueError, 'no unique source cut 2.3'):
-                project_data_histogram(output, 'hRecoDijetPtEtaCM_5', 'eta', (60, 70), name='absent_2p3')
+            with self.assertRaisesRegex(ValueError, 'no unique source cut 2.5'):
+                project_data_histogram(output, 'hRecoDijetPtEtaCM_6', 'eta', (60, 70), name='absent_2p5')
 
     def test_unfolding_overrides_take_precedence(self):
         with patch.object(Path, 'is_file', return_value=True):
