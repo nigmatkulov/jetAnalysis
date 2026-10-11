@@ -4,8 +4,9 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 
 ## Physics conventions and review
 
-See [PHYSICS_REVIEW.md](PHYSICS_REVIEW.md) for the annotated execution map,
-confirmed calibration/response/smearing issues, and statistical limitations.
+The optional local `PHYSICS_REVIEW.md` records the annotated execution map,
+confirmed calibration/response/smearing issues, and statistical limitations;
+it is not distributed with the repository.
 The follow-up fixes stored truth misses for events with fewer than two selected
 reco jets and makes pPb pT-hat selection/weight intervals consistently half-open.
 JER variations now cache one shared draw per physical jet/replica before sorting.
