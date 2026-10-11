@@ -9,8 +9,9 @@ confirmed calibration/response/smearing issues, and statistical limitations.
 The follow-up fixes stored truth misses for events with fewer than two selected
 reco jets and makes pPb pT-hat selection/weight intervals consistently half-open.
 JER variations now cache one shared draw per physical jet/replica before sorting.
-The MC JEC selector and job-dependent pPb sample normalization remain unresolved;
-see the review before interpreting absolute yields. Histogram titles alone do not imply bin-width or luminosity normalization.
+MC JEC selection uses sample type: embedding uses Embedded and standalone
+PYTHIA uses Unembedded payloads. pp PYTHIA uses the Pb-going pPb Unembedded
+payload by convention. Job-dependent pPb normalization remains unresolved. Histogram titles alone do not imply bin-width or luminosity normalization.
 
 ## Project layout
 
@@ -194,6 +195,11 @@ configured resolution. The internal `jerMomenta` cache also retains x2, x0.9,
 and eta-dependent Down/Default/Up branches. Hybrid/Stochastic unit-SF smearing
 adds no stochastic width; mode 2 retains full-resolution smearing around truth.
 The named fields describe the current replica (the last replica after mode 2).
+With `useEtaDependentJER=0`, standard templates use the base resolution and
+`Extra` templates use the eta-dependent resolution. With the switch set to 1,
+both families use the eta-dependent resolution and corresponding momenta agree.
+For good Hybrid matches, resolution affects match eligibility only: the matched
+residual is scaled by SF, without an additional eta multiplier.
 If a resulting correction is non-finite or non-positive, the correction factor
 is reset to one. Forests without a supported rho branch use `rho=0` with a
 runtime warning; EventID is required.
@@ -322,9 +328,9 @@ It writes `<input-stem>_hist.root` and `<input-stem>_hist.log` under
 `$HOME/cernbox/ana/pPb8160/pythia/cp5tune/`. On this workstation those directories
 are `/Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/forest/` and its parent.
 The runner invokes `processForestSimple` as Pythia MC in `pp` mode. It passes
-direction 1 to select the existing Pb-going pPb JEC configuration. The current
-Boolean `isEmbedding` selector actually chooses the Embedded MC payload even
-for PYTHIA (review finding P01); pp does not have a separate calibration branch.
+direction 1 to select the Pb-going pPb Unembedded MC JEC payload, as intended
+for pp PYTHIA. The selector tests `mcType == 1` for embedding; `mcType == 2`
+uses Unembedded. pp does not have a separate calibration payload.
 The direction does not alter pp eta. It uses tight jet ID and trigger ID 0.
 These analysis choices are constants near the top of the script. JER mode and
 eta dependence are selected with the same `--jer-smearing-mode` and
@@ -452,7 +458,7 @@ workflow uses the matched-pair `h{Reco,Ref}DijetPtEta{CM,Lab}PointingRes_<index>
 pairs. Both histograms retain the reconstructed dijet pTave and require matched
 jets. The Reco histogram applies its eta acceptance to reconstructed jets and
 the Ref histogram applies it to the matched reference jets.
-The configured per-jet acceptances are 1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4,
+The configured per-jet acceptances are 1.5, 1.6, 1.7, 1.8, 1.9, 2.4, 2.5,
 and 3.0 (indices 0–7); the standard 1.9 acceptance is index 4. Older
 nine-cut outputs beginning at 1.4 must be regenerated before use with the
 current shared cut table.
@@ -633,4 +639,16 @@ root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine("
 
 This payload check does not certify the main program's selector. Inspect its
 `JEC files` log and accepted input paths separately; the current standalone
-PYTHIA selector still incorrectly chooses Embedded JEC (P01).
+PYTHIA selector now chooses Unembedded JEC (P01 fixed); embedding retains
+Embedded JEC.
+
+Calibration input checks (missing files, oversized lines, truncated uncertainty
+triples, and a valid payload):
+
+```bash
+root -l -b -q -e 'gROOT->ProcessLine(".L JetCorrector.cc"); gROOT->ProcessLine(".L JetUncertainty.cc"); gROOT->ProcessLine(".L tests/test_calibration_input_validation.C"); test_calibration_input_validation();'
+```
+
+Nonempty missing calibration paths and oversized lines fail explicitly. Empty
+JEU paths remain the intentional unused-MC sentinel. These checks do not certify
+all payload rows or the physics validity of extrapolation.

@@ -36,8 +36,10 @@ stored miss/category spectra. The updated producer fills those events in both
 response families and the nominal training/test split. Inclusive-minus-matched
 accounting also recovers their yield in older outputs, so their residual labelled
 boundary migration can contain that historical omission. JER templates share events. The updated producer caches their common draws
-before sorting; older outputs can use different draws after rank changes. Calibration selection and job-dependent pPb normalization require
-validation before interpreting production results.
+before sorting; older outputs can use different draws after rank changes. The corrected calibration selector uses Unembedded JEC for PYTHIA, including
+the Pb-going pPb payload for pp. Older outputs used Embedded JEC for all MC.
+Job-dependent pPb normalization still requires validation before interpreting
+production results.
 
 Unit-area TH1 errors, trigger-scale errors, and comparison-ratio errors do not
 encode the complete shared-event/normalization covariance. Fixed purity and
@@ -63,7 +65,7 @@ readable form
 `h<Level>DijetEta<Frame>_etaCut<value>_<standard|test>_ptAve<low>to<high>`,
 for example `hGenDijetEtaCM_etaCut1p9_standard_ptAve60to70`.
 The shared `DIJET_ETA_CUTS` table maps upstream indices 0–7 to
-1.5, 1.6, 1.7, 1.8, 1.9, 2.3, 2.4, and 3.0. A decimal becomes `p`,
+1.5, 1.6, 1.7, 1.8, 1.9, 2.4, 2.5, and 3.0. A decimal becomes `p`,
 including `3p0`. These are cuts already applied to both jets upstream,
 using the frame and selected jet collection of the source family; they are
 not an extra selection on the projected dijet eta. The nominal production
@@ -92,7 +94,7 @@ starting at 1.4. Rebuild their histogram outputs to adopt the new eight-cut orde
 starting at 1.5. The standalone analyzer macros already have the new table;
 rerun them on stored generator inputs rather than generating new PYTHIA events. All notebook
 `ETA_CUTS` settings use the shared table, including notebooks that formerly
-listed 2.5 or omitted 2.3. Rerun notebook 00 after
+used a different cut order. Rerun notebook 00 after
 changing sources: the resolvers do not automatically regenerate or freshness-check
 produced files. Plot normalization and F/B construction remain consumer-side; F/B
 still divides unnormalized Forward and Backward yields with ROOT independent
@@ -588,7 +590,7 @@ independently allow standard or ROOT option `B` errors.
 The same notebook also produces a full-distribution-only Lab-frame estimator
 from `hRecoDijetPtEtaLabPointingRes_<lab eta cut>` and
 `hRefDijetPtEtaLabPointingRes_<lab eta cut>`. `LAB_ETA_CUT_INDEX` is configured
-separately from the CM selection and defaults to `DIJET_ETA_CUTS.index(2.3)` (index 5), corresponding to
+separately from the CM selection and defaults to `DIJET_ETA_CUTS.index(2.4)` (index 5), corresponding to
 `|eta_Lab^jet| < 2.3`. It reuses the configured pTave intervals, Reco/Ref fit,
 one-sided uncertainty, ratio-band, CSV, and outward smoothing workflows, with
 the Lab smoothing origin fixed at zero. No Lab Forward/Backward ratio is made.
@@ -1297,3 +1299,9 @@ clean-kernel run of the reco-to-gen closure notebook used the new 1000-event
 embedding output, one 50–100 GeV interval and the standard 1.9 acceptance;
 all six PDFs were produced. The other full notebooks were not executed in
 this change. Production sources and pre-existing ROOT artifacts were read-only.
+
+Trigger-stitching key fallback is permitted only for the standard 1.9 cut
+(index 4). An unindexed nominal histogram cannot substitute for the 2.4 cut
+(index 5) or any other acceptance. Current production uses 2.4 and 2.5 at
+indices 5 and 6; older outputs with 2.3/2.4 there require physical-cut metadata
+remapping or regeneration. Histogram index alone is not a physical cut label.

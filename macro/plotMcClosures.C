@@ -4199,10 +4199,9 @@ void plotSingleJetClosures(int collisionSystem, double collisionEnergy, TString 
     set1DStyle(hInclusiveJetReco2GenEtaStdBins, 0); 
     for (int iPtBin = 0; iPtBin < nPtBins; ++iPtBin) {
         hInclusiveJetReco2GenEtaStdBinsPtBins[iPtBin] = dynamic_cast<TH1D *>( hRecoInclusiveJetEtaStdBinsPtBins[iPtBin]->Clone(Form("hInclusiveJetReco2GenEtaStdBinsPtBin%d", iPtBin)) );
-        // P07: these separately normalized reco/gen shapes are not a pass/total
-        // efficiency; binomial errors below are a legacy statistical limitation.
-        // Kept unchanged in the annotation review; see PHYSICS_REVIEW.md.
-        hInclusiveJetReco2GenEtaStdBinsPtBins[iPtBin]->Divide(hInclusiveJetReco2GenEtaStdBinsPtBins[iPtBin], hGenInclusiveJetEtaStdBinsPtBins[iPtBin], 1., 1., "B");
+        // Separately normalized reco/gen shapes are not a pass/total efficiency.
+        // Use independent propagation; shared-event covariance is not encoded.
+        hInclusiveJetReco2GenEtaStdBinsPtBins[iPtBin]->Divide(hInclusiveJetReco2GenEtaStdBinsPtBins[iPtBin], hGenInclusiveJetEtaStdBinsPtBins[iPtBin], 1., 1., "");
         set1DStyle(hInclusiveJetReco2GenEtaStdBinsPtBins[iPtBin], 0);
     }
     hLeadJetReco2GenEta = dynamic_cast<TH1D *>( hRecoLeadJetEta->Clone("hLeadJetReco2GenEta") );

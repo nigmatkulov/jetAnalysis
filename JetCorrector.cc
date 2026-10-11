@@ -20,6 +20,7 @@
 #include "JetCorrector.h"
 
 #include <cstddef>
+#include <stdexcept>
 
 //_________________
 JetCorrector::JetCorrector() : JEC{}, 
@@ -130,6 +131,9 @@ void SingleJetCorrector::Initialize(std::string FileName) {
     std::vector<Type> CurrentBinTypes;
 
     std::ifstream in(FileName.c_str());
+    if (!in.is_open()) {
+        throw std::runtime_error("SingleJetCorrector: cannot open calibration file: " + FileName);
+    }
 
     //std::cout << "SingleJetCorrector::Initialize" << std::endl;
     //std::cout << "Input filename: " << FileName.c_str() << std::endl;
@@ -137,7 +141,10 @@ void SingleJetCorrector::Initialize(std::string FileName) {
     while (in) {
         char ch[1048576];
         ch[0] = '\0';
-        in.getline(ch, 1048577, '\n');
+        in.getline(ch, sizeof(ch), '\n');
+        if (in.fail() && !in.eof()) {
+            throw std::runtime_error("SingleJetCorrector: calibration line exceeds buffer: " + FileName);
+        }
         //std::cout << "line: " << ch << std::endl;
 
         if (ch[0] == '\0') {

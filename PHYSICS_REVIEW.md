@@ -41,9 +41,9 @@ correction covariance. `regularization_scan.cpp` accelerates toy ensemble moment
 
 ## Confirmed implementation issues
 
-### P01 — High: all MC selects the embedding JEC branch
+### P01 — Fixed: all MC previously selected the embedding JEC branch
 
-In the entry point, `isMc = (mcType != 0)` is Boolean, but
+Before the fix, in the entry point, `isMc = (mcType != 0)` was Boolean, but
 `isEmbedding = (isMc == 1)`. Thus both `mcType=1` and `mcType=2` enter the
 Embedded calibration branch; the Unembedded branch is unreachable for MC.
 The nominal PYTHIA and pp CP5 runners therefore do not select the unembedded
@@ -52,10 +52,10 @@ embedded and unembedded calibrations.
 
 This is a control-flow defect. Its yield/shape impact depends on the actual
 payloads and input sample; the present review does not assign a numerical bias.
-A proposed fix is to test `mcType == 1`, followed by explicit decisions about
-which payload pp should use. Validate printed calibration paths, corrected jet
+The implemented fix tests `mcType == 1`; the authorized pp convention is
+the Pb-going pPb Unembedded payload (see the 2026-10-11 follow-up). Validate printed calibration paths, corrected jet
 pT, threshold migrations, and response accounting before regenerating outputs.
-No calibration was switched. As a concrete payload comparison, a 100 GeV
+No calibration was switched during the original audit. As a concrete payload comparison, a 100 GeV
 jet at eta 0 in the Pb-going branch is corrected to 105.000 GeV by Embedded
 and 105.504 GeV by Unembedded; at eta +1.5 the values are 111.738 and
 113.252 GeV. These are evaluations of the current files, not production yield
@@ -156,10 +156,13 @@ code alone. pp uses its stored weight directly and has no such entry-count
 normalization. Boundary tests cover every configured pPb interval in both
 directions and confirm that the pp range bypass remains unchanged.
 
-### P07 — Medium: a legacy reco/gen shape ratio requests binomial errors
+### P07 — Fixed: a legacy reco/gen shape ratio requested binomial errors
 
 In `macro/plotMcClosures.C`, `hInclusiveJetReco2GenEtaStdBinsPtBins` divides
-independently normalized reconstructed and generator eta shapes with `"B"`.
+independently normalized reconstructed and generator eta shapes previously with `"B"`.
+The 2026-10-11 review replaces this with ordinary independent-error propagation.
+A ROOT fixture using the actual division statements confirms identical central
+values and the expected independent uncertainties.
 Reco bins are not a pass subset of the same truth-coordinate denominator:
 reconstruction introduces migrations, and shape normalization changes both
 samples. The binomial statistical model is therefore inappropriate, even
@@ -173,17 +176,30 @@ requires matched numerator and inclusive denominator defined in the SAME truth
 bins. Ordinary independent errors also omit shared-event covariance; switching
 away from `B` does not by itself solve that problem.
 
-### P08 — Medium: generic sparse projections retain selection state
+### P08 — Fixed: generic sparse projections retained selection state
 
-`projections.project_histogram` calls `SetRange` on a supplied THnSparse and does
-not restore its ranges. A later projection with no `axis_ranges` can silently
-reuse the previous selection. A two-entry sparse example gave integrals **1**
-for the restricted projection, **1** when the next call omitted ranges, and
-**2** after explicitly resetting the source axis. This is a confirmed API state hazard when an
-object is reused; current impact depends on the calling workflow. The dedicated
-unfolding flattener resets its pT ranges in a `finally` block, so this finding
-is about the generic projection helper. A future fix should preserve/restore
-all original axis ranges or operate on an independent object.
+Before the fix, `projections.project_histogram` called `SetRange` on a supplied
+THnSparse without restoring its ranges. A later projection with no
+`axis_ranges` could silently reuse the previous selection. A two-entry sparse
+example gave integrals **1** for the restricted projection, **1** when the next
+call omitted ranges, and **2** after explicitly resetting the source axis.
+
+The helper now snapshots every axis's first/last bins and `kAxisRange` flag,
+applies the same selection and projection as before, and restores the original
+state in `finally`, including after selection/projection errors. An inactive
+range and an active full-visible-bin range are distinct because they treat flow
+bins differently; underflow-only ranges are restored with `SetRange(-1, 0)`.
+The detached output, selection-to-bin conversion and projection algorithm are
+unchanged. Existing source selections remain effective during the call.
+
+Validation (2026-10-11): regression tests cover repeated calls, existing active
+ranges, inactive axes, underflow/overflow, signed weights and exceptions. On
+16 real nominal response histograms (eight eta cuts each from embedding and pp),
+all 64 projected results exactly matched the old logic in contents, errors,
+entries and bin edges; source axis states were unchanged. Repository notebooks
+and workflows currently use other helpers, not `project_histogram`, so their
+projection path is untouched. Calls that relied on a previous call's leaked
+selection must now specify it explicitly; that is the intended bug fix.
 
 The generic bin-range helper also swaps indices when the selected range is
 empty or reversed. Validate configured intervals and avoid interpreting that
@@ -195,7 +211,7 @@ fallback as a physically meaningful empty selection.
 
 `collisionSystem='pp'` disables the eta boost/flip and pPb event weighting/skim
 cuts, but does not select a separate pp JEC or resolution fit. The same
-pPb/direction-based calibration selection remains, including P01. Reusing it
+pPb/direction-based calibration selection remains; P01 is now fixed. Reusing it
 might be intentional for a controlled comparison, but needs validation for an
 absolute pp measurement. The legacy vertex-z sign flip also lacks the pp guard:
 pp eta is unflipped while signed vz depends on the direction flag. This does
@@ -399,3 +415,102 @@ Pseudo-reco diagnostic templates can change in later replicas too, since their
 jet identity is now stable across replicas; its first-replica nominal unfolding
 response remains unchanged. No data-dependent notebook was executed, and no
 production histogram files were replaced.
+
+## Calibration-selector fix (2026-10-11)
+
+The authorized convention is now implemented: `isEmbedding = (mcType == 1)`.
+pPb embedding retains direction-specific Embedded JEC; pPb standalone PYTHIA
+uses direction-specific Unembedded JEC. pp PYTHIA deliberately uses the Pb-going
+pPb Unembedded payload through `pp_analyzeMc_cp5tune.py` (mcType=2, direction=1).
+The earlier routing audit above describes the pre-fix version. Corrected momenta,
+reco selections, systematic templates and responses can change for PYTHIA.
+No JEC payload, JER constant, selection threshold, weight or histogram key changes.
+This selects the intended files; it does not establish pp calibration closure.
+
+Validation for the selector fix: Release configure/build and CTest (1/1) passed;
+real JEC payload checks and pp-runner Python syntax checks passed. Five
+1000-entry before/after runs verified the logged payload paths and unchanged
+ROOT keys (564 each). Embedding was exactly identical, including errors, in
+both directions (831 selected events). PYTHIA pPb selected counts changed
+791→792 (Pb-going) and 793→792 (p-going); pp changed 974→972. A direct
+per-event audit using both correctors and the existing `fillOverweightHistograms`
+reproduced every migration: pPb entries 39 and 873, and pp entries 160 and 842.
+Basic event-cut counts remained 804 for pPb and 982 for pp. The migrations
+come from corrected pT crossing the existing reco tail-veto boundary; its
+constants and logic were not changed. Since that veto precedes generator
+histogram filling, generator yields can also change indirectly. The two pPb
+directions used the same Pb-going input subset to isolate direction-specific
+payload routing, not to claim a physical p-going sample validation. No full
+production, pp closure study, or notebook rerun was performed: this check is
+limited to selector routing and its immediate numerical consequences.
+
+
+## Follow-up consistency review (2026-10-11)
+
+The Hybrid JER convention is retained by explicit analysis decision: the
+eta-dependent resolution changes matching eligibility and stochastic fallback;
+well-matched jets retain the residual-scaling formula. No smearing prescription
+or random draw was changed in this review.
+
+### Calibration input validation
+
+Both calibration readers passed a length greater than their character buffer to
+`getline`. They now pass the actual buffer size and reject oversized lines with
+a filename-bearing error. Missing nonempty payload paths also raise an error;
+the empty MC uncertainty filename retains its existing sentinel behavior.
+The uncertainty reader rejects truncated or malformed triples before indexing
+them. These changes affect invalid inputs, without changing valid calibration
+values: 196 real JEC evaluations and 49 JEU evaluations matched the previous
+readers exactly, including the existing non-finite values.
+
+### Eta-cut consistency and trigger lookup
+
+The producer's current cuts are intentionally
+`{1.5, 1.6, 1.7, 1.8, 1.9, 2.4, 2.5, 3.0}`. Python configuration and documentation
+now agree, and the pointing notebook retains index 5 by requesting 2.4.
+Archived files with recorded older cut tables are resolved by physical cut,
+not by index: an old index-6 2.4 histogram satisfies a current index-5 request;
+an absent 2.5 cut raises an error. Old files lacking sufficient metadata cannot
+establish that a differently indexed histogram represents the requested cut.
+Regenerate outputs when the required physical cut is absent.
+
+The trigger helper's legacy unindexed histogram represents the standard 1.9
+cut and is now used only at index 4. Previously it could silently substitute
+that histogram for index 5. Public index defaults remain unchanged: index 5
+now requests the producer's 2.4 cut and requires a corresponding histogram.
+This fixes incorrect fallback selection; results that relied on that fallback
+will now fail explicitly instead of returning a different eta acceptance.
+
+### Known limitation: non-finite data JEU payload
+
+The existing data uncertainty payload contains non-finite uncertainties in
+some high-pT forward bins. A direct evaluation at pT=5000 GeV and eta=-3.75
+returns `(nan, nan)`. A jet reaching such an interval can therefore acquire
+non-finite JEU-shifted momenta. By explicit user decision, evaluation and the
+payload remain unchanged: no clamping, rejection or finite-value guard was
+introduced. Payload coverage and its treatment remain an analysis limitation;
+the parser validation above does not certify physical validity of its values.
+
+### Validation and scope
+
+Release and Debug builds passed; Release CTest passed (1/1). ROOT regression
+checks passed for calibration input validation, pp/pPb branches and weights,
+pT-hat boundaries, cached JER momenta, unfolding categories, missing-reco
+accounting, cross-correlations and full-eta data fixtures. The legacy closure
+macro loaded successfully. The normalized-ratio fixture confirmed unchanged
+central values with corrected independent uncertainties.
+
+The Python suite passed 55 tests; compileall passed. All 31 notebooks passed
+JSON validation and ordinary Python-cell syntax checks. The current eta-cut
+configuration was checked directly. Full notebook workflows and full production
+were not rerun; targeted ROOT fixtures and metadata-routing tests validate the
+changed paths, but do not establish closure for new production acceptances.
+
+Before/after runs on 1000-entry embedding, standalone PYTHIA and pp subsets
+matched all 564 ROOT objects per case exactly (keys, axes, entries, contents
+and errors), relative to the producer immediately before this review. This
+comparison includes the already-selected JEC convention in both versions; it
+does not negate the earlier selector-fix migrations documented above. No
+production ROOT outputs or external calibration files were edited. Remaining
+job-partition normalization and shared-event covariance limitations are not
+resolved by these consistency fixes.
