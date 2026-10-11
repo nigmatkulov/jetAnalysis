@@ -57,8 +57,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--overwrite", action="store_true", help="Allow replacement of existing outputs/logs.")
     parser.add_argument("--jer-smearing-mode", type=int, choices=(0, 1, 2), default=0,
                         help="0=CMS hybrid, 1=forced stochastic, 2=truth-to-pseudo-reco.")
-    parser.add_argument("--eta-dependent-jer", action="store_true",
-                        help="Multiply the central JER by the analysis-derived eta shape.")
+    parser.add_argument("--eta-dependent-jer", action="store_true", default=False,
+                        help="Use eta-dependent resolution also for standard JER branches; default keeps base standard and eta-dependent Extra families in one run.")
     args = parser.parse_args(argv)
     if args.workers < 1:
         parser.error("--workers must be at least 1")

@@ -209,8 +209,9 @@ Options passed to `processForestSimple` are:
   `pVertexFilterCutGplus`, or `2` `pVertexFilterCutVtx1`.
 - `--jer-smearing-mode`: `0` CMS hybrid (default), `1` forced CMS stochastic,
   or `2` truth-to-pseudo-reco diagnostic. It affects MC only.
-- `--eta-dependent-jer`: multiply the central pT-dependent MC resolution by
-  the analysis-derived eta shape. It affects MC only.
+- `--eta-dependent-jer`: optional override making standard JER branches use
+  eta-dependent resolution too. Omit it for the default production of both
+  distinct resolution families in one pass. It affects MC only.
 
 This submitter supports pPb processing only: it has no collision-system option.
 For the pp CP5 sample use `pp_analyzeMc_cp5tune.py`, as described above.
@@ -219,14 +220,18 @@ direction-specific Unembedded JEC. The pp runner selects Pb-going pPb Unembedded
 JEC by the agreed analysis convention. No separate JEC payload option is exposed.
 
 The generated worker command always passes `pPb` and both JER settings
-explicitly. For the recommended nominal MC production with the measured eta
-dependence, add `--jer-smearing-mode 0 --eta-dependent-jer`. The MC examples
-below enable this convention explicitly; omitting
-`--eta-dependent-jer` instead selects the default central-only standard family.
-The `Extra` family always uses the eta-dependent resolution; with the flag
-both families use it. In Hybrid mode it changes matching eligibility and
-stochastic fallback; matched jets retain residual scaling. Use distinct output
-directories for productions made with different JER settings.
+explicitly. The default MC production uses CMS Hybrid mode with
+`useEtaDependentJER=0`: one pass writes both base-resolution
+`JerDef/Up/Down` histograms and eta-dependent
+`JerDefExtra/UpExtra/DownExtra` histograms, together with both unfolding
+response/fake/miss families. No second run is needed.
+
+The MC commands below deliberately omit `--eta-dependent-jer`. Adding that
+flag makes corresponding standard and `Extra` branches use the same
+eta-dependent resolution and cached momenta; it does not enable an otherwise
+missing `Extra` family. In Hybrid mode the resolution changes matching
+eligibility and stochastic fallback; matched jets retain residual scaling.
+Use distinct output directories if you intentionally produce the override too.
 
 The default proxy is `voms_proxy.txt` in the `processing/` directory; override it with
 `--proxy /path/to/x509_proxy`. The proxy is copied into every sample directory
@@ -408,7 +413,7 @@ description for every supported pT-hat sample: 15, 30, 50, 80, 120, 170, 220,
   /eos/user/g/gnigmatk/ana/pPb8160/embedding/Pbgoing \
   --mc-type 1 --beam Pbgoing --pt-hat all \
   --files-per-job 10 --reco-jet-selection 2 \
-  --jer-smearing-mode 0 --eta-dependent-jer
+  --jer-smearing-mode 0
 
 # Embedded p-going
 ../py-env/bin/python submit_process_forest_condor.py \
@@ -416,7 +421,7 @@ description for every supported pT-hat sample: 15, 30, 50, 80, 120, 170, 220,
   /eos/user/g/gnigmatk/ana/pPb8160/embedding/pgoing \
   --mc-type 1 --beam pgoing --pt-hat all \
   --files-per-job 10 --reco-jet-selection 2 \
-  --jer-smearing-mode 0 --eta-dependent-jer
+  --jer-smearing-mode 0
 
 # Pythia Pb-going
 ../py-env/bin/python submit_process_forest_condor.py \
@@ -424,7 +429,7 @@ description for every supported pT-hat sample: 15, 30, 50, 80, 120, 170, 220,
   /eos/user/g/gnigmatk/ana/pPb8160/pythia/Pbgoing \
   --mc-type 2 --beam Pbgoing --pt-hat all \
   --files-per-job 10 --reco-jet-selection 2 \
-  --jer-smearing-mode 0 --eta-dependent-jer
+  --jer-smearing-mode 0
 
 # Pythia p-going
 ../py-env/bin/python submit_process_forest_condor.py \
@@ -432,7 +437,7 @@ description for every supported pT-hat sample: 15, 30, 50, 80, 120, 170, 220,
   /eos/user/g/gnigmatk/ana/pPb8160/pythia/pgoing \
   --mc-type 2 --beam pgoing --pt-hat all \
   --files-per-job 10 --reco-jet-selection 2 \
-  --jer-smearing-mode 0 --eta-dependent-jer
+  --jer-smearing-mode 0
 ```
 
 ## Monitoring and validation
