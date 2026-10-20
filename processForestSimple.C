@@ -4445,7 +4445,7 @@ int main(int argc, char* argv[]) {
             fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
         }
         // Old correction
-        // JECFileDataName = "Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt";
+        // fJECFileNames.push_back( Form("%s/JEC/Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt", path2auxFiles) );
         // New correction (with updated residuals)
         fJECFileNames.push_back( Form("%s/JEC/Summer16_07Aug2017GH_V11_DATA_L2L3Residual_AK4PF.txt", path2auxFiles) );
         
