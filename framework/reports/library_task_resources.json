@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/tmp/jetAnalysis-library-release/jetAnalysis",
+    "/Users/gnigmat/cernbox/ana/pPb8160/embedding/pgoing/forest/HiForestSkim_pPb_MC_pthat540_pgoing_embedded.root",
+    "/tmp/jetAnalysis-library-full-validation/framework.root",
+    "1",
+    "0",
+    "540",
+    "0",
+    "2",
+    "0"
+  ],
+  "log": "/tmp/jetAnalysis-library-full-validation/framework.log",
+  "elapsed_seconds": 182.10644445801154,
+  "user_seconds": 180.071548,
+  "system_seconds": 0.792982,
+  "peak_rss_bytes": 957841408,
+  "processed_events": 502400,
+  "selected_events": 490102,
+  "events_per_second": 2758.826034384735
+}

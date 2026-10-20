@@ -1,0 +1,27 @@
+{
+  "fixture_entries": 2000,
+  "repetitions": 10,
+  "processed_events": 20000,
+  "selected_events": 19480,
+  "independent_events": false,
+  "stage_seconds": {
+    "read_and_convert": 0.267762,
+    "reco_load_and_jec": 3.3876,
+    "gen_load_sort": 0.000776898,
+    "gen_jets": 0.0727694,
+    "gen_dijets": 1.36864,
+    "reference_dijets": 0.0102833,
+    "reco_jets": 0.237883,
+    "reco_dijets_and_responses": 0.740638,
+    "output": 5.1463
+  },
+  "sample_duration_seconds": 3,
+  "sample_interval_milliseconds": 1,
+  "main_thread_sampled_stacks": 2480,
+  "stacks_including_jet_correction": 1316,
+  "exact_comparison_objects": 997,
+  "exact_comparison_cells_or_sparse_bins": 15586362,
+  "analysis_status": 0,
+  "sample_status": 0,
+  "artifact_directory": "/tmp/jetAnalysis-framework-profile-native"
+}

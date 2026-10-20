@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-if [[ $# -ne 13 ]]; then
-    echo "Usage: $0 REPOSITORY EXECUTABLE INPUT_LIST OUTPUT_FILE MC_TYPE IS_PB_GOING PT_HAT TRIGGER_ID RECO_JET_SELECTION VERTEX_FILTER_SELECTION COLLISION_SYSTEM JER_SMEARING_MODE USE_ETA_DEPENDENT_JER" >&2
+if [[ $# -lt 13 ]]; then
+    echo "Usage: $0 REPOSITORY EXECUTABLE INPUT_LIST OUTPUT_FILE MC_TYPE IS_PB_GOING PT_HAT TRIGGER_ID RECO_JET_SELECTION VERTEX_FILTER_SELECTION COLLISION_SYSTEM JER_SMEARING_MODE USE_ETA_DEPENDENT_JER [FRAMEWORK_ARGS...]" >&2
     exit 2
 fi
 
@@ -22,6 +22,7 @@ jer_smearing_mode=${12}
 # Submitter defaults to 0: keep base standard and eta-dependent Extra families.
 # Value 1 explicitly makes both families eta-dependent.
 use_eta_dependent_jer=${13}
+shift 13
 
 cd "$repository"
 mkdir -p "$(dirname "$output_file")"
@@ -41,7 +42,7 @@ if "$executable" \
         "$vertex_filter_selection" \
         "$collision_system" \
         "$jer_smearing_mode" \
-        "$use_eta_dependent_jer" >"$job_output" 2>&1; then
+        "$use_eta_dependent_jer" "$@" >"$job_output" 2>&1; then
     :
 else
     status=$?

@@ -28,6 +28,8 @@ class RunnerConfig:
     use_eta_dependent_jer: int = 0
     input_base: Path = DEFAULT_INPUT_BASE
     output_dir: Path = DEFAULT_OUTPUT_DIR
+    executable: Path = ROOT_DIR / "build" / "jetAnalysis"
+    analysis_args: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -77,7 +79,7 @@ def build_command(config: RunnerConfig, pt_hat_sample: int) -> list[str]:
     input_file = build_input_file(config, pt_hat_sample)
     output_file = build_output_file(config, pt_hat_sample)
     return [
-        str(ROOT_DIR / "build" / "processForestSimple"),
+        str(config.executable),
         str(input_file),
         str(output_file),
         str(config.mc_type),
@@ -89,7 +91,7 @@ def build_command(config: RunnerConfig, pt_hat_sample: int) -> list[str]:
         "pPb",
         str(config.jer_smearing_mode),
         str(config.use_eta_dependent_jer),
-    ]
+    ] + list(config.analysis_args)
 
 
 def run_sample_task(task: tuple[RunnerConfig, int]) -> SampleResult:
@@ -130,7 +132,7 @@ def _clamp_workers(requested_workers: int) -> int:
 
 def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run processForestSimple over pPb8160 pt-hat samples."
+        description="Run jetAnalysis over pPb8160 pt-hat samples."
     )
     parser.add_argument(
         "--workers",
@@ -146,6 +148,8 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         "--eta-dependent-jer", action=argparse.BooleanOptionalAction, default=None,
         help="Use eta-dependent resolution also for standard JER branches; default preset keeps base standard and eta-dependent Extra families in one run.",
     )
+    parser.add_argument("--executable", type=Path, default=None)
+    parser.add_argument("--analysis-arg", action="append", default=[], help="Extra framework argument; use --analysis-arg=--flag for flags.")
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.workers < 1:
         parser.error("--workers must be at least 1")
@@ -191,6 +195,8 @@ def main(config: RunnerConfig, pt_hat_samples: list[int], argv: Iterable[str] | 
     args = parse_args(argv)
     config = replace(
         config,
+        executable=config.executable if args.executable is None else args.executable,
+        analysis_args=config.analysis_args + tuple(args.analysis_arg),
         jer_smearing_mode=(
             config.jer_smearing_mode
             if args.jer_smearing_mode is None

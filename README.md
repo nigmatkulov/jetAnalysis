@@ -1,6 +1,6 @@
 # jetAnalysis
 
-This repository contains the `processForestSimple` analysis used to process CMS jet forest ROOT files. The code reads input trees through ROOT `TChain`s, applies event selection and jet corrections, fills histograms, and writes the output to a ROOT file.
+This repository processes CMS jet forest ROOT files with the compiled `jetAnalysis` framework. It reads typed ROOT branches into ordinary C++ events, applies the existing event selections and jet corrections, fills histograms, and writes ROOT output. The untouched `processForestSimple.C` and compiled `processForestSimple` remain independent physics references.
 
 ## Physics conventions and review
 
@@ -16,7 +16,8 @@ payload by convention. Job-dependent pPb normalization remains unresolved. Histo
 
 ## Project layout
 
-- `processForestSimple.C`: main analysis macro and compiled program source.
+- `framework/`: modular C++ event model, CMS reader, dijet analysis, output handling, validation and benchmarking tools. See [framework documentation](framework/README.md) and [validation results](framework/VALIDATION.md).
+- `processForestSimple.C`: unchanged reference macro and compiled reference program.
 - `CMakeLists.txt`: CMake build file that finds ROOT and builds the executable.
 - `JetCorrector.cc` and `JetUncertainty.cc`: jet-correction and uncertainty helpers.
 - `LinkDef.h`: ROOT dictionary declarations used by the compiled executable.
@@ -31,6 +32,9 @@ payload by convention. Job-dependent pPb normalization remains unresolved. Histo
 - `AGENTS.md`: repository-specific working, physics, implementation, validation, and handoff instructions for coding agents.
 
 ## Build
+
+The shared core and DiJet libraries, task interface, installation/consumer examples, and strict ROOT input type checks
+are documented in [framework/README.md](framework/README.md).
 
 Make sure ROOT is available in your environment and that `ROOTSYS` is set:
 
@@ -54,11 +58,13 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j
 ```
 
-The executable is built as:
+The framework executable is built as:
 
 ```bash
-build/processForestSimple
+build/jetAnalysis
 ```
+
+`build/processForestSimple` is also built as the unchanged reference. Both accept the existing positional arguments; the framework adds collection, output-selection, and profiling options documented in `framework/README.md`.
 
 ## Optional ROOT MCP server for Codex
 
@@ -167,7 +173,7 @@ orientation conventions.
 For pp, append `pp` to the executable command, or `"pp"` to the ROOT call:
 
 ```bash
-./build/processForestSimple input.root output.root 2 1 0 0 2 0 pp
+./build/jetAnalysis input.root output.root 2 1 0 0 2 0 pp
 root -l -b -q 'processForestSimple.C("input.root", "output.root", 2, 1, 0, 0, 2, 0, "pp")'
 ```
 
@@ -262,13 +268,13 @@ Unknown collision-system values are rejected before input processing.
 After building, run the executable directly:
 
 ```bash
-./build/processForestSimple input.root output.root 2 1 30 0 2 0
+./build/jetAnalysis input.root output.root 2 1 30 0 2 0
 ```
 
 Example for a file list:
 
 ```bash
-./build/processForestSimple filelist.txt output.root 2 1 30 0 2 0
+./build/jetAnalysis filelist.txt output.root 2 1 30 0 2 0
 ```
 
 A file list contains one ROOT path per line. Blank lines and comment lines are
@@ -285,7 +291,7 @@ confirm that the executable reports a nonzero file count and the expected event
 count:
 
 ```bash
-./build/processForestSimple test.list /tmp/processForestSimple-test.root \
+./build/jetAnalysis test.list /tmp/processForestSimple-test.root \
   0 1 0 1 2 0
 ```
 
@@ -389,7 +395,7 @@ path when calling the executable directly because the runner's overwrite guard
 does not apply:
 
 ```bash
-./build/processForestSimple \
+./build/jetAnalysis \
   /Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/forest/HiForestMiniAOD_1.root \
   /Users/gnigmat/cernbox/ana/pPb8160/pythia/cp5tune/HiForestMiniAOD_1_hist.root \
   2 1 0 0 2 0 pp
@@ -562,7 +568,7 @@ After C++ changes, configure and build in Release mode first:
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/processForestSimple
+./build/jetAnalysis
 ctest --test-dir build --output-on-failure
 ```
 

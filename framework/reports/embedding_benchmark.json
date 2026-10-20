@@ -1,0 +1,105 @@
+{
+  "input": "/Users/gnigmat/cernbox/ana/pPb8160/embedding/pgoing/forest/HiForestSkim_pPb_MC_pthat540_pgoing_embedded.root",
+  "analysis_args": [
+    "1",
+    "0",
+    "540",
+    "0",
+    "2",
+    "0"
+  ],
+  "platform": "darwin",
+  "note": "Sequential runs; alternating order after first pair; filesystem cache and host load are uncontrolled.",
+  "runs": [
+    {
+      "reference": {
+        "command": [
+          "/private/tmp/jetAnalysis-framework-release/processForestSimple",
+          "/Users/gnigmat/cernbox/ana/pPb8160/embedding/pgoing/forest/HiForestSkim_pPb_MC_pthat540_pgoing_embedded.root",
+          "/private/tmp/jetAnalysis-framework-benchmark/reference-0.root",
+          "1",
+          "0",
+          "540",
+          "0",
+          "2",
+          "0"
+        ],
+        "log": "/private/tmp/jetAnalysis-framework-benchmark/reference-0.log",
+        "elapsed_seconds": 174.31957220799814,
+        "user_seconds": 172.651864,
+        "system_seconds": 0.8241189999999999,
+        "peak_rss_bytes": 977731584,
+        "processed_events": 502400,
+        "selected_events": 490102,
+        "events_per_second": 2882.063061745793
+      },
+      "framework": {
+        "command": [
+          "/private/tmp/jetAnalysis-framework-release/jetAnalysis",
+          "/Users/gnigmat/cernbox/ana/pPb8160/embedding/pgoing/forest/HiForestSkim_pPb_MC_pthat540_pgoing_embedded.root",
+          "/private/tmp/jetAnalysis-framework-benchmark/framework-0.root",
+          "1",
+          "0",
+          "540",
+          "0",
+          "2",
+          "0"
+        ],
+        "log": "/private/tmp/jetAnalysis-framework-benchmark/framework-0.log",
+        "elapsed_seconds": 175.41193095799827,
+        "user_seconds": 173.880676,
+        "system_seconds": 0.785418,
+        "peak_rss_bytes": 1008812032,
+        "processed_events": 502400,
+        "selected_events": 490102,
+        "events_per_second": 2864.115327025833
+      },
+      "comparison": "EXACT MATCH: 997 objects, 18457544 histogram cells/sparse bins; no tolerances."
+    },
+    {
+      "framework": {
+        "command": [
+          "/private/tmp/jetAnalysis-framework-release/jetAnalysis",
+          "/Users/gnigmat/cernbox/ana/pPb8160/embedding/pgoing/forest/HiForestSkim_pPb_MC_pthat540_pgoing_embedded.root",
+          "/private/tmp/jetAnalysis-framework-benchmark/framework-1.root",
+          "1",
+          "0",
+          "540",
+          "0",
+          "2",
+          "0"
+        ],
+        "log": "/private/tmp/jetAnalysis-framework-benchmark/framework-1.log",
+        "elapsed_seconds": 175.20925650000572,
+        "user_seconds": 174.085969,
+        "system_seconds": 0.775824,
+        "peak_rss_bytes": 1011662848,
+        "processed_events": 502400,
+        "selected_events": 490102,
+        "events_per_second": 2867.428411237985
+      },
+      "reference": {
+        "command": [
+          "/private/tmp/jetAnalysis-framework-release/processForestSimple",
+          "/Users/gnigmat/cernbox/ana/pPb8160/embedding/pgoing/forest/HiForestSkim_pPb_MC_pthat540_pgoing_embedded.root",
+          "/private/tmp/jetAnalysis-framework-benchmark/reference-1.root",
+          "1",
+          "0",
+          "540",
+          "0",
+          "2",
+          "0"
+        ],
+        "log": "/private/tmp/jetAnalysis-framework-benchmark/reference-1.log",
+        "elapsed_seconds": 175.12340208400565,
+        "user_seconds": 174.021592,
+        "system_seconds": 0.7935829999999999,
+        "peak_rss_bytes": 966950912,
+        "processed_events": 502400,
+        "selected_events": 490102,
+        "events_per_second": 2868.834170769488
+      },
+      "comparison": "EXACT MATCH: 997 objects, 18457544 histogram cells/sparse bins; no tolerances."
+    }
+  ]
+}

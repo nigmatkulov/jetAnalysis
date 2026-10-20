@@ -52,7 +52,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="Concurrent executable processes (default: 1).")
     parser.add_argument("--input-dir", type=Path, default=DEFAULT_INPUT_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--executable", type=Path, default=ROOT_DIR / "build" / "processForestSimple")
+    parser.add_argument("--executable", type=Path, default=ROOT_DIR / "build" / "jetAnalysis")
+    parser.add_argument("--analysis-arg", action="append", default=[], help="Extra framework argument; use --analysis-arg=--flag for flags.")
     parser.add_argument("--dry-run", action="store_true", help="Print commands without writing files.")
     parser.add_argument("--overwrite", action="store_true", help="Allow replacement of existing outputs/logs.")
     parser.add_argument("--jer-smearing-mode", type=int, choices=(0, 1, 2), default=0,
@@ -73,7 +74,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if input_dir == output_dir:
         parser.error("Input and output directories must differ")
     commands = [build_command(executable, path, output_dir / f"{path.stem}_hist.root",
-                              args.jer_smearing_mode, args.eta_dependent_jer)
+                              args.jer_smearing_mode, args.eta_dependent_jer) + args.analysis_arg
                 for path in inputs]
     workers = min(args.workers, os.cpu_count() or 1, len(commands))
     print(f"Found {len(commands)} files; using {workers} worker(s).")

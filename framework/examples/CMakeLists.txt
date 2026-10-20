@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.10)
+project(JetAnalysisConsumer LANGUAGES CXX)
+find_package(JetAnalysisFramework CONFIG REQUIRED)
+add_executable(track_inventory track_inventory.cpp)
+target_link_libraries(track_inventory PRIVATE JetAnalysis::Framework)
+add_executable(dijet_task dijet_task.cpp)
+target_link_libraries(dijet_task PRIVATE JetAnalysis::DiJet)

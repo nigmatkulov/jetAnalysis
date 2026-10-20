@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare and submit ``processForestSimple`` jobs to HTCondor.
+"""Prepare and submit compiled ``jetAnalysis`` jobs to HTCondor.
 
 The analysis executable accepts one ROOT file *or* one text file containing a
 list of ROOT files.  Processing a large production list in a single invocation
@@ -53,7 +53,7 @@ from pathlib import Path
 # for relative resources such as aux_files/pPb_8160.
 REPOSITORY = Path(__file__).resolve().parents[1]
 PROCESSING_DIR = Path(__file__).resolve().parent
-DEFAULT_EXECUTABLE = REPOSITORY / "build" / "processForestSimple"
+DEFAULT_EXECUTABLE = REPOSITORY / "build" / "jetAnalysis"
 WORKER = PROCESSING_DIR / "run_process_forest_condor.sh"
 PT_HAT_SAMPLES = (15, 30, 50, 80, 120, 170, 220, 280, 370, 460, 540)
 
@@ -182,6 +182,8 @@ def parse_args() -> argparse.Namespace:
         "--executable", type=Path, default=DEFAULT_EXECUTABLE,
         help=f"Analysis executable (default: {DEFAULT_EXECUTABLE})",
     )
+    parser.add_argument("--analysis-arg", action="append", default=[],
+                        help="Extra framework argument; use --analysis-arg=--flag for flags.")
     parser.add_argument(
         "--job-flavour",
         help=(
@@ -444,6 +446,7 @@ def main() -> int:
                         "pPb",
                         str(args.jer_smearing_mode),
                         str(int(args.eta_dependent_jer)),
+                        *(condor_token(value) for value in args.analysis_arg),
                     )
                 ),
                 "output = /dev/null",
