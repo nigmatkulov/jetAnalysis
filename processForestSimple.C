@@ -14,6 +14,7 @@
  * Known physics-sensitive limitations are catalogued in PHYSICS_REVIEW.md.
  */
 #include "TFile.h"
+#include "TSystem.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
@@ -38,6 +39,7 @@
 #include <algorithm>
 #include <random>
 #include <fstream>
+#include <filesystem>
 #include <sstream>
 #include <string>
 #include <stdexcept>
@@ -1972,6 +1974,9 @@ void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChai
         std::exit(EXIT_FAILURE);
     };
 
+    bool rhoLayoutEstablished = false;
+    std::string expectedRhoBranch;
+
     auto addInputFile = [&](const std::string &file) -> bool {
         std::unique_ptr<TFile> inputFile(TFile::Open(file.c_str()));
         if (!inputFile || inputFile->IsZombie() || inputFile->GetNkeys() == 0) {
@@ -1995,6 +2000,36 @@ void setupChains(const TString &input, TChain &hltTree, TChain &eventTree, TChai
                 return false;
             }
         }
+        const auto expectedEntries = inputFile->Get<TTree>(requiredTrees[0]);
+        if (!expectedEntries) failInput("Expected TTree " + std::string(requiredTrees[0]) + " in " + file);
+        for (const char *treeName : requiredTrees) {
+            const auto *tree = inputFile->Get<TTree>(treeName);
+            if (!tree) failInput("Expected TTree " + std::string(treeName) + " in " + file);
+            if (tree->GetEntries() != expectedEntries->GetEntries()) {
+                failInput("Tree entry-count mismatch in " + file + ": " + treeName +
+                          " has " + std::to_string(tree->GetEntries()) + ", expected " +
+                          std::to_string(expectedEntries->GetEntries()));
+            }
+        }
+        auto *rhoEvents = inputFile->Get<TTree>("hiEvtAnalyzer/HiTree");
+        if (!rhoEvents) failInput("Missing event TTree in " + file);
+        const std::string rhoBranch = rhoEvents->GetBranch("rho") ? "rho"
+            : (rhoEvents->GetBranch("fixedGridRhoFastjetAll") ? "fixedGridRhoFastjetAll" : "");
+        if (!rhoBranch.empty()) {
+            const auto *leaf = rhoEvents->GetLeaf(rhoBranch.c_str());
+            if (!leaf || std::string(leaf->GetTypeName()) != "Float_t" ||
+                leaf->GetLeafCount() || leaf->GetLenStatic() != 1 ||
+                std::strchr(leaf->GetTitle(), '[')) {
+                failInput("Expected scalar Float_t hiEvtAnalyzer/HiTree/" + rhoBranch + " in " + file);
+            }
+        }
+        if (rhoLayoutEstablished && rhoBranch != expectedRhoBranch) {
+            failInput("Inconsistent rho layout in " + file + ": expected " +
+                      (expectedRhoBranch.empty() ? "no rho branch" : expectedRhoBranch) +
+                      ", found " + (rhoBranch.empty() ? "no rho branch" : rhoBranch));
+        }
+        expectedRhoBranch = rhoBranch;
+        rhoLayoutEstablished = true;
         if (isMc) {
             auto *events = inputFile->Get<TTree>("hiEvtAnalyzer/HiTree");
             if (!events) failInput("Missing event TTree in " + file);
@@ -2659,6 +2694,19 @@ void processGenDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, 
     // Scale index map: 0: 1.0f (Default), 1: 2.0f (Double), 2: 0.9f (Ninety), 3: 1.0f (Extra/eta-dependent)
     const std::array<float, 4> extraScales = {1.0f, 2.0f, 0.9f, 1.0f};
 
+    // The draw is independent of scale. Preserve the existing sorted-jet
+    // identity and replica seed, and reuse its double value in all four families.
+    std::vector<double> normalCache(static_cast<size_t>(nSmearRuns) * genJets.size());
+    for (int iRun = 0; iRun < nSmearRuns; ++iRun) {
+        for (size_t iJet = 0; iJet < genJets.size(); ++iJet) {
+            const auto &jet = genJets[iJet];
+            normalCache[static_cast<size_t>(iRun) * genJets.size() + iJet] =
+                fJERSmearingHelper->normalDeviate(
+                    jet.pt, jet.eta, eventRho, run, lumi, evt,
+                    iRun * static_cast<int>(genJets.size()) + static_cast<int>(iJet));
+        }
+    }
+
     for (int iScale = 0; iScale < static_cast<int>(extraScales.size()); ++iScale) {
         float extraScale = extraScales[iScale];
         // Choose the target histogram arrays based on the scale index
@@ -2690,9 +2738,7 @@ void processGenDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, 
 
                 // std::cout << "gen jet pt: " << jet.pt << ", eta: " << jet.eta << ", smeared pt: " << jet.smearedPt;
 
-                const double normal = fJERSmearingHelper->normalDeviate(
-                    jet.pt, jet.eta, eventRho, run, lumi, evt,
-                    iRun * static_cast<int>(genJets.size()) + static_cast<int>(iJet));
+                const double normal = normalCache[static_cast<size_t>(iRun) * genJets.size() + iJet];
                 jet.smearedPt = fJERSmearingHelper->smearTruthMomentum(
                     jet.pt, jet.eta, extraScale, iScale == 3, normal);
 
@@ -3657,6 +3703,53 @@ void processRefDijets(const bool isPp, const bool &isPbGoing, const bool &isMc, 
 }
 
 //________________
+// Compare names once at startup. This intentionally does not resolve symlinks
+// or identify hard links; the caller supplies distinct input/output locations.
+void validateInputOutputPaths(const TString &input, const TString &output) {
+    auto normalized = [](const TString &name) -> std::string {
+        if (name.Contains("://")) return name.Data();
+        TString expanded(name);
+        if (gSystem->ExpandPathName(expanded)) {
+            throw std::runtime_error("Cannot expand path: " + std::string(name.Data()));
+        }
+        return std::filesystem::absolute(expanded.Data()).lexically_normal().string();
+    };
+    const auto destination = normalized(output);
+    auto check = [&](const TString &source) {
+        if (normalized(source) == destination) {
+            throw std::runtime_error("Output path matches input path: " + std::string(source.Data()));
+        }
+    };
+    check(input);
+    if (input.EndsWith(".root")) return;
+    std::ifstream files(input.Data());
+    std::string line;
+    while (std::getline(files, line)) {
+        std::istringstream fields(line);
+        std::string file;
+        fields >> file;
+        if (!file.empty() && file[0] != '#') check(TString(file));
+    }
+}
+
+// Check local destinations before processing; ROOT handles remote URL creation.
+void validateOutputPath(const TString &name) {
+    if (name.Contains("://")) return;
+    TString expanded(name);
+    if (gSystem->ExpandPathName(expanded)) {
+        throw std::runtime_error("Cannot expand output path: " + std::string(name.Data()));
+    }
+    const std::string parent = gSystem->DirName(expanded.Data());
+    void *directory = gSystem->OpenDirectory(parent.c_str());
+    if (!directory) {
+        throw std::runtime_error("Output directory does not exist or is inaccessible: " + parent);
+    }
+    gSystem->FreeDirectory(directory);
+    if (gSystem->AccessPathName(parent.c_str(), kWritePermission)) {
+        throw std::runtime_error("Output directory is not writable: " + parent);
+    }
+}
+
 void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc,
                  const JERSmearingMode jerSmearingMode,
                  const bool useEtaDependentJER) {
@@ -3666,182 +3759,191 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc,
     int compressionSetting = 208; // LZMA compression
     // TFile *fOut = TFile::Open( oFileName.Data(), "RECREATE", "", compressionSetting);
     auto fOut = std::unique_ptr<TFile>( TFile::Open( oFileName.Data(), "RECREATE", "", compressionSetting) );
+    if (!fOut || fOut->IsZombie() || !fOut->IsWritable() || !fOut->cd()) {
+        throw std::runtime_error("Cannot create writable ROOT output file: " + std::string(oFileName.Data()));
+    }
+    auto writeChecked = [&](auto &&object) {
+        if (object.Write() <= 0 || fOut->TestBit(TFile::kWriteError)) {
+            throw std::runtime_error("Failed writing ROOT object " + std::string(object.GetName()) +
+                                     " to " + oFileName.Data());
+        }
+    };
     if (isMc) {
         const char *jerModeName = jerSmearingMode == JERSmearingMode::Hybrid
             ? "hybrid"
             : (jerSmearingMode == JERSmearingMode::Stochastic
                 ? "stochastic"
                 : "truth-to-pseudo-reco");
-        TNamed("unfoldingExtendedContract",
+        writeChecked(TNamed("unfoldingExtendedContract",
                "v1: same-event global leading gen/reco pairs; no geometric matching; "
                "truth category 1=outside fiducial,2=fiducial; "
                "response axes=genPt,genEta,recoPt,recoEta,truthCategory; "
-               "truth/miss axes=genPt,genEta,truthCategory; preserve coordinate flow bins").Write();
-        TNamed("jerSmearingMode", jerModeName).Write();
-        TNamed("useEtaDependentJER", useEtaDependentJER ? "true" : "false").Write();
+               "truth/miss axes=genPt,genEta,truthCategory; preserve coordinate flow bins"));
+        writeChecked(TNamed("jerSmearingMode", jerModeName));
+        writeChecked(TNamed("useEtaDependentJER", useEtaDependentJER ? "true" : "false"));
     }
 
     //
     // Event level histograms
     //
-    hs.hVzRaw->Write();
-    hs.hPtHatUnweighted->Write();
-    hs.hPtHat->Write();
-    hs.hVzUnweighted->Write();
-    hs.hVz->Write();
+    writeChecked(*hs.hVzRaw);
+    writeChecked(*hs.hPtHatUnweighted);
+    writeChecked(*hs.hPtHat);
+    writeChecked(*hs.hVzUnweighted);
+    writeChecked(*hs.hVz);
 
     //
     // Gen level histograms
     //
     if (isMc) {
         // Event histograms
-        hs.hGenDijetPtAveOverPtHatVsPtHat->Write();
-        hs.hGenDijetPtAveOverPtHatVsPtHatPass->Write();
-        hs.hGenLeadJetPtOverPtHatVsPtHat->Write();
-        hs.hGenLeadJetPtOverPtHatVsPtHatPass->Write();
-        hs.hRecoDijetPtAveOverPtHatVsPtHat->Write();
-        hs.hRecoDijetPtAveOverPtHatVsPtHatPass->Write();
-        hs.hRecoLeadJetPtOverPtHatVsPtHat->Write();
-        hs.hRecoLeadJetPtOverPtHatVsPtHatPass->Write();
+        writeChecked(*hs.hGenDijetPtAveOverPtHatVsPtHat);
+        writeChecked(*hs.hGenDijetPtAveOverPtHatVsPtHatPass);
+        writeChecked(*hs.hGenLeadJetPtOverPtHatVsPtHat);
+        writeChecked(*hs.hGenLeadJetPtOverPtHatVsPtHatPass);
+        writeChecked(*hs.hRecoDijetPtAveOverPtHatVsPtHat);
+        writeChecked(*hs.hRecoDijetPtAveOverPtHatVsPtHatPass);
+        writeChecked(*hs.hRecoLeadJetPtOverPtHatVsPtHat);
+        writeChecked(*hs.hRecoLeadJetPtOverPtHatVsPtHatPass);
 
         // Gen jets
-        hs.hGenInclusiveJetPtEtaLabUnflippedUnweighted->Write();
-        hs.hGenInclusiveJetPtEtaLabUnflipped->Write();
-        hs.hGenInclusiveJetPtEtaLab->Write();
-        hs.hGenInclusiveJetPtEtaCM->Write();
+        writeChecked(*hs.hGenInclusiveJetPtEtaLabUnflippedUnweighted);
+        writeChecked(*hs.hGenInclusiveJetPtEtaLabUnflipped);
+        writeChecked(*hs.hGenInclusiveJetPtEtaLab);
+        writeChecked(*hs.hGenInclusiveJetPtEtaCM);
         for (int iShift = 0; iShift < nEtaShifts; ++iShift) {
-            hs.hGenInclusiveJetEtaCMShiftedUnweighted[iShift]->Write();
-            hs.hGenInclusiveJetEtaCMShifted[iShift]->Write();
+            writeChecked(*hs.hGenInclusiveJetEtaCMShiftedUnweighted[iShift]);
+            writeChecked(*hs.hGenInclusiveJetEtaCMShifted[iShift]);
         }
-        hs.hGenInclusiveJetPtEtaStdBins->Write();
-        hs.hGenInclusiveJetPtPtHat->Write();
+        writeChecked(*hs.hGenInclusiveJetPtEtaStdBins);
+        writeChecked(*hs.hGenInclusiveJetPtPtHat);
 
         // Gen dijets
-        hs.hGenDijetPtAve->Write();
+        writeChecked(*hs.hGenDijetPtAve);
         for (int iShift = 0; iShift < nEtaShifts; ++iShift) {
-            hs.hGenDijetEtaCMShiftedUnweighted[iShift]->Write();
-            hs.hGenDijetEtaCMShifted[iShift]->Write();
+            writeChecked(*hs.hGenDijetEtaCMShiftedUnweighted[iShift]);
+            writeChecked(*hs.hGenDijetEtaCMShifted[iShift]);
         }
 
-        hs.hGenDijetPtEtaLabUnflipped->Write();
-        hs.hGenDijetPtEtaLab->Write();
-        hs.hGenDijetPtEtaCM->Write();
+        writeChecked(*hs.hGenDijetPtEtaLabUnflipped);
+        writeChecked(*hs.hGenDijetPtEtaLab);
+        writeChecked(*hs.hGenDijetPtEtaCM);
 
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
-            hs.hGenDijetPtEtaLabArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMXPbArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMXpArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMXPbOverXpArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMControlledSampleArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMStudiedSampleArr[iCut]->Write();
+            writeChecked(*hs.hGenDijetPtEtaLabArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMXPbArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMXpArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMXPbOverXpArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMControlledSampleArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMStudiedSampleArr[iCut]);
 #ifdef DO_MIXED_PRIOR
-            hs.hGenDijetPtEtaCMMixedPriorArr[iCut]->Write();
+            writeChecked(*hs.hGenDijetPtEtaCMMixedPriorArr[iCut]);
 #endif
 
             // Smearing studies
-            hs.hGenDijetDefPtEtaCMArr[iCut]->Write();
-            hs.hGenDijetDefExtraPtEtaCMArr[iCut]->Write();
-            hs.hGenDijetDefDoublePtEtaCMArr[iCut]->Write();
-            hs.hGenDijetDefNinetyPtEtaCMArr[iCut]->Write();
+            writeChecked(*hs.hGenDijetDefPtEtaCMArr[iCut]);
+            writeChecked(*hs.hGenDijetDefExtraPtEtaCMArr[iCut]);
+            writeChecked(*hs.hGenDijetDefDoublePtEtaCMArr[iCut]);
+            writeChecked(*hs.hGenDijetDefNinetyPtEtaCMArr[iCut]);
 
             for (auto *extended : {&hs.unfoldingExtended, &hs.unfoldingExtendedJerDefExtra,
                                    &hs.unfoldingExtendedControlled, &hs.unfoldingExtendedStudied}) {
-                extended->response[iCut]->Write();
-                extended->truth[iCut]->Write();
-                extended->matchedTruth[iCut]->Write();
-                extended->miss[iCut]->Write();
-                extended->measured[iCut]->Write();
-                extended->matchedMeasured[iCut]->Write();
-                extended->fake[iCut]->Write();
+                writeChecked(*extended->response[iCut]);
+                writeChecked(*extended->truth[iCut]);
+                writeChecked(*extended->matchedTruth[iCut]);
+                writeChecked(*extended->miss[iCut]);
+                writeChecked(*extended->measured[iCut]);
+                writeChecked(*extended->matchedMeasured[iCut]);
+                writeChecked(*extended->fake[iCut]);
             }
 
             for (auto *pairs : {&hs.unfoldingPairs, &hs.unfoldingPairsJerDefExtra,
                                 &hs.unfoldingPairsControlled, &hs.unfoldingPairsStudied}) {
-                pairs->hRecoDijetPtEtaCMMatchedGenSelected[iCut]->Write();
-                pairs->hRecoDijetPtEtaCMMatchedGenFound[iCut]->Write();
-                pairs->hGenDijetPtEtaCMSelectedRecoFound[iCut]->Write();
-                pairs->hGenDijetPtEtaCMSelectedRecoNotFound[iCut]->Write();
-                pairs->hGenDijetPtEtaCMMatchedRecoSelected[iCut]->Write();
-                pairs->hRecoDijetPtEtaCMSelectedGenNotFound[iCut]->Write();
+                writeChecked(*pairs->hRecoDijetPtEtaCMMatchedGenSelected[iCut]);
+                writeChecked(*pairs->hRecoDijetPtEtaCMMatchedGenFound[iCut]);
+                writeChecked(*pairs->hGenDijetPtEtaCMSelectedRecoFound[iCut]);
+                writeChecked(*pairs->hGenDijetPtEtaCMSelectedRecoNotFound[iCut]);
+                writeChecked(*pairs->hGenDijetPtEtaCMMatchedRecoSelected[iCut]);
+                writeChecked(*pairs->hRecoDijetPtEtaCMSelectedGenNotFound[iCut]);
             }
 
             // Response matrix 
-            hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMVsRecoPtEtaCMControlledSampleArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMVsRecoPtEtaCMStudiedSampleArr[iCut]->Write();
+            writeChecked(*hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMVsRecoPtEtaCMControlledSampleArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMVsRecoPtEtaCMStudiedSampleArr[iCut]);
             // hs.hRefDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMMissArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMMissControlledSampleArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMMissStudiedSampleArr[iCut]->Write();
-            hs.hRecoDijetPtEtaCMFakeArr[iCut]->Write();
-            hs.hRecoDijetPtEtaCMFakeControlledSampleArr[iCut]->Write();
-            hs.hRecoDijetPtEtaCMFakeStudiedSampleArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr[iCut]->Write();
-            hs.hGenDijetPtEtaCMMissJerDefExtraArr[iCut]->Write();
-            hs.hRecoDijetPtEtaCMFakeJerDefExtraArr[iCut]->Write();
-            hs.hUnfoldingPairClassificationArr[iCut]->Write();
-            hs.hUnfoldingPairClassificationJerDefExtraArr[iCut]->Write();
+            writeChecked(*hs.hGenDijetPtEtaCMMissArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMMissControlledSampleArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMMissStudiedSampleArr[iCut]);
+            writeChecked(*hs.hRecoDijetPtEtaCMFakeArr[iCut]);
+            writeChecked(*hs.hRecoDijetPtEtaCMFakeControlledSampleArr[iCut]);
+            writeChecked(*hs.hRecoDijetPtEtaCMFakeStudiedSampleArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr[iCut]);
+            writeChecked(*hs.hGenDijetPtEtaCMMissJerDefExtraArr[iCut]);
+            writeChecked(*hs.hRecoDijetPtEtaCMFakeJerDefExtraArr[iCut]);
+            writeChecked(*hs.hUnfoldingPairClassificationArr[iCut]);
+            writeChecked(*hs.hUnfoldingPairClassificationJerDefExtraArr[iCut]);
         }
 
-        hs.hGenInclusiveJetJESDefPtEta->Write();
-        hs.hGenInclusiveJetJESDefExtraPtEta->Write();
-        hs.hGenInclusiveJetJESDefDoublePtEta->Write();
-        hs.hGenInclusiveJetJESDefNinetyPtEta->Write();
+        writeChecked(*hs.hGenInclusiveJetJESDefPtEta);
+        writeChecked(*hs.hGenInclusiveJetJESDefExtraPtEta);
+        writeChecked(*hs.hGenInclusiveJetJESDefDoublePtEta);
+        writeChecked(*hs.hGenInclusiveJetJESDefNinetyPtEta);
 
-        hs.hGenInclusiveJetDefPtEtaFlipped->Write();
-        hs.hGenInclusiveJetDefExtraPtEtaFlipped->Write();
-        hs.hGenInclusiveJetDefDoublePtEtaFlipped->Write();
-        hs.hGenInclusiveJetDefNinetyPtEtaFlipped->Write();
+        writeChecked(*hs.hGenInclusiveJetDefPtEtaFlipped);
+        writeChecked(*hs.hGenInclusiveJetDefExtraPtEtaFlipped);
+        writeChecked(*hs.hGenInclusiveJetDefDoublePtEtaFlipped);
+        writeChecked(*hs.hGenInclusiveJetDefNinetyPtEtaFlipped);
 
         //
         // Ref level histograms
         //
         
         // Ref jets
-        hs.hRefInclusiveJetNoSelPtEtaLabUnflipped->Write();
-        hs.hRefInclusiveJetNoSelPtEtaLab->Write();
-        hs.hRefInclusiveJetNoSelPtEtaCM->Write();
-        hs.hRefInclusiveJetTrkMaxPtEtaLabUnflipped->Write();
-        hs.hRefInclusiveJetTrkMaxPtEtaLab->Write();
-        hs.hRefInclusiveJetTrkMaxPtEtaCM->Write();
-        hs.hRefInclusiveJetPtEtaLabUnflipped->Write();
-        hs.hRefInclusiveJetPtEtaLab->Write();
-        hs.hRefInclusiveJetPtEtaCM->Write();
-        hs.hRefSelInclusiveJetNoSelPtEtaLabUnflipped->Write();
-        hs.hRefSelInclusiveJetNoSelPtEtaLab->Write();
-        hs.hRefSelInclusiveJetNoSelPtEtaCM->Write();
-        hs.hRefSelInclusiveJetTrkMaxPtEtaLabUnflipped->Write();
-        hs.hRefSelInclusiveJetTrkMaxPtEtaLab->Write();
-        hs.hRefSelInclusiveJetTrkMaxPtEtaCM->Write();
-        hs.hRefSelInclusiveJetPtEtaLabUnflipped->Write();
-        hs.hRefSelInclusiveJetPtEtaLab->Write();
-        hs.hRefSelInclusiveJetPtEtaCM->Write();
+        writeChecked(*hs.hRefInclusiveJetNoSelPtEtaLabUnflipped);
+        writeChecked(*hs.hRefInclusiveJetNoSelPtEtaLab);
+        writeChecked(*hs.hRefInclusiveJetNoSelPtEtaCM);
+        writeChecked(*hs.hRefInclusiveJetTrkMaxPtEtaLabUnflipped);
+        writeChecked(*hs.hRefInclusiveJetTrkMaxPtEtaLab);
+        writeChecked(*hs.hRefInclusiveJetTrkMaxPtEtaCM);
+        writeChecked(*hs.hRefInclusiveJetPtEtaLabUnflipped);
+        writeChecked(*hs.hRefInclusiveJetPtEtaLab);
+        writeChecked(*hs.hRefInclusiveJetPtEtaCM);
+        writeChecked(*hs.hRefSelInclusiveJetNoSelPtEtaLabUnflipped);
+        writeChecked(*hs.hRefSelInclusiveJetNoSelPtEtaLab);
+        writeChecked(*hs.hRefSelInclusiveJetNoSelPtEtaCM);
+        writeChecked(*hs.hRefSelInclusiveJetTrkMaxPtEtaLabUnflipped);
+        writeChecked(*hs.hRefSelInclusiveJetTrkMaxPtEtaLab);
+        writeChecked(*hs.hRefSelInclusiveJetTrkMaxPtEtaCM);
+        writeChecked(*hs.hRefSelInclusiveJetPtEtaLabUnflipped);
+        writeChecked(*hs.hRefSelInclusiveJetPtEtaLab);
+        writeChecked(*hs.hRefSelInclusiveJetPtEtaCM);
 
-        hs.hRefInclusiveJetPtEtaStdBins->Write();
+        writeChecked(*hs.hRefInclusiveJetPtEtaStdBins);
 
         // Ref dijets
-        hs.hRefDijetPtEtaLabUnflipped->Write();
-        hs.hRefDijetPtEtaLab->Write();
-        hs.hRefDijetPtEtaCM->Write();
+        writeChecked(*hs.hRefDijetPtEtaLabUnflipped);
+        writeChecked(*hs.hRefDijetPtEtaLab);
+        writeChecked(*hs.hRefDijetPtEtaCM);
 
         for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
 
             //
             // Ref level histograms
             //
-            hs.hRefDijetPtEtaLabArr[iCut]->Write();
-            hs.hRecoDijetPtEtaLabPointingResArr[iCut]->Write();
-            hs.hRefDijetPtEtaLabPointingResArr[iCut]->Write();
-            hs.hRefDijetPtEtaLabPointingResRefPtAveArr[iCut]->Write();
-            hs.hRefDijetPtEtaCMArr[iCut]->Write();
-            hs.hRefDijetPtEtaCMControlledSampleArr[iCut]->Write();
-            hs.hRefDijetPtEtaCMStudiedSampleArr[iCut]->Write();
+            writeChecked(*hs.hRefDijetPtEtaLabArr[iCut]);
+            writeChecked(*hs.hRecoDijetPtEtaLabPointingResArr[iCut]);
+            writeChecked(*hs.hRefDijetPtEtaLabPointingResArr[iCut]);
+            writeChecked(*hs.hRefDijetPtEtaLabPointingResRefPtAveArr[iCut]);
+            writeChecked(*hs.hRefDijetPtEtaCMArr[iCut]);
+            writeChecked(*hs.hRefDijetPtEtaCMControlledSampleArr[iCut]);
+            writeChecked(*hs.hRefDijetPtEtaCMStudiedSampleArr[iCut]);
 
             //
             // Ref-selected level histograms
             //
-            hs.hRefSelDijetPtEtaCMArr[iCut]->Write();
+            writeChecked(*hs.hRefSelDijetPtEtaCMArr[iCut]);
         }
 
     } // if (isMc)
@@ -3851,82 +3953,89 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc,
     //
     
     // Reco jets
-    hs.hRecoInclusiveJetNoSelPtEtaLabUnflipped->Write();
-    hs.hRecoInclusiveJetNoSelPtEtaLab->Write();
-    hs.hRecoInclusiveJetNoSelPtEtaCM->Write();
-    hs.hRecoInclusiveJetTrkMaxPtEtaLabUnflipped->Write();
-    hs.hRecoInclusiveJetTrkMaxPtEtaLab->Write();
-    hs.hRecoInclusiveJetTrkMaxPtEtaCM->Write();
-    hs.hRecoInclusiveJetPtEtaLabUnflippedUnweighted->Write();
-    hs.hRecoInclusiveJetPtEtaLabUnflipped->Write();
-    hs.hRecoInclusiveJetPtEtaLab->Write();
-    hs.hRecoInclusiveJetPtEtaCM->Write();
+    writeChecked(*hs.hRecoInclusiveJetNoSelPtEtaLabUnflipped);
+    writeChecked(*hs.hRecoInclusiveJetNoSelPtEtaLab);
+    writeChecked(*hs.hRecoInclusiveJetNoSelPtEtaCM);
+    writeChecked(*hs.hRecoInclusiveJetTrkMaxPtEtaLabUnflipped);
+    writeChecked(*hs.hRecoInclusiveJetTrkMaxPtEtaLab);
+    writeChecked(*hs.hRecoInclusiveJetTrkMaxPtEtaCM);
+    writeChecked(*hs.hRecoInclusiveJetPtEtaLabUnflippedUnweighted);
+    writeChecked(*hs.hRecoInclusiveJetPtEtaLabUnflipped);
+    writeChecked(*hs.hRecoInclusiveJetPtEtaLab);
+    writeChecked(*hs.hRecoInclusiveJetPtEtaCM);
 
     // for (int iShift = 0; iShift < nEtaShifts; ++iShift) {
     //     hs.hRecoInclusiveJetEtaCMShiftedUnweighted[iShift]->Write();
     //     hs.hRecoInclusiveJetEtaCMShifted[iShift]->Write();
     // }
-    hs.hRecoInclusiveJetPtEtaStdBins->Write();
+    writeChecked(*hs.hRecoInclusiveJetPtEtaStdBins);
     if (isMc) {
-        hs.hRecoInclusiveJetJESPtEta->Write();
-        hs.hRecoInclusiveJetPtEtaLabMatched->Write();
-        hs.hRecoInclusiveJetPtEtaLabUnmatched->Write();
-        hs.hRecoInclusiveJetJESDefNoSFPtEta->Write();
-        hs.hRecoInclusiveJetJESDefDoublePtEta->Write();
-        hs.hRecoInclusiveJetJESDefNinetyPtEta->Write();
-        hs.hRecoInclusiveJetJESDefPtEta->Write();
-        hs.hRecoInclusiveJetJESUpPtEta->Write();
-        hs.hRecoInclusiveJetJESDownPtEta->Write();
-        hs.hRecoInclusiveJetPtPtHat->Write();
+        writeChecked(*hs.hRecoInclusiveJetJESPtEta);
+        writeChecked(*hs.hRecoInclusiveJetPtEtaLabMatched);
+        writeChecked(*hs.hRecoInclusiveJetPtEtaLabUnmatched);
+        writeChecked(*hs.hRecoInclusiveJetJESDefNoSFPtEta);
+        writeChecked(*hs.hRecoInclusiveJetJESDefDoublePtEta);
+        writeChecked(*hs.hRecoInclusiveJetJESDefNinetyPtEta);
+        writeChecked(*hs.hRecoInclusiveJetJESDefPtEta);
+        writeChecked(*hs.hRecoInclusiveJetJESUpPtEta);
+        writeChecked(*hs.hRecoInclusiveJetJESDownPtEta);
+        writeChecked(*hs.hRecoInclusiveJetPtPtHat);
     }
     
     // Reco dijets
-    hs.hRecoDijetPtEtaLabUnflipped->Write();
-    hs.hRecoDijetPtEtaLab->Write();
-    hs.hRecoDijetPtEtaCM->Write();
-    hs.hRecoInclusiveJetRawPtEtaLabUnflipped->Write();
+    writeChecked(*hs.hRecoDijetPtEtaLabUnflipped);
+    writeChecked(*hs.hRecoDijetPtEtaLab);
+    writeChecked(*hs.hRecoDijetPtEtaCM);
+    writeChecked(*hs.hRecoInclusiveJetRawPtEtaLabUnflipped);
     if (!isMc) {
         for (int iRun{0}; iRun < nDiagnosticRunHistograms; ++iRun) {
-            hs.hRecoDijetPtEtaCMRunArr[iRun]->Write();
+            writeChecked(*hs.hRecoDijetPtEtaCMRunArr[iRun]);
         }
     }
 
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
-        hs.hRecoDijetPtEtaLabArr[iCut]->Write();
-        hs.hRecoDijetPtEtaCMArr[iCut]->Write();
+        writeChecked(*hs.hRecoDijetPtEtaLabArr[iCut]);
+        writeChecked(*hs.hRecoDijetPtEtaCMArr[iCut]);
         if (isMc) {
-            hs.hRecoDijetPtEtaCMControlledSampleArr[iCut]->Write();
-            hs.hRecoDijetPtEtaCMStudiedSampleArr[iCut]->Write();
+            writeChecked(*hs.hRecoDijetPtEtaCMControlledSampleArr[iCut]);
+            writeChecked(*hs.hRecoDijetPtEtaCMStudiedSampleArr[iCut]);
             // Reco
-            if (hs.hRecoDijetPtEtaCMArrJerDefNoSF[iCut]) hs.hRecoDijetPtEtaCMArrJerDefNoSF[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerDefDoubleSF[iCut]) hs.hRecoDijetPtEtaCMArrJerDefDoubleSF[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerDefNinetySF[iCut]) hs.hRecoDijetPtEtaCMArrJerDefNinetySF[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerUp[iCut]) hs.hRecoDijetPtEtaCMArrJerUp[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerDown[iCut]) hs.hRecoDijetPtEtaCMArrJerDown[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerDef[iCut]) hs.hRecoDijetPtEtaCMArrJerDef[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerDownExtra[iCut]) hs.hRecoDijetPtEtaCMArrJerDownExtra[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerDefExtra[iCut]) hs.hRecoDijetPtEtaCMArrJerDefExtra[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerUpExtra[iCut]) hs.hRecoDijetPtEtaCMArrJerUpExtra[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]) hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[iCut]) hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[iCut]) hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold[iCut]) hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold[iCut]->Write();
+            if (hs.hRecoDijetPtEtaCMArrJerDefNoSF[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDefNoSF[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerDefDoubleSF[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDefDoubleSF[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerDefNinetySF[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDefNinetySF[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerUp[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerUp[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerDown[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDown[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerDef[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDef[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerDownExtra[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDownExtra[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerDefExtra[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDefExtra[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerUpExtra[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerUpExtra[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDefUnfold[iCut]);
+            if (hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMJerDefUnfoldControlledSampleArr[iCut]);
+            if (hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMJerDefUnfoldStudiedSampleArr[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJerDefExtraUnfold[iCut]);
             // Ref
-            if (hs.hRefDijetPtEtaCMArrJerUp[iCut]) hs.hRefDijetPtEtaCMArrJerUp[iCut]->Write();
-            if (hs.hRefDijetPtEtaCMArrJerDown[iCut]) hs.hRefDijetPtEtaCMArrJerDown[iCut]->Write();
-            if (hs.hRefDijetPtEtaCMArrJerDef[iCut]) hs.hRefDijetPtEtaCMArrJerDef[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMPointingResArr[iCut]) hs.hRecoDijetPtEtaCMPointingResArr[iCut]->Write();
-            if (hs.hRefDijetPtEtaCMPointingResArr[iCut]) hs.hRefDijetPtEtaCMPointingResArr[iCut]->Write();
-            if (hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut]) hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut]->Write();
+            if (hs.hRefDijetPtEtaCMArrJerUp[iCut]) writeChecked(*hs.hRefDijetPtEtaCMArrJerUp[iCut]);
+            if (hs.hRefDijetPtEtaCMArrJerDown[iCut]) writeChecked(*hs.hRefDijetPtEtaCMArrJerDown[iCut]);
+            if (hs.hRefDijetPtEtaCMArrJerDef[iCut]) writeChecked(*hs.hRefDijetPtEtaCMArrJerDef[iCut]);
+            if (hs.hRecoDijetPtEtaCMPointingResArr[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMPointingResArr[iCut]);
+            if (hs.hRefDijetPtEtaCMPointingResArr[iCut]) writeChecked(*hs.hRefDijetPtEtaCMPointingResArr[iCut]);
+            if (hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut]) writeChecked(*hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut]);
         }
 
         if (!isMc) {
-            if (hs.hRecoDijetPtEtaCMArrJeuUp[iCut]) hs.hRecoDijetPtEtaCMArrJeuUp[iCut]->Write();
-            if (hs.hRecoDijetPtEtaCMArrJeuDown[iCut]) hs.hRecoDijetPtEtaCMArrJeuDown[iCut]->Write();
+            if (hs.hRecoDijetPtEtaCMArrJeuUp[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJeuUp[iCut]);
+            if (hs.hRecoDijetPtEtaCMArrJeuDown[iCut]) writeChecked(*hs.hRecoDijetPtEtaCMArrJeuDown[iCut]);
         }
     }
 
+    fOut->Flush();
+    if (fOut->TestBit(TFile::kWriteError)) {
+        throw std::runtime_error("Failed flushing ROOT output file: " + std::string(oFileName.Data()));
+    }
     fOut->Close();
+    if (fOut->TestBit(TFile::kWriteError)) {
+        throw std::runtime_error("Failed closing ROOT output file: " + std::string(oFileName.Data()));
+    }
     std::cout << GREEN << "\t[DONE]" << RESET << std::endl;
 }
 
@@ -4250,6 +4359,7 @@ int main(int argc, char* argv[]) {
     const char *path2auxFiles = "./aux_files/pPb_8160";
 #endif
 
+    try {
     if (collisionSystem == nullptr ||
         (std::string(collisionSystem) != "pPb" && std::string(collisionSystem) != "pp")) {
         std::cerr << RED << "Invalid collisionSystem. Must be pPb or pp." << RESET << std::endl;
@@ -4366,6 +4476,9 @@ int main(int argc, char* argv[]) {
         oFileName = output;
     }
 
+    validateInputOutputPaths(fname, oFileName);
+    validateOutputPath(oFileName);
+
     // Print code input parameters here
     std::cout << "Collision system: " << collisionSystem << std::endl;
     std::cout << "Code input parameters:" << std::endl;
@@ -4424,4 +4537,12 @@ int main(int argc, char* argv[]) {
     // Write output
     writeOutput(oFileName, hs, isMc, static_cast<JERSmearingMode>(jerSmearingMode),
                 useEtaDependentJER != 0);
+    } catch (const std::exception &error) {
+        std::cerr << RED << "ERROR: " << error.what() << RESET << std::endl;
+#if defined(__CINT__) || defined(__CLING__)
+        throw;
+#else
+        return EXIT_FAILURE;
+#endif
+    }
 }

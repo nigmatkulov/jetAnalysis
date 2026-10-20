@@ -46,6 +46,33 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ```
 
+Startup rejects equal input/output paths, including relative paths with `.` or
+`..`, and checks each filename in an input list. This simple path check does not
+resolve symlinks or hard links. Input preflight checks equal entry counts across
+the four required trees separately in each file; identical event ordering is
+assumed.
+
+The jet energy corrector builds a candidate-row grid for one- and two-coordinate
+payloads at load time. Lookup retains inclusive bounds, original row precedence,
+dependency clamping, formulas, and sequential correction levels. Unsupported or
+oversized layouts and non-finite query coordinates use the original scan.
+`ctest --test-dir build --output-on-failure` includes exact indexed/scan
+comparisons at payload boundaries, neighboring floating-point values, and
+synthetic overlapping bins.
+
+Generator smearing caches each deterministic Gaussian draw per sorted generator
+jet and replica, reusing it across the four scale families. Replica counts,
+weights, histogram fill order, and smearing formulas are unchanged.
+
+Input preflight requires a consistent rho layout across all accepted files:
+`rho` takes precedence over `fixedGridRhoFastjetAll`, and the selected leaf must
+be scalar `Float_t`. A change of name, type, shape, or presence stops the run.
+When neither branch exists in any file, the existing zero-rho fallback remains.
+
+The local output directory must already exist and be writable. The executable
+reports output creation, object-write, flush, and close failures on stderr and
+returns a nonzero status. ROOT handles remote output URLs at file creation.
+
 Use Release for normal validation and production execution. If compilation or
 execution fails, reconfigure in Debug and reproduce the problem:
 

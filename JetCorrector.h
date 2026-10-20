@@ -71,6 +71,12 @@ class SingleJetCorrector {
     std::vector<std::vector<Type>> Dependencies;
     std::vector<std::vector<double>> DependencyRanges;
     std::vector<TF1 *> Functions;
+    friend struct JetCorrectorLookupTest;
+    // Closed-bin candidate grid; row IDs retain original payload order.
+    std::vector<Type> LookupTypes; //!
+    std::vector<std::vector<double>> LookupEdges; //!
+    std::vector<std::vector<int>> LookupRows; //!
+    void BuildLookup();
     std::string Hack4(std::string Formula, char V, int N);
 
     ClassDef(SingleJetCorrector, 0)

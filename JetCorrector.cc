@@ -20,6 +20,8 @@
 #include "JetCorrector.h"
 
 #include <cstddef>
+#include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 //_________________
@@ -125,6 +127,10 @@ SingleJetCorrector::~SingleJetCorrector() {
 
 //_________________
 void SingleJetCorrector::Initialize(std::string FileName) {
+    // Initialize historically appends rows; rebuild the index over all rows.
+    LookupTypes.clear();
+    LookupEdges.clear();
+    LookupRows.clear();
     int nvar = 0, npar = 0;
     std::string CurrentFormula = "";
     std::vector<Type> CurrentDependencies;
@@ -235,7 +241,58 @@ void SingleJetCorrector::Initialize(std::string FileName) {
 
     //std::cout << "Closing the input file" << std::endl;
     in.close();
+    BuildLookup();
     Initialized = true;
+}
+
+//_________________
+void SingleJetCorrector::BuildLookup() {
+    // Common JEC payloads use one or two bin coordinates. Keep the original
+    // scan for heterogeneous layouts, non-finite bounds, or oversized grids.
+    if (BinTypes.empty() || BinTypes[0].empty() || BinTypes[0].size() > 2) return;
+    const auto types = BinTypes[0];
+    std::vector<std::vector<double>> edges(types.size());
+    for (size_t row = 0; row < BinTypes.size(); ++row) {
+        if (BinTypes[row] != types || BinRanges[row].size() != 2 * types.size()) return;
+        for (size_t axis = 0; axis < types.size(); ++axis) {
+            const double low = BinRanges[row][2 * axis];
+            const double high = BinRanges[row][2 * axis + 1];
+            if (!std::isfinite(low) || !std::isfinite(high)) return;
+            edges[axis].push_back(low);
+            edges[axis].push_back(high);
+        }
+    }
+    size_t cells = 1;
+    for (auto &axis : edges) {
+        std::sort(axis.begin(), axis.end());
+        axis.erase(std::unique(axis.begin(), axis.end()), axis.end());
+        if (axis.size() + 1 > 262144 / cells) return;
+        cells *= axis.size() + 1;
+    }
+    const size_t stride = edges.size() == 2 ? edges[1].size() + 1 : 1;
+    std::vector<std::vector<int>> rows(cells);
+    size_t references = 0;
+    for (size_t row = 0; row < BinTypes.size(); ++row) {
+        size_t begin[2]{0, 0}, end[2]{0, 0};
+        for (size_t axis = 0; axis < edges.size(); ++axis) {
+            // upper_bound assigns an exact edge to the cell on its right.
+            // Include that cell for both lower and upper ends, preserving
+            // inclusive bounds and overlapping rows at shared boundaries.
+            begin[axis] = std::upper_bound(edges[axis].begin(), edges[axis].end(),
+                BinRanges[row][2 * axis]) - edges[axis].begin();
+            end[axis] = std::upper_bound(edges[axis].begin(), edges[axis].end(),
+                BinRanges[row][2 * axis + 1]) - edges[axis].begin();
+        }
+        const size_t count = (end[0] - begin[0] + 1) * (end[1] - begin[1] + 1);
+        if (count > 1048576 - references) return;
+        references += count;
+        for (size_t first = begin[0]; first <= end[0]; ++first)
+            for (size_t second = begin[1]; second <= end[1]; ++second)
+                rows[first * stride + second].push_back(static_cast<int>(row));
+    }
+    LookupTypes = types;
+    LookupEdges = std::move(edges);
+    LookupRows = std::move(rows);
 }
 
 //_________________
@@ -311,7 +368,22 @@ double SingleJetCorrector::GetCorrection() {
 
     //std::cout << "Formulas size: " << N << std::endl;
 
-    for (int iE = 0; iE < N; iE++) {
+    const std::vector<int> *candidates = nullptr;
+    if (!LookupRows.empty()) {
+        size_t cell = 0;
+        bool finite = true;
+        for (size_t axis = 0; axis < LookupTypes.size(); ++axis) {
+            const double value = GetValue(LookupTypes[axis]);
+            if (!std::isfinite(value)) { finite = false; break; }
+            const auto &edges = LookupEdges[axis];
+            cell = cell * (edges.size() + 1) +
+                (std::upper_bound(edges.begin(), edges.end(), value) - edges.begin());
+        }
+        if (finite) candidates = &LookupRows[cell];
+    }
+    const int count = candidates ? static_cast<int>(candidates->size()) : N;
+    for (int candidate = 0; candidate < count; ++candidate) {
+        const int iE = candidates ? (*candidates)[candidate] : candidate;
         //std::cout << "iE: " << iE << std::endl;
 
         bool InBin = true;
@@ -322,6 +394,7 @@ double SingleJetCorrector::GetCorrection() {
             //std::cout << "Value: " << Value << std::endl;
             if (Value < BinRanges[iE][iB * 2] || Value > BinRanges[iE][iB * 2 + 1]) {
                 InBin = false;
+                break;
                 //std::cout << "InBin = FALSE" << std::endl;
             }
         }

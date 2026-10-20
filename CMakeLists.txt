@@ -78,4 +78,12 @@ if(BUILD_TESTING)
     add_executable(test_analysis_contract tests/test_analysis_contract.cpp)
     target_include_directories(test_analysis_contract PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME analysis_contract COMMAND test_analysis_contract)
+    add_executable(test_jec_lookup
+        tests/test_jec_lookup.cpp
+        JetCorrector.cc
+        JetUncertainty.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/G__processForestSimple.cxx)
+    target_link_libraries(test_jec_lookup ${ROOT_LIBRARIES})
+    add_test(NAME jec_lookup COMMAND test_jec_lookup)
+    set_tests_properties(jec_lookup PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endif()

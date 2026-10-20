@@ -81,5 +81,40 @@ void test_jer_cached_momenta() {
             }
         }
     }
+    // Generator families must retain the same replica draws, fill counts,
+    // weighted sums, and Sumw2 as direct uncached evaluation.
+    Histograms generatorHs;
+    createHistograms(generatorHs, true);
+    std::vector<GenJet> generatorJets{{175.f, .3f, 0.f, 175.f},
+                                    {150.f, -.2f, 3.14f, 150.f},
+                                    {55.f, 1.2f, 1.f, 55.f}};
+    const double generatorWeight = 2.5;
+    processGenDijets(true, false, true, generatorWeight, generatorJets, generatorHs, &jer);
+    const std::array<TH3D *, 4> diagnostics{
+        generatorHs.hGenInclusiveJetJESDefPtEta.get(),
+        generatorHs.hGenInclusiveJetJESDefDoublePtEta.get(),
+        generatorHs.hGenInclusiveJetJESDefNinetyPtEta.get(),
+        generatorHs.hGenInclusiveJetJESDefExtraPtEta.get()};
+    const std::array<float, 4> scales{1.f, 2.f, .9f, 1.f};
+    for (size_t family = 0; family < scales.size(); ++family) {
+        auto expected = std::unique_ptr<TH3D>(static_cast<TH3D *>(diagnostics[family]->Clone()));
+        expected->Reset();
+        for (int replica = 0; replica < 20; ++replica) {
+            for (size_t index = 0; index < generatorJets.size(); ++index) {
+                const auto &jet = generatorJets[index];
+                const double normal = jer.normalDeviate(jet.pt, jet.eta, eventRho, run, lumi, evt,
+                    replica * static_cast<int>(generatorJets.size()) + static_cast<int>(index));
+                const float smeared = jer.smearTruthMomentum(jet.pt, jet.eta, scales[family], family == 3, normal);
+                if (replica < 10) expected->Fill(smeared / jet.pt, jet.pt, jet.eta, generatorWeight);
+                if (family == 3 && replica == 19)
+                    check(jet.smearedPt == smeared, "generator final replica changed");
+            }
+        }
+        check(expected->GetEntries() == diagnostics[family]->GetEntries(), "generator fill count changed");
+        for (int bin = 0; bin < expected->GetNcells(); ++bin) {
+            check(expected->GetBinContent(bin) == diagnostics[family]->GetBinContent(bin), "generator contents changed");
+            check(expected->GetSumw2()->At(bin) == diagnostics[family]->GetSumw2()->At(bin), "generator Sumw2 changed");
+        }
+    }
     std::cout << "JER cache: shared draws, rank swaps, unmatched jets, eta branches, all modes and replicas passed\n";
 }
