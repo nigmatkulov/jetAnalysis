@@ -188,6 +188,23 @@ Argument order:
 9. optional `collisionSystem` (`"pPb"` by default, or `"pp"`); selects frame transformations, MC branches, weighting, and event cuts
 10. optional `jerSmearingMode` (`0` by default): `0` CMS hybrid, `1` forced CMS stochastic, or `2` truth-to-pseudo-reco diagnostic
 11. optional `useEtaDependentJER` (`0` by default): `0` keeps base-resolution standard and eta-dependent `Extra` families in one run; `1` uses eta-dependent resolution for both
+12. optional `residualMode` (`2` by default): data only, `2` new residual,
+    `1` old residual, `0` no residual; ignored for MC.
+
+Data retains the beam-dependent L2 correction in all three modes. Mode `1`
+then applies `Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt`; mode `2`
+applies `Summer16_07Aug2017GH_V11_DATA_L2L3Residual_AK4PF.txt` instead.
+Mode `0` applies neither residual. For example, select old residuals with:
+
+```bash
+./build/processForestSimple input.root output_oldResiduals.root 0 1 0 1 2 0 pPb 0 0 1
+```
+
+The ROOT-call signature has the same final optional argument. Explicit output
+paths are honored as supplied; automatically generated data output names add
+`_oldResiduals` or `_noResiduals` for modes `1` and `0`. Default names and ROOT
+object keys remain unchanged.
+
 
 Existing eight-argument calls retain the pPb boost, weighting, selection, and
 orientation conventions.
@@ -436,6 +453,11 @@ Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in
 `processing/README.md`. The general submitter uses 10 input files per job by
 default so one transient input failure invalidates a smaller unit of work.
+Both Condor submitters accept `--residual-mode {0,1,2}` (default `2`). Data
+job labels add `_oldResiduals` or `_noResiduals` before `_jobNNNN`; new-residual
+names remain unchanged. Use the same `--residual-mode` with
+`processing/merge_data_outputs.py` to select and name the matching merged output.
+
 `processing/submit_all_data_condor.py` is the convenience wrapper for submitting
 all four data triggers in both beam orientations; it uses 50 input files per
 job by default.

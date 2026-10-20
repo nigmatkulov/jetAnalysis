@@ -207,6 +207,10 @@ Options passed to `processForestSimple` are:
   with lepton veto, or `3` loose jet ID.
 - `--vertex-filter-selection`: `0` `pVertexFilterCutdz1p0` (nominal), `1`
   `pVertexFilterCutGplus`, or `2` `pVertexFilterCutVtx1`.
+- `--residual-mode`: data only, `2` new residual (default), `1` old residual,
+  `0` no residual. Ignored for MC; the beam-dependent L2 correction is always
+  retained. Mode `1` uses `Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt`;
+  mode `2` uses `Summer16_07Aug2017GH_V11_DATA_L2L3Residual_AK4PF.txt`.
 - `--jer-smearing-mode`: `0` CMS hybrid (default), `1` forced CMS stochastic,
   or `2` truth-to-pseudo-reco diagnostic. It affects MC only.
 - `--eta-dependent-jer`: optional override making standard JER branches use
@@ -218,6 +222,25 @@ For the pp CP5 sample use `pp_analyzeMc_cp5tune.py`, as described above.
 Embedding selects direction-specific Embedded JEC; standalone pPb PYTHIA selects
 direction-specific Unembedded JEC. The pp runner selects Pb-going pPb Unembedded
 JEC by the agreed analysis convention. No separate JEC payload option is exposed.
+
+Both `submit_process_forest_condor.py` and `submit_all_data_condor.py` accept
+`--residual-mode`. New-residual names stay unchanged. Old/no-residual data
+campaigns add `_oldResiduals`/`_noResiduals` before `_jobNNNN.root`, e.g.
+`Jet60_Pbgoing_data_jetId_oldResiduals_job0001.root`. The same suffix separates
+campaign directories and logs. MC names remain unchanged.
+
+Use the same mode with `merge_data_outputs.py`: its discovery pattern excludes
+the other residual variants, and its default merged filename adds the suffix,
+e.g. `jet60_Pbgoing_ak4_jetId_oldResiduals.root`. Mode `2` retains existing
+merged names. For example, from the repository root:
+
+```bash
+py-env/bin/python processing/submit_all_data_condor.py --residual-mode 1 --dry-run
+py-env/bin/python processing/merge_data_outputs.py OUTPUT_DIR --trigger Jet60 --beam Pbgoing --residual-mode 1 --dry-run
+```
+
+The generated worker command passes the residual mode as the final execution
+argument. Existing 13-argument worker calls remain supported with mode `2`.
 
 The generated worker command always passes `pPb` and both JER settings
 explicitly. The default MC production uses CMS Hybrid mode with

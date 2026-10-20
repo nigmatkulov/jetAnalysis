@@ -70,6 +70,7 @@ void usage() {
                 << "  [pPb|pp]              Collision system (default: pPb)\n"
                 << "  [0|1|2]               JER mode: 0 hybrid (default), 1 stochastic, 2 truth-to-pseudo-reco\n"
                 << "  [0|1]                 Apply analysis-derived eta dependence to the selected JER mode (default: 0)\n"
+                << "  [0|1|2]               Data residual: 0 none, 1 old, 2 new (default); ignored for MC\n"
                 << RESET;
     exit(EXIT_FAILURE);
 }
@@ -4312,13 +4313,14 @@ void processEvents(const bool isPp, const bool &isPbGoing, const bool &isMc, con
     collisionSystem (default pPb): pPb or pp; controls eta frames, MC branches, weights, and event cuts
     jerSmearingMode (default 0): 0 - CMS hybrid, 1 - CMS stochastic, 2 - truth-to-pseudo-reco diagnostic
     useEtaDependentJER (default 0): 0 - central pT-dependent resolution, 1 - multiply by the fitted eta shape
+    residualMode (default 2): data only, 0 - none, 1 - old, 2 - new residual
 */
 #if defined(__CINT__) || defined(__CLING__)
 void processForestSimple( const char* input = "", const char* output = "", 
                           int mcType = 2, int isPbGoingDir = 1, int ptHatSample = 50,
                           int triggerId = 0, int recoJetSelMethod = 2,
                           int vertexFilterSelection = 0, const char* collisionSystem = "pPb",
-                          int jerSmearingMode = 0, int useEtaDependentJER = 0 ) {
+                          int jerSmearingMode = 0, int useEtaDependentJER = 0, int residualMode = 2 ) {
 
     const char *path2auxFiles = "./aux_files/pPb_8160";
 #else
@@ -4335,8 +4337,9 @@ int main(int argc, char* argv[]) {
     const char* collisionSystem = "pPb";
     int jerSmearingMode = {0};
     int useEtaDependentJER = {0};
+    int residualMode = {2};
 
-    if (argc < 9 || argc > 12) {
+    if (argc < 9 || argc > 13) {
         std::cerr << RED << "Incorrect number of input parameters. Terminating." << RESET << std::endl;
         usage();
     }
@@ -4354,7 +4357,16 @@ int main(int argc, char* argv[]) {
         collisionSystem = argv[9];
         jerSmearingMode = std::atoi(argv[10]);
     }
-    if (argc == 12) useEtaDependentJER = std::atoi(argv[11]);
+    if (argc >= 12) useEtaDependentJER = std::atoi(argv[11]);
+
+    if (argc == 13) {
+        const std::string value(argv[12]);
+        if (value != "0" && value != "1" && value != "2") {
+            std::cerr << RED << "Invalid residualMode. Must be 0 (none), 1 (old), or 2 (new)." << RESET << std::endl;
+            usage();
+        }
+        residualMode = std::atoi(argv[12]);
+    }
 
     const char *path2auxFiles = "./aux_files/pPb_8160";
 #endif
@@ -4394,6 +4406,11 @@ int main(int argc, char* argv[]) {
     }
     if (useEtaDependentJER < 0 || useEtaDependentJER > 1) {
         std::cerr << RED << "Invalid useEtaDependentJER. Must be 0 or 1." << RESET << std::endl;
+        usage();
+    }
+
+    if (residualMode < 0 || residualMode > 2) {
+        std::cerr << RED << "Invalid residualMode. Must be 0 (none), 1 (old), or 2 (new)." << RESET << std::endl;
         usage();
     }
 
@@ -4444,10 +4461,13 @@ int main(int argc, char* argv[]) {
         else {
             fJECFileNames.push_back( Form("%s/JEC/Autumn16_HI_pPb_Pbgoing_Embedded_MC_L2Relative_AK4PF.txt", path2auxFiles) );
         }
-        // Old correction
-        // fJECFileNames.push_back( Form("%s/JEC/Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt", path2auxFiles) );
-        // New correction (with updated residuals)
-        fJECFileNames.push_back( Form("%s/JEC/Summer16_07Aug2017GH_V11_DATA_L2L3Residual_AK4PF.txt", path2auxFiles) );
+        // Residuals apply after L2; mode 0 retains L2 without any residual.
+        if (residualMode == 1) {
+            fJECFileNames.push_back( Form("%s/JEC/Summer16_23Sep2016HV4_DATA_L2L3Residual_AK4PF.txt", path2auxFiles) );
+        }
+        else if (residualMode == 2) {
+            fJECFileNames.push_back( Form("%s/JEC/Summer16_07Aug2017GH_V11_DATA_L2L3Residual_AK4PF.txt", path2auxFiles) );
+        }
         
         // JEU (Jet Energy Uncertainty)
         fJEUFileName = Form("%s/JEC/Summer16_23Sep2016HV4_DATA_Uncertainty_AK4PF.txt", path2auxFiles);
@@ -4470,7 +4490,9 @@ int main(int argc, char* argv[]) {
     // Setup output filename
     TString oFileName;
     if (output == nullptr || output[0] == '\0') {
-        oFileName = Form("macro/eta_shift/%s_%s_ptHat%d.root", generator.Data(), directionStr.Data(), ptHatSample);
+        const char *residualSuffix = !isMc && residualMode != 2
+            ? (residualMode == 1 ? "_oldResiduals" : "_noResiduals") : "";
+        oFileName = Form("macro/eta_shift/%s_%s_ptHat%d%s.root", generator.Data(), directionStr.Data(), ptHatSample, residualSuffix);
     }
     else {
         oFileName = output;
@@ -4497,6 +4519,7 @@ int main(int argc, char* argv[]) {
     const std::array<const char *, 3> jerModeNames{"hybrid", "stochastic", "truth-to-pseudo-reco"};
     std::cout << "  JER smearing mode: " << GREEN << jerModeNames[jerSmearingMode] << RESET << std::endl;
     std::cout << "  JER eta dependence: " << GREEN << (useEtaDependentJER ? "enabled" : "disabled") << RESET << std::endl;
+    std::cout << "  data residual mode: " << residualMode << (isMc ? " (ignored for MC)" : " (0=none, 1=old, 2=new)") << std::endl;
     std::cout << "  JEC files:" << std::endl;
     for (const auto &fn : fJECFileNames) std::cout << "    " << GREEN << fn.c_str() << RESET << std::endl;
 

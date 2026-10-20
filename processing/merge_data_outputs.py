@@ -58,6 +58,8 @@ def parse_args() -> argparse.Namespace:
         default="dz1p0",
         help="Vertex-filter label in source and output names (default: dz1p0)",
     )
+    parser.add_argument("--residual-mode", type=int, choices=(0, 1, 2), default=2,
+                        help="Select 0=no residual, 1=old residual, 2=new residual (default)")
     parser.add_argument(
         "--output", type=Path,
         help=(
@@ -78,7 +80,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def input_pattern(
-    trigger: str, beam: str, reco_jet_selection: str, vertex_filter_selection: str
+    trigger: str, beam: str, reco_jet_selection: str, vertex_filter_selection: str, residual_mode: int = 2
 ) -> str:
     """Return the submitter pattern for one trigger/direction/selection tuple.
 
@@ -88,9 +90,10 @@ def input_pattern(
     """
 
     vertex_suffix = "" if vertex_filter_selection == "dz1p0" else f"_{vertex_filter_selection}"
+    residual_suffix = {2: "", 1: "_oldResiduals", 0: "_noResiduals"}[residual_mode]
     if trigger == "MB":
-        return f"MB_PD*_{beam}_data_{reco_jet_selection}{vertex_suffix}_job*.root"
-    return f"{trigger}_{beam}_data_{reco_jet_selection}{vertex_suffix}_job*.root"
+        return f"MB_PD*_{beam}_data_{reco_jet_selection}{vertex_suffix}{residual_suffix}_job*.root"
+    return f"{trigger}_{beam}_data_{reco_jet_selection}{vertex_suffix}{residual_suffix}_job*.root"
 
 
 def validate_root_file(path: Path, rootls: str) -> None:
@@ -169,12 +172,13 @@ def main() -> int:
         raise SystemExit(f"input directory does not exist: {input_dir}")
 
     vertex_suffix = "" if args.vertex_filter_selection == "dz1p0" else f"_{args.vertex_filter_selection}"
+    residual_suffix = {2: "", 1: "_oldResiduals", 0: "_noResiduals"}[args.residual_mode]
     default_output = input_dir / (
-        f"{args.trigger.lower()}_{args.beam}_ak4_{args.reco_jet_selection}{vertex_suffix}.root"
+        f"{args.trigger.lower()}_{args.beam}_ak4_{args.reco_jet_selection}{vertex_suffix}{residual_suffix}.root"
     )
     output = args.output.expanduser().resolve() if args.output else default_output
     pattern = input_pattern(
-        args.trigger, args.beam, args.reco_jet_selection, args.vertex_filter_selection
+        args.trigger, args.beam, args.reco_jet_selection, args.vertex_filter_selection, args.residual_mode
     )
     # Resolve and deduplicate paths before merging. Excluding output is a
     # second guard against ever feeding the target back into hadd if a custom

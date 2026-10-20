@@ -32,6 +32,8 @@ def parse_args() -> argparse.Namespace:
         "--vertex-filter-selection", type=int, default=0,
         help="0=dz1p0, 1=Gplus, 2=Vtx1 (default: 0)",
     )
+    parser.add_argument("--residual-mode", type=int, choices=(0, 1, 2), default=2,
+                        help="0=no residual, 1=old residual, 2=new residual (default)")
     parser.add_argument("--job-flavour", help="Override the default espresso flavour")
     parser.add_argument("--proxy", type=Path, help="Forward a non-default proxy path")
     parser.add_argument("--work-dir", type=Path, help="Forward a non-default Condor work directory")
@@ -56,6 +58,7 @@ def submission_command(args: argparse.Namespace, beam: str, trigger_id: int) -> 
         "--files-per-job", str(args.files_per_job),
         "--reco-jet-selection", str(args.reco_jet_selection),
         "--vertex-filter-selection", str(args.vertex_filter_selection),
+        "--residual-mode", str(args.residual_mode),
     ]
     if trigger_id == 0:
         command.extend(("--pd-number", "all"))

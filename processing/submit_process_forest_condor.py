@@ -172,6 +172,10 @@ def parse_args() -> argparse.Namespace:
         help="Use eta-dependent resolution also for standard JER branches; default keeps base standard and eta-dependent Extra families in one run",
     )
     parser.add_argument(
+        "--residual-mode", type=bounded_int("--residual-mode", 0, 2), default=2,
+        help="Data only: 0=no residual, 1=old residual, 2=new residual (default); ignored for MC",
+    )
+    parser.add_argument(
         "--files-per-job", type=positive_int, default=10, help="Default: 10"
     )
     parser.add_argument(
@@ -262,6 +266,8 @@ def make_name(
     labels.append(reco_selection)
     if args.vertex_filter_selection != 0:
         labels.append(vertex_selection)
+    if args.mc_type == 0 and args.residual_mode != 2:
+        labels.append("oldResiduals" if args.residual_mode == 1 else "noResiduals")
     if args.name:
         labels.insert(0, args.name)
     return "_".join(labels)
@@ -444,6 +450,7 @@ def main() -> int:
                         "pPb",
                         str(args.jer_smearing_mode),
                         str(int(args.eta_dependent_jer)),
+                        str(args.residual_mode),
                     )
                 ),
                 "output = /dev/null",
