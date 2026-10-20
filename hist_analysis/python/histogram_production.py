@@ -13,8 +13,8 @@ from hist_analysis.config.files import BASE_DIR
 from hist_analysis.config.histograms import DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS, DIJET_ETA_CUTS
 from hist_analysis.python.histogram_io import (
     open_root_file, resolve_combined_file, resolve_data_file,
-    produced_histogram_path, find_produced_histogram_file,
-    resolve_direction_file,
+    produced_histogram_path,
+    resolve_direction_file, resolve_histogram_input,
 )
 from hist_analysis.python.projections import project_semantic_th2
 
@@ -115,18 +115,20 @@ def load_eta_projection(filename: str | Path, source_key: str, binning: str,
 
 
 def produced_file(*, category: str, dataset: str, direction: str,
-                  trigger: str | None = None) -> Path:
+                  trigger: str | None = None, selection: str = "jetId") -> Path:
     """Resolve one dedicated production output beneath ``root_files``."""
 
     parts = [category, dataset, direction]
     if trigger is not None:
         parts.append(trigger.lower())
-    return produced_histogram_path(*parts)
+    return produced_histogram_path(*parts, selection)
 
 
-def source_catalog(base_dir: str | Path = BASE_DIR) -> dict[str, dict]:
+def source_catalog(base_dir: str | Path = BASE_DIR, *, selection: str = "jetId") -> dict[str, dict]:
     """Return every explicitly supported production source and output path."""
 
+    if selection not in {"jetId", "trkMax", "noSel"}:
+        raise ValueError(f"Unsupported jet selection {selection!r}")
     base = Path(base_dir)
     catalog: dict[str, dict] = {}
     for direction in ("Pbgoing", "pgoing", "combined"):
@@ -136,11 +138,11 @@ def source_catalog(base_dir: str | Path = BASE_DIR) -> dict[str, dict]:
                 "category": "data", "dataset": "data", "direction": direction,
                 "trigger": trigger,
                 "source": resolve_data_file(
-                    base / "exp", trigger, direction, prefer_produced=False,
+                    base / "exp", trigger, direction, selection, prefer_produced=False,
                 ),
                 "output": produced_file(
                     category="data", dataset="data", direction=direction,
-                    trigger=trigger,
+                    trigger=trigger, selection=selection,
                 ),
                 "copy_unfolding": False,
             }
@@ -148,11 +150,11 @@ def source_catalog(base_dir: str | Path = BASE_DIR) -> dict[str, dict]:
         for direction in ("Pbgoing", "pgoing", "combined"):
             source = (
                 resolve_combined_file(
-                    base, dataset, "jetId", prefer_produced=False,
+                    base, dataset, selection, prefer_produced=False,
                 )
                 if direction == "combined"
                 else resolve_direction_file(
-                    base, dataset, direction, "jetId", prefer_produced=False,
+                    base, dataset, direction, selection, prefer_produced=False,
                 )
             )
             identifier = f"official_mc_{dataset}_{direction}"
@@ -161,19 +163,20 @@ def source_catalog(base_dir: str | Path = BASE_DIR) -> dict[str, dict]:
                 "direction": direction, "trigger": None, "source": source,
                 "output": produced_file(
                     category="official_mc", dataset=dataset,
-                    direction=direction,
+                    direction=direction, selection=selection,
                 ),
                 "copy_unfolding": True,
             }
-    catalog["official_mc_pythia_cp5_pp"] = {
-        "category": "official_mc", "dataset": "pythia_cp5",
-        "direction": "pp", "trigger": None,
-        "source": base / "pythia" / "cp5tune" / "HiForestMiniAOD_hist.root",
-        "output": produced_file(
-            category="official_mc", dataset="pythia_cp5", direction="pp",
-        ),
-        "copy_unfolding": True,
-    }
+    if selection == "jetId":
+        catalog["official_mc_pythia_cp5_pp"] = {
+            "category": "official_mc", "dataset": "pythia_cp5",
+            "direction": "pp", "trigger": None,
+            "source": base / "pythia" / "cp5tune" / "HiForestMiniAOD_hist.root",
+            "output": produced_file(
+                category="official_mc", dataset="pythia_cp5", direction="pp",
+            ),
+            "copy_unfolding": True,
+        }
     standalone = {
         "cuep8m1": base / "pythia" / "cuep8m1tune" / "cuep8m1_gen_dijet_histograms.root",
         "cp5": base / "pythia" / "cp5tune" / "cp5_gen_dijet_histograms.root",
@@ -188,24 +191,25 @@ def source_catalog(base_dir: str | Path = BASE_DIR) -> dict[str, dict]:
             ),
             "copy_unfolding": False,
         }
+    for entry in catalog.values():
+        entry["selection"] = selection if entry["category"] != "standalone" else "jetId"
     return catalog
 
 
-def resolve_catalog_file(identifier: str, *, base_dir: str | Path = BASE_DIR) -> Path:
-    """Prefer the dedicated catalog output, retaining its original-source fallback."""
-
-    catalog = source_catalog(base_dir)
+def resolve_catalog_file(identifier: str, *, base_dir: str | Path = BASE_DIR,
+                         selection: str = "jetId", require_exists: bool = True) -> Path:
+    """Resolve a catalog input, failing with both searched paths when absent."""
+    catalog = source_catalog(base_dir, selection=selection)
     identifier = identifier.replace("__", "_")
     if identifier not in catalog:
-        raise ValueError(f"Unsupported production source {identifier!r}")
+        raise ValueError(f"Unsupported production source {identifier!r} for {selection}")
     entry = catalog[identifier]
-    if entry["output"].is_file():
-        return entry["output"]
     parts = [entry["category"], entry["dataset"], entry["direction"]]
     if entry["trigger"] is not None:
         parts.append(entry["trigger"].lower())
-    legacy = find_produced_histogram_file(*parts)
-    return legacy if legacy is not None else entry["source"]
+    return resolve_histogram_input(entry["source"], *parts,
+                                   selection=entry.get("selection", selection),
+                                   require_exists=require_exists)
 
 
 def _clone_detached(obj, name: str | None = None):
@@ -291,6 +295,7 @@ def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
             "projection_key_convention": "etaCut<physical value with decimal p>",
             "category": entry["category"], "dataset": entry["dataset"],
             "direction": entry["direction"], "trigger": entry["trigger"],
+            "selection": entry.get("selection", "jetId"),
             "source": {
                 "path": str(source_path.resolve()), "size": source_stat.st_size,
                 "mtime_ns": source_stat.st_mtime_ns,

@@ -14,6 +14,10 @@ void test_unfolding_missing_reco() {
     };
     auto reset = [&]() {
         for (int i = 0; i < nEtaCuts; ++i) {
+            for (auto *p : {&hs.unfoldingPairs, &hs.unfoldingPairsJerDefExtra,
+                            &hs.unfoldingPairsControlled, &hs.unfoldingPairsStudied}) {
+                p->hGenDijetPtEtaCMSelectedRecoNotFound[i]->Reset();
+            }
             for (auto *h : {hs.hGenDijetPtEtaCMMissArr[i].get(),
                             hs.hGenDijetPtEtaCMMissJerDefExtraArr[i].get(),
                             hs.hGenDijetPtEtaCMMissControlledSampleArr[i].get(),
@@ -73,6 +77,12 @@ void test_unfolding_missing_reco() {
             auto *extra = hs.hGenDijetPtEtaCMMissJerDefExtraArr[i].get();
             check(nominal->Integral() == expected && extra->Integral() == expected,
                   "caller must fill both missing-truth families exactly once");
+            for (auto *p : {&hs.unfoldingPairs, &hs.unfoldingPairsJerDefExtra})
+                check(p->hGenDijetPtEtaCMSelectedRecoNotFound[i]->Integral() == expected,
+                      "missing-reco diagnostics must follow both caller paths");
+            check((controlled ? hs.unfoldingPairsControlled : hs.unfoldingPairsStudied)
+                      .hGenDijetPtEtaCMSelectedRecoNotFound[i]->Integral() == expected,
+                  "missing-reco diagnostic split incorrect");
             double variance = 0.;
             for (int b = 0; b < nominal->GetNcells(); ++b)
                 variance += nominal->GetBinError(b) * nominal->GetBinError(b);

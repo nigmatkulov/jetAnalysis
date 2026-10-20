@@ -477,6 +477,10 @@ def flatten_sparse_response(
     response.Sumw2()
     gen_axis = sparse_response.GetAxis(gen_pt_axis)
     reco_axis = sparse_response.GetAxis(reco_pt_axis)
+    original_ranges = [
+        (axis.GetFirst(), axis.GetLast(), bool(axis.TestBit(ROOT.TAxis.kAxisRange)))
+        for axis in (gen_axis, reco_axis)
+    ]
     try:
         for gen_pt_index, (gen_low, gen_high) in enumerate(intervals):
             gen_axis.SetRange(
@@ -504,8 +508,13 @@ def flatten_sparse_response(
                             block.GetBinError(source_reco_eta, source_gen_eta),
                         )
     finally:
-        gen_axis.SetRange(0, -1)
-        reco_axis.SetRange(0, -1)
+        for axis, (first, last, active) in zip((gen_axis, reco_axis), original_ranges):
+            if not active:
+                axis.SetRange(0, 0)
+            elif first == 0 and last == 0:
+                axis.SetRange(-1, 0)
+            else:
+                axis.SetRange(first, last)
     return response, layout
 
 
@@ -647,8 +656,6 @@ def validate_response_accounting(
     measured_relative = []
     zero_efficiency = []
     empty_measured = []
-    truth_zero_tolerance = tolerance * max(abs(training_truth.Integral()), 1.0e-300)
-    measured_zero_tolerance = tolerance * max(abs(training_measured.Integral()), 1.0e-300)
     for bin_index in range(1, training_truth.GetNbinsX() + 1):
         expected = training_truth.GetBinContent(bin_index)
         accounted = (
@@ -658,8 +665,10 @@ def validate_response_accounting(
         residual = abs(expected - accounted)
         truth_absolute.append(residual)
         truth_relative.append(residual / max(abs(expected), 1.0e-300))
-        if (expected > truth_zero_tolerance
-                and diagnostics.matched_truth.GetBinContent(bin_index) <= truth_zero_tolerance):
+        # Support is distinct from a small yield relative to the global total.
+        # A tiny bin can still have efficiency near one.
+        if (expected > 0.0
+                and diagnostics.matched_truth.GetBinContent(bin_index) <= 0.0):
             zero_efficiency.append(bin_index)
     for bin_index in range(1, training_measured.GetNbinsX() + 1):
         expected = training_measured.GetBinContent(bin_index)
@@ -670,7 +679,7 @@ def validate_response_accounting(
         residual = abs(expected - accounted)
         measured_absolute.append(residual)
         measured_relative.append(residual / max(abs(expected), 1.0e-300))
-        if abs(expected) <= measured_zero_tolerance:
+        if expected == 0.0:
             empty_measured.append(bin_index)
     max_truth = max(truth_absolute, default=0.0)
     max_measured = max(measured_absolute, default=0.0)
@@ -832,8 +841,10 @@ def prepare_factorized_corrections(
     In measured bin i, ``purity_i = matched_reco_i / inclusive_reco_i`` and
     ``measured_signal_i = measured_i * purity_i``.  In truth bin j,
     ``efficiency_j = matched_truth_j / inclusive_truth_j``.  A zero training
-    reco bin produces zero purity; a zero-efficiency truth bin is rejected later
-    because no unfolding can recover a truth bin that is never reconstructed.
+    reco bin produces zero purity. The efficiency correction rejects a zero
+    efficiency only if the unfolded bin has nonzero content or error; a truth
+    bin with no response can therefore remain silently zero. Callers must
+    inspect training support before interpreting the result as inclusive truth.
 
     The correction factors are treated as fixed response inputs.  Consequently,
     the corrected measured errors contain the measured-data uncertainty only;

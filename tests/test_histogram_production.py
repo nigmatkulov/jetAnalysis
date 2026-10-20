@@ -193,7 +193,7 @@ class HistogramProductionTest(unittest.TestCase):
                 project_data_histogram(output, 'hRecoDijetPtEtaCM_6', 'eta', (60, 70), name='absent_2p5')
 
     def test_unfolding_overrides_take_precedence(self):
-        with patch.object(Path, 'is_file', return_value=True):
+        with patch('hist_analysis.python.histogram_io.checked_original_input', side_effect=lambda path: path):
             with patch.dict(os.environ, {'CP5_UNFOLDING_FILE': '/tmp/custom-cp5.root'}):
                 self.assertEqual(resolve_unfolding_mc_file(Path('/source'), 'pythia_cp5', 'pp'),
                                  Path('/tmp/custom-cp5.root'))
@@ -201,19 +201,81 @@ class HistogramProductionTest(unittest.TestCase):
                 self.assertEqual(resolve_unfolding_truth_file(Path('/source'), 'pythia_cp5_standalone', 'pp'),
                                  Path('/tmp/custom-truth.root'))
 
-    def test_catalog_keeps_source_fallback(self):
-        entry = {'output': Path('/produced.root'), 'source': Path('/original.root'),
-                 'category': 'fixture', 'dataset': 'fixture', 'direction': 'pp', 'trigger': None}
-        with patch('hist_analysis.python.histogram_production.source_catalog', return_value={'fixture': entry}):
-            with patch.object(Path, 'is_file', return_value=False):
-                self.assertEqual(resolve_catalog_file('fixture'), entry['source'])
-            with patch.object(Path, 'is_file', return_value=True):
-                self.assertEqual(resolve_catalog_file('fixture'), entry['output'])
+    def test_resolver_fallback_error_and_selection_provenance(self):
+        from hist_analysis.python.histogram_io import resolve_histogram_input
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            original = directory / 'embedding_jetId.root'
+            def bundle_path(*parts):
+                return directory / ('_'.join(parts) + '.root')
+            with patch('hist_analysis.python.histogram_io.produced_histogram_path', side_effect=bundle_path):
+                with self.assertRaises(FileNotFoundError) as caught:
+                    resolve_histogram_input(original, 'official_mc', 'embedding', 'combined')
+                message = str(caught.exception)
+                self.assertIn(str(original), message)
+                self.assertIn('official_mc_embedding_combined_jetId.root', message)
+                self.assertIn('selection=jetId', message)
+                file = ROOT.TFile.Open(str(original), 'RECREATE')
+                ROOT.TNamed('fixture', '').Write()
+                file.Close()
+                self.assertEqual(resolve_histogram_input(original, 'official_mc', 'embedding', 'combined'), original)
+                # An archived nominal bundle is useful only for nominal selection.
+                legacy = directory / 'official_mc__embedding__combined.root'
+                file = ROOT.TFile.Open(str(legacy), 'RECREATE')
+                metadata = dict(category='official_mc', dataset='embedding', direction='combined', trigger=None)
+                ROOT.TNamed('histogramProductionMetadata', json.dumps(metadata)).Write()
+                file.Close()
+                self.assertEqual(resolve_histogram_input(original, 'official_mc', 'embedding', 'combined'), legacy)
+                trk = directory / 'embedding_trkMax.root'
+                file = ROOT.TFile.Open(str(trk), 'RECREATE')
+                ROOT.TNamed('fixture', '').Write()
+                file.Close()
+                self.assertEqual(resolve_histogram_input(trk, 'official_mc', 'embedding', 'combined', selection='trkMax'), trk)
+                nominal = bundle_path('official_mc', 'embedding', 'combined', 'jetId')
+                file = ROOT.TFile.Open(str(nominal), 'RECREATE')
+                ROOT.TNamed('histogramProductionMetadata', json.dumps(dict(metadata, selection='trkMax'))).Write()
+                file.Close()
+                with self.assertRaisesRegex(ValueError, 'requested selection'):
+                    resolve_histogram_input(original, 'official_mc', 'embedding', 'combined')
 
-    def test_non_nominal_stem_does_not_use_nominal_production(self):
-        with patch.object(Path, 'is_file', return_value=True):
-            self.assertEqual(resolve_unfolding_mc_file(Path('/source'), 'embedding', 'combined', 'trkMax'),
-                             Path('/source/embedding/embedding_trkMax.root'))
+    def test_binning_and_selection_catalog(self):
+        from hist_analysis.config.histograms import pt_bins, eta_cut_index, DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS, SINGLE_JET_PT_BINS, TEST_SINGLE_JET_PT_BINS
+        for observable, normal, test in [('single', SINGLE_JET_PT_BINS, TEST_SINGLE_JET_PT_BINS), ('dijet', DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS)]:
+            self.assertEqual(pt_bins(observable, 'normal'), normal)
+            self.assertEqual(pt_bins(observable, 'standard'), normal)
+            self.assertEqual(pt_bins(observable, 'test'), test)
+        with self.assertRaises(ValueError): pt_bins('dijet', 'typo')
+        self.assertEqual(eta_cut_index(), 4)
+        self.assertEqual(eta_cut_index(2.5), 6)
+        with self.assertRaises(ValueError): eta_cut_index(2.3)
+        nominal = source_catalog()
+        alternate = source_catalog(selection='trkMax')
+        for identifier, entry in alternate.items():
+            self.assertNotIn('__', entry['output'].name)
+            if entry['category'] != 'standalone':
+                self.assertIn('_trkMax.root', str(entry['source']))
+                self.assertTrue(entry['output'].name.endswith('_trkMax.root'))
+                self.assertNotEqual(entry['output'], nominal[identifier]['output'])
+        self.assertNotIn('official_mc_pythia_cp5_pp', alternate)
+
+    def test_trigger_specific_test_binning(self):
+        from hist_analysis.config.histograms import trigger_dijet_bins, trigger_single_jet_bins
+        nominal = {trigger: [(60, 80)] for trigger in ('MinimumBias', 'Jet60', 'Jet80', 'Jet100')}
+        self.assertEqual(trigger_dijet_bins(nominal), nominal)
+        self.assertEqual(trigger_dijet_bins(nominal, 'test'), {
+            'MinimumBias': [(50, 100)], 'Jet60': [], 'Jet80': [(100, 180)],
+            'Jet100': [(180, 300), (300, 500), (500, 1000)],
+        })
+        self.assertEqual(trigger_single_jet_bins(nominal, 'test'), {
+            'MinimumBias': [(50, 80)], 'Jet60': [], 'Jet80': [],
+            'Jet100': [(180, 200), (400, 500)],
+        })
+        with self.assertRaises(ValueError): trigger_dijet_bins(nominal, 'typo')
+
+    def test_invalid_filename_separator_is_rejected(self):
+        from hist_analysis.python.histogram_io import produced_histogram_path
+        for parts in [('official_mc', '_pythia'), ('official_mc', 'pythia__combined'), ('data', ''), ('data', '../bad')]:
+            with self.assertRaises(ValueError): produced_histogram_path(*parts)
 
 
 if __name__ == '__main__':

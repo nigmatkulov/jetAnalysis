@@ -11,6 +11,7 @@ Requirements:
 """
 
 import os
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -77,6 +78,9 @@ def _clone_object(obj):
 #------------------------------------------------------------
 def produced_histogram_path(*parts: str) -> Path:
     """Canonical single-underscore filename for a reusable histogram bundle."""
+    if not parts or any(not part or "__" in part or "/" in part or "\\" in part
+                        or part.startswith("_") or part.endswith("_") for part in parts):
+        raise ValueError(f"Invalid reusable filename components: {parts!r}")
     return (Path(__file__).resolve().parents[1] / "root_files"
             / "produced_histograms" / ("_".join(parts) + ".root"))
 
@@ -88,39 +92,90 @@ def find_produced_histogram_file(*parts: str) -> Path | None:
     return next((path for path in (canonical, legacy) if path.is_file()), None)
 
 
-def resolve_direction_file(base_dir: Path,
-                           generator: str,
-                           direction: str,
-                           stem: str,
-                           *,
-                           prefer_produced: bool = True) -> Path:
+def resolve_histogram_input(original: Path, *parts: str, selection: str = "jetId",
+                            require_exists: bool = True) -> Path:
+    """Reusable → original → explicit error, with selection-specific cache names.
+
+    Unsuffixed archived bundles were produced exclusively from jetId sources.
+    A present but inconsistent bundle is an error, never a reason to substitute
+    a different physics input. ``require_exists=False`` is for candidate lists.
     """
-    Build a direction-specific output path.
-    """
-    if prefer_produced and stem == "jetId":
-        produced = find_produced_histogram_file("official_mc", generator, direction)
-        if produced is not None:
-            return produced
-    return base_dir / generator / direction / f"{generator}_{direction}_{stem}.root"
+    if selection not in _DATA_RECO_SELECTIONS:
+        raise ValueError(f"Unsupported jet selection {selection!r}")
+    original = Path(original)
+    searched = [produced_histogram_path(*parts, selection)]
+    produced = find_produced_histogram_file(*parts, selection)
+    if selection == "jetId":
+        searched.append(produced_histogram_path(*parts))
+        if produced is None:
+            produced = find_produced_histogram_file(*parts)
+    if produced is not None:
+        file = open_root_file(str(produced))
+        try:
+            obj = file.Get("histogramProductionMetadata")
+            if not obj:
+                raise ValueError(f"Reusable file {produced} has no production provenance")
+            metadata = json.loads(obj.GetTitle())
+            expected = dict(zip(("category", "dataset", "direction", "trigger"), parts))
+            expected["selection"] = selection
+            for field, value in expected.items():
+                actual = metadata.get(field, "jetId" if field == "selection" else None)
+                if field == "trigger" and actual is not None:
+                    actual = actual.lower()
+                if actual != value:
+                    raise ValueError(f"{produced}: requested {field}={value!r}, metadata has {actual!r}")
+        finally:
+            file.Close()
+        table = metadata.get("eta_cut_index_to_value")
+        if table:
+            from hist_analysis.config.histograms import DIJET_ETA_CUTS
+            if {int(i): float(v) for i, v in table.items()} != dict(enumerate(DIJET_ETA_CUTS)):
+                raise ValueError(f"{produced}: archived eta-cut order differs from current producer; "
+                                 "regenerate before using indexed source objects")
+        return produced
+    if original.is_file():
+        # Reject stale index tables before any notebook can interpret old keys
+        # using the current cut order. Import here to avoid the module cycle.
+        from hist_analysis.python.histogram_production import audit_source_cuts
+        try:
+            audit_source_cuts({"source": original})
+        except ValueError as error:
+            raise ValueError(f"{original}: {error}") from error
+        return original
+    if not require_exists:
+        return original
+    raise FileNotFoundError(
+        f"Missing input {'/'.join(parts)} (selection={selection}). "
+        f"Reusable files searched: {', '.join(map(str, searched))} "
+        f"(including legacy double-underscore names). Original searched: {original}"
+    )
 
 
-#------------------------------------------------------------
-# Path resolution
-#------------------------------------------------------------
-def resolve_combined_file(base_dir: Path,
-                          generator: str,
-                          stem: str,
-                          *,
-                          prefer_produced: bool = True) -> Path:
-    """
-    Build a combined-orientation output path.
-    """
+def resolve_direction_file(base_dir: Path, generator: str, direction: str,
+                           stem: str, *, prefer_produced: bool = True,
+                           require_exists: bool = True) -> Path:
+    original = Path(base_dir) / generator / direction / f"{generator}_{direction}_{stem}.root"
+    return (resolve_histogram_input(original, "official_mc", generator, direction,
+                                   selection=stem, require_exists=require_exists)
+            if prefer_produced else original)
 
-    if prefer_produced and stem == "jetId":
-        produced = find_produced_histogram_file("official_mc", generator, "combined")
-        if produced is not None:
-            return produced
-    return base_dir / generator / f"{generator}_{stem}.root"
+
+def resolve_combined_file(base_dir: Path, generator: str, stem: str, *,
+                          prefer_produced: bool = True,
+                          require_exists: bool = True) -> Path:
+    original = Path(base_dir) / generator / f"{generator}_{stem}.root"
+    return (resolve_histogram_input(original, "official_mc", generator, "combined",
+                                   selection=stem, require_exists=require_exists)
+            if prefer_produced else original)
+
+
+def checked_original_input(path: Path) -> Path:
+    """Validate an explicit override without substituting a catalog source."""
+    if not path.is_file():
+        raise FileNotFoundError(f"Missing explicitly requested ROOT input: {path}")
+    from hist_analysis.python.histogram_production import audit_source_cuts
+    audit_source_cuts({"source": path})
+    return path
 
 
 def normalize_unfolding_direction(dataset: str, direction: str) -> str:
@@ -155,20 +210,19 @@ def resolve_unfolding_mc_file(base_dir: Path,
     """
 
     direction = normalize_unfolding_direction(dataset, direction)
-    produced = find_produced_histogram_file("official_mc", dataset, direction)
     if dataset == "pythia_cp5" and "CP5_UNFOLDING_FILE" in os.environ:
-        return Path(os.environ["CP5_UNFOLDING_FILE"]).expanduser()
-    if stem == "jetId" and produced is not None:
-        return produced
+        return checked_original_input(Path(os.environ["CP5_UNFOLDING_FILE"]).expanduser())
     if dataset in {"embedding", "pythia"}:
         if direction == "combined":
             return resolve_combined_file(base_dir, dataset, stem)
         return resolve_direction_file(base_dir, dataset, direction, stem)
     if dataset == "pythia_cp5":
-        return Path(os.environ.get(
-            "CP5_UNFOLDING_FILE",
-            base_dir / "pythia" / "cp5tune" / "HiForestMiniAOD_hist.root",
-        )).expanduser()
+        if stem != "jetId":
+            raise ValueError("Official CP5 has only a documented jetId source")
+        return resolve_histogram_input(
+            Path(base_dir) / "pythia" / "cp5tune" / "HiForestMiniAOD_hist.root",
+            "official_mc", dataset, "pp", selection=stem,
+        )
     raise ValueError(
         f"Unsupported unfolding MC dataset {dataset!r}; expected "
         "'embedding', 'pythia', or 'pythia_cp5'"
@@ -191,11 +245,7 @@ def resolve_unfolding_truth_file(base_dir: Path,
         "pythia_cp5_standalone": "CP5_GEN_FILE",
     }
     if dataset in overrides and overrides[dataset] in os.environ:
-        return Path(os.environ[overrides[dataset]]).expanduser()
-    if dataset in standalone_names:
-        produced = find_produced_histogram_file("standalone", standalone_names[dataset], "pp")
-        if produced is not None:
-            return produced
+        return checked_original_input(Path(os.environ[overrides[dataset]]).expanduser())
     if dataset in {"embedding", "pythia", "pythia_cp5"}:
         return resolve_unfolding_mc_file(base_dir, dataset, direction, stem)
     standalone_defaults = {
@@ -211,7 +261,7 @@ def resolve_unfolding_truth_file(base_dir: Path,
     }
     if dataset in standalone_defaults:
         environment_name, default = standalone_defaults[dataset]
-        return Path(os.environ.get(environment_name, default)).expanduser()
+        return resolve_histogram_input(default, "standalone", standalone_names[dataset], "pp")
     raise ValueError(
         f"Unsupported unfolding truth dataset {dataset!r}; expected embedding, "
         "pythia, pythia_cp5, pythia_cuep8m1, or pythia_cp5_standalone"
@@ -224,7 +274,8 @@ def resolve_data_file(data_dir: Path,
                       selection: str = "jetId",
                       vertex_filter: str = "dz1p0",
                       *,
-                      prefer_produced: bool = True) -> Path:
+                      prefer_produced: bool = True,
+                      require_exists: bool = True) -> Path:
     """Build a merged experimental-data output path.
 
     Trigger aliases used by the data notebooks map to the lowercase stems
@@ -260,18 +311,27 @@ def resolve_data_file(data_dir: Path,
         )
 
     data_dir = Path(data_dir)
-    if prefer_produced and selection == "jetId" and vertex_filter == "dz1p0":
-        produced_trigger = "minimumbias" if trigger_stem == "mb" else trigger_stem
-        produced = find_produced_histogram_file("data", "data", direction, produced_trigger)
-        if produced is not None:
-            return produced
     vertex_suffix = "" if vertex_filter == "dz1p0" else f"_{vertex_filter}"
-    if direction == "combined":
-        return data_dir / f"{trigger_stem}_ak4_{selection}{vertex_suffix}.root"
-    return (
-        data_dir / direction
-        / f"{trigger_stem}_{direction}_ak4_{selection}{vertex_suffix}.root"
+    original = (
+        data_dir / f"{trigger_stem}_ak4_{selection}{vertex_suffix}.root"
+        if direction == "combined" else
+        data_dir / direction / f"{trigger_stem}_{direction}_ak4_{selection}{vertex_suffix}.root"
     )
+    if not prefer_produced:
+        return original
+    produced_trigger = "minimumbias" if trigger_stem == "mb" else trigger_stem
+    parts = ("data", "data", direction, produced_trigger)
+    if vertex_filter != "dz1p0":
+        # No reusable production catalog exists for the alternate vertex filters.
+        if original.is_file():
+            return checked_original_input(original)
+        if not require_exists:
+            return original
+        raise FileNotFoundError(f"Missing data {trigger}/{direction}/{selection}/{vertex_filter}; "
+                                f"reusable: not supported for this vertex filter; original: {original}")
+    return resolve_histogram_input(original, *parts, selection=selection,
+                                   require_exists=require_exists)
+
 
 # ------------------------------------------------------------
 # File handling

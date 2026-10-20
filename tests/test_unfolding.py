@@ -116,6 +116,26 @@ class UnfoldingHelpersTest(unittest.TestCase):
         self.assertAlmostEqual(restricted.GetXaxis().GetBinCenter(1), -1.9)
         self.assertAlmostEqual(restricted.GetXaxis().GetBinCenter(20), 1.9)
 
+    def test_flatten_response_preserves_source_pt_ranges(self):
+        sparse = ROOT.THnSparseD(
+            "range_preservation_response", "", 4,
+            array("i", [2, 2, 2, 2]),
+            array("d", [0., -1., 0., -1.]),
+            array("d", [80., 1., 80., 1.]),
+        )
+        sparse.Fill(array("d", [20., -0.5, 60., 0.5]), 3.)
+        for gen_range, reco_range in (((1, 1), (1, 2)), ((-1, 0), (0, 0))):
+            sparse.GetAxis(0).SetRange(*gen_range)
+            sparse.GetAxis(2).SetRange(*reco_range)
+            def states():
+                return [(sparse.GetAxis(i).GetFirst(), sparse.GetAxis(i).GetLast(),
+                         bool(sparse.GetAxis(i).TestBit(ROOT.TAxis.kAxisRange)))
+                        for i in range(4)]
+            before = states()
+            result, _ = flatten_sparse_response(sparse, (0, 40, 80))
+            self.assertEqual(result.Integral(), 3.)
+            self.assertEqual(states(), before)
+
     def test_response_diagnostics(self):
         truth = ROOT.TH1D("truth", "", 2, 0.5, 2.5)
         measured = ROOT.TH1D("measured", "", 2, 0.5, 2.5)
@@ -146,6 +166,23 @@ class UnfoldingHelpersTest(unittest.TestCase):
         self.assertEqual(accounting.max_measured_residual, 0.0)
         self.assertAlmostEqual(accounting.global_efficiency, 23.0 / 30.0)
         self.assertAlmostEqual(accounting.global_fake_fraction, 4.0 / 27.0)
+
+    def test_response_support_is_not_a_global_yield_threshold(self):
+        truth = ROOT.TH1D("support_truth", "", 3, 0.5, 3.5)
+        reco = ROOT.TH1D("support_reco", "", 3, 0.5, 3.5)
+        matrix = ROOT.TH2D("support_matrix", "", 3, 0.5, 3.5, 3, 0.5, 3.5)
+        truth.SetBinContent(1, 1000.)
+        truth.SetBinContent(2, 0.001)
+        truth.SetBinContent(3, 0.0001)
+        reco.SetBinContent(1, 1000.)
+        reco.SetBinContent(2, 0.001)
+        matrix.SetBinContent(1, 1, 1000.)
+        matrix.SetBinContent(2, 2, 0.001)
+        diagnostics = calculate_response_diagnostics(matrix, truth, reco)
+        accounting = validate_response_accounting(
+            matrix, truth, reco, diagnostics, tolerance=1.e-5)
+        self.assertEqual(accounting.zero_efficiency_truth_bins, (3,))
+        self.assertEqual(accounting.empty_measured_bins, (3,))
 
     def test_factorized_fake_and_efficiency_corrections(self):
         measured = ROOT.TH1D("factor_measured", "", 2, 0.5, 2.5)

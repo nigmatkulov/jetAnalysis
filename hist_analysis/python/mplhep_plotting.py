@@ -261,7 +261,9 @@ def _pad_ptave_annotations(pad):
         if not primitive.InheritsFrom("TLatex"):
             continue
         label = primitive.GetTitle()
-        if "p_{T}^{ave}" not in label:
+        if not any(token in label for token in (
+                "p_{T}^{ave}", "|#eta_{CM}^{jet}|", "anti-k_{T}", "#it{anti}", "p_{T,1}", "#Delta#phi",
+                "Minimum bias", "Jet60", "Jet80", "Jet100")):
             continue
         annotations.append((
             float(primitive.GetX()), float(primitive.GetY()), _root_label(label),
@@ -297,8 +299,12 @@ def save_canvas(
     figure_width = style.figure_size if count <= 2 else max(style.figure_size, panel_size * columns)
     figure_height = style.figure_size if count <= 2 else max(style.figure_size, panel_size * rows)
     font_scale = 1.0 if count <= 2 else max(0.45, 1.0 / math.sqrt(count / 2.0))
+    comparison_canvas = getattr(canvas, '_data_mc_plot', False) or any(p.InheritsFrom('TLatex') and p.GetTitle().startswith('anti-k_{T}')
+                            for pad in pads for p in pad.GetListOfPrimitives())
+    ratio_layout = comparison_canvas and count == 2 and len({round(p.GetXlowNDC(), 4) for p in pads}) == 1
     fig, axes = plt.subplots(
         rows, columns, figsize=(figure_width, figure_height),
+        gridspec_kw={'height_ratios': (3, 1)} if ratio_layout else None,
         squeeze=False, layout="constrained" if count <= 2 else None,
     )
     flat_axes = list(axes.flat)
@@ -306,6 +312,10 @@ def save_canvas(
         histograms = _pad_histograms(pad)
         graphs = _pad_graphs(pad)
         legend_labels = _legend_labels(pad)
+        epps21_panel = any(g.GetName().startswith("g_epps21_") for g in graphs)
+        comparison_panel = comparison_canvas or epps21_panel
+        if comparison_panel:
+            histograms = list({h.GetName(): h for h in histograms}.values())
         two_dimensional = [hist for hist in histograms if hist.InheritsFrom("TH2")]
         if two_dimensional:
             histogram = two_dimensional[-1]
@@ -329,18 +339,37 @@ def save_canvas(
                     color = _root_color(graph.GetFillColor())
                     hatch = "////" if graph.GetFillStyle() >= 3000 else None
                     alpha = 0.28 if hatch is None else 0.12
-                axis.fill_between(
-                    arrays["x"],
-                    [value - error for value, error in zip(arrays["y"], arrays["ylow"])],
-                    [value + error for value, error in zip(arrays["y"], arrays["yhigh"])],
-                    color=color, alpha=alpha,
-                    hatch=hatch, edgecolor=color, linewidth=0.8,
-                    label=legend_labels.get(graph.GetName()),
-                )
+                if graph.GetName().startswith('g_data_total_'):
+                    from hist_analysis.python.data_mc_plotting import draw_mpl_systematic_brackets
+                    draw_mpl_systematic_brackets(axis, arrays, _root_color(graph.GetLineColor()))
+                elif graph.GetName().startswith("g_epps21_") and "_total_" in graph.GetName():
+                    import ROOT
+                    color = _root_color(graph.GetLineColor())
+                    alpha = ROOT.gROOT.GetColor(graph.GetFillColor()).GetAlpha()
+                    # Independent stored bin rectangles preserve gaps and outer half bins.
+                    for i, (x, y) in enumerate(zip(arrays["x"], arrays["y"])):
+                        bounds = [x-arrays["xlow"][i], x+arrays["xhigh"][i]]
+                        axis.fill_between(bounds, y-arrays["ylow"][i], y+arrays["yhigh"][i],
+                                          color=color, alpha=alpha, linewidth=0, zorder=1,
+                                          label=legend_labels.get(graph.GetName()) if i == 0 else "_nolegend_")
+                else:
+                    axis.fill_between(
+                        arrays["x"],
+                        [value - error for value, error in zip(arrays["y"], arrays["ylow"])],
+                        [value + error for value, error in zip(arrays["y"], arrays["yhigh"])],
+                        color=color, alpha=alpha,
+                        hatch=hatch, edgecolor=color, linewidth=0.8,
+                        label=legend_labels.get(graph.GetName()),
+                    )
             for index, histogram in enumerate(histograms):
                 values, edges, errors = _th1_arrays(histogram)
                 label = legend_labels.get(histogram.GetName(), histogram.GetName())
                 display_label, color, marker, marker_face = _curve_style(label, index)
+                if comparison_panel:
+                    color = _root_color(histogram.GetMarkerColor())
+                    marker, filled = _graph_marker(histogram.GetMarkerStyle())
+                    marker_face = color if filled else "none"
+                    display_label = legend_labels.get(histogram.GetName(), "_nolegend_")
                 hep.histplot(
                     values, bins=edges, yerr=errors, xerr=True,
                     histtype="errorbar", ax=axis, label=display_label, color=color,
@@ -348,6 +377,8 @@ def save_canvas(
                     markeredgecolor=color, markeredgewidth=1.5,
                     markersize=style.marker_size * font_scale,
                     capsize=style.capsize,
+                    zorder=(6 if comparison_panel and histogram.GetMarkerStyle() == 21
+                            else 4 if comparison_panel else 2),
                 )
             for graph in graphs:
                 if graph.GetFillStyle() != 0 or graph.GetMarkerSize() <= 0.0:
@@ -364,34 +395,56 @@ def save_canvas(
                     markeredgecolor=color,
                     markersize=style.marker_size * font_scale,
                     capsize=style.capsize,
-                    label=legend_labels.get(graph.GetName(), graph.GetName()),
+                    label=("_nolegend_" if graph.GetName().startswith("g_epps21_central_")
+                           else legend_labels.get(graph.GetName(), graph.GetName())),
                 )
             if any(label for label in legend_labels.values()):
-                axis.legend(fontsize=style.legend_text_size * font_scale)
+                handles, names = axis.get_legend_handles_labels()
+                if getattr(canvas, '_marker_only_legend', comparison_panel):
+                    from matplotlib.container import ErrorbarContainer
+                    from matplotlib.lines import Line2D
+                    # Apply to all notebook plot families, independently of theory content.
+                    for i, handle in enumerate(handles):
+                        if isinstance(handle, ErrorbarContainer):
+                            point = handle.lines[0]
+                            handles[i] = Line2D([], [], linestyle='none',
+                                marker=point.get_marker(), markersize=point.get_markersize(),
+                                markerfacecolor=point.get_markerfacecolor(),
+                                markeredgecolor=point.get_markeredgecolor(),
+                                markeredgewidth=point.get_markeredgewidth())
+                if comparison_panel:
+                    axis.legend(handles, names, fontsize=12 * font_scale, loc="upper right",
+                                bbox_to_anchor=(0.98, 0.955), borderaxespad=0,
+                                borderpad=0, frameon=False)
+                else:
+                    axis.legend(handles, names, fontsize=style.legend_text_size * font_scale)
         frame = _pad_frame(pad)
         reference = frame if frame is not None else histograms[-1]
         axis.set_xlabel(
             _root_label(reference.GetXaxis().GetTitle()),
-            fontsize=style.axis_title_size * font_scale,
+            fontsize=(20 if comparison_panel else style.axis_title_size) * font_scale,
         )
         axis.set_ylabel(
             _root_label(reference.GetYaxis().GetTitle()),
-            fontsize=style.axis_title_size * font_scale,
+            fontsize=(18 if comparison_panel else style.axis_title_size) * font_scale,
         )
-        axis.tick_params(axis="both", labelsize=style.tick_label_size * font_scale)
+        axis.tick_params(axis="both", labelsize=(16 if comparison_panel else style.tick_label_size) * font_scale)
         axis.set_xscale("log" if pad.GetLogx() else "linear")
         axis.set_yscale("log" if pad.GetLogy() else "linear")
         axis.set_xlim(*(x_range or _root_pad_range(pad, "x")))
         axis.set_ylim(*(y_range or _root_pad_range(pad, "y")))
+        if getattr(pad, '_comparison_reference', False):
+            axis.axhline(1., color='gray', linestyle='--', linewidth=1, zorder=2)
         if pad.GetGridx() or pad.GetGridy():
             axis.grid(True, alpha=0.25)
         else:
             axis.grid(False)
-        for x_position, y_position, label in _pad_ptave_annotations(pad):
+        for annotation_index, (x_position, y_position, label) in enumerate(_pad_ptave_annotations(pad)):
             axis.text(
-                x_position, y_position, label,
+                0.04 if comparison_panel else x_position,
+                (0.955 - annotation_index * 0.045) if comparison_panel else y_position, label,
                 transform=axis.transAxes, ha="left", va="top",
-                fontsize=style.annotation_text_size * font_scale,
+                fontsize=(12 if comparison_panel else style.annotation_text_size) * font_scale,
             )
     for axis in flat_axes[count:]:
         axis.remove()

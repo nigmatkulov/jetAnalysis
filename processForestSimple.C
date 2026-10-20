@@ -498,6 +498,29 @@ std::pair<const Jet*, const Jet*> selectLeadingTwo(const std::vector<Jet> &jets,
 
 //________________
 /// Define the histograms for the analysis
+// Direct-fill diagnostics; Found means two distinct counterparts anywhere in
+// the good-reco/gen collection, not necessarily its leading pair.
+struct UnfoldingPairHistograms {
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMMatchedGenSelected[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMMatchedGenFound[nEtaCuts];
+    std::unique_ptr<TH2D> hGenDijetPtEtaCMSelectedRecoFound[nEtaCuts];
+    std::unique_ptr<TH2D> hGenDijetPtEtaCMSelectedRecoNotFound[nEtaCuts];
+    std::unique_ptr<TH2D> hGenDijetPtEtaCMMatchedRecoSelected[nEtaCuts];
+    std::unique_ptr<TH2D> hRecoDijetPtEtaCMSelectedGenNotFound[nEtaCuts];
+};
+
+// Extended truth is the same-event global gen-leading pair, irrespective of
+// gen cuts. The category distinguishes outside-fiducial (1) and fiducial (2).
+struct ExtendedUnfoldingHistograms {
+    std::unique_ptr<THnSparseD> response[nEtaCuts];
+    std::unique_ptr<THnSparseD> truth[nEtaCuts];
+    std::unique_ptr<THnSparseD> matchedTruth[nEtaCuts];
+    std::unique_ptr<THnSparseD> miss[nEtaCuts];
+    std::unique_ptr<TH2D> measured[nEtaCuts];
+    std::unique_ptr<TH2D> matchedMeasured[nEtaCuts];
+    std::unique_ptr<TH2D> fake[nEtaCuts];
+};
+
 struct Histograms {
     //
     // Event level histograms
@@ -566,6 +589,16 @@ struct Histograms {
     std::unique_ptr<TH2D> hGenDijetDefExtraPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefDoublePtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hGenDijetDefNinetyPtEtaCMArr[nEtaCuts];
+
+    ExtendedUnfoldingHistograms unfoldingExtended;
+    ExtendedUnfoldingHistograms unfoldingExtendedJerDefExtra;
+    ExtendedUnfoldingHistograms unfoldingExtendedControlled;
+    ExtendedUnfoldingHistograms unfoldingExtendedStudied;
+
+    UnfoldingPairHistograms unfoldingPairs;
+    UnfoldingPairHistograms unfoldingPairsJerDefExtra;
+    UnfoldingPairHistograms unfoldingPairsControlled;
+    UnfoldingPairHistograms unfoldingPairsStudied;
 
     // Unfolding histograms (response matrices and missing histograms)
     std::unique_ptr<THnSparseF> hGenDijetPtEtaCMVsRecoPtEtaCMArr[nEtaCuts];
@@ -682,6 +715,7 @@ struct Histograms {
     std::unique_ptr<TH2D> hRefDijetPtEtaLabArr[nEtaCuts];
     std::unique_ptr<TH2D> hRecoDijetPtEtaLabPointingResArr[nEtaCuts];
     std::unique_ptr<TH2D> hRefDijetPtEtaLabPointingResArr[nEtaCuts];
+    std::unique_ptr<TH2D> hRefDijetPtEtaLabPointingResRefPtAveArr[nEtaCuts];
     std::unique_ptr<TH2D> hRefDijetPtEtaCMArr[nEtaCuts];
     std::unique_ptr<TH2D> hRefDijetPtEtaCMControlledSampleArr[nEtaCuts];
     std::unique_ptr<TH2D> hRefDijetPtEtaCMStudiedSampleArr[nEtaCuts];
@@ -690,11 +724,13 @@ struct Histograms {
     std::unique_ptr<TH2D> hRefDijetPtEtaCMArrJerDown[nEtaCuts];       // JER down variation for ref dijet histograms
     std::unique_ptr<TH2D> hRefDijetPtEtaCMArrJerDef[nEtaCuts];        // JER default variation for ref dijet histograms
 
-    // MC-only pointing diagnostic. Both arrays use reconstructed pTave and
+    // MC-only pointing diagnostic. Reco and legacy Ref use reconstructed pTave and
     // require a matched dijet pair. Reco applies the acceptance to reconstructed
     // jet eta, while Ref applies it to matched-reference jet eta.
+    // RefPtAve retains that Ref population with matched-reference pTave on x.
     std::unique_ptr<TH2D> hRecoDijetPtEtaCMPointingResArr[nEtaCuts];
     std::unique_ptr<TH2D> hRefDijetPtEtaCMPointingResArr[nEtaCuts];
+    std::unique_ptr<TH2D> hRefDijetPtEtaCMPointingResRefPtAveArr[nEtaCuts];
 
 };
 
@@ -1256,6 +1292,108 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
             hs.hGenDijetPtEtaCMXpArr[iCut] = makeXCorrelation("hGenDijetPtEtaCMXp", "x_{p}^{jets}", -5., 1.);
             hs.hGenDijetPtEtaCMXPbOverXpArr[iCut] = makeXCorrelation("hGenDijetPtEtaCMXPbOverXp", "x_{Pb}^{jets}/x_{p}^{jets}", -4., 4.);
 
+            auto createPairDiagnostics = [&](UnfoldingPairHistograms &pairs, const char *suffix) {
+                pairs.hRecoDijetPtEtaCMMatchedGenSelected[iCut] = std::make_unique<TH2D>(
+                    Form("hRecoDijetPtEtaCMMatchedGenSelected%s_%d", suffix, iCut),
+                    "hRecoDijetPtEtaCMMatchedGenSelected;p_{T}^{ave} (GeV);#eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                pairs.hRecoDijetPtEtaCMMatchedGenSelected[iCut]->Sumw2();
+                pairs.hRecoDijetPtEtaCMMatchedGenFound[iCut] = std::make_unique<TH2D>(
+                    Form("hRecoDijetPtEtaCMMatchedGenFound%s_%d", suffix, iCut),
+                    "hRecoDijetPtEtaCMMatchedGenFound;p_{T}^{ave} (GeV);#eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                pairs.hRecoDijetPtEtaCMMatchedGenFound[iCut]->Sumw2();
+                pairs.hGenDijetPtEtaCMSelectedRecoFound[iCut] = std::make_unique<TH2D>(
+                    Form("hGenDijetPtEtaCMSelectedRecoFound%s_%d", suffix, iCut),
+                    "hGenDijetPtEtaCMSelectedRecoFound;p_{T}^{ave} (GeV);#eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                pairs.hGenDijetPtEtaCMSelectedRecoFound[iCut]->Sumw2();
+                pairs.hGenDijetPtEtaCMSelectedRecoNotFound[iCut] = std::make_unique<TH2D>(
+                    Form("hGenDijetPtEtaCMSelectedRecoNotFound%s_%d", suffix, iCut),
+                    "hGenDijetPtEtaCMSelectedRecoNotFound;p_{T}^{ave} (GeV);#eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                pairs.hGenDijetPtEtaCMSelectedRecoNotFound[iCut]->Sumw2();
+                pairs.hGenDijetPtEtaCMMatchedRecoSelected[iCut] = std::make_unique<TH2D>(
+                    Form("hGenDijetPtEtaCMMatchedRecoSelected%s_%d", suffix, iCut),
+                    "hGenDijetPtEtaCMMatchedRecoSelected;p_{T}^{ave} (GeV);#eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                pairs.hGenDijetPtEtaCMMatchedRecoSelected[iCut]->Sumw2();
+                pairs.hRecoDijetPtEtaCMSelectedGenNotFound[iCut] = std::make_unique<TH2D>(
+                    Form("hRecoDijetPtEtaCMSelectedGenNotFound%s_%d", suffix, iCut),
+                    "hRecoDijetPtEtaCMSelectedGenNotFound;p_{T}^{ave} (GeV);#eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                pairs.hRecoDijetPtEtaCMSelectedGenNotFound[iCut]->Sumw2();
+            };
+            createPairDiagnostics(hs.unfoldingPairs, "");
+            createPairDiagnostics(hs.unfoldingPairsJerDefExtra, "JerDefExtra");
+            createPairDiagnostics(hs.unfoldingPairsControlled, "ControlledSample");
+            createPairDiagnostics(hs.unfoldingPairsStudied, "StudiedSample");
+
+            auto createExtended = [&](ExtendedUnfoldingHistograms &extended, const char *suffix) {
+                const int bins5[5] = {nDijetPtBins, nDijetEtaBins, nDijetPtBins, nDijetEtaBins, 2};
+                const double low5[5] = {dijetPtBins[0], dijetEtaBins[0], dijetPtBins[0], dijetEtaBins[0], .5};
+                const double high5[5] = {dijetPtBins[1], dijetEtaBins[1], dijetPtBins[1], dijetEtaBins[1], 2.5};
+                const int bins3[3] = {nDijetPtBins, nDijetEtaBins, 2};
+                const double low3[3] = {dijetPtBins[0], dijetEtaBins[0], .5};
+                const double high3[3] = {dijetPtBins[1], dijetEtaBins[1], 2.5};
+                extended.response[iCut] = std::make_unique<THnSparseD>(
+                    Form("hUnfoldingExtendedResponse%s_%d", suffix, iCut),
+                    "Same-event leading-pair response;Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM};Truth fiducial category",
+                    5, bins5, low5, high5);
+                extended.response[iCut]->Sumw2();
+                extended.response[iCut]->GetAxis(4)->SetBinLabel(1, "Outside fiducial");
+                extended.response[iCut]->GetAxis(4)->SetBinLabel(2, "Fiducial");
+                extended.truth[iCut] = std::make_unique<THnSparseD>(
+                    Form("hUnfoldingExtendedTruth%s_%d", suffix, iCut),
+                    "Extended Truth;Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Truth fiducial category",
+                    3, bins3, low3, high3);
+                extended.truth[iCut]->Sumw2();
+                extended.truth[iCut]->GetAxis(2)->SetBinLabel(1, "Outside fiducial");
+                extended.truth[iCut]->GetAxis(2)->SetBinLabel(2, "Fiducial");
+                extended.matchedTruth[iCut] = std::make_unique<THnSparseD>(
+                    Form("hUnfoldingExtendedMatchedTruth%s_%d", suffix, iCut),
+                    "Extended MatchedTruth;Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Truth fiducial category",
+                    3, bins3, low3, high3);
+                extended.matchedTruth[iCut]->Sumw2();
+                extended.matchedTruth[iCut]->GetAxis(2)->SetBinLabel(1, "Outside fiducial");
+                extended.matchedTruth[iCut]->GetAxis(2)->SetBinLabel(2, "Fiducial");
+                extended.miss[iCut] = std::make_unique<THnSparseD>(
+                    Form("hUnfoldingExtendedMiss%s_%d", suffix, iCut),
+                    "Extended Miss;Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Truth fiducial category",
+                    3, bins3, low3, high3);
+                extended.miss[iCut]->Sumw2();
+                extended.miss[iCut]->GetAxis(2)->SetBinLabel(1, "Outside fiducial");
+                extended.miss[iCut]->GetAxis(2)->SetBinLabel(2, "Fiducial");
+                extended.measured[iCut] = std::make_unique<TH2D>(
+                    Form("hUnfoldingExtendedMeasured%s_%d", suffix, iCut),
+                    "Extended Measured;Reco p_{T}^{ave} (GeV);Reco #eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                extended.measured[iCut]->Sumw2();
+                extended.matchedMeasured[iCut] = std::make_unique<TH2D>(
+                    Form("hUnfoldingExtendedMatchedMeasured%s_%d", suffix, iCut),
+                    "Extended MatchedMeasured;Reco p_{T}^{ave} (GeV);Reco #eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                extended.matchedMeasured[iCut]->Sumw2();
+                extended.fake[iCut] = std::make_unique<TH2D>(
+                    Form("hUnfoldingExtendedFake%s_%d", suffix, iCut),
+                    "Extended Fake;Reco p_{T}^{ave} (GeV);Reco #eta_{CM}",
+                    nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                    nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+                extended.fake[iCut]->Sumw2();
+            };
+            createExtended(hs.unfoldingExtended, "");
+            createExtended(hs.unfoldingExtendedJerDefExtra, "JerDefExtra");
+            createExtended(hs.unfoldingExtendedControlled, "ControlledSample");
+            createExtended(hs.unfoldingExtendedStudied, "StudiedSample");
+
             // Response matrix and missing dijets histograms
             hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut] = std::make_unique<THnSparseF>(Form("hGenDijetPtEtaCMVsRecoPtEtaCM_%d", iCut), 
                                                             Form("Gen dijet #eta_{CM} vs Reco dijet #eta_{CM} vs Gen dijet p_{T}^{ave} vs Reco dijet p_{T}^{ave};Gen p_{T}^{ave} (GeV);Gen #eta_{CM};Reco p_{T}^{ave} (GeV);Reco #eta_{CM}"), 
@@ -1467,6 +1605,11 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                             nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
             hs.hRefDijetPtEtaLabPointingResArr[iCut]->Sumw2();
+            hs.hRefDijetPtEtaLabPointingResRefPtAveArr[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaLabPointingResRefPtAve_%d", iCut),
+                                            Form("Ref dijet #eta (lab frame, |#eta| < %.1f) vs ref p_{T}^{ave} (pointing resolution);p_{T}^{ave,ref} (GeV);#eta", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefDijetPtEtaLabPointingResRefPtAveArr[iCut]->Sumw2();
             hs.hRefDijetPtEtaCMArr[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCM_%d", iCut), 
                                                 Form("Ref dijet #eta_{CM} (CM frame, |#eta| < %.1f) vs p_{T}^{ave};p_{T}^{ave} (GeV);#eta_{CM}", etaCuts[iCut]), 
                                                 nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
@@ -1508,6 +1651,11 @@ void createHistograms(Histograms &hs, const bool &isMc = false) {
                                             nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
                                             nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
             hs.hRefDijetPtEtaCMPointingResArr[iCut]->Sumw2();
+            hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut] = std::make_unique<TH2D>(Form("hRefDijetPtEtaCMPointingResRefPtAve_%d", iCut),
+                                            Form("Ref dijet #eta_{CM} (CM frame, |#eta^{ref}| < %.1f) vs ref p_{T}^{ave} (pointing resolution);p_{T}^{ave,ref} (GeV);#eta_{CM}", etaCuts[iCut]),
+                                            nDijetPtBins, dijetPtBins[0], dijetPtBins[1],
+                                            nDijetEtaBins, dijetEtaBins[0], dijetEtaBins[1]);
+            hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut]->Sumw2();
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
 
         //
@@ -2593,7 +2741,13 @@ void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, 
                       std::unique_ptr<THnSparseF> *studiedResponseArr = nullptr,
                       std::unique_ptr<TH2D> *studiedMissArr = nullptr,
                       std::unique_ptr<TH2D> *studiedFakeArr = nullptr,
-                      int jerVariation = -1) {
+                      int jerVariation = -1,
+                      UnfoldingPairHistograms *pairHistograms = nullptr,
+                      UnfoldingPairHistograms *controlledPairHistograms = nullptr,
+                      UnfoldingPairHistograms *studiedPairHistograms = nullptr,
+                      ExtendedUnfoldingHistograms *extendedHistograms = nullptr,
+                      ExtendedUnfoldingHistograms *controlledExtendedHistograms = nullptr,
+                      ExtendedUnfoldingHistograms *studiedExtendedHistograms = nullptr) {
 
     if (!isMc) return; // Only prepare unfolding for MC
     
@@ -2736,6 +2890,32 @@ void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, 
         } // if (has2genJets && hasRecoReferenceMatches)
     } // if (has2recoJets)
 
+    // Existence of an injective two-jet correspondence. Requiring distinct
+    // indices prevents one jet inside both cones from counting as two jets.
+    auto distinctCounterparts = [](const auto &jets, auto matchMask) {
+        int firstA = -1, firstB = -1;
+        int countA = 0, countB = 0;
+        for (size_t i = 0; i < jets.size(); ++i) {
+            const int mask = matchMask(jets[i]);
+            if (mask & 1) { if (firstA < 0) firstA = static_cast<int>(i); ++countA; }
+            if (mask & 2) { if (firstB < 0) firstB = static_cast<int>(i); ++countB; }
+        }
+        return countA > 0 && countB > 0 &&
+               (firstA != firstB || countA > 1 || countB > 1);
+    };
+    constexpr float matchCut2 = analysis_contract::kDijetMatchDeltaR *
+                                analysis_contract::kDijetMatchDeltaR;
+    const bool truthRecoFound = has2genJets && distinctCounterparts(recoJets, [&](const RecoJet &jet) {
+        if (jet.refPt <= 0.f) return 0;
+        return (deltaR2(jet.recoEta, jet.recoPhi, genLeadingJet.eta, genLeadingJet.phi) < matchCut2 ? 1 : 0) |
+               (deltaR2(jet.recoEta, jet.recoPhi, genSubleadingJet.eta, genSubleadingJet.phi) < matchCut2 ? 2 : 0);
+    });
+    const bool recoGenFound = has2recoJets && hasRecoReferenceMatches &&
+        distinctCounterparts(genJets, [&](const GenJet &jet) {
+            return (deltaR2(jet.eta, jet.phi, recoLeadingJet.recoEta, recoLeadingJet.recoPhi) < matchCut2 ? 1 : 0) |
+                   (deltaR2(jet.eta, jet.phi, recoSubleadingJet.recoEta, recoSubleadingJet.recoPhi) < matchCut2 ? 2 : 0);
+        });
+
     for (int iCut{0}; iCut < nEtaCuts; ++iCut) {
 
         // Explicitly list the conditions for each category to avoid ambiguity 
@@ -2752,10 +2932,60 @@ void prepareUnfolding(const bool isPp, const bool &isPbGoing, const bool &isMc, 
             recoLeadingJetEtaCM, recoSubleadingJetEtaCM,
             recoDijetDeltaPhi, etaCuts[iCut]);
 
+        // Event-level response, deliberately independent of jet matching.
+        // Truth includes every available global gen-leading pair, not only
+        // pairs that produced selected reco; otherwise inefficiency is lost.
+        auto fillExtended = [&](ExtendedUnfoldingHistograms *extended) {
+            if (!extended) return;
+            const double truthPoint[3] = {genDijetPtAve, genDijetEtaCM, genPairPass ? 2. : 1.};
+            if (has2genJets) {
+                extended->truth[iCut]->Fill(truthPoint, weight);
+                if (recoPairPass) {
+                    const double responsePoint[5] = {genDijetPtAve, genDijetEtaCM,
+                        recoDijetPtAve, recoDijetEtaCM, truthPoint[2]};
+                    extended->response[iCut]->Fill(responsePoint, weight);
+                    extended->matchedTruth[iCut]->Fill(truthPoint, weight);
+                    extended->matchedMeasured[iCut]->Fill(recoDijetPtAve, recoDijetEtaCM, weight);
+                } else {
+                    extended->miss[iCut]->Fill(truthPoint, weight);
+                }
+            }
+            if (recoPairPass) {
+                extended->measured[iCut]->Fill(recoDijetPtAve, recoDijetEtaCM, weight);
+                if (!has2genJets) extended->fake[iCut]->Fill(recoDijetPtAve, recoDijetEtaCM, weight);
+            }
+        };
+        fillExtended(extendedHistograms);
+        fillExtended(isFillControlledSample ? controlledExtendedHistograms : studiedExtendedHistograms);
+
         // Check if both gen and reco dijets pass selection
         const bool bothPairsPass = genPairPass && recoPairPass;
         // Check if the reco dijet matches the gen dijet (either direct or swapped)
         const bool matchedPair = bothPairsPass && goodMatching;
+        // Exclusive subdivisions of the existing miss/fake definitions.
+        // "Found" includes counterparts displaced from the leading pair.
+        auto fillPairDiagnostics = [&](UnfoldingPairHistograms *pairs) {
+            if (!pairs) return;
+            if (matchedPair) {
+                pairs->hGenDijetPtEtaCMMatchedRecoSelected[iCut]->Fill(genDijetPtAve, genDijetEtaCM, weight);
+                pairs->hRecoDijetPtEtaCMMatchedGenSelected[iCut]->Fill(recoDijetPtAve, recoDijetEtaCM, weight);
+            } else {
+                if (genPairPass) {
+                    auto &histogram = truthRecoFound
+                        ? pairs->hGenDijetPtEtaCMSelectedRecoFound[iCut]
+                        : pairs->hGenDijetPtEtaCMSelectedRecoNotFound[iCut];
+                    histogram->Fill(genDijetPtAve, genDijetEtaCM, weight);
+                }
+                if (recoPairPass) {
+                    auto &histogram = recoGenFound
+                        ? pairs->hRecoDijetPtEtaCMMatchedGenFound[iCut]
+                        : pairs->hRecoDijetPtEtaCMSelectedGenNotFound[iCut];
+                    histogram->Fill(recoDijetPtAve, recoDijetEtaCM, weight);
+                }
+            }
+        };
+        fillPairDiagnostics(pairHistograms);
+        fillPairDiagnostics(isFillControlledSample ? controlledPairHistograms : studiedPairHistograms);
         // Check if the composition of the reco dijet has changed compared to the gen dijet
         const bool pairCompositionChanged = bothPairsPass &&
                                             hasRecoReferenceMatches &&
@@ -2997,12 +3227,17 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
                              hs.hRecoDijetPtEtaCMFakeControlledSampleArr,
                              hs.hGenDijetPtEtaCMVsRecoPtEtaCMStudiedSampleArr,
                              hs.hGenDijetPtEtaCMMissStudiedSampleArr,
-                             hs.hRecoDijetPtEtaCMFakeStudiedSampleArr);
+                             hs.hRecoDijetPtEtaCMFakeStudiedSampleArr, -1,
+                             &hs.unfoldingPairs, &hs.unfoldingPairsControlled, &hs.unfoldingPairsStudied,
+                             &hs.unfoldingExtended, &hs.unfoldingExtendedControlled, &hs.unfoldingExtendedStudied);
             prepareUnfolding(isPp, isPbGoing, isMc, weight, genJets, recoJets,
                              hs.hGenDijetPtEtaCMVsRecoJerDefExtraPtEtaCMArr,
                              hs.hGenDijetPtEtaCMMissJerDefExtraArr,
                              hs.hRecoDijetPtEtaCMFakeJerDefExtraArr,
-                             hs.hUnfoldingPairClassificationJerDefExtraArr);
+                             hs.hUnfoldingPairClassificationJerDefExtraArr,
+                             nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, -1,
+                             &hs.unfoldingPairsJerDefExtra, nullptr, nullptr,
+                             &hs.unfoldingExtendedJerDefExtra);
         }
         return;
     }
@@ -3103,6 +3338,7 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
         float refLeadEtaCM = 0.;
         float refSubleadEtaCM = 0.;
         float refDijetEtaCM = 0.;
+        const float refDijetPtAve = 0.5f * (leadingJetSyst.refPt + subleadingJetSyst.refPt);
 
         if (hasRefPair) {
             refLeadEtaCM = etaCM(leadingJetSyst.refEta, analysis_contract::kNominalEtaShift, isPbGoing, isMc, isPp);
@@ -3147,13 +3383,15 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
 
             // Pointing resolution histograms for reference jets (if available)
             if (hasRefPair && recoFullArrPointing && refFullArrPointing) {
-                // Both histograms use reco pTave. Apply each acceptance in the
+                // Reco and legacy Ref use reco pTave; the new Ref uses matched ref pTave.
+                // Apply each acceptance in the
                 // coordinate system whose dijet eta is being filled.
                 if (std::abs(leadEtaCM) <= etaCuts[iCut] && std::abs(subleadEtaCM) <= etaCuts[iCut]) {
                     recoFullArrPointing[iCut]->Fill(systDijetPtAve, systDijetEtaCM, weight);
                 }
                 if (std::abs(refLeadEtaCM) <= etaCuts[iCut] && std::abs(refSubleadEtaCM) <= etaCuts[iCut]) {
                     refFullArrPointing[iCut]->Fill(systDijetPtAve, refDijetEtaCM, weight);
+                    hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut]->Fill(refDijetPtAve, refDijetEtaCM, weight);
                 }
             } // if (hasRefPair && recoFullArrPointing && refFullArrPointing)
         } // for (int iCut{0}; iCut < nEtaCuts; ++iCut)
@@ -3182,6 +3420,7 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
         float refLeadEtaLab = 0.;
         float refSubleadEtaLab = 0.;
         float refDijetEtaLab = 0.;
+        const float refDijetPtAve = 0.5f * (leadingJetSyst.refPt + subleadingJetSyst.refPt);
 
         if (hasRefPair) {
             refLeadEtaLab = etaLab(leadingJetSyst.refEta, isPbGoing, isMc, isPp);
@@ -3208,6 +3447,7 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
                 }
                 if (std::abs(refLeadEtaLab) <= etaCuts[iCut] && std::abs(refSubleadEtaLab) <= etaCuts[iCut]) {
                     refFullArrPointing[iCut]->Fill(systDijetPtAve, refDijetEtaLab, weight);
+                    hs.hRefDijetPtEtaLabPointingResRefPtAveArr[iCut]->Fill(refDijetPtAve, refDijetEtaLab, weight);
                 }
             } // if (hasRefPair && recoFullArrPointing && refFullArrPointing)
 
@@ -3323,7 +3563,9 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
                                          hs.hRecoDijetPtEtaCMFakeControlledSampleArr,
                                          hs.hGenDijetPtEtaCMVsRecoPtEtaCMStudiedSampleArr,
                                          hs.hGenDijetPtEtaCMMissStudiedSampleArr,
-                                         hs.hRecoDijetPtEtaCMFakeStudiedSampleArr, iScale);
+                                         hs.hRecoDijetPtEtaCMFakeStudiedSampleArr, iScale,
+                                         &hs.unfoldingPairs, &hs.unfoldingPairsControlled, &hs.unfoldingPairsStudied,
+                                         &hs.unfoldingExtended, &hs.unfoldingExtendedControlled, &hs.unfoldingExtendedStudied);
                     }
                 }
                 else if (iScale == 5) { // JER up
@@ -3346,7 +3588,9 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
                                          hs.hGenDijetPtEtaCMMissJerDefExtraArr,
                                          hs.hRecoDijetPtEtaCMFakeJerDefExtraArr,
                                          hs.hUnfoldingPairClassificationJerDefExtraArr,
-                                         nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, iScale);
+                                         nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, iScale,
+                                         &hs.unfoldingPairsJerDefExtra, nullptr, nullptr,
+                                         &hs.unfoldingExtendedJerDefExtra);
                     }
                 }
                 else if (iScale == 8) { // JER up with eta-dependent scaling
@@ -3428,6 +3672,11 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc,
             : (jerSmearingMode == JERSmearingMode::Stochastic
                 ? "stochastic"
                 : "truth-to-pseudo-reco");
+        TNamed("unfoldingExtendedContract",
+               "v1: same-event global leading gen/reco pairs; no geometric matching; "
+               "truth category 1=outside fiducial,2=fiducial; "
+               "response axes=genPt,genEta,recoPt,recoEta,truthCategory; "
+               "truth/miss axes=genPt,genEta,truthCategory; preserve coordinate flow bins").Write();
         TNamed("jerSmearingMode", jerModeName).Write();
         TNamed("useEtaDependentJER", useEtaDependentJER ? "true" : "false").Write();
     }
@@ -3496,6 +3745,27 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc,
             hs.hGenDijetDefDoublePtEtaCMArr[iCut]->Write();
             hs.hGenDijetDefNinetyPtEtaCMArr[iCut]->Write();
 
+            for (auto *extended : {&hs.unfoldingExtended, &hs.unfoldingExtendedJerDefExtra,
+                                   &hs.unfoldingExtendedControlled, &hs.unfoldingExtendedStudied}) {
+                extended->response[iCut]->Write();
+                extended->truth[iCut]->Write();
+                extended->matchedTruth[iCut]->Write();
+                extended->miss[iCut]->Write();
+                extended->measured[iCut]->Write();
+                extended->matchedMeasured[iCut]->Write();
+                extended->fake[iCut]->Write();
+            }
+
+            for (auto *pairs : {&hs.unfoldingPairs, &hs.unfoldingPairsJerDefExtra,
+                                &hs.unfoldingPairsControlled, &hs.unfoldingPairsStudied}) {
+                pairs->hRecoDijetPtEtaCMMatchedGenSelected[iCut]->Write();
+                pairs->hRecoDijetPtEtaCMMatchedGenFound[iCut]->Write();
+                pairs->hGenDijetPtEtaCMSelectedRecoFound[iCut]->Write();
+                pairs->hGenDijetPtEtaCMSelectedRecoNotFound[iCut]->Write();
+                pairs->hGenDijetPtEtaCMMatchedRecoSelected[iCut]->Write();
+                pairs->hRecoDijetPtEtaCMSelectedGenNotFound[iCut]->Write();
+            }
+
             // Response matrix 
             hs.hGenDijetPtEtaCMVsRecoPtEtaCMArr[iCut]->Write();
             hs.hGenDijetPtEtaCMVsRecoPtEtaCMControlledSampleArr[iCut]->Write();
@@ -3563,6 +3833,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc,
             hs.hRefDijetPtEtaLabArr[iCut]->Write();
             hs.hRecoDijetPtEtaLabPointingResArr[iCut]->Write();
             hs.hRefDijetPtEtaLabPointingResArr[iCut]->Write();
+            hs.hRefDijetPtEtaLabPointingResRefPtAveArr[iCut]->Write();
             hs.hRefDijetPtEtaCMArr[iCut]->Write();
             hs.hRefDijetPtEtaCMControlledSampleArr[iCut]->Write();
             hs.hRefDijetPtEtaCMStudiedSampleArr[iCut]->Write();
@@ -3646,6 +3917,7 @@ void writeOutput(TString &oFileName, Histograms &hs, const bool &isMc,
             if (hs.hRefDijetPtEtaCMArrJerDef[iCut]) hs.hRefDijetPtEtaCMArrJerDef[iCut]->Write();
             if (hs.hRecoDijetPtEtaCMPointingResArr[iCut]) hs.hRecoDijetPtEtaCMPointingResArr[iCut]->Write();
             if (hs.hRefDijetPtEtaCMPointingResArr[iCut]) hs.hRefDijetPtEtaCMPointingResArr[iCut]->Write();
+            if (hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut]) hs.hRefDijetPtEtaCMPointingResRefPtAveArr[iCut]->Write();
         }
 
         if (!isMc) {

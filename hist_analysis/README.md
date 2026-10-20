@@ -49,6 +49,9 @@ A zero-denominator F/B bin is undefined even though ROOT stores zero in it.
 
 ## Reusable histogram production
 
+New bundle filenames include the jet-selection stem; legacy unsuffixed names
+remain nominal-only. Missing requested inputs fail explicitly.
+
 Run `notebooks/00_produce_reusable_histograms.ipynb` explicitly before the
 consumer notebooks. It resolves 12 data sources (four triggers in three beam
 orientations), seven official-MC sources (Embedding and PYTHIA in three
@@ -102,8 +105,8 @@ errors. The existing EPPS21 theory ROOT file is validated in place and its
 limited available theory pTave intervals are not expanded or reinterpreted.
 
 Canonical filenames use single separators, for example
-`official_mc_pythia_combined.root`, `standalone_cp5_pp.root`, and
-`data_data_combined_jet80.root`. Readers prefer canonical files but also
+`official_mc_pythia_combined_jetId.root`, `standalone_cp5_pp_jetId.root`, and
+`data_data_combined_jet80_jetId.root`. Readers prefer canonical files but also
 accept older double-separator filenames and index-based projection keys.
 Rerun notebook 00 to write the physical-value names; upstream copied keys
 retain their indices for unfolding compatibility. See the
@@ -195,9 +198,12 @@ square canvases, the Bird palette, logarithmic z axes, shared palette geometry,
 and optional threshold-fit overlays.
 
 Use `notebooks/02_mc_jet_efficiency_fakes.ipynb` for Lab-frame inclusive-jet
-efficiency (`Ref matched / Gen inclusive`), matched rate
+efficiency (`hRefSelInclusiveJetPtEtaLab / hGenInclusiveJetPtEtaLab`,
+using reference pT and reference eta in the numerator), matched rate
 (`Reco matched / Reco inclusive`), and fake rate
-(`Reco unmatched / Reco inclusive`). It draws direct two-dimensional rate maps,
+(`Reco unmatched / Reco inclusive`). The default production uses tight jet ID
+(method 2) and the dz1p0 vertex filter (selection 0). It displays the unnormalized
+matched-reference 2D distribution (`matched_ref_pt_eta_2d.pdf`) and direct two-dimensional rate maps,
 eta-dependent rates in `config.histograms.SINGLE_JET_PT_BINS`, and pT-dependent
 rates in configurable eta intervals. Numerator and denominator are projected
 before each 1D division and are not normalized. All 1D curves use
@@ -364,55 +370,59 @@ options. Forward/Backward construction always uses independent propagation.
 The later ratio of one F/B histogram to another has a separate user-configurable
 error option, `''` or `'B'`.
 
-Use `notebooks/07_dijet_data_vs_mc.ipynb` to compare nominal reconstructed data,
-eta-dependent JER-default reconstructed embedding MC, generator-level embedding
-MC, and standalone generator-level PYTHIA CUEP8M1 and CP5 dijet pTave spectra
-for MinimumBias, Jet60, Jet80, and Jet100. The MC-reco curve uses
-`hRecoDijetPtEtaCMJerDefExtra`; data reco and embedding MC gen use
-`hRecoDijetPtEtaCM` and `hGenDijetPtEtaCM_{eta_cut_index}`, respectively. Each
-curve is normalized independently over the configured half-open pTave interval.
-Both standalone tune distributions use `hGenDijetPtEtaCM`. Set
-`CP5_INPUT_SOURCE` to `cernbox`, `local`, or `auto`; `local` defaults to
-`$HOME/cernbox/ana/pPb8160/pythia/cp5tune/cp5_gen_dijet_histograms.root`.
-The `CP5_GEN_FILE` environment variable overrides every CP5 source default.
-CUEP8M1 defaults to
-`$HOME/cernbox/ana/pPb8160/pythia/cuep8m1tune/cuep8m1_gen_dijet_histograms.root`
-and `CUEP8M1_GEN_FILE` overrides it. Combined outputs receive an
-`_embedding_cuep8m1_cp5` suffix. At
-the standard eta-cut index 4, the notebook projects pseudorapidity shapes in the
-same 16 trigger-specific half-open pTave intervals used by
-`06_data_dijet_distributions.ipynb`. `ETA_NORMALIZATION` selects unit
-bin-content-sum (`integral`, the default) or true unit-area density
-(`bin_width`) normalization, with matching y-axis labels and simultaneous
-reference-specific lower panels. Full-eta plots are produced in four groups:
-MC Reco (MC Emb.) with MC Gen (MC Emb.) and Data; PYTHIA CUEP8M1 with PYTHIA
-CP5 and Data; PYTHIA CUEP8M1 with Data; and PYTHIA CP5 with Data. The same
-groups are used for Forward/Backward ratios built from the unnormalized
-projections using independent-error propagation. The three-curve tune
-comparison shows both Data/PYTHIA CUEP8M1 and Data/PYTHIA CP5 in its lower
-panel. Tune-comparison lower panels are titled `Data / PYTHIA`; the embedding
-closure is titled `Ratio to Gen`. CUEP8M1 uses an open blue circle and CP5 a
-filled red circle. Separate 1200 x 1200 summary
-canvases collect all 16 intervals for every comparison group. Their annotations
-and legends are placed across the top inside each plot frame, with vertical
-headroom reserved so they do not overlap markers.
-Their 1200-pixel PNG outputs provide at least 200 DPI up to a 6-inch figure,
-and trigger names are omitted from the summary legends. The standalone pp tune
-curves are shape references and are not treated as detector-level pPb
-predictions.
-F/B construction and the subsequent comparisons use independent errors. The
-default ratio ranges are 0.75--1.25 for pTave, 0.75--1.15 for the full-eta
-ratios to generator MC, 0.75--1.25 for Forward/Backward, and 0.8--1.2 for the
-subsequent Forward/Backward ratios to generator MC. All four y-axis ranges are
-configured independently in `RATIO_Y_RANGES`. With `SAVE_RATIO_HISTOGRAMS`
-enabled, the notebook writes every displayed ratio as an individually named
-`TH1` in `dijet_data_vs_mc_ratios<comparison_suffix>.root`; configure the stem
-with `RATIO_ROOT_BASENAME`. The input data
-directory and output directory can be overridden with `PPB_DATA_DIR` and
-`DIJET_DATA_VS_MC_OUTPUT_DIR`. Set `DATA_DIRECTION` to `combined`,
-`Pbgoing`, or `pgoing`, and `DATA_SELECTION` to `jetId`, `trkMax`, or `noSel`;
-the same trigger/direction/selection filename resolver used by the other data
-notebooks selects all four data inputs.
+Use `notebooks/07_dijet_data_vs_mc.ipynb` for separate, single-panel distribution
+and Data/MC figures. Data are always present. `DRAW_OFFICIAL_MC=True`,
+`DRAW_CP5=True`, and `DRAW_CUETP8M1=True` independently enable each comparison's
+whole overlay/ratio pair. Official MC uses `GENERATOR` (embedding by default)
+and distinguishes gen/reco with open/filled magenta circles. Data are black
+squares, CP5 red filled circles and CUETP8M1 blue open circles. Input TH2s are
+cached; overlay and ratio figures share the same normalized projections or
+raw-projection F/B objects. All statistical divisions retain independent ROOT
+errors. All MC ratios are Data/MC, including the explicitly approved pTave
+inversion and official Data/gen plus Data/reco comparisons.
+
+`DRAW_DATA_SYSTEMATIC=True` reads stored full/F/B total fractions and draws
+matching-color brackets with short vertical ends at the exact systematic
+endpoints. Statistical errors are separate; disabling the switch changes
+only the brackets. No spectrum total is invented for pTave. `DRAW_EPPS21`
+(default on for normal bins) draws the stored green total pPb/pp and F/B
+bands in their explicitly labeled, exact-interval comparisons. It does not
+invent an absolute theory spectrum or a Data/Theory division.
+
+Output basenames distinguish `..._data_vs_<comparison>` from
+`..._data_over_<comparison>`, with appropriate trigger/eta/pTave information.
+`SAVE_MPLHEP` exports the same ROOT description under `mplhep/` using the
+systematic notebooks' CMS style. The physics-only top-left selection block
+uses italic anti-kT R=0.4, actual pT/eta/angular cuts and pTave interval;
+beam/jet-selection names and trigger labels are omitted from that block.
+Accepted eta-bin edges remain [-2,2]/[0,2] for default full/F/B plots.
+Each overlay and ratio is a separate single-panel figure. Additional combined
+figures overlay all selected models and Data in each configured interval:
+
+- `MODEL_REGISTRY` defines stable IDs 0–4 for EPPS21, CP5, CUETP8M1,
+  official gen, and official reco.
+- `FULL_MODELS` and `FB_MODELS` select the combined full-eta and F/B curves.
+  Their selections and `RATIO_COMBINATIONS` are independent of the legacy
+  separate-family `DRAW_*` switches; remove a model from all selections and
+  operands and disable its legacy switch to avoid loading it.
+- `DEFAULT_REFERENCE_MODEL='pythia_cp5'` sets the default ratio reference.
+  `RATIO_COMBINATIONS` defaults to Data/CP5, Data/official gen, and official
+  reco/gen together. Only Data numerators receive experimental systematic
+  brackets. Reco/gen retains independent ROOT errors; event covariance is not
+  available in these histogram inputs.
+- `PLOT_Y_LIMITS` controls both combined and separate eta plots independently:
+  `full` for normalized full eta, `ratio` for ratios to MC (including F/B-to-MC
+  ratios), and `fb` for F/B itself. Set an entry to `(low, high)` for exact limits
+  or `None` for automatic scaling. pTave retains its own `RATIO_Y_RANGES` entry.
+- Combined filenames end in `_data_vs_combined.pdf` or
+  `_configured_ratios.pdf`. Exported ROOT keys identify both ratio operands.
+  Optional missing MC files/keys are diagnosed and skipped without substitution.
+
+EPPS21 remains in separate explicitly labeled comparisons because the stored
+pPb/pp ratio is not an absolute normalized spectrum. Stored theory F/B is
+(pPb/pp) F/B. Only exact available theory intervals are used; no Data/EPPS21
+ratio is formed. `EPPS21_RATIO_RANGE` and `EPPS21_FB_RATIO_RANGE` control these
+separate stored-observable figures.
 
 Use `notebooks/03_mc_dijet_reco_smeared_to_gen_closures.ipynb` for the focused
 closure comparison between nominal Gen and Reco smeared with the default
@@ -581,7 +591,15 @@ axis of matched-pair `hRecoDijetPtEtaCMPointingRes_<eta cut>` and pointing-refer
 intervals. Both inputs require reference-matched dijets and use reconstructed
 pTave. Reco applies the eta acceptance to reconstructed jets, while Ref applies
 it to the matched reference jets. Full shapes are independently normalized to
-unit integral.
+unit integral. `REFERENCE_DEFINITION='refWithRecoPtAve'` selects this legacy
+reference. Set it to `'refWithRefPtAve'` to use
+`hRefDijetPtEtaCMPointingResRefPtAve_<index>` and the corresponding Lab key:
+the same reference population is filled at the mean matched `refPt`, preserving
+reference-pT migrations. Reco remains in reconstructed-pTave intervals. This
+alternative includes pT migration as well as pointing effects. The new keys
+require regenerated input; they never fall back to the legacy reference.
+`PREFER_PRODUCED_INPUT` selects reusable versus original MC inputs, and the
+notebook prints the resolved keys and paths.
 Each Forward/Backward ratio is folded from its unnormalized full projection,
 starting Forward at `FindBin(0 + 0.001)` and reflecting the bins below zero,
 with independent errors. The one-sided uncertainty is
@@ -596,7 +614,7 @@ The same notebook also produces a full-distribution-only Lab-frame estimator
 from `hRecoDijetPtEtaLabPointingRes_<lab eta cut>` and
 `hRefDijetPtEtaLabPointingRes_<lab eta cut>`. `LAB_ETA_CUT_INDEX` is configured
 separately from the CM selection and defaults to `DIJET_ETA_CUTS.index(2.4)` (index 5), corresponding to
-`|eta_Lab^jet| < 2.3`. It reuses the configured pTave intervals, Reco/Ref fit,
+`|eta_Lab^jet| <= 2.4`. It reuses the configured pTave intervals, Reco/Ref fit,
 one-sided uncertainty, ratio-band, CSV, and outward smoothing workflows, with
 the Lab smoothing origin fixed at zero. No Lab Forward/Backward ratio is made.
 
@@ -608,6 +626,108 @@ they can be loaded directly with
 eta acceptance are written (including a boundary bin cut through by rebinning),
 while bins entirely beyond the acceptance are omitted. Beam orientation only
 produces comparison plots and therefore has no extracted uncertainty to export.
+
+### Shared systematic input methods and plot ranges
+
+JER, JEU, pileup, and pointing-resolution expose `SYSTEMATIC_METHOD`:
+`'direct_ratio'` retains the existing input ratio, while `'folded_deviation'`
+supplies `1 + abs(1 - ratio)` to the same estimator. Both use
+`python/systematic_methods.py`; the original JER helper names remain available
+as compatibility aliases. Symmetric TH1 errors are retained, including at
+unity. Empty zero-content/zero-error bins stay empty; nonfinite or asymmetric
+folded inputs raise an error. F/B construction and existing ratio-error options
+remain unchanged.
+
+`SYSTEMATIC_EXTRACTION='fit'` (default) fits the selected inputs;
+`'bin_by_bin'` uses their contents directly and skips fitting. Maximum/average
+combination remains available for the two-sided JER/JEU sources. Pileup keeps
+its Gplus/dz1p0 one-sided estimate (Vtx1 is diagnostic only); pointing keeps its
+Reco/Ref one-sided estimate, for CM/full, CM/F/B, and Lab/full. Optional outward
+running-maximum smoothing is independent of both selectors. Fits retain each
+source's existing functions, seeds, weighting, and acceptance.
+
+Direct-fit filenames and the four CSV columns remain unchanged. Folded outputs
+append `_method_folded_deviation`; newly exported raw-bin outputs append
+`_extraction_bin_by_bin`, after the pointing reference tag where applicable.
+Rerun old untagged raw exports to use the new explicit total-notebook selection.
+Both methods can coexist in one output directory. The total notebook's
+`systematics_config` selects `method` and `extraction` per source, requires the
+exact matching files, and records each method in provenance. It does not
+recompute or fold uncertainties loaded from CSV.
+
+`SYSTEMATIC_Y_RANGE=(0.0,5.0)` sets percent uncertainty plots to the same 0–5%
+range for every ptAve interval, in each source notebook and the total notebook.
+Change the tuple for another range, or use `None` for automatic limits. Ratio
+plot ranges are configured independently. CMS/MPLHEP styling is retained;
+folded ratio legends and axes explicitly show the transformation. Beam
+orientation remains a comparison-only diagnostic without a systematic estimator.
+
+### Total-systematics presentation and outputs
+
+`04_systematics_total.ipynb` uses the source notebooks' CMS/MPLHEP header,
+8-inch geometry, marker palette, typography, and percent uncertainty notation.
+Mixed data/MC inputs use `CMS`; MC-only inputs use `CMS Simulation`.
+`CMS_HEADER_LEFT` and `CMS_HEADER_RIGHT` explicitly override headers. Source
+markers retain fixed colors when a subset is enabled; the total is a prominent
+black stepped line with square markers. The legend prefers the shared upper
+right position and relocates within the axes when curves or annotations occupy
+that space. The compact annotation block likewise moves only when curves occupy
+its usual upper-left location. Sample, direction, ptAve, per-jet eta, observable, selection, and
+symmetric quadrature convention are annotated from the manifest.
+
+The output root defaults to `output/systematics_total`, overridden by
+`DIJET_TOTAL_SYSTEMATICS_OUTPUT_DIR`. Stable directories are
+`<root>/<SELECTION>/<DIJET_BINNING>/<full|fb>/`, with figures under `mplhep/`.
+Both/single-observable runs use the same locations for the same observable;
+there is no `both/` or timestamp directory. `SAVE_PNG` optionally adds PNGs.
+
+Figure/audit stems encode direction, enabled sources, selection, binning,
+observable, shared full/F/B fits, construction, extraction, eta and ptAve.
+A deterministic `cfg_<12 hex>` suffix identifies all declared source variants
+and input-production directories, including pointing reference, weights,
+combination, and smoothing; complete details remain in each interval's
+`<stem>_provenance.json`. The tag excludes input content hashes and selected
+interval lists, so rerunning the same configuration updates its existing files.
+A different meaningful variant gets distinct filenames without a new run folder.
+`individual_uncertainties/<source>/` archives use the same configuration prefix
+to avoid collisions between equally named source CSVs from different productions.
+Audit and headerless total CSV formats and numerical combination remain unchanged.
+
+### Optional systematic diagnostic overlays
+
+JER, JEU, pileup, and pointing-resolution expose two independent switches,
+both disabled by default: `PLOT_SMOOTHED_VS_UNSMOOTHED` and
+`PLOT_BINOMIAL_VS_STANDARD_ERRORS`. Their final diagnostic cells run after
+nominal CSV exports. They reuse `python/systematic_diagnostics.py` and do not
+change nominal choices, filenames, histograms, or total-systematics inputs.
+
+The smoothing overlay compares the retained final fractional estimate before
+smoothing with its outward-running-maximum result. It does not compare fitted
+versus raw inputs. If smoothing is nominal, both retained histograms are reused;
+otherwise a smoothed diagnostic clone is calculated without making it nominal.
+
+The error-treatment overlay rebuilds variation/default ratios from the existing
+projected/normalized inputs with actual ROOT `TH1::Divide` options `''` and `'B'`.
+F/B construction stays standard. Each variant uses the selected direct/folded
+method, fit/raw extraction, formula, seeds, fit range, weights, source estimator,
+and nominal smoothing setting. In raw extraction, and normally with unit fit
+weights, these curves coincide because the ratio central values are unchanged.
+Option B can change weighted fits, including bin inclusion when it gives zero
+errors at unity. These ratios are not demonstrated passed/total efficiencies;
+this comparison tests the prescription's effect rather than establishing its
+statistical validity. Neither treatment adds shared-event or normalization
+covariance.
+
+The figures use percent clones, the configured `SYSTEMATIC_Y_RANGE` (default
+0–5%), CMS/MPLHEP styling, and explicit source/observable/context labels.
+Diagnostic PDF names append `_diagnostic_smoothed_vs_unsmoothed` or
+`_diagnostic_binomial_vs_standard_errors` to the nominal CSV stem; no diagnostic
+CSVs are written. Each enabled overlay also saves an MPLHEP PDF in the existing
+`mplhep/` subdirectory, even if nominal MPLHEP export is disabled. Retained
+`result['diagnostics']` objects expose comparison curves, alternate raw ratios,
+fit summaries, and outputs for inspection. Pointing includes CM/full, CM/F/B,
+and Lab/full. These diagnostic variations do not establish a covariance model
+for a final measurement.
 
 Use `notebooks/05_unfold2D_gen_and_prior.ipynb` to compare nominal Gen dijet
 `etaCM` projections with the mixed-Gaussian prior
@@ -644,9 +764,15 @@ distribution is divided bin by bin by the MC matched-truth/inclusive-truth
 efficiency. The notebook retains the conventional RooUnfold fake/miss treatment
 as a validation reference and writes a direct comparison of the two methods.
 This factorization keeps all pTave-eta migrations and is valid when simulation
-describes the reco-bin purity and truth-bin efficiency. Zero-efficiency truth
-bins with nonzero unfolded content stop the workflow because they cannot be
-recovered; empty zero-efficiency bins remain zero. Purity and efficiency
+describes the reco-bin purity and truth-bin efficiency. Zero-efficiency bins
+with nonzero unfolded content or error stop the workflow.
+A populated training-truth bin with a zero response column can nevertheless
+remain silently zero; it is unmeasured, not a measured zero. Empty training-reco
+bins likewise receive zero purity, even for populated data. Inspect support
+before interpreting outputs. Mask or explicitly constrain unsupported bins
+before reporting an inclusive truth result; these workflows do not supply
+a validated extrapolation for zero-response bins.
+Purity and efficiency
 are treated as response inputs; their finite-MC uncertainty must be assessed
 with response variations or toys rather than added again during each bin-wise
 operation. The notebook writes the
@@ -673,7 +799,7 @@ Because the basics notebook uses its response-training sample as pseudo-data,
 the factorized reco input, response prior, and Gen target are algebraically
 consistent. Its unfolded/Gen and refolded/reco ratios should therefore be unity
 to numerical precision. This is a technical identity check, not an independent
-closure test.
+closure test. Exact closure also requires support in every populated truth bin.
 The projection/response diagnostics are produced for every configured pTave
 interval; the flattened-response and final closure canvases are also saved as
 PDFs in the same directory. For every pTave interval, the notebook extracts the
@@ -718,7 +844,10 @@ configured eta acceptance on both response axes and all spectra. Standard
 contiguous pTave bins are the default; the gapped test bins are only a quick
 execution check. Before unfolding, a separate accounting check verifies that
 each controlled truth/reco marginal equals its matched response projection plus
-the effective miss/fake component. A separate diagnostic canvas distinguishes
+the effective miss/fake component. Because effective components are derived by
+subtraction, this identity does not independently validate stored producer
+miss/fake counts; see the audit for the required full-domain check.
+A separate diagnostic canvas distinguishes
 explicit selection/matching failures, pTave-boundary migrations, and the
 effective response components. The response, purity, efficiency, misses, fakes,
 and their diagnostics remain controlled-sample-only; studied objects supply
@@ -1310,3 +1439,99 @@ Trigger-stitching key fallback is permitted only for the standard 1.9 cut
 (index 5) or any other acceptance. Current production uses 2.4 and 2.5 at
 indices 5 and 6; older outputs with 2.3/2.4 there require physical-cut metadata
 remapping or regeneration. Histogram index alone is not a physical cut label.
+
+### Direct 2D unfolding populations
+
+MC production now writes six direct-fill pTave-versus-etaCM population TH2s for
+both response families and nominal controlled/studied splits. The key bases are:
+
+- `hGenDijetPtEtaCMMatchedRecoSelected`: selected geometrically matched truth;
+- `hGenDijetPtEtaCMSelectedRecoFound` and
+  `hGenDijetPtEtaCMSelectedRecoNotFound`: exclusive subdivisions of truth misses;
+- `hRecoDijetPtEtaCMMatchedGenSelected`: selected geometrically matched reco;
+- `hRecoDijetPtEtaCMMatchedGenFound` and
+  `hRecoDijetPtEtaCMSelectedGenNotFound`: exclusive subdivisions of reco fakes.
+
+Append `_<index>`, `JerDefExtra_<index>`, `ControlledSample_<index>`, or
+`StudiedSample_<index>` for the corresponding family. Inclusive truth/reco
+is the sum of its three exclusive components, including signed event weights.
+
+Found counterparts are searched throughout the good-reco/gen collection;
+rank-displaced pairs count as found but not selected. Existing response/miss/fake
+definitions are retained. These diagnostics do not replace the sparse response
+for restricted-domain efficiencies/purities. Regenerate MC outputs to obtain them.
+
+### Extended leading-pair response
+
+The optional cross-check ingredients are now stored in MC producer output as
+`hUnfoldingExtended*`. Truth is the global gen-leading pair and reco is the
+independently ranked good-reco leading pair in the same event, without geometric
+matching or a reference-pT requirement. Truth category 1 means outside fiducial;
+category 2 means the gen pair passes the existing pT, angular, and individual-jet
+eta cuts. The population remains conditional on existing event and overweight
+selection. It includes truth with zero/one good-reco jets.
+
+| Key base | Type / axes |
+|---|---|
+| `hUnfoldingExtendedResponse` | THnSparseD: gen pTave, gen etaCM, reco pTave, reco etaCM, truth category |
+| `hUnfoldingExtendedTruth` | THnSparseD: gen pTave, gen etaCM, truth category |
+| `hUnfoldingExtendedMatchedTruth` | same truth axes, events with selected reco |
+| `hUnfoldingExtendedMiss` | same truth axes, events without selected reco |
+| `hUnfoldingExtendedMeasured` | TH2D: reco pTave, reco etaCM |
+| `hUnfoldingExtendedMatchedMeasured` | same reco axes, events with a gen pair |
+| `hUnfoldingExtendedFake` | same reco axes, events without a gen pair |
+
+Append `_<index>`, `JerDefExtra_<index>`, `ControlledSample_<index>`, or
+`StudiedSample_<index>`. All 224 histograms retain event weights and Sumw2,
+with the existing coordinate binning and flow bins. The MC-only
+`unfoldingExtendedContract` TNamed records the convention. Each family fills
+once per event, using only the first reco smearing replica.
+
+Truth equals the response truth marginal plus miss; measured equals the reco
+marginal plus fake, including flows and category. Outside-fiducial feed-in is
+a response contribution rather than an extended fake. A future consumer must
+retain the truth category when flattening, account for restricted-domain
+misses/fakes and guard bins, and report category 2 with its covariance. Do not
+combine this response with the old fiducial fake subtraction. Category separation
+does not guarantee identifiability; zero-response or degenerate truth columns
+need explicit treatment and independent closure/prior/guard tests.
+
+ This is global Gen
+versus Reco, not reco-conditioned Ref versus Reco. Existing four-dimensional
+unfolding notebooks do not consume this new five-dimensional response.
+
+### Statistical errors on final systematic-source distributions
+
+JER, JEU, pileup, and pointing-resolution notebooks expose
+`STAT_UNCERTAINTY_SCALE` in their configuration cells (1.0 preserves the original
+errors; saved notebook values may select a display scale). It must be a finite,
+positive real number (booleans are rejected). Set it to `0.5` or `2.0` to halve
+or double the displayed statistical errors. Rerun configuration and plotting
+cells after changing it; the analysis errors remain available unchanged.
+
+Only full and F/B variation/default ratio plots opt in: both direct ratios
+and `1 + |1 - variation/default|`, including their systematic-band overlays.
+Scaling happens after fits, extraction, and optional smoothing for that
+selection. Pointing resolution includes CM Reco/Ref and F/B double ratios and
+Lab Reco/Ref. Original normalized eta and F/B distribution overlays keep their
+unscaled errors.
+
+These workflows use symmetric TH1 statistical errors. For non-default factors
+the shared `systematic_plotting.statistical_plot_copies` helper detaches fresh
+TH1 clones and changes only their bin errors; both ROOT and MPLHEP render the
+copies, without drawing an additional unscaled dataset. Every rerun starts
+from the original analysis ratio, so scaling does not compound. At `1.0` the
+existing rendering path is used without making copies.
+
+Analysis ratio errors, fits, fit errors, systematic estimates, smoothing
+diagnostics, band widths, and CSV contents/schema/names remain unchanged.
+No scale annotation is added. Beam orientation is a comparison-only workflow
+without systematic extraction, and total systematics consumes fractional CSV
+uncertainties; neither notebook is changed.
+
+Regression checks: `MPLCONFIGDIR=/tmp/mplconfig py-env/bin/python -m unittest
+ tests.test_systematic_stat_scaling tests.test_systematic_methods
+ tests.test_systematic_diagnostics` (write the command on one line). These use
+real ROOT fits and both renderers, check factors 1.0/0.5/2.0, compare central
+values, fit parameters/errors, raw and smoothed uncertainties, band widths and
+CSV bytes, and verify repeated plotting does not mutate the original errors.
