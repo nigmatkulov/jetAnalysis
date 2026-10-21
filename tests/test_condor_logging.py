@@ -73,6 +73,28 @@ class CondorLoggingTest(unittest.TestCase):
             self.assertIn("$(job_name).err", submit)
             self.assertIn("$(job_name).log", submit)
 
+    def test_worker_resolves_proxy_before_chdir_and_rejects_tls_skip(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary).resolve()
+            proxy = directory / 'voms_proxy.txt'
+            proxy.write_text('fake test credential')
+            executable = directory / 'analysis'
+            executable.write_text(
+                '#!/usr/bin/env bash\n'
+                '[[ "$X509_USER_PROXY" = "' + str(proxy) + '" && -r "$X509_USER_PROXY" ]] || exit 9\n'
+                'echo "Error in <TNetXNGFile::Open>: [FATAL] TLS error: Failed to initialize TLS context"\n'
+                'echo "SKIPPING INPUT FILE: cannot open usable ROOT file"\n'
+                'exit 0\n')
+            executable.chmod(0o755)
+            env = dict(os.environ, X509_USER_PROXY='voms_proxy.txt')
+            result = subprocess.run([
+                str(PROCESSING / 'run_process_forest_condor.sh'), str(PROJECT_ROOT),
+                str(executable), str(directory / 'input.list'), str(directory / 'out.root'),
+                '0', '1', '0', '1', '2', '0', 'pPb', '0', '0'],
+                cwd=directory, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 74, result.stderr)
+            self.assertIn('TLS error:', result.stderr)
+
     def test_worker_caps_failure_output_and_preserves_read_signature(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)

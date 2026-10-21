@@ -16,7 +16,7 @@ PROCESSING_DIR = Path(__file__).resolve().parent
 DEFAULT_CONDOR_DIR = PROCESSING_DIR / "condor"
 QUEUE_HEADER = "queue job_name, input_list, output_file from ("
 READ_ERROR = re.compile(
-    r"(?:"
+    r"(?:SKIPPING INPUT FILE|TLS error:|"
     r"SysError in <TFile::ReadBuffer>:.*Input/output error"
     r"|Error in <TBranch::GetBasket>:.*badread="
     r"|Failed to read chain entry .* from tree .* file "

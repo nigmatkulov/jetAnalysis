@@ -226,10 +226,11 @@ unreadable, or incomplete ROOT files print an explicit `SKIPPING INPUT FILE`
 message on the error stream and processing continues with all remaining files.
 The job fails if no usable files remain, a list entry is malformed, or the
 per-file or aggregate tree entry counts are inconsistent. The Condor wrapper
-also converts recognized ROOT read errors into exit status 74, even if the
-executable returns success. This does not guarantee detection of every skipped
-file: require `skipped=0` when checking a pilot and before accepting production
-outputs.
+also converts recognized ROOT read errors, TLS errors, and `SKIPPING INPUT FILE`
+messages into exit status 74, even if the executable returns success. Require
+`skipped=0` when checking a pilot and before accepting production outputs. The
+worker resolves the transferred proxy to an absolute path before changing to
+the repository directory; an explicitly configured unreadable proxy fails early.
 
 Submit from a shell where the CMS/ROOT runtime environment is already loaded;
 the generated description uses `getenv = True`. By default jobs require the

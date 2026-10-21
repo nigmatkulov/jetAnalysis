@@ -24,6 +24,15 @@ jer_smearing_mode=${12}
 use_eta_dependent_jer=${13}
 residual_mode=${14:-2}
 
+# Resolve the transferred proxy while still in the Condor sandbox.
+if [[ -n "${X509_USER_PROXY:-}" && "$X509_USER_PROXY" != /* ]]; then
+    export X509_USER_PROXY="$PWD/$X509_USER_PROXY"
+fi
+if [[ -n "${X509_USER_PROXY:-}" && ! -r "$X509_USER_PROXY" ]]; then
+    echo "ERROR: X509_USER_PROXY is not readable: $X509_USER_PROXY" >&2
+    exit 1
+fi
+
 cd "$repository"
 mkdir -p "$(dirname "$output_file")"
 
@@ -54,7 +63,7 @@ fi
 # bounded diagnostic and let retry_failed_io_jobs.py resubmit the queue row.
 read_error=0
 if grep -Eq \
-        'SysError in <TFile::ReadBuffer>:.*Input/output error|Error in <TBranch::GetBasket>:.*badread=|Failed to read chain entry .* from tree .* file ' \
+        'SKIPPING INPUT FILE|TLS error:|SysError in <TFile::ReadBuffer>:.*Input/output error|Error in <TBranch::GetBasket>:.*badread=|Failed to read chain entry .* from tree .* file ' \
         "$job_output"; then
     read_error=1
     status=74
@@ -69,7 +78,7 @@ if [[ $status -ne 0 ]]; then
         if [[ $read_error -eq 1 ]]; then
             echo "Detected ROOT read errors:"
             grep -E \
-                'SysError in <TFile::ReadBuffer>:.*Input/output error|Error in <TBranch::GetBasket>:.*badread=|Failed to read chain entry .* from tree .* file ' \
+                'SKIPPING INPUT FILE|TLS error:|SysError in <TFile::ReadBuffer>:.*Input/output error|Error in <TBranch::GetBasket>:.*badread=|Failed to read chain entry .* from tree .* file ' \
                 "$job_output" | tail -n 20
         fi
         echo "Last 64 KiB of combined application output:"
