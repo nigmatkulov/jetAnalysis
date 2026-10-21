@@ -22,7 +22,19 @@ directory, which is also the conventional submission directory:
 cd /path/to/jetAnalysis/processing
 ```
 
-Build the executable from this directory before submission:
+Load the same CMS/ROOT runtime used for the executable in the submission shell.
+For the current EL8 CMSSW setup:
+
+```bash
+source ~/setup_cmsenv.sh
+echo "$CMSSW_BASE"
+echo "$SCRAM_ARCH"       # expected: el8_amd64_gcc12
+root-config --version   # current setup: 6.26/11
+```
+
+Source the setup script rather than running it as a child process so its
+exports remain in the submission shell. Build from this directory:
+
 
 ```bash
 cmake -S .. -B ../build -DCMAKE_BUILD_TYPE=Release
@@ -34,6 +46,29 @@ Linux build compatible with the selected worker environment. The repository,
 executable, calibration files under `aux_files/`, and generated sublists remain
 on shared storage; they are not bundled into the job. Do not rebuild or edit
 that shared analysis installation while a campaign is running.
+
+## Native XRootD inputs
+
+`submit_process_forest_condor.py` (also invoked by `submit_all_data_condor.py`)
+converts EOS paths in generated job sublists automatically:
+
+- `/eos/cms/...` becomes `root://eoscms.cern.ch//eos/cms/...`.
+- `/eos/user/...` becomes `root://eosuser.cern.ch//eos/user/...`.
+- `/eos/home-g/USER/...` becomes `root://eosuser.cern.ch//eos/user/g/USER/...`
+  (and similarly for other home letters).
+
+Existing URLs and ordinary local paths remain unchanged. Unknown EOS mount
+names require an explicit URL. Original input lists are not modified; ordering,
+duplicates, job grouping, and output names are preserved. ROOT streams input
+through XRootD without copying forests to scratch. Output paths and the shared
+executable/runtime setup remain unchanged. No disk request, runtime bundle,
+or new automatic whole-job retries are added. Existing I/O failure reporting
+and `retry_failed_io_jobs.py` remain available.
+
+Use the usual submission command with `--dry-run` first and inspect the
+resulting `input/*.list` files. Remove `--dry-run` to submit. No staging option
+is required. A valid transferred proxy and the matching ROOT/XRootD runtime
+are still required; verify one CERN pilot job before a full campaign.
 
 Create or copy a valid proxy to the default ignored location:
 
@@ -171,14 +206,15 @@ without `--dry-run` to submit it.
 `--files-per-job 3` creates one Condor job containing all three test files. Use
 `--files-per-job 1` to create three independent jobs, one for each input file.
 
-Before the Condor test, the same list can be processed directly from the
-repository root to verify list parsing and event access independently of the
-scheduler:
+Before the Condor test, a generated job sublist can be processed directly from
+the repository root to verify list parsing and event access independently of the
+scheduler. Replace the placeholder below with the generated sublist path; it
+contains the XRootD URLs, whereas the original source list is unchanged:
 
 ```bash
 cd ..
 ./build/processForestSimple \
-  processing/input/Jet60_Pbgoing_3files.list \
+  processing/condor/CAMPAIGN/SAMPLE/input/JOB.list \
   /tmp/Jet60_Pbgoing_3files.root 0 1 0 1 2 0
 cd processing
 ```
@@ -189,12 +225,20 @@ to contain `Forest` and `.root`; `AOD` is not required in the filename. Missing,
 unreadable, or incomplete ROOT files print an explicit `SKIPPING INPUT FILE`
 message on the error stream and processing continues with all remaining files.
 The job fails if no usable files remain, a list entry is malformed, or the
-aggregate tree entry counts are inconsistent.
+per-file or aggregate tree entry counts are inconsistent. The Condor wrapper
+also converts recognized ROOT read errors into exit status 74, even if the
+executable returns success. This does not guarantee detection of every skipped
+file: require `skipped=0` when checking a pilot and before accepting production
+outputs.
 
 Submit from a shell where the CMS/ROOT runtime environment is already loaded;
 the generated description uses `getenv = True`. By default jobs require the
 CERN AlmaLinux 9 QA environment, matching the previous submission workflow.
-Override that expression with `--requirements` when submitting elsewhere.
+This default is retained from the existing workflow; it does not select an
+EL8 container. For the current `el8_amd64_gcc12` build, select a compatible EL8
+execution environment before submission. `--requirements` overrides worker
+matching in the general submitter; the bulk wrapper does not expose that
+option. Runtime compatibility is independent of the input URL conversion.
 
 Options passed to `processForestSimple` are:
 

@@ -331,6 +331,20 @@ def make_campaign_id() -> str:
     return f"{timestamp}_{uuid.uuid4().hex[:8]}"
 
 
+def xrootd_input(path: str) -> str:
+    """Use native XRootD for known EOS mounts; preserve other inputs."""
+    if path.startswith('/eos/cms/'):
+        return 'root://eoscms.cern.ch/' + path
+    if path.startswith('/eos/user/'):
+        return 'root://eosuser.cern.ch/' + path
+    match = re.match(r'/eos/home-([a-z])/([^/]+)(/.*)?$', path)
+    if match:
+        return f'root://eosuser.cern.ch//eos/user/{match[1]}/{match[2]}{match[3] or ""}'
+    if path.startswith('/eos/'):
+        raise SystemExit('Unsupported EOS input namespace; supply an explicit root:// URL: ' + path)
+    return path
+
+
 def read_inputs(path: Path) -> list[str]:
     """Read usable ROOT-file entries while preserving their original order.
 
@@ -340,7 +354,7 @@ def read_inputs(path: Path) -> list[str]:
     """
 
     lines = [line.strip() for line in path.read_text().splitlines()]
-    return [line for line in lines if line and not line.startswith("#")]
+    return [xrootd_input(line) for line in lines if line and not line.startswith("#")]
 
 
 def main() -> int:

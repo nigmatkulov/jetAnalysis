@@ -25,7 +25,7 @@ class ResidualSubmissionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             inputs = directory / 'inputs.list'
-            inputs.write_text('/store/input.root\n')
+            inputs.write_text('/eos/cms/store/input.root\n')
             proxy = directory / 'proxy'
             proxy.write_text('test proxy\n')
             capture = directory / 'argv'
@@ -43,6 +43,10 @@ class ResidualSubmissionTest(unittest.TestCase):
                 result = subprocess.run(command, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 text = next(work.rglob('*.sub')).read_text()
+                self.assertEqual(next(work.rglob('*.list')).read_text(),
+                                 'root://eoscms.cern.ch//eos/cms/store/input.root\n')
+                self.assertNotIn('request_disk', text)
+                self.assertNotIn('runtime.tar.gz', text)
                 name = f'Jet60_Pbgoing_data_jetId{suffix}_job0001.root'
                 self.assertIn(name, text)
                 arguments = next(line for line in text.splitlines() if line.startswith('arguments = '))
@@ -60,6 +64,28 @@ class ResidualSubmissionTest(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(capture.read_text().splitlines()[-1], '2')
+
+    def test_xrootd_input_mapping(self):
+        submit = module('submit_process_forest_condor')
+        cases = {
+            '/eos/cms/store/a.root': 'root://eoscms.cern.ch//eos/cms/store/a.root',
+            '/eos/user/g/user/a.root': 'root://eosuser.cern.ch//eos/user/g/user/a.root',
+            '/eos/home-g/user/a.root': 'root://eosuser.cern.ch//eos/user/g/user/a.root',
+            'root://host//path/a.root?x=1': 'root://host//path/a.root?x=1',
+            '/tmp/a.root': '/tmp/a.root',
+            'relative.root': 'relative.root',
+        }
+        for source, expected in cases.items():
+            self.assertEqual(submit.xrootd_input(source), expected)
+        with self.assertRaisesRegex(SystemExit, 'Unsupported EOS input namespace'):
+            submit.xrootd_input('/eos/unknown/a.root')
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'input.list'
+            content = '# comment\n\n/eos/cms/store/a.root\n/tmp/b.root\n/eos/cms/store/a.root\n'
+            path.write_text(content)
+            self.assertEqual(submit.read_inputs(path), [cases['/eos/cms/store/a.root'],
+                                                       '/tmp/b.root', cases['/eos/cms/store/a.root']])
+            self.assertEqual(path.read_text(), content)
 
     def test_mc_names_do_not_change(self):
         submit = module('submit_process_forest_condor')

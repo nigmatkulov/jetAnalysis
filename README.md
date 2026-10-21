@@ -453,6 +453,12 @@ Prepare
 `processing/voms_proxy.txt`, then follow the data and MC production examples in
 `processing/README.md`. The general submitter uses 10 input files per job by
 default so one transient input failure invalidates a smaller unit of work.
+Generated Condor input sublists automatically convert known EOS mount paths to
+native XRootD URLs; forests are streamed without local staging. Original input
+lists and output paths are unchanged. See [processing instructions](processing/README.md#native-xrootd-inputs) for mappings
+and pilot validation. This conversion applies to the analysis submitter and its
+bulk data wrapper; clone submission has its own input handling.
+
 Both Condor submitters accept `--residual-mode {0,1,2}` (default `2`). Data
 job labels add `_oldResiduals` or `_noResiduals` before `_jobNNNN`; new-residual
 names remain unchanged. Use the same `--residual-mode` with
@@ -651,6 +657,8 @@ PYTHONDONTWRITEBYTECODE=1 py-env/bin/python -m py_compile \
   processing/check_data_filelists.py
 bash -n processing/run_process_forest_condor.sh
 bash -n processing/run_clone_forest_condor.sh
+py-env/bin/python -m unittest discover -s tests -p test_residual_submission.py -v
+py-env/bin/python -m unittest discover -s tests -p test_condor_logging.py -v
 py-env/bin/python processing/check_data_filelists.py --help
 py-env/bin/python processing/submit_process_forest_condor.py \
   processing/filelists/pPb8160/DATA_PAEGJet/Pbgoing/PAEGJet_Pbgoing.txt \
