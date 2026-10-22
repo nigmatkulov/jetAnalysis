@@ -14,6 +14,44 @@ import check_data_filelists as checker
 
 
 class FileListIntegrityTest(unittest.TestCase):
+    def test_non_utf8_root_diagnostics_preserve_result(self):
+        real_run = subprocess.run
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'a.root'
+            path.write_text('fixture')
+            for code in (0, 12):
+                def emit_diagnostics(command, **kwargs):
+                    return real_run([
+                        sys.executable, '-c',
+                        'import sys; '
+                        'sys.stdout.buffer.write(b"diagnostic \\xf5\\nROOT_CHECK_RESULT=' + str(code) + '\\n"); '
+                        'sys.stderr.buffer.write(b"ROOT error \\xf5\\n"); '
+                        'sys.exit(' + str(code) + ')',
+                    ], **kwargs)
+                with self.subTest(code=code), patch.object(checker.subprocess, 'run', side_effect=emit_diagnostics):
+                    issue = checker.check_root_file(path)
+                    if code == 0:
+                        self.assertIsNone(issue)
+                    else:
+                        self.assertEqual(issue.category, 'CORRUPT')
+
+    def test_worker_exception_is_reported_and_scan_continues(self):
+        paths = [Path('bad.root'), Path('good.root')]
+        def validate(path, *args):
+            if path == paths[0]:
+                raise UnicodeDecodeError('utf-8', b'\xf5', 0, 1, 'invalid start byte')
+            return None
+        with patch.object(checker, 'check_root_file', side_effect=validate):
+            progress = checker.ProgressBar(2)
+            good, missing, issues = checker.check_integrity_paths(paths, 2, progress)
+        self.assertEqual(good, (paths[1],))
+        self.assertEqual(missing, ())
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues[0].path, paths[0])
+        self.assertEqual(issues[0].category, 'CHECK_ERROR')
+        self.assertIn('UnicodeDecodeError', issues[0].detail)
+        self.assertEqual(progress.completed, 2)
+
     def test_url_and_metadata_parsing(self):
         with tempfile.TemporaryDirectory() as directory:
             filelist = Path(directory)/'files.txt'

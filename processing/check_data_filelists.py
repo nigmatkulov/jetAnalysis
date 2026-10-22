@@ -300,7 +300,8 @@ void check() {
 """.replace("INPUT_PATH", json.dumps(str(path))).replace("DEEP_CHECK", "true" if deep else "false"))
         try:
             result = subprocess.run(["root", "-l", "-b", "-q", str(macro)],
-                                    capture_output=True, text=True, timeout=timeout)
+                                    capture_output=True, text=True, encoding="utf-8",
+                                    errors="replace", timeout=timeout)
         except subprocess.TimeoutExpired:
             return FileProblem(path, "TIMEOUT", f"ROOT check exceeded {timeout}s; integrity unknown")
         except OSError as error:
@@ -325,7 +326,16 @@ def check_integrity_paths(paths, workers, progress, deep=False, timeout=120):
         futures = {executor.submit(check_root_file, path, deep, timeout): index
                    for index, path in enumerate(ordered)}
         for future in as_completed(futures):
-            issues[futures[future]] = future.result()
+            index = futures[future]
+            try:
+                issues[index] = future.result()
+            except Exception as error:
+                # Report unexpected per-file failures instead of losing an
+                # entire campaign scan. Interrupts still propagate normally.
+                issues[index] = FileProblem(
+                    ordered[index], "CHECK_ERROR",
+                    f"{type(error).__name__}: {error}; integrity unknown",
+                )
             progress.advance()
     good = tuple(path for path, issue in zip(ordered, issues) if issue is None)
     problems = tuple(issue for issue in issues if issue is not None)
