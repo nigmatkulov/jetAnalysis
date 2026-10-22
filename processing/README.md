@@ -531,18 +531,10 @@ find condor -type f -name '*.err' -size +0 -print
 find condor -type f -name '*.log' | sort | tail
 ```
 
-The retry scanner covers only its three listed read-error signatures. An empty
-retry report does not establish campaign completeness: held, aborted or
-unrelated failures, and skipped files without those signatures, still require
-manual review. The analysis worker does not independently reopen or validate
-its output after a zero exit status. Reconcile the expected sublist/job count,
-Condor termination status and produced files, and inspect ROOT keys and event
-counts on representative outputs before merging.
-
-Validate successful production through Condor exit status and the nonempty ROOT
-outputs written directly to the requested shared output directory. Run a small
-job interactively when detailed file/event counts are needed; routine Condor
-campaigns suppress that verbose output by design.
+Use the recovery audit below before merging. A filename or an empty stderr file
+alone does not establish completeness. Outputs are written directly to shared
+storage, rather than transferred back by Condor; output write/access failures
+are therefore distinct from Condor sandbox/proxy transfer failures.
 
 ### Merge completed data outputs
 
@@ -606,81 +598,120 @@ original job outputs and any older final output intact. Use
 or `--keep-inputs` to merge and verify while retaining the source files. Change
 the fan-in with `--batch-size`; values are restricted to 2–999.
 
-### Retry completed jobs with ROOT input read errors
+### Audit and recover incomplete processing jobs
 
-Wait for the campaigns being checked to finish, or expect active and
-unterminated jobs to be reported and skipped. A nonempty `.err` file alone does
-not mark a job for retry. From `processing/`, scan all retained campaigns
-without changing files or submitting jobs:
+The existing retry entry point now audits **every queue row**, including after
+jobs leave the queue. Run from `processing/` with the intended campaign subtree:
 
 ```bash
-../py-env/bin/python retry_failed_io_jobs.py
+../py-env/bin/python retry_failed_io_jobs.py condor/CAMPAIGN --report /tmp/recovery.json
 ```
 
-The scanner selects only jobs that satisfy both conditions:
+This prints each expected unit and a category/eligibility summary. Exit status
+is 0 only when every supported expected unit is complete, and 1 when any remains
+incomplete (including after submission). Invalid arguments/unsafe submission
+prerequisites return 2. The JSON report includes original input/output paths,
+category, reason, attempts, and retry eligibility. Dry runs do not submit,
+archive, or move outputs; a small advisory lock file may be created.
 
-- the Condor event log records that the job terminated;
-- stderr contains a ROOT `TFile::ReadBuffer` `Input/output error`, a
-  `TBranch::GetBasket` `badread` error, or the analysis `Failed to read chain
-  entry` error.
+Classification combines current `condor_q -json` records, the latest retained
+scheduler lifecycle event, executable status/read errors and output validation:
 
-Normal jobs, active jobs, and jobs with unrelated errors are not touched. The
-bounded worker diagnostic retains these read-error signatures even though
-successful-job stdout is discarded. The
-final `Dry run: N failed job(s) would be retried.` line is the total number of
-selected queue rows. Review the listed job names and output paths before
-enabling submission. If `condor/` contains unrelated or historical campaigns,
-pass the intended campaign subtree explicitly, for example:
+- `complete`: normal scheduler termination with exit 0, no known read errors,
+  and a valid ROOT output.
+- `active`, `held`, `held_transfer_failure`: scheduler-owned jobs; never duplicated
+  or automatically released/cancelled.
+- `transient`: terminal job with known EOS/ROOT read-error diagnostics.
+- `walltime`: scheduler removal explicitly identifying the wall-time limit.
+- `invalid_output`: missing, empty or invalid output after successful termination,
+  or worker output-validation failure (75).
+- `transfer_failure`: terminal transfer errors; held transfer failures require intervention.
+- `recovery_pending`, `submission_uncertain`: pending or ambiguous recovery attempts;
+  never duplicated until scheduler records are reconciled.
+- `manual`: missing lifecycle evidence, other executable/removal failures,
+  unavailable validator, missing/changed input lists, or other uncertainty.
+
+ROOT validation uses PyROOT, or the `root` CLI if PyROOT is unavailable. It checks
+nonempty storage, successful open, zombie/recovered flags, the existing `hVzRaw`
+key, and readability of all top-level objects. This can be expensive for large
+outputs. It does not prove event-level completeness alone: normal execution and
+absence of known skipped-input/read errors are also required. The worker rejects
+existing outputs (73), retains bounded failure diagnostics, returns 74 for known
+read errors, returns 75 for invalid outputs, and records `JETANALYSIS_COMPLETED`
+after exit 0 and validation. Set `JETANALYSIS_PYTHON` to a worker Python with
+PyROOT, or ensure `python3` and the ROOT CLI are available in its runtime.
+
+New submission descriptions have a `.manifest.json` recording submit/input-list
+SHA-256 digests and expected output paths. Recovery refuses changed workloads.
+Older campaigns use their retained queue rows/lists; their original content
+cannot be cryptographically verified. Keep those files and logs immutable.
+
+After inspecting the report and checking each campaign's copied
+`voms_proxy.txt` with `voms-proxy-info -file ... -timeleft`, submit eligible
+retries explicitly:
 
 ```bash
-../py-env/bin/python retry_failed_io_jobs.py \
-  condor/20260803_211646_314197_f0ca9cb3
+../py-env/bin/python retry_failed_io_jobs.py condor/CAMPAIGN --submit --max-retries 3
 ```
 
-The retry submit descriptions reuse the proxy copied into each sample campaign
-at its original submission. Check one campaign copy before resubmitting:
+Retries retain the original input list, arguments, output path, and resources.
+Logs are archived under `retry_archive/<timestamp>/<job>/`; incomplete outputs
+are preserved as `.root.invalid-<timestamp>`. Completed jobs are untouched.
+The archive count also bounds legacy retries. The per-submit `.recovery.json`
+journal records attempts, generated submit descriptions and returned scheduler
+IDs. Do not delete this journal or the archives while recovering a campaign.
+A per-submit advisory lock serializes concurrent recovery scans, including
+scans invoked from different parent directories. Submit only through this tool
+while recovering: manually submitting generated descriptions bypasses its guards.
+
+A crash or ambiguous `condor_submit` result leaves an `uncertain` journal entry
+and blocks further retries. Reconcile its generated description and scheduler
+records manually before marking it `submitted` with its `job_id`, or removing
+that entry only after proving no job was submitted. A confirmed submission stays
+blocked until its own terminal event arrives; old logs cannot trigger duplicates.
+Submission requires a successful live queue query. Off-cluster dry runs use logs
+and explicitly warn that live status could not be checked.
+
+### Wall-time recovery without changing MC partitions
+
+MC defaults to `microcentury`; data defaults to `espresso`. `--job-flavour`
+overrides this in the original submitter. File-count splitting (default 10) is
+configurable, but does not balance events, remote-I/O latency or runtime.
+
+Do not automatically subdivide existing MC jobs: pPb MC weights depend on the
+invocation entry count, and the controlled-sample RNG restarts per invocation.
+Both affect merged physics results when partitions change. Event-range processing
+is not exposed by this executable. No physics code or partition semantics have
+been changed by recovery.
+
+Instead, explicitly choose a **strictly longer** flavour for failed wall-time
+units after reviewing the plan, for example:
 
 ```bash
-voms-proxy-info \
-  -file condor/20260803_211646_314197_f0ca9cb3/MB_PD1_Pbgoing_data_jetId/voms_proxy.txt \
-  -timeleft
+../py-env/bin/python retry_failed_io_jobs.py condor/CAMPAIGN \
+  --walltime-flavour longlunch --report /tmp/walltime-plan.json
+../py-env/bin/python retry_failed_io_jobs.py condor/CAMPAIGN \
+  --walltime-flavour longlunch --max-retries 3 --submit
 ```
 
-Renewing only `processing/voms_proxy.txt` after the original submission does
-not replace those campaign copies. If a campaign proxy is expired, prepare a
-fresh campaign instead of submitting its generated retry description unchanged.
+Only wall-time retries get the selected runtime. Other parameters and input
+coverage remain identical. A second wall-time failure cannot use the same
+flavour again. Unknown original flavours, explicit MaxRuntime overrides, no longer available allowance, and
+exhausted retry limits require intervention. This is a bounded recovery path;
+it does not guarantee that a slow single file will finish. Changing partitions
+or introducing event ranges requires a separate physics review/approval.
 
-After reviewing the dry run and confirming the campaign proxy is valid, archive
-the selected jobs' old logs, quarantine any stale ROOT outputs with an
-`.invalid-<timestamp>` suffix, generate retry submit files containing only the
-affected queue rows, and call `condor_submit` with:
+Rerun the same audit after retries finish. Merge only after the audit returns 0
+and the summary accounts for all expected rows. Retain campaign records until
+after verification; deleting per-job files during merging makes later audits
+report them missing. Clone campaigns use a different queue schema and are not
+supported by this processing-output audit.
+
+Run the controlled recovery and worker tests from the repository root:
 
 ```bash
-../py-env/bin/python retry_failed_io_jobs.py --submit
+py-env/bin/python -m unittest discover -s tests -p 'test_condor*.py' -v
 ```
 
-The default `condor` argument is appropriate only when every retained campaign
-is in scope. For a controlled recovery, add `--submit` to the same explicit
-campaign path used for its dry run:
-
-```bash
-../py-env/bin/python retry_failed_io_jobs.py \
-  condor/20260803_211646_314197_f0ca9cb3 --submit
-```
-
-Archived `.err` and scheduler `.log` files are stored below each sample campaign in
-`retry_archive/<timestamp>/<job-name>/`. Any pre-existing output for a selected
-job is preserved beside the original output path as
-`<name>.root.invalid-<timestamp>` before resubmission. Successful jobs and their
-outputs are not moved. The generated `_retry_<timestamp>.sub` files are not
-treated as original campaigns during later scans, preventing duplicate queue
-definitions from being scanned.
-
-Record the cluster IDs printed by `condor_submit`, monitor them with
-`condor_q`, and rerun the same dry-run command after they terminate. A clean
-campaign reports `No completed jobs with matching ROOT input read errors were
-found.` If some jobs repeatedly fail on the same EOS input, test that file
-directly and retry it in a smaller job rather than repeatedly processing the
-same multi-file queue row. Do not merge a trigger/direction until this check is
-clean. Run `retry_failed_io_jobs.py --help` for its campaign-path and `--submit`
-interface.
+Tests simulate scheduler submissions and exercise real ROOT validation when the
+ROOT CLI is installed. They do not submit cluster work.

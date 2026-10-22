@@ -490,8 +490,8 @@ input partition and JER settings, so use separate output directories for
 configurations that must coexist.
 
 After jobs finish, `processing/retry_failed_io_jobs.py` can scan generated
-campaigns for ROOT input read failures and resubmit only the affected queue
-rows. It reports a dry run by default; confirm its selected total and the copied
+campaigns for execution, wall-time, transfer and missing/invalid-output failures
+and resubmit only eligible incomplete queue rows. It reports a dry run by default; confirm its selected total and the copied
 campaign proxy before using the explicit `--submit` mode. The archive,
 quarantine, campaign-scoping, and post-retry checks are documented in
 `processing/README.md`.

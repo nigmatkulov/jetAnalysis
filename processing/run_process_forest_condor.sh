@@ -36,6 +36,11 @@ fi
 cd "$repository"
 mkdir -p "$(dirname "$output_file")"
 
+# Never overwrite an existing production output, including an unverified one.
+if [[ -e "$output_file" ]]; then
+    echo "Output already exists; inspect or quarantine before retry: $output_file" >&2
+    exit 73
+fi
 job_output=$(mktemp "${TMPDIR:-/tmp}/jetAnalysis-processForest.XXXXXX")
 trap 'rm -f "$job_output"' EXIT
 
@@ -86,4 +91,13 @@ if [[ $status -ne 0 ]]; then
     } >&2
 fi
 
+if [[ $status -eq 0 ]]; then
+    "${JETANALYSIS_PYTHON:-python3}" "$repository/processing/validate_job_output.py" "$output_file" || status=75
+fi
+if [[ $status -eq 75 ]]; then
+    echo "Output validation failed (status 75)" >&2
+fi
+if [[ $status -eq 0 ]]; then
+    echo "JETANALYSIS_COMPLETED input=$input_list output=$output_file" >&2
+fi
 exit "$status"

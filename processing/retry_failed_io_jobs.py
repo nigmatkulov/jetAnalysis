@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Find completed Condor jobs with ROOT read errors and retry only those jobs."""
+"""Audit expected processing outputs and prepare bounded, explicit recovery."""
 
 from __future__ import annotations
 
@@ -42,33 +42,6 @@ class FailedJob:
     stdout: Path
     stderr: Path
     event_log: Path
-
-
-def parse_args() -> argparse.Namespace:
-    """Parse recovery options."""
-
-    parser = argparse.ArgumentParser(
-        description=(
-            "Find completed processForestSimple jobs with ROOT input read "
-            "errors and generate retries containing only those jobs."
-        )
-    )
-    parser.add_argument(
-        "condor_dir",
-        nargs="?",
-        type=Path,
-        default=DEFAULT_CONDOR_DIR,
-        help=f"Condor campaign root (default: {DEFAULT_CONDOR_DIR})",
-    )
-    parser.add_argument(
-        "--submit",
-        action="store_true",
-        help=(
-            "Archive failed-job logs, quarantine stale outputs, and call "
-            "condor_submit. Without this flag, report a dry run only."
-        ),
-    )
-    return parser.parse_args()
 
 
 def original_submit_files(condor_dir: Path) -> list[Path]:
@@ -121,53 +94,6 @@ def parse_queue(submit_file: Path) -> tuple[list[str], int, int, list[QueueRow]]
     return lines, queue_start, queue_end, rows
 
 
-def contains_read_error(stderr: Path) -> bool:
-    """Return whether stderr contains one targeted ROOT input-read failure."""
-
-    with stderr.open(errors="replace") as stream:
-        return any(READ_ERROR.search(line) for line in stream)
-
-
-def job_has_terminated(event_log: Path) -> bool:
-    """Return whether the latest relevant Condor lifecycle event is termination."""
-
-    terminated = False
-    with event_log.open(errors="replace") as stream:
-        for line in stream:
-            if "Job executing on host" in line:
-                terminated = False
-            elif "Job terminated." in line:
-                terminated = True
-    return terminated
-
-
-def failed_jobs(submit_file: Path, rows: list[QueueRow]) -> list[FailedJob]:
-    """Select completed jobs whose stderr contains a targeted read error."""
-
-    logs_dir = submit_file.parent / "log"
-    selected: list[FailedJob] = []
-    for row in rows:
-        stdout = logs_dir / f"{row.job_name}.out"
-        stderr = logs_dir / f"{row.job_name}.err"
-        event_log = logs_dir / f"{row.job_name}.log"
-        if not stderr.is_file() or not event_log.is_file():
-            continue
-        if not contains_read_error(stderr):
-            continue
-        if not job_has_terminated(event_log):
-            print(f"Skipping active or unterminated job: {row.job_name}")
-            continue
-        selected.append(
-            FailedJob(
-                row=row,
-                stdout=stdout,
-                stderr=stderr,
-                event_log=event_log,
-            )
-        )
-    return selected
-
-
 def write_retry_submit(
     submit_file: Path,
     lines: list[str],
@@ -209,55 +135,205 @@ def clear_failed_artifacts(
             print(f"Quarantined stale output: {quarantined}")
 
 
+# Ordered CERN runtime classes; recovery must strictly increase the allowance.
+FLAVOURS = ("espresso", "microcentury", "longlunch", "workday", "tomorrow", "testmatch", "nextweek")
+
+
+def lifecycle(text: str) -> tuple[str, str | None]:
+    """Use the latest lifecycle event, including removal/hold/eviction."""
+    events = list(re.finditer(r"(?m)^(000|001|004|005|009|012|013) \((\d+\.\d+)\.\d+\)", text))
+    if not events:
+        return "unknown", None
+    event = events[-1]
+    body = text[event.start():]
+    code = event.group(1)
+    job_id = event.group(2)
+    if code in ("000", "001", "004", "013"):
+        return "active", job_id
+    if code == "012":
+        return "held", job_id
+    if code == "009":
+        return ("walltime" if re.search(r"wall.?time|allowed max|MaxRuntime", body, re.I) else "removed"), job_id
+    if re.search(r"Normal termination.*return value 0\)", body, re.S):
+        return "success", job_id
+    return "execution_failure", job_id
+
+
+def classify(row, event_text, error_text, active_ids, validator):
+    state, job_id = lifecycle(event_text)
+    transfer_error = bool(re.search(r"failed to transfer|transfer.*failed|transfer.*error", event_text + error_text, re.I))
+    if state == "held" and transfer_error:
+        return "held_transfer_failure", "scheduler still owns job; inspect HoldReason before release"
+    if job_id in active_ids or state in ("active", "held"):
+        return state if state == "held" else "active", "scheduler still owns job"
+    ok, reason = validator(row.output_file)
+    if reason.startswith("validation unavailable"):
+        return "manual", reason
+    if state == "walltime":
+        return "walltime", reason
+    if state == "unknown":
+        return "manual", "no terminal scheduler evidence; " + reason
+    if transfer_error:
+        return "transfer_failure", reason
+    if READ_ERROR.search(error_text):
+        return "transient", reason
+    if state == "success" and ok:
+        return "complete", reason
+    if state == "success":
+        return "invalid_output", reason
+    if state == "execution_failure" and "status 75" in error_text:
+        return "invalid_output", reason
+    return "manual", state + "; " + reason
+
+
 def main() -> int:
-    """Scan campaigns, prepare retry files, and optionally submit them."""
+    """Inspect every expected row; explicit submission is bounded and locked."""
+    import collections
+    import fcntl
+    import json
+    import hashlib
+    from validate_job_output import validate
 
-    args = parse_args()
-    condor_dir = args.condor_dir.expanduser().resolve()
-    if not condor_dir.is_dir():
-        raise SystemExit(f"Condor directory does not exist: {condor_dir}")
-    if args.submit and shutil.which("condor_submit") is None:
-        raise SystemExit("condor_submit was not found; omit --submit for a dry run")
-
-    submit_files = original_submit_files(condor_dir)
-    if not submit_files:
-        raise SystemExit(f"No original submit files found below {condor_dir}")
-
-    plans: list[tuple[Path, list[str], int, int, list[FailedJob]]] = []
-    total_failed = 0
-    for submit_file in submit_files:
-        lines, queue_start, queue_end, rows = parse_queue(submit_file)
-        jobs = failed_jobs(submit_file, rows)
-        if not jobs:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("condor_dir", nargs="?", type=Path, default=DEFAULT_CONDOR_DIR)
+    parser.add_argument("--submit", action="store_true")
+    parser.add_argument("--max-retries", type=int, default=3)
+    parser.add_argument("--walltime-flavour", choices=FLAVOURS,
+                        help="Explicit longer runtime for wall-time failures; no event splitting")
+    parser.add_argument("--report", type=Path, help="Write a JSON recovery plan")
+    args = parser.parse_args()
+    if args.max_retries < 0:
+        parser.error("--max-retries must be nonnegative")
+    root = args.condor_dir.expanduser().resolve()
+    if not root.is_dir():
+        parser.error("campaign directory does not exist")
+    # A failed queue query must never authorize a submission. Dry runs remain
+    # usable off-cluster, with event-log evidence and explicit diagnostics.
+    active_ids = set()
+    queue_available = False
+    if shutil.which("condor_q"):
+        q = subprocess.run(["condor_q", "-json"], capture_output=True, text=True)
+        if q.returncode == 0:
+            ads = json.loads(q.stdout)
+            active_ids = {f"{ad['ClusterId']}.{ad['ProcId']}" for ad in ads}
+            queue_available = True
+    if args.submit and (not queue_available or not shutil.which("condor_submit")):
+        parser.error("submission requires successful condor_q -json and condor_submit")
+    if not queue_available:
+        print("Queue unavailable: dry-run classifications use retained event logs only.")
+    report = []
+    # Serialize submitters across scans of the same campaign/sample tree.
+    # Each original submit file has its own lock and durable attempt journal.
+    submits = original_submit_files(root)
+    parsed = {}
+    outputs = collections.Counter()
+    for sub in submits:
+        if QUEUE_HEADER not in sub.read_text():
+            report.append(dict(submit_file=str(sub), category="manual", eligible=False,
+                               reason="unsupported queue schema"))
             continue
-        plans.append((submit_file, lines, queue_start, queue_end, jobs))
-        total_failed += len(jobs)
-        print(f"{submit_file}: {len(jobs)} failed job(s)")
-        for job in jobs:
-            print(f"  {job.row.job_name}: {job.row.output_file}")
-
-    if total_failed == 0:
-        print("No completed jobs with matching ROOT input read errors were found.")
-        return 0
-    if not args.submit:
-        print(f"Dry run: {total_failed} failed job(s) would be retried.")
-        return 0
-
-    retry_tag = dt.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-    for submit_file, lines, queue_start, queue_end, jobs in plans:
-        retry_file = write_retry_submit(
-            submit_file, lines, queue_start, queue_end, jobs, retry_tag,
-        )
-        clear_failed_artifacts(submit_file, jobs, retry_tag)
-        subprocess.run(
-            ["condor_submit", retry_file.name],
-            cwd=submit_file.parent,
-            check=True,
-        )
-        print(f"Submitted {len(jobs)} retry job(s): {retry_file}")
-
-    print(f"Submitted {total_failed} failed job(s) in total.")
-    return 0
+        parsed[sub] = parse_queue(sub)
+        outputs.update(str(row.output_file.resolve()) for row in parsed[sub][3])
+    for sub, (lines, start, end, rows) in parsed.items():
+        if not any("run_process_forest_condor.sh" in line for line in lines):
+            report.append(dict(submit_file=str(sub), category="manual", eligible=False,
+                               reason="unsupported worker"))
+            continue
+        manifest_path = sub.with_suffix(".manifest.json")
+        manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else None
+        lock = sub.with_suffix(".recovery.lock")
+        with lock.open("a") as stream:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+            journal_path = sub.with_suffix(".recovery.json")
+            journal = json.loads(journal_path.read_text()) if journal_path.exists() else {}
+            def save():
+                temporary = journal_path.with_suffix(".json.tmp")
+                temporary.write_text(json.dumps(journal, indent=2) + "\n")
+                temporary.replace(journal_path)
+            for row in rows:
+                logs = sub.parent / "log"
+                event = logs / f"{row.job_name}.log"
+                err = logs / f"{row.job_name}.err"
+                event_text = event.read_text(errors="replace") if event.exists() else ""
+                error_text = err.read_text(errors="replace") if err.exists() else ""
+                state, reason = classify(row, event_text, error_text, active_ids, validate)
+                if not row.input_list.is_file():
+                    state, reason = "manual", "original input list is missing"
+                elif manifest:
+                    expected = manifest["jobs"].get(row.job_name, {})
+                    if (manifest["submit_sha256"] != hashlib.sha256(sub.read_bytes()).hexdigest()
+                            or expected.get("input_sha256") != hashlib.sha256(row.input_list.read_bytes()).hexdigest()):
+                        state, reason = "manual", "workload changed since submission; reconcile manifest"
+                if outputs[str(row.output_file.resolve())] > 1:
+                    state, reason = "manual", "multiple original queue rows target this output; select one campaign"
+                attempts = journal.get(row.job_name, [])
+                eligible = state in ("transient", "invalid_output", "transfer_failure", "walltime")
+                flavour = attempts[-1].get("flavour") if attempts else None
+                if attempts and attempts[-1]["state"] == "uncertain":
+                    eligible = False
+                    state = "submission_uncertain"
+                    reason += "; submission outcome uncertain: reconcile journal with scheduler"
+                if attempts and attempts[-1]["state"] == "submitted":
+                    last_id = attempts[-1]["job_id"]
+                    log_state, log_id = lifecycle(event_text)
+                    if last_id in active_ids or log_id != last_id or log_state in ("active", "unknown", "held"):
+                        eligible = False
+                        state = "recovery_pending"
+                        reason += "; recovery pending scheduler/log confirmation"
+                attempt_count = max(len(attempts), len(list((sub.parent / "retry_archive").glob(f"*/{row.job_name}"))))
+                if attempt_count >= args.max_retries:
+                    eligible = False
+                    reason += "; retry limit reached"
+                if state == "walltime":
+                    match = re.search(r'(?im)^\+JobFlavour\s*=\s*"([^"\n]+)"', "\n".join(lines))
+                    previous = attempts[-1].get("flavour") if attempts else None
+                    previous = previous or (match.group(1) if match else None)
+                    flavour = args.walltime_flavour
+                    explicit_runtime = any(re.match(r"(?i)^\+?MaxRuntime\s*=", line.strip()) for line in lines)
+                    if explicit_runtime or previous not in FLAVOURS or flavour is None or FLAVOURS.index(flavour) <= FLAVOURS.index(previous):
+                        eligible = False
+                        reason += "; requires explicitly selected strictly longer --walltime-flavour"
+                item = dict(submit_file=str(sub), job=row.job_name, input=str(row.input_list),
+                            output=str(row.output_file), category=state, reason=reason,
+                            attempts=attempt_count, eligible=eligible)
+                report.append(item)
+                print(f"{row.job_name}: {state}; eligible={eligible}; {reason}")
+                if not args.submit or not eligible:
+                    continue
+                # Check live scheduler again under the lock before mutation.
+                fresh = subprocess.run(["condor_q", "-json"], capture_output=True, text=True, check=True)
+                if lifecycle(event_text)[1] in {f"{ad['ClusterId']}.{ad['ProcId']}" for ad in json.loads(fresh.stdout)}:
+                    raise SystemExit("Job is still in queue; rerun to inspect current state")
+                tag = dt.datetime.now().strftime("%Y%m%d_%H%M%S%f")
+                job = FailedJob(row, logs / f"{row.job_name}.out", err, event)
+                retry = write_retry_submit(sub, lines, start, end, [job], tag)
+                if flavour:
+                    text = retry.read_text()
+                    text = re.sub(r'(?im)^\+JobFlavour\s*=.*$', f'+JobFlavour = "{flavour}"', text)
+                    retry.write_text(text)
+                attempt = dict(state="uncertain", submit_file=str(retry), flavour=flavour,
+                               original_input=str(row.input_list), output=str(row.output_file))
+                attempts.append(attempt)
+                journal[row.job_name] = attempts
+                save()  # persist before any external side effect; crash fails closed
+                clear_failed_artifacts(sub, [job], tag)
+                result = subprocess.run(["condor_submit", "-terse", retry.name], cwd=sub.parent,
+                                        capture_output=True, text=True)
+                match = re.fullmatch(r"\s*(\d+\.\d+)(?:\s*-\s*\d+\.\d+)?\s*", result.stdout)
+                if result.returncode or not match:
+                    raise SystemExit("Submission outcome uncertain; inspect journal and scheduler: " + result.stderr)
+                attempt.update(state="submitted", job_id=match.group(1))
+                save()
+                print(f"Submitted {row.job_name}: {match.group(1)}")
+                # Refresh baseline for the next independent submission.
+                q = subprocess.run(["condor_q", "-json"], capture_output=True, text=True, check=True)
+                ads = json.loads(q.stdout)
+                active_ids = {f"{ad['ClusterId']}.{ad['ProcId']}" for ad in ads}
+    counts = collections.Counter(item["category"] for item in report)
+    print("Summary:", dict(counts), "eligible:", sum(item["eligible"] for item in report))
+    if args.report:
+        args.report.write_text(json.dumps(report, indent=2) + "\n")
+    return 0 if report and all(item["category"] == "complete" for item in report) else 1
 
 
 if __name__ == "__main__":

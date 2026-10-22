@@ -40,6 +40,8 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -480,6 +482,14 @@ def main() -> int:
                 "",
             ]
             submit_file.write_text("\n".join(submit_lines))
+            # Persist workload identity for recovery even after queue history expires.
+            manifest = {
+                "submit_sha256": hashlib.sha256(submit_file.read_bytes()).hexdigest(),
+                "jobs": {name: {"input_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                                "input_list": str(path), "output_file": str(output)}
+                         for name, path, output in jobs},
+            }
+            submit_file.with_suffix(".manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
             submit_files.append(submit_file)
             print(f"Prepared {len(jobs)} job(s) for {label}: {submit_file}")
 
