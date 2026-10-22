@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check availability of every ROOT file listed for pPb8160 data.
+"""Check availability and optional ROOT integrity of pPb8160 data or specific files.
 
 The expected production coverage is fixed by the analysis workflow:
 
@@ -15,6 +15,10 @@ matching ``processForestSimple`` list handling.
 from __future__ import annotations
 
 import argparse
+import json
+import shutil
+import subprocess
+import tempfile
 import sys
 import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
@@ -36,12 +40,22 @@ class FileListSpec:
 
 
 @dataclass(frozen=True)
+class FileProblem:
+    """A specific input that failed availability or integrity validation."""
+
+    path: Path | str
+    category: str
+    detail: str
+
+
+@dataclass(frozen=True)
 class FileListResult:
-    """Availability results for one file list."""
+    """Availability/integrity results for one file list."""
 
     spec: FileListSpec
-    available: tuple[Path, ...]
-    missing: tuple[Path, ...]
+    available: tuple[Path | str, ...]
+    missing: tuple[Path | str, ...]
+    problems: tuple[FileProblem, ...] = ()
 
 
 class ProgressBar:
@@ -113,6 +127,10 @@ def parse_args() -> argparse.Namespace:
             "Check every ROOT path in the pPb8160 MB and PAEGJet data file lists."
         )
     )
+    parser.add_argument("root_files", nargs="*", help="Check specific files/ROOT URLs instead of the production lists; implies --check-root")
+    parser.add_argument("--check-root", action="store_true", help="Open files with ROOT and check integrity, including stored objects")
+    parser.add_argument("--deep", action="store_true", help="Also read every TTree entry/branch; implies --check-root (potentially expensive)")
+    parser.add_argument("--timeout", type=positive_int, default=120, help="Maximum seconds per ROOT check (default: 120; increase for --deep)")
     parser.add_argument(
         "--filelist-root",
         type=Path,
@@ -123,7 +141,7 @@ def parse_args() -> argparse.Namespace:
         "--workers",
         type=positive_int,
         default=16,
-        help="Concurrent filesystem checks (default: 16)",
+        help="Concurrent file checks (default: 16)",
     )
     parser.add_argument(
         "--show-available",
@@ -166,15 +184,16 @@ def expected_filelists(root: Path) -> list[FileListSpec]:
     return specs
 
 
-def read_root_paths(filelist: Path) -> list[Path]:
+def read_root_paths(filelist: Path) -> list[Path | str]:
     """Read ROOT paths from one list, ignoring blank and comment lines."""
 
-    paths: list[Path] = []
+    paths: list[Path | str] = []
     for raw_line in filelist.read_text().splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
-        paths.append(Path(line.split(maxsplit=1)[0]).expanduser())
+        token = line.split(maxsplit=1)[0]
+        paths.append(token if "://" in token else Path(token).expanduser())
     return paths
 
 
@@ -182,7 +201,7 @@ def path_is_available(path: Path) -> bool:
     """Return whether a path is a regular file, treating I/O errors as missing."""
 
     try:
-        return path.is_file()
+        return Path(path).is_file()
     except OSError:
         return False
 
@@ -213,55 +232,157 @@ def check_paths(
     return available, missing
 
 
+def check_root_file(path: Path | str, deep: bool = False, timeout: int = 120) -> FileProblem | None:
+    """Isolate ROOT in a subprocess so corrupt files cannot crash the scanner.
+
+    Ordinary checks deserialize objects recursively; deep checks also read all
+    TTree entries. Neither check establishes physics/processing completeness.
+    """
+    if "://" not in str(path):
+        if not path_is_available(Path(path)):
+            return FileProblem(path, "MISSING", "not a readable regular file")
+        try:
+            if Path(path).stat().st_size == 0:
+                return FileProblem(path, "EMPTY", "zero-byte file")
+        except OSError as error:
+            return FileProblem(path, "UNREADABLE", str(error))
+    with tempfile.TemporaryDirectory(prefix="root-input-check-") as directory:
+        macro = Path(directory) / "check.C"
+        macro.write_text(r"""#include <TFile.h>
+#include <TDirectory.h>
+#include <TKey.h>
+#include <TTree.h>
+#include <TSystem.h>
+#include <TError.h>
+#include <memory>
+#include <iostream>
+#include <string>
+bool readError = false;
+void captureError(int level, Bool_t abort, const char *where, const char *message) {
+ if (level >= kError) readError = true;
+ DefaultErrorHandler(level, abort, where, message);
+}
+bool inspect(TDirectory *directory, bool deep) {
+ TIter next(directory->GetListOfKeys());
+ while (TKey *key = (TKey*)next()) {
+  std::unique_ptr<TObject> object(key->ReadObj());
+  if (!object || readError) return false;
+  if (auto child = dynamic_cast<TDirectory*>(object.get())) {
+   if (!inspect(child, deep)) return false;
+  }
+  if (deep) {
+   if (auto tree = dynamic_cast<TTree*>(object.get())) {
+    tree->SetBranchStatus("*", 1);
+    for (Long64_t entry = 0; entry < tree->GetEntries(); ++entry) {
+     if ((tree->GetEntry(entry) <= 0 && tree->GetListOfBranches()->GetEntries() > 0) || readError) return false;
+    }
+   }
+  }
+ }
+ return !readError;
+}
+void finish(int code) {
+ std::cout << "ROOT_CHECK_RESULT=" << code << std::endl;
+ gSystem->Exit(code);
+}
+void check() {
+ SetErrorHandler(captureError);
+ const std::string path = INPUT_PATH;
+ std::unique_ptr<TFile> file(path.find("://") == std::string::npos
+                           ? new TFile(path.c_str(), "READ") : TFile::Open(path.c_str(), "READ"));
+ if (!file) finish(13);
+ if (file->IsZombie()) finish(10);
+ if (file->TestBit(TFile::kRecovered)) finish(11);
+ if (readError || !inspect(file.get(), DEEP_CHECK)) finish(12);
+ file->Close();
+ finish(readError ? 12 : 0);
+}
+""".replace("INPUT_PATH", json.dumps(str(path))).replace("DEEP_CHECK", "true" if deep else "false"))
+        try:
+            result = subprocess.run(["root", "-l", "-b", "-q", str(macro)],
+                                    capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return FileProblem(path, "TIMEOUT", f"ROOT check exceeded {timeout}s; integrity unknown")
+        except OSError as error:
+            return FileProblem(path, "CHECK_ERROR", str(error))
+        codes = {10: ("ZOMBIE", "ROOT zombie file"),
+                 11: ("RECOVERED", "ROOT recovered an improperly closed file"),
+                 12: ("CORRUPT", "ROOT reported an error reading stored objects or tree data"),
+                 13: ("UNREADABLE", "ROOT could not open the file (corruption, access or I/O failure)")}
+        if f"ROOT_CHECK_RESULT={result.returncode}" not in result.stdout:
+            return FileProblem(path, "CHECK_ERROR", f"ROOT crashed or failed to run (exit {result.returncode}); integrity unknown")
+        if result.returncode == 0:
+            return None
+        category, detail = codes.get(result.returncode, ("CHECK_ERROR", "unexpected ROOT check result"))
+        return FileProblem(path, category, detail)
+
+
+def check_integrity_paths(paths, workers, progress, deep=False, timeout=120):
+    """Collect deterministic per-file results despite concurrent completion."""
+    ordered = list(paths)
+    issues = [None] * len(ordered)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {executor.submit(check_root_file, path, deep, timeout): index
+                   for index, path in enumerate(ordered)}
+        for future in as_completed(futures):
+            issues[futures[future]] = future.result()
+            progress.advance()
+    good = tuple(path for path, issue in zip(ordered, issues) if issue is None)
+    problems = tuple(issue for issue in issues if issue is not None)
+    missing = tuple(issue.path for issue in problems if issue.category == "MISSING")
+    return good, missing, problems
+
+
 def main() -> int:
-    """Check all expected lists and print a grouped availability report."""
-
+    """Check production lists or explicit files and summarize every problem."""
     args = parse_args()
-    filelist_root = args.filelist_root.expanduser().resolve()
-    specs = expected_filelists(filelist_root)
-
-    absent_lists = [spec for spec in specs if not spec.path.is_file()]
-    if absent_lists:
-        print("Missing required file lists:")
-        for spec in absent_lists:
-            print(f"  [{spec.label}] {spec.path}")
-        print(f"\nCannot check data files: {len(absent_lists)} required list(s) missing.")
+    integrity = args.check_root or args.deep or bool(args.root_files)
+    if args.root_files:
+        paths = [value if "://" in value else Path(value).expanduser() for value in args.root_files]
+        paths_by_spec = [(FileListSpec("Specified files", Path(".")), paths)]
+    else:
+        specs = expected_filelists(args.filelist_root.expanduser().resolve())
+        absent_lists = [spec for spec in specs if not spec.path.is_file()]
+        if absent_lists:
+            print("Missing required file lists:")
+            for spec in absent_lists:
+                print(f"  [{spec.label}] {spec.path}")
+            print(f"\nCannot check data files: {len(absent_lists)} required list(s) missing.")
+            return 2
+        paths_by_spec = [(spec, read_root_paths(spec.path)) for spec in specs]
+    integrity = integrity or any("://" in str(path) for _, paths in paths_by_spec for path in paths)
+    if integrity and not shutil.which("root"):
+        print("ROOT integrity checks require the root executable in PATH.", file=sys.stderr)
         return 2
-
-    paths_by_spec = [(spec, read_root_paths(spec.path)) for spec in specs]
     progress = ProgressBar(sum(len(paths) for _, paths in paths_by_spec))
-
-    results: list[FileListResult] = []
+    results = []
     for spec, paths in paths_by_spec:
-        available, missing = check_paths(paths, args.workers, progress)
-        results.append(FileListResult(spec, available, missing))
+        if integrity:
+            available, missing, problems = check_integrity_paths(paths, args.workers, progress, args.deep, args.timeout)
+        else:
+            available, missing = check_paths(paths, args.workers, progress)
+            problems = tuple(FileProblem(path, "MISSING", "not a regular file") for path in missing)
+        results.append(FileListResult(spec, available, missing, problems))
     progress.finish()
-
-    total_available = 0
-    total_missing = 0
     for result in results:
-        total_available += len(result.available)
-        total_missing += len(result.missing)
-        total = len(result.available) + len(result.missing)
-        print(
-            f"[{result.spec.label}] total={total} "
-            f"available={len(result.available)} missing={len(result.missing)}"
-        )
+        total = len(result.available) + len(result.problems)
+        print(f"[{result.spec.label}] total={total} available={len(result.available)} "
+              f"missing={len(result.missing)} problems={len(result.problems)}")
         if args.show_available:
             for path in result.available:
-                print(f"  AVAILABLE: {path}")
-        for path in result.missing:
-            print(f"  MISSING: {path}")
-
-    print(
-        f"\nChecked {len(results)} file lists: "
-        f"available={total_available} missing={total_missing}"
-    )
-    if total_missing:
-        print("Some listed ROOT files are unavailable.")
+                print(f"  {'VALID' if integrity else 'AVAILABLE'}: {path}")
+    total_available = sum(len(result.available) for result in results)
+    total_missing = sum(len(result.missing) for result in results)
+    total_problems = sum(len(result.problems) for result in results)
+    print(f"\nChecked {len(results)} group(s): available={total_available} missing={total_missing} problems={total_problems}")
+    print("Integrity mode: " + ("full TTree entry reads" if args.deep else "ROOT open and stored-object checks" if integrity else "availability only; ROOT integrity not checked"))
+    if total_problems:
+        print("Problem files:")
+        for result in results:
+            for issue in result.problems:
+                print(f"  [{result.spec.label}] {issue.category}: {issue.path} — {issue.detail}")
         return 1
-
-    print("All listed ROOT files are available.")
+    print("All listed ROOT files passed the requested checks.")
     return 0
 
 

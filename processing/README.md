@@ -452,7 +452,7 @@ The equivalent individual commands are listed below.
 `--pd-number` has no effect for Jet60, Jet80, or Jet100; each uses the single
 direction-specific PAEGJet list.
 
-### Check data-file availability
+### Check data-file availability and ROOT integrity
 
 Before submitting data, check every ROOT path in all MB lists (PD1–20 for
 Pb-going and PD1–8 for p-going) and both direction-specific PAEGJet lists:
@@ -461,12 +461,38 @@ Pb-going and PD1–8 for p-going) and both direction-specific PAEGJet lists:
 ../py-env/bin/python check_data_filelists.py
 ```
 
-The report is grouped by direction and PD and prints every unavailable path as
-`MISSING`. It exits with status `0` when all files are available, `1` when any
-listed ROOT file is unavailable, and `2` when a required file list itself is
-missing. Availability checks use 16 concurrent workers by default; change this
-with `--workers`. An overall progress bar shows the number and percentage of
-completed checks. Add `--show-available` to print successful paths as well.
+The default command retains the fast filesystem-availability check. To open
+all listed files with ROOT and check for zombies, recovery flags, and corrupt
+stored objects, add `--check-root`. Check specific files instead of the production
+lists by passing their paths (this automatically enables ROOT validation):
+
+```bash
+../py-env/bin/python check_data_filelists.py --check-root
+../py-env/bin/python check_data_filelists.py /path/to/a.root /path/to/b.root
+../py-env/bin/python check_data_filelists.py --deep 'root://host//path/to/file.root'
+```
+
+ROOT URLs in production lists also automatically enable ROOT checks and remain
+unchanged. ROOT integrity checks require the `root` executable in `PATH`; each
+file is checked in an isolated process so a ROOT crash does not stop the report.
+Ordinary integrity checks recursively deserialize stored objects and check ROOT
+read errors. `--deep` additionally reads every TTree entry with all branches
+active; this can be expensive over EOS and is needed to check data baskets that
+ordinary metadata/object checks do not load. Neither mode proves processing or
+physics completeness, and no dataset-specific tree/histogram schema is imposed.
+
+The final `Problem files:` section lists every affected path, its direction/PD
+(or `Specified files`), and a reason: `MISSING`, `EMPTY`, `ZOMBIE`, `RECOVERED`,
+`CORRUPT`, or `UNREADABLE`. Remote open failures may reflect access/network
+problems rather than corruption. `TIMEOUT` and `CHECK_ERROR` explicitly mean
+integrity could not be verified. Group and final summaries count all problems.
+Exit status is `0` when all requested checks pass, `1` for file/check problems,
+and `2` for missing required lists or a missing ROOT executable.
+
+Checks use 16 concurrent workers by default; change this with `--workers`.
+Use `--timeout SECONDS` to change the per-file ROOT limit (default 120 seconds),
+especially for deep scans. An overall progress bar reports completed checks.
+Add `--show-available` to print successful paths as well.
 
 ### Monte Carlo
 

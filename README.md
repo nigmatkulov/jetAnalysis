@@ -506,7 +506,9 @@ non-destructive options.
 Before a data campaign, run `processing/check_data_filelists.py` on a CERN host
 with EOS mounted. It checks every MB PD list in both directions and both
 direction-specific PAEGJet lists, prints missing ROOT paths, and returns a
-nonzero status when files or required lists are unavailable.
+nonzero status when files or required lists are unavailable. Add `--check-root`
+for ROOT integrity checks, `--deep` to read all TTree entries, or pass specific
+ROOT paths/URLs. The final report lists every problem file and its reason.
 
 `hRecoInclusiveJetRawPtEtaLabUnflipped` stores selected raw jet pT versus
 detector eta using the same configured selection as the nominal corrected-pT
