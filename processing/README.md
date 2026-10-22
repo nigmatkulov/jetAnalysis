@@ -624,6 +624,67 @@ original job outputs and any older final output intact. Use
 or `--keep-inputs` to merge and verify while retaining the source files. Change
 the fan-in with `--batch-size`; values are restricted to 2–999.
 
+### Audit and recover many batches together
+
+You do not need to find each campaign name or run the checker separately for
+every batch. `retry_failed_io_jobs.py` recursively discovers original `.sub`
+files beneath the directory you provide, excluding generated retry descriptions.
+From `processing/`, inspect all batches under the default `condor/` directory:
+
+```bash
+python3 retry_failed_io_jobs.py condor --report recovery_plan.json
+```
+
+This is a dry run: no jobs are submitted. The JSON report identifies each
+original submission path, job, input list, expected output, failure category,
+reason, attempt count and retry eligibility. The final summary covers all
+discovered batches. Omitting `condor` also scans the default directory.
+
+After reviewing the plan and verifying the copied campaign proxies, recover
+eligible jobs across all batches in one invocation:
+
+```bash
+python3 retry_failed_io_jobs.py condor --submit --max-retries 3
+```
+
+To include wall-time failures originally using `microcentury`, first preview
+the explicitly longer allowance, then submit the reviewed plan:
+
+```bash
+python3 retry_failed_io_jobs.py condor \
+  --walltime-flavour longlunch --report recovery_plan.json
+python3 retry_failed_io_jobs.py condor \
+  --walltime-flavour longlunch --submit --max-retries 3
+```
+
+The submission command rescans current state; it does not execute a saved JSON
+plan blindly. Running/queued jobs and completed valid jobs are skipped. The
+longer flavour applies only to eligible wall-time failures; it must exceed the
+previous allowance. Rerun the dry-run audit after recovery finishes.
+
+If historical campaigns target the same output paths, a scan of their common
+parent reports those collisions for manual reconciliation. Select the intended
+campaign subtree after checking its inputs and parameters; do not resubmit all
+overlapping campaigns. A directory containing unrelated historical submissions
+should likewise be narrowed to the intended production group.
+
+For future submissions, group related batches beneath a descriptive work
+directory. For example, prepare all data samples without submitting them:
+
+```bash
+python3 submit_all_data_condor.py --work-dir condor/data_20261022 --dry-run
+```
+
+Remove `--dry-run` when ready to submit. The general
+`submit_process_forest_condor.py` submitter also accepts `--work-dir`, so use the
+same parent for related individual submissions. Generated timestamp/UUID
+campaign directories remain unique beneath that parent; the parent name does
+not change ROOT output paths or names. Audit the entire group with:
+
+```bash
+python3 retry_failed_io_jobs.py condor/data_20261022 --report recovery_plan.json
+```
+
 ### Audit and recover incomplete processing jobs
 
 The existing retry entry point now audits **every queue row**, including after
