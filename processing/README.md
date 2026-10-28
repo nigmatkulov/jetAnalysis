@@ -772,7 +772,7 @@ history automatically.
 
 ### Recovery details and troubleshooting
 
-If the queue check reports empty/invalid JSON, inspect the actual response:
+If the queue check reports invalid JSON or other errors, inspect the actual response:
 
 ```bash
 condor_q -json > /tmp/jetAnalysis-queue.json 2> /tmp/jetAnalysis-queue.err
@@ -783,8 +783,9 @@ head -n 20 /tmp/jetAnalysis-queue.json
 ```
 
 The audit can still inspect retained logs and outputs, but cannot confirm live
-status. Empty or malformed output is not accepted as proof of an empty queue;
-`--submit` remains blocked until a valid queue response is available. The tool
+status. HTCondor 25.0.14 on lxplus returns zero bytes for an empty queue;
+this is accepted only with exit status 0 and no stderr diagnostics. Malformed
+JSON and failed queries block `--submit`. The tool
 also validates the queue again before archiving outputs or submitting a retry.
 
 The existing retry entry point now audits **every queue row**, including after

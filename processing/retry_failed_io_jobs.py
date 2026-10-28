@@ -200,10 +200,16 @@ def query_active_ids() -> set[str]:
         raise ValueError(f"condor_q could not run: {error}") from error
     if result.returncode:
         raise ValueError(f"condor_q exited {result.returncode}: {result.stderr.strip()}")
+    # HTCondor 25.0.14 on lxplus emits no JSON at all for an empty queue.
+    # Only accept that representation after a clean, successful query.
+    if not result.stdout.strip():
+        if result.stderr.strip():
+            raise ValueError(f"condor_q returned no jobs with diagnostics: {result.stderr.strip()}")
+        return set()
     try:
         ads = json.loads(result.stdout)
     except json.JSONDecodeError as error:
-        raise ValueError("condor_q -json returned empty or invalid JSON; "
+        raise ValueError("condor_q -json returned invalid JSON; "
                          "inspect its stdout and stderr directly") from error
     if not isinstance(ads, list) or any(
         not isinstance(ad, dict)

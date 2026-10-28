@@ -66,10 +66,11 @@ class RecoveryTest(unittest.TestCase):
         current += event('009', 'failed to transfer output', '20.0')
         self.assertEqual(self.classify(previous + current), 'transfer_failure')
 
-    def run_main(self, *options, queue=None, validator=None):
+    def run_main(self, *options, queue=None, validator=None, queue_stdout=None):
         def run(command, **kwargs):
             if command[0] == 'condor_q':
-                return subprocess.CompletedProcess(command, 0, json.dumps(queue or []), '')
+                return subprocess.CompletedProcess(command, 0,
+                                                   json.dumps(queue or []) if queue_stdout is None else queue_stdout, '')
             return subprocess.CompletedProcess(command, 0, '20.0 - 20.0\n', '')
         with patch.object(sys, 'argv', ['retry', str(self.base), *options]), \
              patch.object(recovery.shutil, 'which', return_value='/bin/mock'), \
@@ -150,7 +151,7 @@ class RecoveryTest(unittest.TestCase):
 
 
     def test_invalid_queue_responses_are_rejected(self):
-        for stdout in ('', '   ', 'not JSON', '{}', 'null', '[{}]',
+        for stdout in ('not JSON', '{}', 'null', '[{}]',
                        '[{"ClusterId": 1, "ProcId": "0"}]'):
             with self.subTest(stdout=stdout), patch.object(
                 recovery.subprocess, 'run',
@@ -159,11 +160,26 @@ class RecoveryTest(unittest.TestCase):
                 recovery.query_active_ids()
 
     def test_valid_empty_queue_and_active_records(self):
-        for stdout, expected in (('[]', set()),
+        for stdout, expected in (('', set()), ('   ', set()), ('[]', set()),
                                 ('[{"ClusterId": 10, "ProcId": 0}]', {'10.0'})):
             with patch.object(recovery.subprocess, 'run',
                               return_value=subprocess.CompletedProcess([], 0, stdout, '')):
                 self.assertEqual(recovery.query_active_ids(), expected)
+
+    def test_failed_or_ambiguous_empty_queue_is_rejected(self):
+        for code, stderr in ((1, ''), (1, 'scheduler unavailable'),
+                             (0, 'warning: query incomplete')):
+            with self.subTest(code=code, stderr=stderr), patch.object(
+                recovery.subprocess, 'run',
+                return_value=subprocess.CompletedProcess([], code, '', stderr)
+            ), self.assertRaises(ValueError):
+                recovery.query_active_ids()
+
+    def test_empty_queue_allows_bounded_recovery(self):
+        self.campaign(event('005', 'Normal termination (return value 74)'))
+        self.run_main('--submit', queue_stdout='')
+        self.run_main('--submit', queue_stdout='')
+        self.assertEqual(len(list(self.base.glob('*_retry_*.sub'))), 1)
 
     def test_unavailable_queue_keeps_audit_and_blocks_submission(self):
         self.campaign(event('005', 'Normal termination (return value 74)'))
@@ -172,7 +188,7 @@ class RecoveryTest(unittest.TestCase):
             with patch.object(sys, 'argv', ['retry', str(self.base), *options]), \
                  patch.object(recovery.shutil, 'which', return_value='/bin/mock'), \
                  patch.object(recovery.subprocess, 'run',
-                              return_value=subprocess.CompletedProcess([], 0, '', '')), \
+                              return_value=subprocess.CompletedProcess([], 0, 'invalid JSON', '')), \
                  patch.object(output_check, 'validate', return_value=(False, 'missing output')), \
                  contextlib.redirect_stdout(io.StringIO()), \
                  contextlib.redirect_stderr(io.StringIO()):
