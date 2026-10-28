@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import re
 import shutil
 import subprocess
@@ -161,6 +162,11 @@ def lifecycle(text: str) -> tuple[str, str | None]:
 
 def classify(row, event_text, error_text, active_ids, validator):
     state, job_id = lifecycle(event_text)
+    # Condor can append a new attempt to the same log. Diagnostics from an
+    # earlier submission must not turn its successful replacement into failure.
+    submissions = list(re.finditer(r"(?m)^000 \(\d+\.\d+\.\d+\)", event_text))
+    if submissions:
+        event_text = event_text[submissions[-1].start():]
     transfer_error = bool(re.search(r"failed to transfer|transfer.*failed|transfer.*error", event_text + error_text, re.I))
     if state == "held" and transfer_error:
         return "held_transfer_failure", "scheduler still owns job; inspect HoldReason before release"
@@ -186,11 +192,33 @@ def classify(row, event_text, error_text, active_ids, validator):
     return "manual", state + "; " + reason
 
 
+def query_active_ids() -> set[str]:
+    """Require a valid live queue response before authorizing recovery."""
+    try:
+        result = subprocess.run(["condor_q", "-json"], capture_output=True, text=True)
+    except OSError as error:
+        raise ValueError(f"condor_q could not run: {error}") from error
+    if result.returncode:
+        raise ValueError(f"condor_q exited {result.returncode}: {result.stderr.strip()}")
+    try:
+        ads = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise ValueError("condor_q -json returned empty or invalid JSON; "
+                         "inspect its stdout and stderr directly") from error
+    if not isinstance(ads, list) or any(
+        not isinstance(ad, dict)
+        or type(ad.get("ClusterId")) is not int
+        or type(ad.get("ProcId")) is not int
+        for ad in ads
+    ):
+        raise ValueError("condor_q -json returned an unexpected job-record format")
+    return {f"{ad['ClusterId']}.{ad['ProcId']}" for ad in ads}
+
+
 def main() -> int:
     """Inspect every expected row; explicit submission is bounded and locked."""
     import collections
     import fcntl
-    import json
     import hashlib
     from validate_job_output import validate
 
@@ -212,11 +240,11 @@ def main() -> int:
     active_ids = set()
     queue_available = False
     if shutil.which("condor_q"):
-        q = subprocess.run(["condor_q", "-json"], capture_output=True, text=True)
-        if q.returncode == 0:
-            ads = json.loads(q.stdout)
-            active_ids = {f"{ad['ClusterId']}.{ad['ProcId']}" for ad in ads}
+        try:
+            active_ids = query_active_ids()
             queue_available = True
+        except ValueError as error:
+            print(f"Queue check failed: {error}")
     if args.submit and (not queue_available or not shutil.which("condor_submit")):
         parser.error("submission requires successful condor_q -json and condor_submit")
     if not queue_available:
@@ -301,8 +329,11 @@ def main() -> int:
                 if not args.submit or not eligible:
                     continue
                 # Check live scheduler again under the lock before mutation.
-                fresh = subprocess.run(["condor_q", "-json"], capture_output=True, text=True, check=True)
-                if lifecycle(event_text)[1] in {f"{ad['ClusterId']}.{ad['ProcId']}" for ad in json.loads(fresh.stdout)}:
+                try:
+                    active_ids = query_active_ids()
+                except ValueError as error:
+                    parser.error(str(error))
+                if lifecycle(event_text)[1] in active_ids:
                     raise SystemExit("Job is still in queue; rerun to inspect current state")
                 tag = dt.datetime.now().strftime("%Y%m%d_%H%M%S%f")
                 job = FailedJob(row, logs / f"{row.job_name}.out", err, event)
@@ -326,9 +357,10 @@ def main() -> int:
                 save()
                 print(f"Submitted {row.job_name}: {match.group(1)}")
                 # Refresh baseline for the next independent submission.
-                q = subprocess.run(["condor_q", "-json"], capture_output=True, text=True, check=True)
-                ads = json.loads(q.stdout)
-                active_ids = {f"{ad['ClusterId']}.{ad['ProcId']}" for ad in ads}
+                try:
+                    active_ids = query_active_ids()
+                except ValueError as error:
+                    parser.error(str(error))
     counts = collections.Counter(item["category"] for item in report)
     print("Summary:", dict(counts), "eligible:", sum(item["eligible"] for item in report))
     if args.report:

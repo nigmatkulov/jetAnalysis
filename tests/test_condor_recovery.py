@@ -56,6 +56,16 @@ class RecoveryTest(unittest.TestCase):
                        f'{self.row.job_name} {self.row.input_list} {self.row.output_file}\n)\n')
         return sub
 
+    def test_previous_attempt_transfer_error_does_not_taint_success(self):
+        previous = event('000', 'submitted') + event('009', 'failed to transfer output')
+        current = event('000', 'submitted', '20.0')
+        current += event('005', 'Normal termination (return value 0)', '20.0')
+        self.assertEqual(self.classify(previous + current), 'complete')
+        self.assertEqual(self.classify(previous + current, valid=False), 'invalid_output')
+        current = event('000', 'submitted', '20.0')
+        current += event('009', 'failed to transfer output', '20.0')
+        self.assertEqual(self.classify(previous + current), 'transfer_failure')
+
     def run_main(self, *options, queue=None, validator=None):
         def run(command, **kwargs):
             if command[0] == 'condor_q':
@@ -137,6 +147,44 @@ class RecoveryTest(unittest.TestCase):
         self.assertFalse(output_check.validate(self.row.output_file)[0])
         self.row.output_file.write_text('not a ROOT file')
         self.assertFalse(output_check.validate(self.row.output_file)[0])
+
+
+    def test_invalid_queue_responses_are_rejected(self):
+        for stdout in ('', '   ', 'not JSON', '{}', 'null', '[{}]',
+                       '[{"ClusterId": 1, "ProcId": "0"}]'):
+            with self.subTest(stdout=stdout), patch.object(
+                recovery.subprocess, 'run',
+                return_value=subprocess.CompletedProcess([], 0, stdout, '')
+            ), self.assertRaises(ValueError):
+                recovery.query_active_ids()
+
+    def test_valid_empty_queue_and_active_records(self):
+        for stdout, expected in (('[]', set()),
+                                ('[{"ClusterId": 10, "ProcId": 0}]', {'10.0'})):
+            with patch.object(recovery.subprocess, 'run',
+                              return_value=subprocess.CompletedProcess([], 0, stdout, '')):
+                self.assertEqual(recovery.query_active_ids(), expected)
+
+    def test_unavailable_queue_keeps_audit_and_blocks_submission(self):
+        self.campaign(event('005', 'Normal termination (return value 74)'))
+        report = self.base/'report.json'
+        for options in (['--report', str(report)], ['--submit']):
+            with patch.object(sys, 'argv', ['retry', str(self.base), *options]), \
+                 patch.object(recovery.shutil, 'which', return_value='/bin/mock'), \
+                 patch.object(recovery.subprocess, 'run',
+                              return_value=subprocess.CompletedProcess([], 0, '', '')), \
+                 patch.object(output_check, 'validate', return_value=(False, 'missing output')), \
+                 contextlib.redirect_stdout(io.StringIO()), \
+                 contextlib.redirect_stderr(io.StringIO()):
+                if '--submit' in options:
+                    with self.assertRaises(SystemExit) as raised:
+                        recovery.main()
+                    self.assertEqual(raised.exception.code, 2)
+                else:
+                    self.assertEqual(recovery.main(), 1)
+                    self.assertEqual(json.loads(report.read_text())[0]['category'], 'transient')
+            self.assertFalse(list(self.base.glob('*_retry_*.sub')))
+            self.assertTrue((self.base/'log/sample_job0001.log').exists())
 
 
 class RootOutputIntegrationTest(unittest.TestCase):
