@@ -85,9 +85,9 @@ Before finishing:
 
 ## Multi-agent collaboration
 
-- The main agent orchestrates at GPT-6.1 Sol Medium. Keep routine, low-impact tasks with one agent; use specialized subagents when their expertise or independent evidence justifies the cost.
+- The main agent defaults to GPT-6.1 Sol Low. Keep routine, low-impact tasks with one agent; use specialized subagents when their expertise or independent evidence justifies the cost.
 - For scientifically significant changes, delegate implementation, independent physics review, and independent numerical validation to separate agents. Configure their models and effort independently; do not let an implementer certify its own work as independent validation.
-- Available roles: `root-cpp-engineer` (Sol Low), `scientific-python-engineer` (Sol Low), `notebook-engineer` (Luna High), `physics-reviewer` (Sol Medium), `validation-engineer` (Sol Medium), and `batch-workflow-engineer` (Luna High). Their files under `.codex/agents/` define scope; the main agent retains integration and conflict resolution.
+- Available roles: `root-cpp-engineer` (Sol Low), `scientific-python-engineer` (Sol Low), `notebook-engineer` (Luna High), `physics-reviewer` (Sol Low), `validation-engineer` (Sol Low), and `batch-workflow-engineer` (Luna High). Their files under `.codex/agents/` define scope; the main agent retains integration and conflict resolution.
 - Before scientific implementation, state the observable, provenance, units/frame, selections/weights, bin and flow treatment, normalization, uncertainty/correlation prescription, expected changes, and acceptance criteria. Ask about undocumented analysis choices before dependent work.
 - Assign explicit file ownership: one writer per file, including notebooks and the producer. Serialize shared-file integration and ROOT output writes. Use isolated temporary outputs and avoid concurrent builds in the same directory. Do not assume a clean worktree contains the user's uncommitted changes.
 - Give independent reviewers the requirements and source evidence before implementation explanations. Derive expectations using analytical examples, independently specified events, direct weighted fills or separate reference methods. Compilation and notebook execution alone are not scientific validation.

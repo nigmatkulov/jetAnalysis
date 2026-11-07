@@ -49,7 +49,7 @@ documented conventions.
 
 ## Codex agents
 
-Project defaults in `.codex/config.toml` select `gpt-6.1-sol` with Medium
+Project defaults in `.codex/config.toml` select `gpt-6.1-sol` with Low
 reasoning for the main agent and allow up to three concurrent subagents.
 Six on-demand roles are defined in `.codex/agents/`:
 
@@ -58,14 +58,18 @@ Six on-demand roles are defined in `.codex/agents/`:
 | `root-cpp-engineer` | `gpt-6.1-sol` | Low | Producer, ROOT ownership, calibration and build |
 | `scientific-python-engineer` | `gpt-6.1-sol` | Low | Histograms, uncertainties, covariance and unfolding |
 | `notebook-engineer` | `gpt-6-luna` | High | Notebooks, ROOT/MPLHEP presentation and documentation |
-| `physics-reviewer` | `gpt-6.1-sol` | Medium | Independent scientific review |
-| `validation-engineer` | `gpt-6.1-sol` | Medium | Independent numerical regression and closure |
+| `physics-reviewer` | `gpt-6.1-sol` | Low | Independent scientific review |
+| `validation-engineer` | `gpt-6.1-sol` | Low | Independent numerical regression and closure |
 | `batch-workflow-engineer` | `gpt-6-luna` | High | HTCondor, EOS/XRootD, recovery and merge preparation |
 
 Routine edits remain single-agent. For scientifically significant changes,
 `AGENTS.md` requests separate implementation, physics review and numerical
 validation, with one writer per file. Scientific contracts and independent
 expected results precede acceptance; successful execution alone is insufficient.
+Implementation, review and validation remain separate responsibilities even
+when their default model and effort match. Their settings are independently
+configurable; use a deliberately configured higher effort when task complexity
+warrants it, following the escalation rules in `AGENTS.md`.
 Roles inherit parent permissions and MCP servers. Reviewer read-only behavior
 is instructional, not a separate sandbox. Batch work defaults to dry runs and
 merges retaining inputs; production operations still need explicit authorization.
