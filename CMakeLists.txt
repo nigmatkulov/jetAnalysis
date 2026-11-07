@@ -55,7 +55,9 @@ include_directories(${CMAKE_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})
 # Add same CXX flags that were used to combile and build ROOT (including CXX standard)
 add_definitions(${ROOT_CXX_FLAGS})
 
-# Generate ROOT dictionary for helper classes that use ClassDef/ClassImp
+# Generate ROOT dictionary for helper classes that use ClassDef/ClassImp.
+# Keep the dictionary and both helper implementations in the executable: the
+# interpreted macro loads those implementations through its separate branch.
 root_generate_dictionary(G__processForestSimple
                          JetCorrector.h
                          JetUncertainty.h
@@ -67,6 +69,10 @@ add_executable(processForestSimple
     JetUncertainty.cc
     ${CMAKE_CURRENT_BINARY_DIR}/G__processForestSimple.cxx
 )
+# Both executables consume this generated source. Order them after ROOT's
+# shared dictionary target so parallel Make builds cannot run rootcling twice
+# against the same cxx/pcm/rootmap outputs.
+add_dependencies(processForestSimple G__processForestSimple)
 target_link_libraries(processForestSimple ${ROOT_LIBRARIES})
 target_include_directories(processForestSimple PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS}) #${ROOT_INCLUDE_DIRS}
 if(DO_MIXED_PRIOR)
@@ -83,6 +89,7 @@ if(BUILD_TESTING)
         JetCorrector.cc
         JetUncertainty.cc
         ${CMAKE_CURRENT_BINARY_DIR}/G__processForestSimple.cxx)
+    add_dependencies(test_jec_lookup G__processForestSimple)
     target_link_libraries(test_jec_lookup ${ROOT_LIBRARIES})
     add_test(NAME jec_lookup COMMAND test_jec_lookup)
     set_tests_properties(jec_lookup PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

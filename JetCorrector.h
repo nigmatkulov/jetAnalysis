@@ -70,6 +70,8 @@ class SingleJetCorrector {
     std::vector<std::vector<double>> BinRanges;
     std::vector<std::vector<Type>> Dependencies;
     std::vector<std::vector<double>> DependencyRanges;
+    // Lazily allocated, owned formula objects; copying an evaluated corrector
+    // aliases these pointers. Keep configured correctors in place after use.
     std::vector<TF1 *> Functions;
     friend struct JetCorrectorLookupTest;
     // Closed-bin candidate grid; row IDs retain original payload order.

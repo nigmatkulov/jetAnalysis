@@ -8,6 +8,8 @@ explicitly requested, closure ratios compare stored weighted yields bin by bin.
 
 from __future__ import annotations
 
+from hist_analysis.python.output_naming import as_output_directory
+
 import math
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
@@ -442,7 +444,7 @@ def draw_unfolding_closure_by_pt(
             unfolded_ratio_option=unfolded_ratio_option,
             ratio_target_label=ratio_target_label,
             x_range=eta_range, annotations=annotations,
-            output=Path(output_dir) / f"{output_tag}_{output_suffix}_pt_{low:g}_{high:g}.pdf",
+            output=as_output_directory(output_dir) / f"{output_tag}_{output_suffix}_pt_{low:g}_{high:g}.pdf",
             save_png=save_png, grid=grid,
             canvas_name=f"canvas_{object_name_prefix}_pt{pt_index}",
             ratio_name_prefix=f"h{object_name_prefix}{pt_index}",
@@ -485,7 +487,7 @@ def draw_factorized_correction_steps_by_pt(
         raise ValueError("Measured templates do not match flattening layout")
     if len(truth_templates) != layout.n_pt_bins:
         raise ValueError("Truth templates do not match flattening layout")
-    output_dir = Path(output_dir)
+    output_dir = as_output_directory(output_dir)
     canvases = []
     objects = []
     for pt_index, (low, high) in enumerate(layout.pt_intervals):
@@ -596,7 +598,7 @@ def draw_flattened_comparison_by_pt(
         raise KeyError(f"Unknown nominal distribution {nominal!r}")
     if len(templates) != layout.n_pt_bins:
         raise ValueError("Templates do not match flattening layout")
-    output_dir = Path(output_dir)
+    output_dir = as_output_directory(output_dir)
     canvases = []
     objects = []
     for pt_index, (low, high) in enumerate(layout.pt_intervals):
@@ -728,7 +730,7 @@ def draw_controlled_studied_shape_comparisons(
     n_intervals = len(tuple(pt_intervals))
     if any(len(collection) != n_intervals for collection in collections):
         raise ValueError("Shape-comparison inputs do not match pT intervals")
-    output_dir = Path(output_dir)
+    output_dir = as_output_directory(output_dir)
     canvases = []
     normalized_histograms = []
     ratio_histograms = []
@@ -989,7 +991,7 @@ def draw_regularization_metrics_by_pt(
 
     if mode not in {"absolute", "relative"}:
         raise ValueError("mode must be 'absolute' or 'relative'")
-    output_dir = Path(output_dir)
+    output_dir = as_output_directory(output_dir)
     canvases = []
     all_histograms = []
     for pt_index, (low, high) in enumerate(layout.pt_intervals):

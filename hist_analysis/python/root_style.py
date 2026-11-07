@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from hist_analysis.python.output_naming import mplhep_output_path
+
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -372,7 +374,7 @@ def save_canvas(canvas, pdf_path: str | Path | None, *, save_png: bool = False,
         canvas.SaveAs(str(path.with_suffix(".png")))
     if _SAVE_MPLHEP:
         from hist_analysis.python.mplhep_plotting import save_canvas as save_mplhep_canvas
-        mplhep_path = path.parent / "mplhep" / path.name
+        mplhep_path = mplhep_output_path(path)
         save_mplhep_canvas(
             canvas, output=mplhep_path,
             cms_header_left=_DEFAULT_CMS_HEADER_LEFT or CMS_SIMULATION_HEADER,

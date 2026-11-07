@@ -1,5 +1,6 @@
 """Shared CMS presentation for systematic notebooks; ROOT owns all numerics."""
 from pathlib import Path
+from hist_analysis.python.output_naming import mplhep_output_path
 import math
 import ROOT
 
@@ -180,7 +181,7 @@ def save_systematic_canvas(canvas, output, *, save_png=False, mplhep=True,
     save_canvas(canvas, output, save_png=save_png)
     if mplhep and output is not None:
         path = Path(output)
-        save_systematic_mplhep(canvas, path.parent / 'mplhep' / path.name,
+        save_systematic_mplhep(canvas, mplhep_output_path(path),
             save_png=mplhep_png, cms_header_left=cms_header_left,
             x_range=mplhep_x_range, y_range=mplhep_y_range)
 

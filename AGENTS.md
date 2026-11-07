@@ -18,6 +18,12 @@
 - Avoid new dependencies unless they are necessary and justified.
 - If a decision depends on an undocumented analysis convention, ask one focused question instead of guessing.
 
+## Project review reports
+
+- Save Markdown findings from project, code, architecture, physics analysis, documentation, performance, or similar reviews under the repository's `review/` directory, creating it if needed.
+- Do not create review-result Markdown files in the repository root or other project directories. This applies to all future reviews of any project component.
+- Review reports are temporary development artifacts and must not be committed to Git.
+
 ## Physics guardrails
 
 Treat these as protected analysis behavior unless the user explicitly requests a change:
@@ -76,3 +82,19 @@ Before finishing:
 - summarize modified files and behavior changes;
 - report checks run and their results;
 - report skipped checks, remaining uncertainty, and expected physics/output differences (or explicitly state that none are expected).
+
+## Multi-agent collaboration
+
+- The main agent orchestrates at GPT-6.1 Sol Medium. Keep routine, low-impact tasks with one agent; use specialized subagents when their expertise or independent evidence justifies the cost.
+- For scientifically significant changes, delegate implementation, independent physics review, and independent numerical validation to separate agents. Configure their models and effort independently; do not let an implementer certify its own work as independent validation.
+- Available roles: `root-cpp-engineer` (Sol Low), `scientific-python-engineer` (Sol Low), `notebook-engineer` (Luna High), `physics-reviewer` (Sol Medium), `validation-engineer` (Sol Medium), and `batch-workflow-engineer` (Luna High). Their files under `.codex/agents/` define scope; the main agent retains integration and conflict resolution.
+- Before scientific implementation, state the observable, provenance, units/frame, selections/weights, bin and flow treatment, normalization, uncertainty/correlation prescription, expected changes, and acceptance criteria. Ask about undocumented analysis choices before dependent work.
+- Assign explicit file ownership: one writer per file, including notebooks and the producer. Serialize shared-file integration and ROOT output writes. Use isolated temporary outputs and avoid concurrent builds in the same directory. Do not assume a clean worktree contains the user's uncommitted changes.
+- Give independent reviewers the requirements and source evidence before implementation explanations. Derive expectations using analytical examples, independently specified events, direct weighted fills or separate reference methods. Compilation and notebook execution alone are not scientific validation.
+- Validate a frozen candidate identified by revision or relevant file hashes. Revalidate affected results after subsequent edits. Require exact discrete/schema comparisons where appropriate and justify floating-point tolerances and statistical closure criteria.
+- Resolve conflicting findings using definitions and independent evidence; unresolved scientific assumptions require the user's decision. Report every verification as passed, failed or skipped, with exact reasons and material limitations.
+- Keep geometric and extended response definitions separate. Preserve the F/B skill's independent-error prescription. Distinguish supplied theory-band validation from calculating PDF error members. Do not silently add covariance or change uncertainty conventions.
+- Preserve campaign partitions: pPb normalization depends on invocation entry counts. Batch work defaults to dry runs; prepare merges with `--keep-inputs`. Production submission, job cancellation, deletion and replacement of validated outputs require explicit authorization for those operations.
+- Keep at most three subagents active. Start with the smallest useful set and do not delegate recursively unless explicitly assigned. Reuse concise task-local code/test maps; refresh them when relevant files change. Return findings and evidence summaries instead of large logs.
+- Escalate ambiguous or high-risk scientific implementation from Sol Low to Medium; use Luna XHigh only for a specific unresolved complex workflow problem. Explain the escalation and retain independent review. Custom role files take precedence over spawn effort overrides, so select a fresh explicitly configured agent when a different effort is needed rather than assuming an override changed a fixed role.
+- Role instructions do not create filesystem isolation or grant permissions: subagents inherit the parent sandbox and tool permissions. A read-only reviewer is read-only by instruction, not a separate enforced sandbox.

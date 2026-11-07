@@ -5,6 +5,8 @@ an explicit manifest for those facts; this module cannot certify their origin.
 """
 from __future__ import annotations
 
+from hist_analysis.python.output_naming import as_output_directory, find_outputs, legacy_output_name, output_record, notebook_output_base
+
 import hashlib
 import json
 import re
@@ -14,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from hist_analysis.config.histograms import pt_bins
+from hist_analysis.config.histograms import pt_bins, systematic_pt_bins
 
 
 COMMON_FIELDS = ('observable', 'frame', 'direction', 'selection', 'eta_cut',
@@ -24,12 +26,12 @@ REQUIRED_FIELDS = COMMON_FIELDS + ('binning', 'production_sample', 'extraction')
 
 def archive_systematic_inputs(provenance, output_directory, *, filename_prefix=""):
     """Copy the exact consumed CSVs and record their relative archive paths."""
-    output_directory = Path(output_directory)
+    output_directory = as_output_directory(output_directory)
     archived = provenance.copy()
     paths = []
     for record in provenance.to_dict('records'):
         source = Path(record['csv'])
-        relative = Path('individual_uncertainties') / record['source'] / (filename_prefix + source.name)
+        relative = Path('individual_uncertainties') / record['source'] / (filename_prefix + legacy_output_name(source))
         destination = output_directory / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         if hashlib.sha256(source.read_bytes()).hexdigest() != record['sha256']:
@@ -37,7 +39,7 @@ def archive_systematic_inputs(provenance, output_directory, *, filename_prefix="
         shutil.copyfile(source, destination)
         if hashlib.sha256(destination.read_bytes()).hexdigest() != record['sha256']:
             raise ValueError(f'Archived input hash mismatch: {destination}')
-        paths.append(relative.as_posix())
+        paths.append(destination.relative_to(Path(output_directory)).as_posix())
     archived['copied_csv'] = paths
     return archived
 
@@ -68,7 +70,7 @@ def load_source(source, config, bins, *, binning):
         raise ValueError(f'{source}: declare verified metadata: {missing}')
     if metadata['binning'] != binning:
         raise ValueError(f'{source}: manifest binning {metadata["binning"]!r} != {binning!r}')
-    canonical = set(map(tuple, pt_bins('dijet', binning)))
+    canonical = set(map(tuple, systematic_pt_bins(binning)))
     if not bins or len(set(map(tuple, bins))) != len(bins):
         raise ValueError('Select nonempty, unique ptAve bins')
     if not set(map(tuple, bins)) <= canonical:
@@ -79,7 +81,8 @@ def load_source(source, config, bins, *, binning):
     for low, high in bins:
         pattern = config['pattern'].format(low=f'{low:g}'.replace('.', 'p'),
                                           high=f'{high:g}'.replace('.', 'p'))
-        candidates = sorted(directory.glob(pattern))
+        candidates = find_outputs(directory, pattern, selection=metadata['selection'],
+                                  eta_cut=metadata['eta_cut'], interval=(low, high), frame=metadata['frame'])
         context = f'{source}, ptAve [{low:g}, {high:g}), input {directory / pattern}'
         if not candidates:
             raise FileNotFoundError(f'Missing requested systematic/variant: {context}')
@@ -88,18 +91,18 @@ def load_source(source, config, bins, *, binning):
         path = candidates[0].resolve()
         # Filename tags and path facts must agree with the explicit manifest.
         pt_tag = f'_ptave_{low:g}_{high:g}'.replace('.', 'p') + '.csv'
-        if not path.name.endswith(pt_tag):
+        if not legacy_output_name(path).endswith(pt_tag):
             raise ValueError(f'Filename ptAve mismatch: {context}')
         frame_tag = f'_eta{metadata["frame"]}_{round(10 * metadata["eta_cut"]):g}_'
-        if frame_tag not in path.name or f'_{metadata["observable"]}_relative_' not in path.name:
+        if frame_tag not in legacy_output_name(path) or f'_{metadata["observable"]}_relative_' not in legacy_output_name(path):
             raise ValueError(f'Observable/frame/acceptance mismatch: {context}')
-        if f'_relative_{metadata["selection"]}_' not in path.name:
+        if f'_relative_{metadata["selection"]}_' not in legacy_output_name(path):
             raise ValueError(f'Selection mismatch: {context}')
         if any(part in ('normal', 'test') and part != binning for part in path.parts):
             raise ValueError(f'Input directory binning mismatch: {context}')
         if source in ('JER', 'pointing_resolution'):
             prefix = f'{metadata["production_sample"]}_{metadata["direction"]}_'
-            if not path.name.startswith(prefix):
+            if not legacy_output_name(path).startswith(prefix):
                 raise ValueError(f'MC sample/direction mismatch: {context}')
         try:
             values = np.loadtxt(path, delimiter=',', ndmin=2)
@@ -172,7 +175,7 @@ def total_systematic_configuration_tag(manifest):
     records = set()
     for record in manifest.to_dict('records'):
         identity = {k: v for k, v in record.items() if k not in ignored}
-        identity['input_directory'] = str(Path(record['csv']).parent)
+        identity['input_directory'] = str(notebook_output_base(Path(record['csv']).parent))
         records.add(json.dumps(identity, sort_keys=True, default=str))
     payload = '\n'.join(sorted(records)).encode('utf-8')
     return 'cfg_' + hashlib.sha256(payload).hexdigest()[:12]

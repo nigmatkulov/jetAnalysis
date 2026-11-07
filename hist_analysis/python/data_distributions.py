@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from hist_analysis.python.output_naming import as_output_directory
+
 from pathlib import Path
 
 import ROOT
@@ -11,7 +13,7 @@ from hist_analysis.python.forward_backward import fold_eta_histogram, forward_ba
 from hist_analysis.python.histogram_io import load_histogram
 from hist_analysis.python.histogram_ops import normalize_histogram, ratio_to_nominal
 from hist_analysis.python.histogram_production import ETA_KEY_PATTERN, load_eta_projection, resolve_eta_source_key
-from hist_analysis.config.histograms import DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS
+from hist_analysis.config.histograms import DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS, SYSTEMATIC_PTAVE_BINS
 from hist_analysis.python.plotting import draw_closure, draw_overlay
 from hist_analysis.python.projections import project_semantic_th2
 from hist_analysis.python.root_style import (
@@ -40,8 +42,8 @@ def project_data_histogram(
     interval = tuple(selection_range) if selection_range is not None else None
     if (observable == "eta" and ETA_KEY_PATTERN.match(key)
             and path.parent.name == "produced_histograms"
-            and (interval in DIJET_PTAVE_BINS or interval in TEST_DIJET_PTAVE_BINS)):
-        if interval in DIJET_PTAVE_BINS:
+            and (interval in SYSTEMATIC_PTAVE_BINS or interval in TEST_DIJET_PTAVE_BINS)):
+        if interval in SYSTEMATIC_PTAVE_BINS:
             binning = "standard"
         elif interval in TEST_DIJET_PTAVE_BINS:
             binning = "test"
@@ -104,7 +106,7 @@ def draw_data_distributions(
     if jet_kind not in {"jet", "dijet"}:
         raise ValueError("jet_kind must be 'jet' or 'dijet'")
     path = Path(filename)
-    output = Path(output_dir)
+    output = as_output_directory(output_dir)
     trigger_tag = _tag(trigger)
     momentum = "p_{T}^{jet}" if jet_kind == "jet" else "p_{T}^{ave}"
     object_label = "Inclusive jets" if jet_kind == "jet" else "Dijets"
@@ -219,7 +221,7 @@ def draw_orientation_comparisons(
         raise ValueError(
             "eta_normalization must be 'integral' or 'bin_width'"
         )
-    output = Path(output_dir)
+    output = as_output_directory(output_dir)
     trigger_tag = _tag(trigger)
     default_momentum = "p_{T}^{jet}" if jet_kind == "jet" else "p_{T}^{ave}"
     object_label = "Inclusive jets" if jet_kind == "jet" else "Dijets"
@@ -445,7 +447,7 @@ def draw_corrected_raw_eta_comparisons(
     if missing:
         raise KeyError(f"Missing direction files for: {', '.join(missing)}")
 
-    output = Path(output_dir)
+    output = as_output_directory(output_dir)
     trigger_tag = _tag(trigger)
     styles = {"Pb-going": 1, "p-going": 0}
     results = {}

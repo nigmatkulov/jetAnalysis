@@ -13,8 +13,9 @@ struct ScanInput {
   std::size_t maxIterations{};
 
   // Row-major P(measured i | truth j), indexed as i*nTruthBins + j.
-  // Every truth column must have a positive sum. Columns are normalized by the
-  // kernel, allowing callers to pass either probabilities or migration counts.
+  // Nonempty truth columns are normalized by the kernel, allowing callers to
+  // pass either probabilities or migration counts. An empty column is allowed
+  // only when both its training prior and truth efficiency are zero.
   std::vector<double> response;
 
   // RooUnfold Bayesian training prior and external factorized efficiency.

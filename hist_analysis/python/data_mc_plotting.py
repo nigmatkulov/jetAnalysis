@@ -1,8 +1,10 @@
 """Display stored experimental totals without recomputing systematic combinations."""
 from pathlib import Path
 import json
+import hashlib
 import math
 import re
+from hist_analysis.python.output_naming import find_outputs, legacy_output_name, sibling_output, output_record
 import numpy as np
 from hist_analysis.python.systematic_plotting import build_systematic_band
 from hist_analysis.python.root_style import draw_text_block
@@ -11,10 +13,16 @@ from hist_analysis.python.root_style import draw_text_block
 def load_data_total(directory, interval, *, observable, direction, selection, binning,
                     eta_cut, sample, configuration=None):
     """Resolve a unique producer manifest and validate its fractional CSV and audit."""
-    directory = Path(directory) / observable
+    root_directory = Path(directory)
+    directory = root_directory / observable
     low, high = interval
     matches = []
-    for path in directory.glob(f'*_ptave_{low:g}_{high:g}_provenance.json'):
+    candidates = find_outputs(root_directory, f'*_{observable}_*_ptave_{low:g}_{high:g}_provenance.json',
+                              selection=selection, eta_cut=eta_cut, interval=interval)
+    if not candidates:
+        candidates = find_outputs(directory, f'*_ptave_{low:g}_{high:g}_provenance.json',
+                                  selection=selection, eta_cut=eta_cut, interval=interval)
+    for path in candidates:
         records = json.loads(path.read_text())
         expected = dict(observable=observable, frame='CM', direction=direction,
                         selection=selection, binning=binning, eta_cut=eta_cut,
@@ -22,22 +30,40 @@ def load_data_total(directory, interval, *, observable, direction, selection, bi
                         target_sample='pPb 8.16 TeV dijets', pt_low=low, pt_high=high)
         if not records or not all(all(r.get(k) == v for k, v in expected.items()) for r in records):
             continue
-        if configuration and configuration not in path.name:
+        if configuration and configuration not in legacy_output_name(path):
             continue
         data_records = [r for r in records if r['production_sample'] == 'data']
         trigger = {'mb': 'minimumbias', 'jet60': 'jet60', 'jet80': 'jet80', 'jet100': 'jet100'}[sample]
-        if not data_records or not all(Path(r['csv']).name.startswith(trigger + '_') for r in data_records):
+        if not data_records or not all(legacy_output_name(r['csv']).startswith(trigger + '_') for r in data_records):
             continue
         matches.append(path)
+    # Layout migrations can change configuration tags without changing inputs.
+    # Coalesce only declared runs with identical complete metadata, source
+    # hashes, and numerical outputs. Undeclared or different variants stay
+    # ambiguous, preserving the consumer's explicit-selection requirement.
+    equivalent = {}
+    for path in matches:
+        declaration = output_record(path)
+        records = json.loads(path.read_text())
+        if declaration and all(record.get('sha256') for record in records):
+            normalized = [{k:v for k,v in record.items() if k not in {'csv','copied_csv'}} for record in records]
+            signature = (json.dumps(normalized, sort_keys=True), *(
+                hashlib.sha256(sibling_output(path, '_provenance.json', suffix).read_bytes()).hexdigest()
+                for suffix in ('_total.csv', '.csv')))
+        else:
+            signature = str(path)
+        prior = equivalent.get(signature)
+        if prior is None or declaration['run_id'] > output_record(prior)['run_id']:
+            equivalent[signature] = path
+    matches = list(equivalent.values())
     if len(matches) != 1:
         raise ValueError(f'{directory}: expected one total for {interval}, {sample}, '
                          f'{direction}/{selection}/{binning}, found {len(matches)}. '
                          'Run systematics_total with matching inputs or select DATA_SYSTEMATICS_CONFIGURATION.')
     manifest = matches[0]
-    stem = str(manifest).removesuffix('_provenance.json')
-    csv = Path(stem + '_total.csv')
+    csv = sibling_output(manifest, '_provenance.json', '_total.csv')
     values = np.loadtxt(csv, delimiter=',', ndmin=2)
-    audit = np.genfromtxt(stem + '.csv', delimiter=',', names=True)
+    audit = np.genfromtxt(sibling_output(manifest, '_provenance.json', '.csv'), delimiter=',', names=True)
     if (values.shape[1] != 4 or not np.isfinite(values).all() or
             not np.allclose(values[:, 1], 1, rtol=0, atol=1e-12) or
             np.any(values[:, 2] <= 0) or np.any(values[:, 3] < 0)):
@@ -301,7 +327,7 @@ def data_over_mc(data, mc, *, name, style):
 def draw_comparison_figure(histograms, *, name, x_title, y_title, x_range,
                            styles, annotations, totals=(), y_range=None, log_y=False,
                            reference=False, bands=(), grid=True, output=None, save_png=False,
-                           labels=None):
+                           labels=None, legend_text_size=None):
     """One single-panel ROOT description, optionally exported by shared MPLHEP."""
     from hist_analysis.python.plotting import draw_overlay
     from hist_analysis.python.root_style import save_canvas
@@ -377,6 +403,8 @@ def draw_comparison_figure(histograms, *, name, x_title, y_title, x_range,
     legend_top = 1 - canvas.GetTopMargin() - .025
     legend.SetX1NDC(.56); legend.SetX2NDC(.94)
     legend.SetMargin(.16)
+    if legend_text_size is not None:
+        legend.SetTextSize(legend_text_size)
     legend.SetY2NDC(legend_top)
     legend.SetY1NDC(legend_top - .05 * legend.GetNRows())
     canvas._comparison_figure_objects = [frame, *copies.values(), *extras]

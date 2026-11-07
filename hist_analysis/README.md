@@ -29,8 +29,8 @@ subset relationship.
 
 ## Physics interpretation and known limitations
 
-The [project physics review](../PHYSICS_REVIEW.md) maps the annotated producer
-and analysis helpers and separates confirmed defects from analysis conventions.
+Temporary project reviews live under `review/` and are not committed. The
+following limitations describe the analysis contract independently of those reports.
 Older producer outputs omit events with fewer than two selected reco jets from
 stored miss/category spectra. The updated producer fills those events in both
 response families and the nominal training/test split. Inclusive-minus-matched
@@ -109,8 +109,7 @@ Canonical filenames use single separators, for example
 `data_data_combined_jet80_jetId.root`. Readers prefer canonical files but also
 accept older double-separator filenames and index-based projection keys.
 Rerun notebook 00 to write the physical-value names; upstream copied keys
-retain their indices for unfolding compatibility. See the
-[cut and naming review](REUSABLE_HISTOGRAM_REVIEW.md).
+retain their indices for unfolding compatibility. The physical-cut table and production preflight are the durable naming contract.
 
 ## Data locations
 
@@ -173,9 +172,10 @@ variable `HIST_ANALYSIS_SAVE_MPLHEP=1` before starting Jupyter, or call
 plots, overlays, ratio pads, TH2 maps, and recursively nested multi-panel
 canvases; set `HIST_ANALYSIS_SAVE_MPLHEP_PNG=1` or pass `save_png=True` to its
 configuration function for PNG copies.
-Every notebook exposes `SAVE_MPLHEP` and `SAVE_MPLHEP_PNG` in its setup cell;
-the default is `False` except in the standalone PYTHIA tune workflow, whose
-existing dedicated mplhep export remains enabled by default.
+Plot-producing notebooks expose `SAVE_MPLHEP` and `SAVE_MPLHEP_PNG` in their
+setup cells. Defaults are notebook-specific: several MC, systematic, and stage-07
+workflows already enable PDF mirrors. The local configuration cell is authoritative
+and overrides the environment setting when `configure_mplhep_export` is called.
 The generic exporter copies the final displayed x- and y-axis limits from each
 ROOT pad, including log-scale limits and independent limits in multi-panel
 canvases. A specific call can override them with `mplhep_x_range` or
@@ -215,9 +215,12 @@ Use `notebooks/02_mc_jet_selection.ipynb` to compare Reco, matched Ref, RefSel,
 and Gen inclusive-jet eta shapes for the standard jet ID, track-maximum-only,
 and no-selection stages in Lab and CM frames. It displays the underlying 2D maps,
 then produces configured pT-interval full-distribution overlays and separate
-ratio canvases containing Reco/Gen, Ref/Gen, and RefSel/Gen. Ratios default to
-ROOT independent-error propagation; binomial errors require a true subset
-efficiency and do not describe these normalized shape comparisons. Integral, eta-range, bin-width, and stored-yield
+ratio canvases containing Reco/Gen, Ref/Gen, and RefSel/Gen. The current `RATIO_OPTION='B'` configuration requests ROOT binomial errors,
+despite older notebook prose describing independent errors. This is a known
+statistical limitation: independently normalized Reco/Gen, Ref/Gen, and
+RefSel/Gen shapes are not numerator-subset efficiencies. The review preserves
+the configured default; resolving its uncertainty prescription requires an
+explicit analysis decision. Integral, eta-range, bin-width, and stored-yield
 modes are supported; `LOG_Y` controls the full-distribution y-axis scale. CM
 1D canvases include solid black boundaries at `|eta_CM|=2.4` and dashed black
 boundaries at `|eta_CM|=1.9`, with both boundary types listed in the legend.
@@ -422,7 +425,20 @@ EPPS21 remains in separate explicitly labeled comparisons because the stored
 pPb/pp ratio is not an absolute normalized spectrum. Stored theory F/B is
 (pPb/pp) F/B. Only exact available theory intervals are used; no Data/EPPS21
 ratio is formed. `EPPS21_RATIO_RANGE` and `EPPS21_FB_RATIO_RANGE` control these
-separate stored-observable figures.
+separate stored-observable figures. `COMPARISON_MODELS` is the one ordered list
+for both EPPS21 figures (default: CP5, CUETP8M1, official gen and official reco).
+It uses `MODEL_REGISTRY` IDs and is independent of `FULL_MODELS`, `FB_MODELS`
+and legacy sample switches. Selected theory-comparison inputs are required:
+missing files or keys fail explicitly. Full eta overlays all selected Data/MC
+ratios with the stored pPb/pp band; F/B overlays Data and each selected MC F/B
+with the stored (pPb/pp) F/B band. Full systematic brackets use each ratio's own
+central value times the stored Data fractional total. F/B brackets use only the
+stored Data F/B total, retaining its producer correlation treatment. No MC
+systematic is inferred. `DRAW_DATA_SYSTEMATIC=False` removes these experimental
+brackets while keeping statistics and theory bands. The full combined output is
+`epps21_full_combined_ptave_<low>_<high>.pdf`; the existing F/B basename
+`epps21_fb_data_fb_ptave_<low>_<high>.pdf` is retained. An empty selection skips
+the full comparison and retains Data F/B.
 
 Use `notebooks/03_mc_dijet_reco_smeared_to_gen_closures.ipynb` for the focused
 closure comparison between nominal Gen and Reco smeared with the default
@@ -1297,14 +1313,18 @@ titles. Configured selection intervals are interpreted as half-open
 
 ## Display-ratio statistics
 
-Non-efficiency comparisons now default to ROOT independent-error propagation
-(`RATIO_OPTION = ''`), including JEC, selection shapes, smearing/closure,
-systematic shape and F/B comparisons, run-dependence, and studied/controlled
-unfolding ratios. Central values are unchanged. This is an approximation for
-correlated spectra, not a complete covariance treatment. The dedicated
-inclusive-jet efficiency/fake-rate notebook retains binomial defaults for its
-subset fractions. F/B construction always uses raw yields and independent
-errors, irrespective of later comparison options.
+Most non-efficiency comparisons use ROOT independent-error propagation
+(`RATIO_OPTION = ''`), including JEC, smearing/closure, run-dependence, and
+studied/controlled unfolding ratios. This approximates correlated spectra and
+does not supply a complete covariance treatment. Two preserved configuration
+exceptions need an analysis decision: `02_mc_jet_selection.ipynb` sets `B` for
+normalized shape ratios, and `04_systematics_pointing_resolution.ipynb` sets
+`B` for full-shape and F/B-to-F/B comparison ratios. Their numerator-subset
+interpretation is not established, so those errors should not be interpreted as
+validated binomial efficiency uncertainties. The dedicated inclusive-jet
+efficiency/fake-rate notebook retains binomial defaults for its subset fractions.
+F/B construction itself always uses raw yields and independent errors,
+irrespective of later comparison options.
 
 ## Generator-level jet x correlations
 
@@ -1337,7 +1357,7 @@ Notebook 00 copies these sparse objects unchanged. Select a half-open pTave
 interval on axis 0, then use `Projection(2, 1)` for x versus etaCM. A mean x
 computed from this distribution uses x-bin centers and therefore has finite
 binning precision. Preserve flow bins and state their treatment when plotting.
-The validation commands and review limits are recorded in [reusable histogram review](REUSABLE_HISTOGRAM_REVIEW.md).
+The validation commands and review limits are recorded in [reusable histogram review](../review/REUSABLE_HISTOGRAM_REVIEW.md).
 
 ## Full-eta Forward/Backward folding
 
@@ -1535,3 +1555,232 @@ Regression checks: `MPLCONFIGDIR=/tmp/mplconfig py-env/bin/python -m unittest
 real ROOT fits and both renderers, check factors 1.0/0.5/2.0, compare central
 values, fit parameters/errors, raw and smoothed uncertainties, band widths and
 CSV bytes, and verify repeated plotting does not mutate the original errors.
+
+### Separate Data/MC and nPDF notebooks
+
+`07_dijet_data_vs_mc.ipynb` now contains only experimental Data/MC comparisons.
+`SELECTED_MC_MODELS=None` preserves the existing switches, `FULL_MODELS`,
+`FB_MODELS`, and `RATIO_COMBINATIONS`. Set it to a list of registry IDs to select
+all overlays and Data/MC ratios together. Alongside `official_mc_gen`,
+`official_mc_reco`, `pythia_cp5`, and `pythia_cuetp8m1`, the existing catalog IDs
+`official_mc_embedding_Pbgoing`, `official_mc_embedding_pgoing`,
+`official_mc_pythia_Pbgoing`, and `official_mc_pythia_pgoing` select separate
+beam-specific generator-level embedding/unembedded samples. Their names follow
+the source catalog; the beam samples are never combined with each other.
+Official reco retains `hRecoDijetPtEtaCMJerDefExtra_<cut>`. Beam-specific gen
+uses `hGenDijetPtEtaCM_<cut>`; the pp tune inputs retain their unsuffixed gen key.
+
+`07_dijet_data_vs_npdf.ipynb` selects `NPDF_MODELS` and `COMPARISON_MODELS`
+(CP5, CUETP8M1, both, or empty). EPPS21 × CT18 uses the unchanged stored pPb/pp
+and (pPb/pp) F/B central histograms and asymmetric theoretical total bands.
+Full eta overlays Data/PYTHIA ratios with pPb/pp; no Data/nPDF division is made.
+F/B overlays Data markers/statistical errors/optional systematic brackets with
+PYTHIA statistical bands and the explicitly labeled theory observable. CP5 is
+red; CUETP8M1 is blue and hatched. PYTHIA bands have no markers or error bars.
+`DRAW_DATA_SYSTEMATIC` controls only experimental brackets, including their
+unchanged fractional scaling on Data/PYTHIA. Outputs use
+`DIJET_DATA_VS_NPDF_OUTPUT_DIR` (default `output/dijet_data_vs_npdf/normal`).
+
+Both notebooks call `python/dijet_comparison.py`; each execution owns an
+independent detached TH2 cache. Legacy flat bundles can supply persisted eta projections; the current shared
+consumer identifies them using the immediate `produced_histograms` parent.
+Dated bundles currently use their retained raw TH2 fallback instead. Both paths
+apply the same configured projection and rebinning, but the latter does extra I/O. Normalization, raw-hemisphere
+F/B construction, independent ROOT ratio errors, source keys, and experimental
+total loading remain shared. The original normal/test MC binning is unchanged.
+
+`NPDF_TRIGGER_BINS` in `config/histograms.py` records exact theory assignments:
+MB: 50–60, 60–70, 70–80; Jet60: 80–90 and 90–120; Jet100: 120–160 and
+200–300 GeV. The last three wider intervals are added to the JEU, pileup, JER,
+pointing, and total uncertainty workflows through dedicated shared helpers.
+Other trigger assignments and compact test bins are unchanged. Each wider
+interval is calculated from its inputs; uncertainties are never interpolated
+or averaged from adjacent normalized distributions. Beam orientation remains a
+comparison-only diagnostic and is not added to the experimental total.
+
+`00_produce_reusable_histograms.ipynb` defaults to additive `npdf_missing`
+production for the relevant cached sources at the standard eta cut. It creates
+only missing projections from retained raw TH2s, preserving existing objects
+and source provenance. Explicit `full` mode rebuilds selected sources and now
+also includes the three wider intervals. Standalone pp projections use additive unsuffixed keys such as
+`hGenDijetEtaCM_standard_ptAve90to120`; no indexed eta-cut selection is invented.
+Their raw TH2s and all existing keys remain available.
+
+`python/npdf_comparison.py` registers both supplied predictions:
+`epps21_pPb_pp_pdf_scale_uncertainties_eta1p9_symmetric_cl68_fitresidual.root` and
+`ncteq15hq_pPb_pp_pdf_scale_uncertainties_eta1p9_symmetric_cl68_fitresidual.root`.
+Select `NPDF_MODELS=('epps21_ct18',)`, `('ncteq15hq',)`, or both (the default).
+Both use exact `ptLLL_HHH_eta1p9` directories, `ratio_central` and
+`ratio_total_band` for full eta, and `forward_backward_pPb_over_pp` and
+`forward_backward_total_band` for F/B. Final total TGraphAsymmErrors include
+stored PDF, scale and final central statistical contributions. EPPS21 includes
+nuclear and CT18 baseline PDF errors; nCTEQ uses nuclear-only PDF errors with
+pp member 0 fixed, as specified by its metadata. Neither component is recombined
+or rescaled here. Both stored PDF confidence levels are 68%; loading checks this.
+The user confirmed identical collision energy and jet/dijet selections.
+
+Both files also contain 50–70 GeV. Set `EXTRA_MB_PTAVE_BINS=((50,70),)` to
+project this additional interval from raw data and PYTHIA. With experimental
+systematics enabled, its own matching total artifacts are required; adjacent
+interval totals are never averaged. The seven established intervals remain the
+default. Green EPPS21 and magenta nCTEQ bands share the same renderer. Plot
+stems include model combination, jet selection, jet etaCM acceptance and pTave.
+Missing selected files warn explicitly; missing or malformed central/total
+objects and unsupported eta cuts fail rather than substitute uncertainties.
+
+### Exact output identities and protected runs
+
+All 31 analysis notebooks that create plots/derived artifacts now declare
+`OUTPUT_SELECTIONS` from their configured input methods, jet acceptance, and
+pT intervals. `python/output_naming.py` provides `output_filename`,
+`OutputSelection`, and `OutputDirectory`. The shared helpers preserve this
+layout through directory arguments, so ROOT, MPLHEP, CSV, JSON, and diagnostic
+outputs use the same identity.
+
+A single-interval filename has an exact prefix such as
+`jetId_etaCM1p9_ptAve90to120_<existing_descriptive_stem>_run<identifier>.pdf`. Comparisons also
+record independently verified pp-reference acceptances, e.g. `etaCP5GenCM1p9`.
+Those values are checked against the input's indexed histograms, including
+contents, errors and bin edges, rather than copied from the Data acceptance.
+Mixed Data/response selection methods are named by role when they differ.
+Existing useful stems and ROOT histogram keys are retained.
+
+Numbers use lossless decimal spelling, with `p` for a decimal point and `m`
+for a minus sign; `:g`/rounded legacy suffixes are not used as the selection
+identity. Multi-interval artifacts have a `ptAveBins<identifier>` (or `jetPtBins`)
+tag. Their adjacent `<filename>.selection.json` records the complete exact
+bin list, trigger assignments where present, eta selections and logical legacy
+name. Distinct bin sets with the same outer endpoints remain distinguishable.
+Digest collisions are checked against the full declaration. A legacy stem that
+cannot distinguish two configured narrow intervals is rejected; an explicit
+`.file(..., selection=OutputSelection(...))` resolves the ambiguity safely.
+Long method stems are shortened with a checked identifier to stay within the
+filesystem filename limit; selection numbers remain explicit.
+
+Each notebook writes beneath its workflow root as
+`YYYY-MM-DD/<noSel|trkMax|jetId>/root/` and
+`YYYY-MM-DD/<noSel|trkMax|jetId>/mplhep/` (America/Chicago date).
+Logical observable subdirectories may appear beneath the renderer directory.
+Same-day reruns receive a unique filename run identifier; no run directory is added.
+All newly generated filenames use single underscores, including legacy descriptive stems. Previous validated output files are not renamed,
+deleted, or overwritten. Repeat runs coexist. Readers locate the newest
+matching declared run for each logical artifact and retain strict physics
+metadata checks. Systematic sources/totals and trigger-stitching consumers
+support both these runs and existing validated legacy outputs. Related audit,
+provenance, total CSV and diagnostic files are resolved through their declared
+logical names even when descriptive stems are shortened.
+
+Reusable bundles keep their existing dataset/direction/selection stem and add
+the full indexed eta-cut catalog plus the exact standard/test bin-set identity.
+Bundles are produced beneath `root_files/produced_histograms/YYYY-MM-DD/<selection>/root/`.
+Existing dated compatible caches are reused; legacy flat caches are copied into
+the dated layout after metadata verification. Extension copies a validated bundle to
+a new scope/version before adding missing projections. Full production also
+allocates a new version instead of replacing a file. Cache selection, cut
+mapping, schema and interval declarations are verified before reuse. Missing
+selection metadata is an error; projections without declared interval/schema
+provenance are not reused (a verified retained raw TH2 can still be projected).
+Pure generator bundles use `jetSelectionNA` in the new identity: their historical
+`jetId` collection stem is retained for input compatibility, and does not imply
+that reconstructed jet ID was applied to generator jets.
+
+Event plots and unselected inclusive maps do not acquire fictitious dijet cuts:
+non-applicable fields say `etaCutNA`/`ptAveNA`. Inclusive projections use `jetPt`
+and explicitly named eta projection ranges; Lab ranges are not called CM cuts.
+Mixed inclusive/dijet workflows record both sets and select the appropriate
+observable identity for individual figures. Spectrum normalization intervals
+and JES/JER fit/projection ranges are included in the complete configuration.
+
+Example:
+
+```python
+from hist_analysis.python.output_naming import OutputDirectory, OutputSelection
+
+outputs = OutputDirectory(output_root,
+    OutputSelection(DATA_SELECTION, ETA_CUT_VALUE, PTAVE_BINS))
+plot_file = outputs.file('dijet_eta_data_vs_mc.pdf',
+    selection=OutputSelection(DATA_SELECTION, ETA_CUT_VALUE, [(90, 120)]))
+```
+
+`06_data_runId_dependence.ipynb` now explicitly warns and records skipped
+run/interval diagnostics when counts cannot be normalized, instead of creating
+an invalid distribution. Other nonempty comparisons keep their definitions.
+The gen/prior workflow still requires the actual mixed-prior TH2; naming changes
+do not authorize substituting another physics distribution when it is absent.
+
+
+### PDF central versus standalone CP5
+
+`notebooks/03_pdf_vs_cp5.ipynb` compares selected pp member-0 central predictions with the
+existing standalone CP5 catalog, for `pdf_family="CT18"` or `"nCTEQ15HQ"`.
+`config/theory.py` centralizes the exact supplied filenames for this notebook,
+notebook 07's registry, and notebook 00's EPPS21 validation. The EPPS21 name now
+includes `eta1p9_symmetric_cl68`; the nCTEQ15HQ filename is unchanged.
+
+`PTAVE_BINS` defaults to shared `NPDF_PTAVE_BINS`; any subset and the additional
+stored (50, 70) interval are supported. Only the supplied 1.9 CM jet acceptance
+and existing jetId catalog contract are supported. The metadata defines
+`pdf_central` as pp member 0 at muR=muF=pTave; CT18 is the proton central in the
+EPPS21 artifact, while nCTEQ15HQ uses its own proton central.
+`PDF_CENTRAL_KEY` selects `pdf_central_mirrored` (default) or `pdf_central`.
+Mirrored input is the stored reflected-bin average M=(I+P)/2, with its stored
+marginal statistical errors; no additional smoothing is applied. Missing or
+unknown keys fail instead of substituting another histogram. Neither pPb
+`npdf_central` nor pPb/pp ratio products are substituted. The existing
+nPDF workflow's confirmed common energy and selections apply here too.
+
+`python/pdf_cp5_comparison.py` verifies CP5's acceptance using indexed source
+histograms and checks exact half-open pTave edges. Shared common-edge alignment
+sums CP5's 0.1 eta bins into the theory's uniform 0.2 bins with independent
+variances. It fails if this discards nonzero yield. Stored partially accepted
+edge bins are retained without fractional-bin interpolation. `ETA_NORMALIZATION`
+uses the shared `integral` default, or `bin_width` for unit-area density; both
+samples use the same mode. Uniform theory source-width factors cancel. Fixed
+normalization rescales diagonal errors without estimating cross-bin covariance.
+
+F/B is folded from unnormalized aligned spectra and divided with ROOT's
+independent errors. Zero backward bins retain ROOT numerical zeros and are
+masked in display copies. Original input retains its statistical fluctuations; mirrored input is
+symmetric by construction. The shared independent-error F/B convention uses
+stored marginal errors for either choice, without propagating the mirrored
+cross-bin covariance. Mirrored PDF F/B therefore has unity values in populated
+bins but may have nonzero error bars. No nuclear, proton-PDF, scale or
+fit-residual uncertainties are added.
+
+Each family/interval produces etaCM and RFB ROOT and MPLHEP PDFs (optional
+200 DPI PNGs). Shared output identities include jet selection, theory and CP5
+eta acceptances, interval, observable, PDF family, normalization, and unique run
+ID. Figures and integral/zero-denominator validation JSONs go beneath
+`output/pdf_vs_cp5/` (override with `PDF_VS_CP5_OUTPUT_DIR`); `CP5_GEN_FILE`
+overrides the standalone input explicitly. Start from the repository root.
+
+
+The PDF/CP5 notebook additionally writes separate `cp5_over_pdf` figures for
+normalized etaCM shapes and for `(F/B)_CP5 / (F/B)_PDF`, using independent ROOT
+ratio errors. The denominator is the selected family's chosen pp central histogram.
+Undefined source F/B bins and zero PDF denominators are omitted from display
+copies. Raw numerical histograms retain ROOT's zero-denominator convention.
+`PLOT_Y_LIMITS['RFB']` controls the F/B overlay window (default `(0.5, 1.5)`),
+while `CP5_OVER_PDF_Y_LIMITS['etaCM']` and `['RFB']` independently control the
+comparison-ratio windows (also default `(0.5, 1.5)`). Set a range to `None` for
+automatic limits. Plot limits do not alter stored bin contents or errors.
+
+The chosen `PDF_CENTRAL_KEY` applies to both overlays and both CP5/PDF ratios.
+It is included in plot filenames, legend labels and validation summaries to
+identify original versus mirrored results. Switching keys changes PDF values
+and stored errors only; CP5 preparation and all selection/normalization
+settings remain the same.
+
+
+### Supplied-theory test prerequisites
+
+The full Python test discovery includes an integration check in
+`tests/test_npdf_comparison.py::test_supplied_predictions_match_final_root_totals`.
+It requires both exact ROOT artifacts named in `config/theory.py` under
+`hist_analysis/root_files/`, including their 68% confidence-level metadata and
+central/total objects for every registered interval. These supplied inputs are
+local analysis data, not generated by test discovery or bundled with source
+commits. A source-only checkout without them cannot pass that integration test;
+a missing file is not an optional-model skip in this test. Synthetic comparison
+tests exercise arithmetic and selection separately. Use the repository-root
+project interpreter, with PyROOT available, as described above.

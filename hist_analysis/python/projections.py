@@ -59,6 +59,9 @@ def _clone_detached(obj):
 
 
 def _range_to_bins(axis, value_range):
+    # Legacy whole-bin selector: callers must supply ordered intervals that
+    # overlap the axis. It swaps inverted bin indices rather than representing
+    # an empty intersection, so this is not a general clipping operation.
     if value_range is None:
         return 1, axis.GetNbins()
 

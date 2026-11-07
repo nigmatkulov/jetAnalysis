@@ -112,6 +112,8 @@ void setPadStyle() {
 }
 
 //________________
+// Legacy unweighted-count approximation: this replaces stored sum(w^2).
+// Do not interpret the resulting errors as weighted-MC statistical errors.
 void recalculateStatisticalUncertainty(TH1D *h) {
     for (int iBin{1}; iBin<=h->GetNbinsX(); iBin++) {
         double content = h->GetBinContent(iBin);
@@ -155,6 +157,8 @@ void makeFullEtaFromForwardAndBackward(TH1D *hFull, TH1D *hForward, TH1D *hBackw
 
 //________________
 void makeForwardBackwardFromFullEta(TH1D *hRatio, TH1D *hForward, TH1D *hBackward) {
+    // Divide unnormalized hemisphere yields with ROOT independent errors.
+    // Forward is not a subset of Backward, so binomial division is unsuitable.
     hRatio->Divide(hForward, hBackward);
 }
 
@@ -208,8 +212,9 @@ void rescaleHisto1D(TH1* h1) {
 
 //________________
 void rescaleForwardBackward(TH1D *hForward, TH1D *hBackward) {
-    // Rescale forward and backward histograms
-    // to have the same integral
+    // Legacy asymmetric rescaling: factors are F/(F+B) and B/(F+B).
+    // This changes F/B by the integrated F/B factor; it does not equalize
+    // integrals and must not precede a physical unnormalized-yield F/B.
     double intForward = hForward->Integral();
     double intBackward = hBackward->Integral();
     double scaleFactor = intForward + intBackward;
@@ -218,6 +223,8 @@ void rescaleForwardBackward(TH1D *hForward, TH1D *hBackward) {
 }
 
 //________________
+// A smooth-fit residual diagnostic, not a PDF-member uncertainty calculation.
+// This overwrites input bin errors; keep supplied theory bands separately.
 void recalculateUncertaintyOfNpdf(TH1D *h) {
 
     TString fitName = Form("%s_fit", h->GetName());

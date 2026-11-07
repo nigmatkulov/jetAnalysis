@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from hist_analysis.python.output_naming import as_output_directory
+
 from pathlib import Path
+import json
+import warnings
 
 from IPython.display import display
 
@@ -49,7 +53,7 @@ def draw_run_dependence(
     """
 
     path = Path(filename)
-    output = Path(output_dir)
+    output = as_output_directory(output_dir)
     if ratio_option not in {"", "B"}:
         raise ValueError("ratio_option must be '' or 'B'")
     sample_tag = trigger.lower().replace(" ", "_")
@@ -63,6 +67,7 @@ def draw_run_dependence(
     }
     style_indices = {label: index for index, label in enumerate(keys)}
     results = {}
+    skipped = []
 
     for low, high in ptave_bins:
         pt_tag = f"{_tag(low)}_{_tag(high)}"
@@ -73,9 +78,16 @@ def draw_run_dependence(
                 name=f"h_{sample_tag}_run_curve_{curve_index}_{pt_tag}",
                 rebin=rebin_eta,
             )
+            if projection.Integral() <= 0:
+                skipped.append(dict(interval=[low, high], run=label, reason='nonpositive normalization integral'))
+                warnings.warn(f'{trigger}, ptAve [{low}, {high}), {label}: no normalizable counts; diagnostic omitted')
+                continue
             # Compare eta shapes rather than the different run event totals.
             histograms[label] = normalize_histogram(projection, "integral")
 
+        if 'Run inclusive' not in histograms or len(histograms) < 2:
+            warnings.warn(f'{trigger}, ptAve [{low}, {high}): no valid run/inclusive comparison')
+            continue
         annotations = (
             "pPb 8.16 TeV data", trigger,
             f"{low:g} #leq p_{{T}}^{{ave}} < {high:g} GeV",
@@ -120,4 +132,7 @@ def draw_run_dependence(
             "ratio_canvas": ratio_canvas,
         }
 
+    if skipped:
+        output.mkdir(parents=True, exist_ok=True)
+        (output / f'{sample_tag}_run_dependence_skipped.json').write_text(json.dumps(skipped, indent=2)+'\n')
     return results

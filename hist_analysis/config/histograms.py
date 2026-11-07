@@ -82,3 +82,31 @@ def trigger_single_jet_bins(normal_bins: dict, mode: str = 'normal') -> dict:
     return {trigger: [interval for interval in TEST_SINGLE_JET_PT_BINS
                       if assigned[interval] == aliases.get(trigger, trigger)]
             for trigger in normal_bins}
+
+# Exact stored EPPS21 intervals. Wider intervals overlap the standard analysis
+# bins and must be projected from raw yields, never averaged from normalized bins.
+NPDF_TRIGGER_BINS = {
+    'mb': ((50, 60), (60, 70), (70, 80)),
+    'jet60': ((80, 90), (90, 120)),
+    'jet100': ((120, 160), (200, 300)),
+}
+NPDF_PTAVE_BINS = tuple(interval for bins in NPDF_TRIGGER_BINS.values() for interval in bins)
+SYSTEMATIC_PTAVE_BINS = tuple(dict.fromkeys((*DIJET_PTAVE_BINS, *NPDF_PTAVE_BINS)))
+
+
+def systematic_pt_bins(mode='normal'):
+    """Canonical plus exact nPDF bins; retain existing compact test mode."""
+    return list(SYSTEMATIC_PTAVE_BINS) if mode in {'normal', 'standard'} else pt_bins('dijet', mode)
+
+
+def with_npdf_trigger_bins(normal_bins):
+    """Extend existing assignments without changing any other interval."""
+    aliases = {'MinimumBias': 'mb', 'Jet60': 'jet60', 'Jet80': 'jet80', 'Jet100': 'jet100'}
+    assigned = {interval: trigger for trigger, intervals in NPDF_TRIGGER_BINS.items() for interval in intervals}
+    for trigger, intervals in normal_bins.items():
+        for interval in intervals:
+            owner = assigned.get(tuple(interval))
+            if owner is not None and aliases.get(trigger, trigger) != owner:
+                raise ValueError(f'nPDF interval {interval} requires {owner}, not {trigger}')
+    return {trigger: list(dict.fromkeys((*bins, *NPDF_TRIGGER_BINS.get(aliases.get(trigger, trigger), ()))))
+            for trigger, bins in normal_bins.items()}

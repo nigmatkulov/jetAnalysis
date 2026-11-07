@@ -110,7 +110,31 @@ py-env/bin/python pp_analyzeMc_cp5tune.py --workers 4
 
 The runner writes one ROOT output and one log per forest to the parent
 `cp5tune/` directory. The main `README.md` documents the pp physics behavior,
-file naming, parallel execution, and overwrite policy.
+file naming, parallel execution, and overwrite policy. By default it refuses
+to start if any target ROOT output or log already exists. `--overwrite` allows
+both to be replaced: the log is opened with truncation and the producer opens
+the ROOT output in `RECREATE` mode. If processing fails after the output is
+opened, that output can be partial; retain or inspect it before authorizing a
+rerun with `--overwrite`. A zero process exit plus a nonempty file is the
+runner's success check; it does not reopen and validate the ROOT file.
+
+### Local pPb MC runner
+
+`pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py` use
+`pPb8160_runner.py` to process the preset pT-hat samples sequentially by
+default; `--workers N` opts into concurrent executable processes. Their input
+and output locations are derived from the defaults in `pPb8160_runner.py`.
+Unlike the pp CP5 runner, this runner has no dry-run or existing-output guard.
+The producer opens each ROOT output in `RECREATE` mode, so rerunning an
+available sample replaces that sample's existing output. Choose a separate
+output location in `RunnerConfig` before rerunning if the previous output must
+be retained.
+
+Missing pT-hat input files are reported as skipped, but the current runner
+returns success when there are no executable failures, even if one or more
+requested samples were skipped. Read the complete summary and verify every
+requested sample before treating the command's exit status as evidence that
+the campaign finished.
 
 Prepare and inspect the campaign without submitting it (one job per usable
 input-file entry; the printed count reflects the current list):
@@ -499,6 +523,13 @@ Add `--show-available` to print successful paths as well.
 Each command below creates and sequentially submits one independent Condor
 description for every supported pT-hat sample: 15, 30, 50, 80, 120, 170, 220,
 280, 370, 460, 540.
+
+All descriptions and outputs are prepared before submission starts, then
+`condor_submit` is called once per sample in order. If a later submission is
+rejected, earlier sample submissions may already be active and later samples
+may remain unsubmitted. Inspect the queue and each generated `.sub` before
+rerunning the command; output basenames are reused across campaign IDs, and
+the worker refuses to overwrite an output already present.
 
 ```bash
 # Embedded Pb-going

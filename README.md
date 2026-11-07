@@ -4,7 +4,7 @@ This repository contains the `processForestSimple` analysis used to process CMS 
 
 ## Physics conventions and review
 
-The optional local `PHYSICS_REVIEW.md` records the annotated execution map,
+The optional local `review/PHYSICS_REVIEW.md` records the annotated execution map,
 confirmed calibration/response/smearing issues, and statistical limitations;
 it is not distributed with the repository.
 The follow-up fixes stored truth misses for events with fewer than two selected
@@ -13,6 +13,23 @@ JER variations now cache one shared draw per physical jet/replica before sorting
 MC JEC selection uses sample type: embedding uses Embedded and standalone
 PYTHIA uses Unembedded payloads. pp PYTHIA uses the Pb-going pPb Unembedded
 payload by convention. Job-dependent pPb normalization remains unresolved. Histogram titles alone do not imply bin-width or luminosity normalization.
+
+The current producer also retains a jet-ID limitation: methods 2 and 3 reject
+all jets with stored detector `|eta| > 3` because the forward branch leaves
+`passNHF` false. This affects forward inclusive diagnostics and can affect the
+widest CM acceptances after the eta shift; it is not a validated forward jet-ID
+prescription. Changing it requires a selection review and regenerated outputs.
+See `isGoodRecoJet` and the notebook-specific statistical limitations in
+[`hist_analysis/README.md`](hist_analysis/README.md).
+
+The legacy macros have different safety/statistical contracts from the shared
+workflow. `macro/cloneForest.C` can open its input with `RECREATE` if its output
+resolves to the same path: always specify a distinct output file and verify
+that it is unused. `macro/plotMcClosures.C` includes helpers that replace stored
+errors with Poisson approximations or fit residuals; do not interpret those
+legacy figures as preserving weighted Sumw2 uncertainties. The reusable
+Python histogram helpers preserve stored weighted errors according to their
+documented conventions.
 
 ## Project layout
 
@@ -30,6 +47,48 @@ payload by convention. Job-dependent pPb normalization remains unresolved. Histo
 - `hist_analysis/`: Python, PyROOT, and Jupyter tools for ROOT-file inventory and histogram comparisons.
 - `AGENTS.md`: repository-specific working, physics, implementation, validation, and handoff instructions for coding agents.
 
+## Codex agents
+
+Project defaults in `.codex/config.toml` select `gpt-6.1-sol` with Medium
+reasoning for the main agent and allow up to three concurrent subagents.
+Six on-demand roles are defined in `.codex/agents/`:
+
+| Agent | Model | Effort | Responsibility |
+|---|---|---|---|
+| `root-cpp-engineer` | `gpt-6.1-sol` | Low | Producer, ROOT ownership, calibration and build |
+| `scientific-python-engineer` | `gpt-6.1-sol` | Low | Histograms, uncertainties, covariance and unfolding |
+| `notebook-engineer` | `gpt-6-luna` | High | Notebooks, ROOT/MPLHEP presentation and documentation |
+| `physics-reviewer` | `gpt-6.1-sol` | Medium | Independent scientific review |
+| `validation-engineer` | `gpt-6.1-sol` | Medium | Independent numerical regression and closure |
+| `batch-workflow-engineer` | `gpt-6-luna` | High | HTCondor, EOS/XRootD, recovery and merge preparation |
+
+Routine edits remain single-agent. For scientifically significant changes,
+`AGENTS.md` requests separate implementation, physics review and numerical
+validation, with one writer per file. Scientific contracts and independent
+expected results precede acceptance; successful execution alone is insufficient.
+Roles inherit parent permissions and MCP servers. Reviewer read-only behavior
+is instructional, not a separate sandbox. Batch work defaults to dry runs and
+merges retaining inputs; production operations still need explicit authorization.
+The existing CMS style and F/B skills remain applicable.
+
+Custom agents use the standalone TOML format documented in the
+[official Codex subagent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents).
+Start a fresh project session after configuration changes. Verify that all six
+roles are discovered and that implementation and review use their stated model
+and effort. TOML parsing alone does not verify discovery or model access.
+A bounded smoke test can ask for read-only inspection by the scientific Python
+agent followed by independent review by the physics reviewer, with no edits,
+production, or further delegation. Check the runtime's recorded settings rather
+than an agent's self-reported model. Custom role model/effort fields take
+precedence over spawn overrides; escalation must use a configuration that
+actually selects the intended effort. The parent retains its existing ROOT MCP
+configuration and approval behavior.
+
+On Codex CLI `0.167.0-alpha.3.2`, use a normal persisted session for delegation
+smoke tests. An `--ephemeral` session discovered the roles but spawning failed
+with `no rollout found for thread id`; it cannot verify agent routing on this
+version.
+
 ## Build
 
 Make sure ROOT is available in your environment and that `ROOTSYS` is set:
@@ -45,6 +104,10 @@ root-config --version
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ```
+
+The executable and JEC test both depend on ROOT's shared dictionary-generation
+target before compiling its generated source. This ordering prevents parallel
+`rootcling` processes from racing on the same dictionary/PCM/rootmap files.
 
 Startup rejects equal input/output paths, including relative paths with `.` or
 `..`, and checks each filename in an input list. This simple path check does not
@@ -579,7 +642,7 @@ Run `hist_analysis/notebooks/00_produce_reusable_histograms.ipynb` to build the
 shared ROOT inputs before plotting or unfolding. Consumers prefer its files,
 retain source fallback, and can project copied multidimensional inputs in
 memory. See the [histogram workflow documentation](hist_analysis/README.md)
-and [cut and naming review](hist_analysis/REUSABLE_HISTOGRAM_REVIEW.md).
+and [cut and naming review](review/REUSABLE_HISTOGRAM_REVIEW.md).
 
 Reusable projection keys encode the physical per-jet acceptance, such as
 `etaCut1p5` and `etaCut1p9`, instead of an opaque cut index. Readers retain
@@ -684,6 +747,21 @@ bridge and bounded Condor logging, can be run without production forests:
 ```bash
 py-env/bin/python -m unittest discover -s tests -p 'test_*.py' -v
 ```
+
+This suite still needs PyROOT, RooUnfold for unfolding tests, and the two
+locally supplied theory ROOT files for the nPDF/PDF integration tests; see
+`hist_analysis/README.md` for their exact filenames. Supplied theory inputs,
+produced bundles, machine-local Codex environments and temporary review reports
+are not distributed in the source commit. Build the standalone regularization
+kernel as described in `hist_analysis/cpp/README.md` to include its numerical
+reference comparisons. Check the test summary for skips instead of treating
+an incomplete run as full coverage.
+
+The GitHub workflow runs Release CTest and Python/shell syntax checks; it does
+not run the full PyROOT suite, synthetic ROOT macros or clean-kernel notebooks.
+Its push trigger is restricted to `main`, so pushing another branch alone does
+not establish CI success. Local validation and the appropriate workflow run
+remain separate evidence.
 
 For response-pair classification and generator jet-x correlations, run the
 synthetic ROOT checks from the repository root (no forest inputs required):

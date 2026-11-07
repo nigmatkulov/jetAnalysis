@@ -11,7 +11,7 @@
  * alone. Sumw2 stores per-fill sum(w^2); repeated smears of one event are
  * correlated and do not constitute independent collision statistics.
  * Full signed-eta histograms are the source for downstream hemisphere folding.
- * Known physics-sensitive limitations are catalogued in PHYSICS_REVIEW.md.
+ * Known physics-sensitive limitations are catalogued in review/PHYSICS_REVIEW.md.
  */
 #include "TFile.h"
 #include "TSystem.h"
@@ -914,6 +914,8 @@ bool isGoodRecoJet(const RecoJet &recoJet, const int &jetSelectionMethod) {
 
         } // else if ( std::abs( recoJetEta[jetIndex] ) <= 3.0)
         else  {
+            // Legacy behavior: passNHF remains false in this branch, so methods
+            // 2/3 reject every |eta|>3 jet despite the NEF/multiplicity cuts.
             passNEF = ( recoJet.recoPfNEF < 0.9 ) ? true : false;
             passNeutralMult = (neutralMult > 10 ) ? true : false; // CAUTION: JET MET says it should be >10
             if (debug) {
@@ -3531,6 +3533,9 @@ void processRecoDijets(const bool isPp, const bool &isPbGoing, const bool &isMc,
     // Fill JER systematic dijet histograms if requested
     if (isMc) {
 
+        // Diagnostic templates receive full event weight in each replica;
+        // they are replica-summed yields. The unfolding response below uses
+        // only iIter=0 and therefore counts each event once.
         // Number of iterations for smearing
         const int nSmearRounds = jerSmearingMode == JERSmearingMode::TruthToPseudoReco ? 10 : 1;
         // Freeze identity before the first response sort, including later replicas.

@@ -30,8 +30,16 @@ class ResidualSubmissionTest(unittest.TestCase):
             proxy.write_text('test proxy\n')
             capture = directory / 'argv'
             executable = directory / 'analysis'
-            executable.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@" > ' + str(capture) + '\n')
+            executable.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@" > ' + str(capture) + '\nprintf fixture > "$2"\n')
             executable.chmod(0o755)
+            # This test isolates argument forwarding from ROOT integrity checks.
+            # Keep the worker's validation phase active against a known sentinel;
+            # real ROOT validation and corrupt outputs are tested in recovery tests.
+            repository = directory / 'repository'
+            validator = repository / 'processing' / 'validate_job_output.py'
+            validator.parent.mkdir(parents=True)
+            validator.write_text('from pathlib import Path\nimport sys\n'
+                                 'sys.exit(0 if Path(sys.argv[1]).read_bytes() == b"fixture" else 75)\n')
             for mode, suffix in [(2, ''), (1, '_oldResiduals'), (0, '_noResiduals')]:
                 work = directory / f'work{mode}'
                 command = [sys.executable, str(PROCESSING / 'submit_process_forest_condor.py'),
@@ -55,11 +63,18 @@ class ResidualSubmissionTest(unittest.TestCase):
                 tokens = arguments.removeprefix('arguments = ').split()
                 tokens = [str(inputs) if t == '$(input_list)' else
                           str(directory / name) if t == '$(output_file)' else t for t in tokens]
+                tokens[0] = str(repository)
                 result = subprocess.run([str(PROCESSING / 'run_process_forest_condor.sh'), *tokens],
                                         capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(capture.read_text().splitlines()[-3:], ['0', '0', str(mode)])
+            # Existing outputs must be rejected before invoking the executable.
+            result = subprocess.run([str(PROCESSING / 'run_process_forest_condor.sh'), *tokens],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 73, result.stderr)
+            self.assertEqual(capture.read_text().splitlines()[-1], '0')
             # Previously generated submit files retain their implicit mode 2.
+            tokens[3] = str(directory / 'legacy-mode.root')
             result = subprocess.run([str(PROCESSING / 'run_process_forest_condor.sh'), *tokens[:-1]],
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)

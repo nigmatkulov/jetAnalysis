@@ -27,6 +27,8 @@ void cloneForest(const char* inputFileName, const char *outputDirectory = "./") 
         inputFileNameStr.Remove(0, lastSlash + 1);
     }
     outputFileName.Append("/").Append(TString(inputFileNameStr.Data()).ReplaceAll(".root", ".root"));
+    // Caller must choose a directory whose output basename is distinct from
+    // the input: RECREATE below does not guard against truncating that input.
     // Create a new ROOT file
     int compressionSetting = 208; // LZMA compression
     TFile* outputFile = new TFile(outputFileName.Data(), "RECREATE", "", compressionSetting);

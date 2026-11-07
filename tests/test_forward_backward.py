@@ -92,7 +92,8 @@ class ForwardBackwardTest(unittest.TestCase):
             before = build_dijet_gen_comparisons(source, (curve,), **args)
             ratio = before[1]['Gen']
             self.assertEqual(ratio.GetBinContent(ratio.FindBin(.15)), .5)
-            produce_source(dict(source=source, output=output, category='official_mc', dataset='pythia', direction='combined', trigger=None))
+            # The producer now requires the actual selection in bundle provenance.
+            produce_source(dict(source=source, output=output, category='official_mc', dataset='pythia', direction='combined', trigger=None, selection='jetId'))
             check = ROOT.TFile.Open(str(output))
             self.assertFalse(any('Forward' in k.GetName() or 'Backward' in k.GetName() for k in check.GetListOfKeys()))
             check.Close()

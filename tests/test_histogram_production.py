@@ -37,7 +37,7 @@ class HistogramProductionTest(unittest.TestCase):
             ROOT.TNamed('jerSmearingMode', '0').Write()
             file.Close()
             result = produce_source(dict(source=source, output=output,
-                category='official_mc', dataset='fixture', direction='pp', trigger=None))
+                category='official_mc', dataset='fixture', direction='pp', trigger=None, selection='jetId'))
             self.assertEqual(result['copied'], 3)
             file = ROOT.TFile.Open(str(output))
             try:
@@ -97,6 +97,9 @@ class HistogramProductionTest(unittest.TestCase):
             histogram.Sumw2()
             histogram.Fill(.15, 2.5)
             histogram.Write()
+            ROOT.TNamed('histogramProductionMetadata', json.dumps({
+                'schema_version':3, 'selection':'jetId', 'eta_cut_index_to_value':dict(enumerate((1.5,1.6,1.7,1.8,1.9,2.4,2.5,3.0))),
+                'binning':{'standard':[(60,70)]}})).Write()
             file.Close()
             # No copied TH2: success proves that the old persisted key is read.
             actual = project_data_histogram(path, 'hRecoDijetPtEtaCM_5', 'eta', (60, 70), name='data_legacy')
@@ -126,21 +129,27 @@ class HistogramProductionTest(unittest.TestCase):
             file = ROOT.TFile.Open(str(source), 'RECREATE')
             h = ROOT.TH2D('hRefDijetPtEtaCM_4', '', 100, 0, 1000, 72, -3.6, 3.6)
             h.Sumw2()
-            for pt, weight in [(59.9, 1.), (60., 2.), (69.9, 3.), (70., 4.)]:
+            for pt, weight in [(59.9, 1.), (60., 2.), (69.9, 3.), (70., 4.),
+                               (90., 7.), (119., 11.), (120., 13.), (159., 17.),
+                               (160., 19.), (200., 23.), (299., 29.), (300., 31.)]:
                 h.Fill(pt, 2.15, weight)  # Ref eta may differ from selected reco eta.
             h.Write()
             run = h.Clone('hRecoDijetPtEtaCMRun_285480')
             run.Write()
             file.Close()
             result = produce_source(dict(source=source, output=output,
-                category='official_mc', dataset='fixture', direction='pp', trigger=None))
-            self.assertEqual(result['projected'], 22)  # Only the eta-cut-index TH2.
+                category='official_mc', dataset='fixture', direction='pp', trigger=None, selection='jetId'))
+            self.assertEqual(result['projected'], 25)  # Only the eta-cut-index TH2.
             actual = project_data_histogram(output, 'hRefDijetPtEtaCM_4', 'eta', (60, 70), name='boundary')
             self.assertEqual(actual.Integral(), 5.)  # [60,70), without eta truncation.
             self.assertAlmostEqual(actual.GetBinError(actual.FindBin(2.15)), 13.**.5)
             file = ROOT.TFile.Open(str(output))
             try:
                 self.assertTrue(file.Get('hRecoDijetPtEtaCMRun_285480'))
+                for interval, expected in (((90,120),18.), ((120,160),30.), ((200,300),52.)):
+                    cached = file.Get(projection_key('hRefDijetPtEtaCM_4', 'standard', interval))
+                    self.assertTrue(cached)
+                    self.assertEqual(cached.Integral(), expected)
                 keys = [k.GetName() for k in file.GetListOfKeys()]
                 self.assertFalse(any('etaCut285480' in k for k in keys))
             finally:
@@ -163,7 +172,7 @@ class HistogramProductionTest(unittest.TestCase):
                 h.Write()
             file.Close()
             entry = dict(source=source, output=output, category='data',
-                         dataset='fixture', direction='combined', trigger='Jet80')
+                         dataset='fixture', direction='combined', trigger='Jet80', selection='jetId')
             with self.assertRaisesRegex(ValueError, 'differs from the current'):
                 produce_source(entry)
             self.assertFalse(output.exists())
@@ -222,7 +231,7 @@ class HistogramProductionTest(unittest.TestCase):
                 # An archived nominal bundle is useful only for nominal selection.
                 legacy = directory / 'official_mc__embedding__combined.root'
                 file = ROOT.TFile.Open(str(legacy), 'RECREATE')
-                metadata = dict(category='official_mc', dataset='embedding', direction='combined', trigger=None)
+                metadata = dict(category='official_mc', dataset='embedding', direction='combined', trigger=None, selection='jetId')
                 ROOT.TNamed('histogramProductionMetadata', json.dumps(metadata)).Write()
                 file.Close()
                 self.assertEqual(resolve_histogram_input(original, 'official_mc', 'embedding', 'combined'), legacy)
@@ -254,7 +263,9 @@ class HistogramProductionTest(unittest.TestCase):
             self.assertNotIn('__', entry['output'].name)
             if entry['category'] != 'standalone':
                 self.assertIn('_trkMax.root', str(entry['source']))
-                self.assertTrue(entry['output'].name.endswith('_trkMax.root'))
+                self.assertIn('_trkMax_', entry['output'].name)
+                self.assertIn('etaCM', entry['output'].name)
+                self.assertIn('ptAveBins', entry['output'].name)
                 self.assertNotEqual(entry['output'], nominal[identifier]['output'])
         self.assertNotIn('official_mc_pythia_cp5_pp', alternate)
 

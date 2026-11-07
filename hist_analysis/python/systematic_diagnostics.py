@@ -1,5 +1,6 @@
 """Optional systematic checks, isolated from nominal histograms and CSVs."""
 from pathlib import Path
+from hist_analysis.python.output_naming import related_output
 
 from hist_analysis.python.histogram_ops import ratio_to_nominal
 from hist_analysis.python.systematic_methods import construct_systematic_variations
@@ -98,7 +99,7 @@ def make_systematic_diagnostics(
             clone.SetDirectory(0)
             clone.Scale(100.0)
             percent[label] = clone
-        output = prefix.with_name(f'{name}_diagnostic_{kind}.pdf')
+        output = related_output(nominal_csv, f'_diagnostic_{kind}')
         canvas = renderer(percent, title='', x_title=x_title,
             y_title='Relative systematic uncertainty (%)',
             x_range=x_range, y_range=y_range,

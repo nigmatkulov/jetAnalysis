@@ -45,6 +45,16 @@ class TotalSystematicsTest(unittest.TestCase):
                                    [[-1, 1, 1, .05], [1, 1, 1, .05]])
         self.assertNotIn('copied_csv', provenance)
 
+    def test_scoped_archive_paths_resolve(self):
+        from hist_analysis.python.output_naming import OutputDirectory, OutputSelection
+        _, provenance = self.combine()
+        output = OutputDirectory(self.directory/'scoped', OutputSelection('jetId',1.9,[(50,60)]))
+        archived = archive_systematic_inputs(provenance, output)
+        for record in archived.to_dict('records'):
+            copied = Path(output)/record['copied_csv']
+            self.assertEqual(copied.read_bytes(), Path(record['csv']).read_bytes())
+            self.assertNotIn('__', copied.name)
+
     def test_archive_rejects_changed_input(self):
         _, provenance = self.combine()
         Path(provenance.iloc[0]['csv']).write_text('changed after combination')

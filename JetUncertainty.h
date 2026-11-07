@@ -47,6 +47,9 @@ class JetUncertainty {
     std::string StripBracket(std::string Line);
     enum Type { TypeNone, TypeJetPT, TypeJetEta, TypeJetPhi, TypeJetArea, TypeRho };
     JetUncertainty::Type ToType(std::string Line);
+    // Fractional payload uncertainties in stored low/high order. Lookup uses
+    // the first inclusive matching row, linear pT interpolation, and endpoint
+    // values outside the tabulated pT range; (-1,-1) signals no usable row.
     std::pair<double, double> GetUncertainty();
     double GetValue(Type T);
   private:

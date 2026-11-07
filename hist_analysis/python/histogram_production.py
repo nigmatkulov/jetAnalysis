@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import shutil
+import time
 from pathlib import Path
 import re
 from typing import Iterable
@@ -10,10 +12,11 @@ from typing import Iterable
 import ROOT
 
 from hist_analysis.config.files import BASE_DIR
-from hist_analysis.config.histograms import DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS, DIJET_ETA_CUTS
+from hist_analysis.config.theory import theory_file
+from hist_analysis.config.histograms import DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS, DIJET_ETA_CUTS, SYSTEMATIC_PTAVE_BINS
 from hist_analysis.python.histogram_io import (
     open_root_file, resolve_combined_file, resolve_data_file,
-    produced_histogram_path,
+    produced_histogram_path, scoped_produced_histogram_path, find_produced_histogram_file,
     resolve_direction_file, resolve_histogram_input,
 )
 from hist_analysis.python.projections import project_semantic_th2
@@ -32,7 +35,8 @@ UNFOLDING_MARKERS = (
 
 def _interval_tag(interval: tuple[float, float]) -> str:
     def number(value: float) -> str:
-        return f"{value:g}".replace("-", "m").replace(".", "p")
+        from hist_analysis.python.output_naming import number_token
+        return number_token(value)
     return f"{number(interval[0])}to{number(interval[1])}"
 
 
@@ -51,6 +55,20 @@ def projection_key(source_key: str, binning: str,
     cut = f"{eta_cut_values[index]:.1f}".replace(".", "p")
     return f"{base.replace('PtEta', 'Eta')}_etaCut{cut}_{binning}_ptAve{_interval_tag(interval)}"
 
+
+
+def standalone_projection_key(source_key, binning, interval):
+    """Persist an unsuffixed pp source without inventing an eta-cut selection."""
+    if source_key != 'hGenDijetPtEtaCM':
+        raise ValueError(f'Unsupported standalone eta source {source_key}')
+    return f'hGenDijetEtaCM_{binning}_ptAve{_interval_tag(interval)}'
+
+
+def load_cached_eta_projection(filename, source_key, binning, interval):
+    if source_key == 'hGenDijetPtEtaCM':
+        _require_cached_interval(filename, binning, interval)
+        return load_produced_histogram(filename, standalone_projection_key(source_key, binning, interval))
+    return load_eta_projection(filename, source_key, binning, interval)
 
 def _source_cut_values(source, keys):
     """Cross-check titles before assigning physical labels to indexed inputs."""
@@ -101,9 +119,24 @@ def resolve_eta_source_key(filename: str | Path, source_key: str) -> str:
         file.Close()
 
 
+
+def _require_cached_interval(filename, binning, interval):
+    file = open_root_file(str(filename))
+    try:
+        obj = file.Get('histogramProductionMetadata')
+        metadata = json.loads(obj.GetTitle()) if obj else {}
+        if metadata.get('selection') not in {'noSel','trkMax','jetId'} or metadata.get('schema_version') not in {2,3}:
+            raise KeyError(f'{filename}: cached projection has no declared selection/schema provenance')
+        intervals = metadata.get('binning', {}).get(binning, [])
+        if tuple(interval) not in [tuple(values) for values in intervals]:
+            raise KeyError(f'{filename}: cached {binning} interval {interval} has no declared provenance; use retained raw TH2')
+    finally:
+        file.Close()
+
 def load_eta_projection(filename: str | Path, source_key: str, binning: str,
                         interval: tuple[float, float]):
     """Read a physical-cut projection, accepting the old index-named key."""
+    _require_cached_interval(filename, binning, interval)
     resolved = resolve_eta_source_key(filename, source_key)
     key = projection_key(source_key, binning, interval)
     try:
@@ -121,7 +154,7 @@ def produced_file(*, category: str, dataset: str, direction: str,
     parts = [category, dataset, direction]
     if trigger is not None:
         parts.append(trigger.lower())
-    return produced_histogram_path(*parts, selection)
+    return scoped_produced_histogram_path(*parts, selection)
 
 
 def source_catalog(base_dir: str | Path = BASE_DIR, *, selection: str = "jetId") -> dict[str, dict]:
@@ -225,13 +258,22 @@ def _write_object(output, obj, name: str) -> None:
 
 
 def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
-    """Produce one dedicated ROOT file from a catalog entry."""
+    """Produce a new dedicated bundle, versioning any existing destination.
+
+    ``overwrite`` remains accepted for call compatibility; validated outputs
+    are never replaced. The returned output is the allocated version's path.
+    """
 
     # This stage caches raw yields and original response objects; it applies
     # neither luminosity/trigger normalization nor unfolding corrections.
     # Recorded source metadata is provenance, not automatic cache invalidation.
     source_path = Path(entry["source"])
-    output_path = Path(entry["output"])
+    from hist_analysis.python.output_naming import unused_version, JET_SELECTIONS
+    if source_path.resolve() == Path(entry["output"]).resolve():
+        raise ValueError("Production output must not overwrite its source")
+    if entry.get('selection') not in JET_SELECTIONS:
+        raise ValueError('Declare the actual source jet selection before production')
+    output_path = unused_version(entry["output"])
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
     if source_path.resolve() == output_path.resolve():
@@ -253,13 +295,13 @@ def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
         # Validate the complete source-cut mapping before opening the output.
         for source_key in eta_keys:
             projection_key(source_key, "standard", DIJET_PTAVE_BINS[0], eta_cut_values=cut_values)
-        output = open_root_file(str(output_path), "RECREATE" if overwrite else "UPDATE")
+        output = open_root_file(str(output_path), "RECREATE")
         for source_key in eta_keys:
             source_histogram = source.Get(source_key)
             if not source_histogram or not source_histogram.InheritsFrom("TH2"):
                 raise TypeError(f"{source_path}:{source_key} is not a TH2")
             for binning, intervals in (
-                ("standard", DIJET_PTAVE_BINS),
+                ("standard", SYSTEMATIC_PTAVE_BINS),
                 ("test", TEST_DIJET_PTAVE_BINS),
             ):
                 for interval in intervals:
@@ -267,6 +309,16 @@ def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
                     projection = project_semantic_th2(
                         source_histogram, "eta", interval, name=key,
                     )
+                    _write_object(output, projection, key)
+                    projected_keys.append(key)
+
+        # Standalone pp has one unsuffixed gen TH2, with no indexed cut.
+        if 'hGenDijetPtEtaCM' in source_keys:
+            raw = source.Get('hGenDijetPtEtaCM')
+            for binning, intervals in (('standard', SYSTEMATIC_PTAVE_BINS), ('test', TEST_DIJET_PTAVE_BINS)):
+                for interval in intervals:
+                    key = standalone_projection_key('hGenDijetPtEtaCM', binning, interval)
+                    projection = project_semantic_th2(raw, 'eta', interval, name=key)
                     _write_object(output, projection, key)
                     projected_keys.append(key)
 
@@ -286,7 +338,10 @@ def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
             copied_keys.append(key)
 
         source_stat = source_path.stat()
+        from hist_analysis.python.output_naming import bundle_selection
         metadata = {
+            "output_selection": bundle_selection(entry.get('selection','jetId'), standalone=entry['category']=='standalone').identity(),
+            "output_created_ns": time.time_ns(),
             "schema_version": 3,
             "hemisphere_convention": "fold full eta bins before normalization; no stored Forward/Backward",
             "eta_cut_index_to_value": dict(enumerate(cut_values)),
@@ -301,7 +356,7 @@ def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
                 "mtime_ns": source_stat.st_mtime_ns,
             },
             "binning": {
-                "standard": DIJET_PTAVE_BINS, "test": TEST_DIJET_PTAVE_BINS,
+                "standard": SYSTEMATIC_PTAVE_BINS, "test": TEST_DIJET_PTAVE_BINS,
                 "interval_convention": "half-open [low, high)",
             },
             "projected_keys": projected_keys,
@@ -347,7 +402,7 @@ def produce_all(entries: Iterable[dict] | None = None) -> list[dict]:
     return [produce_source(entry) for entry in selected]
 
 
-def validate_epps21(path: str | Path = ROOT_FILES_DIR / "epps21_pPb_pp_pdf_scale_uncertainties_symmetric_fitresidual.root") -> dict:
+def validate_epps21(path: str | Path = theory_file('epps21_ct18')) -> dict:
     """Validate the existing theory artifact without changing its bin catalog."""
 
     path = Path(path)
@@ -374,3 +429,112 @@ def load_produced_histogram(filename: str | Path, key: str):
         return _clone_detached(obj)
     finally:
         root_file.Close()
+
+
+def ensure_npdf_projections(entry: dict, *, eta_cut: float = 1.9) -> dict:
+    """Reuse a compatible bundle or extend a copy, preserving previous files.
+
+    Only missing exact nPDF projections are calculated from retained raw TH2s.
+    No normalization, correction, trigger reassignment, or source reprocessing.
+    """
+    from hist_analysis.config.histograms import NPDF_PTAVE_BINS, DIJET_ETA_CUTS
+    from hist_analysis.python.output_naming import unused_version, bundle_selection
+    requested = Path(entry['output'])
+    parts = [entry['category'], entry['dataset'], entry['direction']]
+    if entry['trigger'] is not None:
+        parts.append(entry['trigger'].lower())
+    catalog_target = produced_file(category=entry['category'], dataset=entry['dataset'],
+        direction=entry['direction'], trigger=entry['trigger'], selection=entry['selection'])
+    existing = (find_produced_histogram_file(*parts, entry['selection']) if requested == catalog_target else
+                requested if requested.is_file() else None)
+    if existing is None:
+        raise FileNotFoundError(f'Produce the reusable source first: {requested}')
+    preflight = open_root_file(str(existing))
+    try:
+        obj = preflight.Get('histogramProductionMetadata')
+        if not obj:
+            raise ValueError(f'Cannot extend a cache without source provenance: {existing}')
+        declared = json.loads(obj.GetTitle())
+        for field in ('category','dataset','direction','trigger'):
+            actual, expected_field = declared.get(field), entry[field]
+            if field == 'trigger' and actual is not None and expected_field is not None:
+                actual, expected_field = actual.lower(), expected_field.lower()
+            if actual != expected_field:
+                raise ValueError(f'{existing}: source {field} does not match the requested catalog entry')
+        if declared.get('selection') != entry['selection']:
+            raise ValueError(f'Cache source selection does not match {entry["selection"]}: {existing}')
+        expected = bundle_selection(entry['selection'], standalone=entry['category']=='standalone').identity()
+        from hist_analysis.config.histograms import DIJET_ETA_CUTS, SYSTEMATIC_PTAVE_BINS, TEST_DIJET_PTAVE_BINS
+        actual_table = {int(key):float(value) for key,value in declared['eta_cut_index_to_value'].items()}
+        if actual_table != dict(enumerate(DIJET_ETA_CUTS)):
+            raise ValueError(f'{existing}: archived cut catalog is incompatible with current production')
+        for mode, expected_bins in (('standard',SYSTEMATIC_PTAVE_BINS),('test',TEST_DIJET_PTAVE_BINS)):
+            actual_bins = set(map(tuple, declared.get('binning',{}).get(mode,[])))
+            if not actual_bins <= set(map(tuple,expected_bins)):
+                raise ValueError(f'{existing}: undeclared custom {mode} bin set; explicit production scope is required')
+
+        missing = False
+        table = declared['eta_cut_index_to_value']
+        values = tuple(float(table[str(i)]) for i in range(len(table)))
+        for key in preflight.GetListOfKeys():
+            source_key = key.GetName()
+            match = ETA_KEY_PATTERN.match(source_key)
+            standalone = source_key == 'hGenDijetPtEtaCM'
+            if not standalone and (not match or values[int(match.group(2))] != eta_cut):
+                continue
+            if not preflight.Get(source_key).InheritsFrom('TH2'):
+                continue
+            for interval in NPDF_PTAVE_BINS:
+                name = (standalone_projection_key(source_key,'standard',interval) if standalone else
+                        projection_key(source_key,'standard',interval,eta_cut_values=values))
+                missing |= not bool(preflight.Get(name))
+        if declared.get('output_selection') == expected and not missing and existing.parent.name == 'root' and existing.parent.parent.name == entry['selection']:
+            return dict(output=existing, added=[])
+    finally:
+        preflight.Close()
+    # A fresh named copy records the complete scope; no source or validated
+    # reusable file is modified, including during additive extension.
+    output_path = unused_version(requested)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(existing, output_path)
+    file = open_root_file(str(output_path), 'UPDATE')
+    added = []
+    try:
+        metadata_object = file.Get('histogramProductionMetadata')
+        if not metadata_object:
+            raise KeyError(f'Missing production metadata: {output_path}')
+        metadata = json.loads(metadata_object.GetTitle())
+        table = metadata['eta_cut_index_to_value']
+        indices = [int(i) for i, value in table.items() if float(value) == eta_cut]
+        if len(indices) != 1:
+            raise ValueError(f'{output_path}: no unique eta cut {eta_cut}')
+        index = indices[0]
+        keys = [key.GetName() for key in file.GetListOfKeys()]
+        for source_key in keys:
+            match = ETA_KEY_PATTERN.match(source_key)
+            standalone = source_key == 'hGenDijetPtEtaCM'
+            if not standalone and (not match or int(match.group(2)) != index):
+                continue
+            source = file.Get(source_key)
+            if not source.InheritsFrom('TH2'):
+                continue
+            values = tuple(float(table[str(i)]) for i in range(len(table)))
+            for interval in NPDF_PTAVE_BINS:
+                key = (standalone_projection_key(source_key, 'standard', interval) if standalone else
+                       projection_key(source_key, 'standard', interval, eta_cut_values=values))
+                if file.Get(key):
+                    continue
+                projection = project_semantic_th2(source, 'eta', interval, name=key)
+                _write_object(file, projection, key)
+                added.append(key)
+        metadata['projected_keys'] = list(dict.fromkeys((*metadata['projected_keys'], *added)))
+        existing = [tuple(v) for v in metadata['binning']['standard']]
+        metadata['binning']['standard'] = list(dict.fromkeys((*existing, *NPDF_PTAVE_BINS)))
+        metadata['output_selection'] = bundle_selection(entry.get('selection','jetId'), standalone=entry['category']=='standalone').identity()
+        metadata['output_created_ns'] = time.time_ns()
+        file.cd()
+        ROOT.TNamed('histogramProductionMetadata', json.dumps(metadata, sort_keys=True)).Write(
+                'histogramProductionMetadata', ROOT.TObject.kOverwrite)
+    finally:
+        file.Close()
+    return dict(output=output_path, added=added)

@@ -12,6 +12,7 @@ Requirements:
 
 import os
 import json
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -85,8 +86,27 @@ def produced_histogram_path(*parts: str) -> Path:
             / "produced_histograms" / ("_".join(parts) + ".root"))
 
 
+def scoped_produced_histogram_path(*parts: str) -> Path:
+    """Selection/bin-set-specific bundle name; the old resolver remains supported."""
+    from hist_analysis.python.output_naming import bundle_filename, JET_SELECTIONS, output_date
+    if not parts or parts[-1] not in JET_SELECTIONS:
+        raise ValueError('Declare the actual selection in the reusable bundle name')
+    legacy = produced_histogram_path(*parts)
+    directory = legacy.parent / output_date() / parts[-1]
+    (directory / 'mplhep').mkdir(parents=True, exist_ok=True)
+    return directory / 'root' / bundle_filename(legacy.name, parts[-1], standalone=parts[0] == 'standalone')
+
+
 def find_produced_histogram_file(*parts: str) -> Path | None:
     """Prefer canonical bundles, accepting legacy double-underscore filenames."""
+    from hist_analysis.python.output_naming import JET_SELECTIONS
+    if parts and parts[-1] in JET_SELECTIONS:
+        scoped = scoped_produced_histogram_path(*parts)
+        base = produced_histogram_path(*parts).parent
+        versions = list(base.rglob(scoped.name)) + list(base.rglob(scoped.stem+'_v*.root'))
+        versions = [p for p in versions if p.is_file() and (p.name == scoped.name or re.search(r'_v[0-9]+$',p.stem))]
+        if versions:
+            return max(versions, key=lambda p: (p.stat().st_mtime_ns, str(p)))
     canonical = produced_histogram_path(*parts)
     legacy = canonical.parent / ("__".join(parts) + ".root")
     return next((path for path in (canonical, legacy) if path.is_file()), None)
@@ -119,13 +139,18 @@ def resolve_histogram_input(original: Path, *parts: str, selection: str = "jetId
             expected = dict(zip(("category", "dataset", "direction", "trigger"), parts))
             expected["selection"] = selection
             for field, value in expected.items():
-                actual = metadata.get(field, "jetId" if field == "selection" else None)
+                actual = metadata.get(field)
                 if field == "trigger" and actual is not None:
                     actual = actual.lower()
                 if actual != value:
                     raise ValueError(f"{produced}: requested {field}={value!r}, metadata has {actual!r}")
         finally:
             file.Close()
+        if 'output_selection' in metadata:
+            from hist_analysis.python.output_naming import bundle_selection
+            expected_scope = bundle_selection(selection, standalone=parts[0]=='standalone').identity()
+            if metadata['output_selection'] != expected_scope:
+                raise ValueError(f'{produced}: reusable selection/bin-set identity mismatch')
         table = metadata.get("eta_cut_index_to_value")
         if table:
             from hist_analysis.config.histograms import DIJET_ETA_CUTS

@@ -72,7 +72,7 @@ def build_output_file(config: RunnerConfig, pt_hat_sample: int) -> Path:
 
 # One invocation per pT-hat input. Producer normalization uses that invocation's
 # entry count, so any future per-file splitting needs a sample-level convention
-# before merging (PHYSICS_REVIEW.md P04).
+# before merging (review/PHYSICS_REVIEW.md P04).
 def build_command(config: RunnerConfig, pt_hat_sample: int) -> list[str]:
     input_file = build_input_file(config, pt_hat_sample)
     output_file = build_output_file(config, pt_hat_sample)
@@ -98,6 +98,8 @@ def run_sample_task(task: tuple[RunnerConfig, int]) -> SampleResult:
     output_file = build_output_file(config, pt_hat_sample)
 
     if not input_file.exists():
+        # Missing inputs are reported as skipped, but print_summary currently
+        # returns success unless an executable invocation itself failed.
         return SampleResult(
             pt_hat_sample=pt_hat_sample,
             status="skipped",
@@ -111,6 +113,8 @@ def run_sample_task(task: tuple[RunnerConfig, int]) -> SampleResult:
 
     print(f"\nRunning ptHat {pt_hat_sample}:")
     print(" ".join(command))
+    # The producer opens outputs with ROOT's RECREATE mode. This local runner
+    # does not preflight existing output paths, so reruns replace prior files.
     completed = subprocess.run(command, cwd=ROOT_DIR)
     status = "succeeded" if completed.returncode == 0 else "failed"
 

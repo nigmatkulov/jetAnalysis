@@ -342,7 +342,8 @@ def save_canvas(
                 if graph.GetName().startswith('g_data_total_'):
                     from hist_analysis.python.data_mc_plotting import draw_mpl_systematic_brackets
                     draw_mpl_systematic_brackets(axis, arrays, _root_color(graph.GetLineColor()))
-                elif graph.GetName().startswith("g_epps21_") and "_total_" in graph.GetName():
+                elif ((graph.GetName().startswith("g_epps21_") and "_total_" in graph.GetName())
+                      or graph.GetName().startswith("g_mc_stat_total_")):
                     import ROOT
                     color = _root_color(graph.GetLineColor())
                     alpha = ROOT.gROOT.GetColor(graph.GetFillColor()).GetAlpha()
@@ -350,7 +351,7 @@ def save_canvas(
                     for i, (x, y) in enumerate(zip(arrays["x"], arrays["y"])):
                         bounds = [x-arrays["xlow"][i], x+arrays["xhigh"][i]]
                         axis.fill_between(bounds, y-arrays["ylow"][i], y+arrays["yhigh"][i],
-                                          color=color, alpha=alpha, linewidth=0, zorder=1,
+                                          color=color, alpha=alpha, hatch=hatch, edgecolor=color, linewidth=0, zorder=1,
                                           label=legend_labels.get(graph.GetName()) if i == 0 else "_nolegend_")
                 else:
                     axis.fill_between(

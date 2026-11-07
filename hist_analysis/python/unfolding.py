@@ -437,7 +437,13 @@ def flatten_sparse_response(
     reco_eta_axis: int = 3,
     eta_range: tuple[float, float] | None = None,
 ):
-    """Flatten a (gen pT, gen eta, reco pT, reco eta) THnSparse response."""
+    """Flatten a (gen pT, gen eta, reco pT, reco eta) THnSparse response.
+
+    This helper models the geometric four-coordinate response. Extra sparse
+    dimensions are integrated by ROOT's projection; in particular it must not
+    consume the extended response's truth-category axis, which needs its own
+    category-resolved rectangular layout (see UNFOLDING_EXTENDED.md).
+    """
 
     if not sparse_response.InheritsFrom("THnSparse"):
         raise TypeError(f"{sparse_response.GetName()} is not a THnSparse")
@@ -528,7 +534,12 @@ def project_response_eta_blocks(
     reco_pt_axis: int = 2,
     reco_eta_axis: int = 3,
 ) -> list:
-    """Project diagonal eta-response blocks for pT-interval diagnostics."""
+    """Project diagonal eta-response blocks for pT-interval diagnostics.
+
+    These blocks omit cross-pT migrations and cannot replace the full flattened
+    response. This legacy diagnostic clears the input pT-axis range selections
+    on return; callers needing prior selections must use a dedicated clone.
+    """
 
     if not sparse_response.InheritsFrom("THnSparse"):
         raise TypeError(f"{sparse_response.GetName()} is not a THnSparse")

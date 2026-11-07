@@ -52,6 +52,26 @@ class StoredDataTotalTests(unittest.TestCase):
         (self.base/'full'/'other_ptave_50_60_provenance.json').write_text(self.manifest.read_text())
         with self.assertRaisesRegex(ValueError,'found 2'):self.load()
 
+    def test_identical_declared_totals_across_layout_tags(self):
+        from hist_analysis.python.output_naming import OutputDirectory, OutputSelection
+        import hashlib
+        record = dict(self.record, sha256=hashlib.sha256(b'verified source').hexdigest())
+        outputs = []
+        for tag in ('old', 'new'):
+            directory = OutputDirectory(self.base, OutputSelection('jetId',1.9,[(50,60)]))/'full'
+            stem = f'example_full_cfg_{tag}_ptave_50_60'
+            manifest = directory/(stem+'_provenance.json')
+            manifest.write_text(json.dumps([record]))
+            total = directory/(stem+'_total.csv')
+            np.savetxt(total,[[-.5,1,.5,.02],[.5,1,.5,.03]],delimiter=',')
+            (directory/(stem+'.csv')).write_text('x_low,x_high,total\n-1,0,.02\n0,1,.03\n')
+            outputs.append((manifest,total))
+        self.assertEqual(self.load()['provenance'],outputs[-1][0])
+        self.assertEqual(self.load(configuration='cfg_new')['provenance'],outputs[-1][0])
+        # Equal metadata is insufficient if any resulting uncertainty differs.
+        np.savetxt(outputs[-1][1],[[-.5,1,.5,.04],[.5,1,.5,.03]],delimiter=',')
+        with self.assertRaisesRegex(ValueError,'found 2'):self.load()
+
     def test_percent_metadata_is_not_treated_as_fraction(self):
         self.record['units']='percent';self.manifest.write_text(json.dumps([self.record]))
         with self.assertRaises(ValueError):self.load()
