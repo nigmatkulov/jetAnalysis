@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 from typing import Iterable, Mapping
 
 import ROOT
@@ -55,6 +56,8 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
                  legend_text_size: float | None = None,
                  right_margin: float | None = None,
                  curve_styles: Mapping[str, tuple[int, int]] | None = None,
+                 curve_line_styles: Mapping[str, int] | None = None,
+                 mirror_root_style: bool = False,
                  cms_header_left: str | None = None,
                  cms_header_right: str | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
@@ -92,7 +95,8 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
         if overlay_text_size <= 0.0:
             raise ValueError("overlay_text_size must be positive")
 
-    suffix = str(abs(hash(canvas_name or title)))
+    # ROOT deletes an existing same-name canvas, invalidating retained proxies.
+    suffix = f'{abs(hash(canvas_name or title))}_{uuid4().hex}'
     canvas = ROOT.TCanvas(
         f"c_overlay_{suffix}", title,
         style.canvas_width, style.canvas_height,
@@ -103,6 +107,9 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
     if right_margin is not None:
         canvas.SetRightMargin(right_margin)
     canvas.SetLogy(log_y)
+    canvas._mirror_root_style = mirror_root_style
+    if mirror_root_style:
+        canvas.SetCanvasSize(style.canvas_width, style.canvas_height)
 
     maximum = max(
         histogram.GetBinContent(bin_index) + histogram.GetBinError(bin_index)
@@ -131,8 +138,13 @@ def draw_overlay(histograms: Mapping[str, object], *, title: str,
             histogram.SetMaximum(y_range[1])
         else:
             histogram.SetMaximum(maximum * (20.0 if log_y else headroom))
-        histogram.Draw("E1" if index == 0 else "E1 SAME")
-        legend.AddEntry(histogram, label, "p")
+        draw_option = "E1"
+        line_style = (curve_line_styles or {}).get(label)
+        if line_style is not None:
+            histogram.SetLineStyle(line_style)
+            draw_option += " L"
+        histogram.Draw(draw_option if index == 0 else f"{draw_option} SAME")
+        legend.AddEntry(histogram, label, "lp" if line_style is not None else "p")
     drawn_functions = []
     for label, function in (overlay_functions or {}).items():
         function.SetLineColor(histograms[label].GetLineColor())
@@ -197,12 +209,14 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
                  ratio_option: str = "",
                  ratio_pairs: Mapping[str, tuple[str, str]] | None = None,
                  ratio_y_title: str | None = None,
+                 legend_labels: Mapping[str, str] | None = None,
                  legend_bounds: tuple[float, float, float, float] | None = None,
                  annotation_x: float | None = None,
                  annotation_y: float | None = None,
                  right_margin: float | None = None,
                  style_indices: Mapping[str, int] | None = None,
                  curve_styles: Mapping[str, tuple[int, int]] | None = None,
+                 mirror_root_style: bool = False,
                  cms_header_left: str | None = None,
                  cms_header_right: str | None = None,
                  style: PlotStyle = DEFAULT_PLOT_STYLE):
@@ -212,6 +226,7 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
     ``ratio_pairs`` optionally maps displayed ratio labels to explicit
     ``(numerator, denominator)`` histogram labels instead of dividing every
     curve by ``nominal``.
+    ``legend_labels`` overrides display text without changing curve keys.
     ``ratio_y_title`` overrides the automatically generated lower-panel title.
     ``legend_bounds`` and the annotation coordinates allow crowded overlays to
     reserve separate non-overlapping regions for labels.
@@ -264,10 +279,13 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
     if y_range is not None and y_range[0] >= y_range[1]:
         raise ValueError("y_range must satisfy low < high")
     annotation_lines = tuple(annotations)
-    suffix = str(abs(hash(canvas_name or title)))
+    display_labels = legend_labels or {}
+    # ROOT deletes an existing same-name canvas, invalidating retained proxies.
+    suffix = f'{abs(hash(canvas_name or title))}_{uuid4().hex}'
     canvas = ROOT.TCanvas(
         f"c_{suffix}", title, style.canvas_width, style.canvas_height,
     )
+    canvas._mirror_root_style = mirror_root_style
     top = ROOT.TPad(
         f"top_{suffix}", "top", 0.0, style.ratio_fraction, 1.0, 1.0,
     )
@@ -321,7 +339,7 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
             histogram.SetMinimum(y_range[0])
             histogram.SetMaximum(y_range[1])
         histogram.Draw("E1" if index == 0 else "E1 SAME")
-        legend.AddEntry(histogram, label, "p")
+        legend.AddEntry(histogram, display_labels.get(label, label), "p")
     legend.Draw()
     annotation_objects = draw_text_block(
         top, annotation_lines, x=annotation_x, y=annotation_y, style=style,
@@ -372,7 +390,7 @@ def draw_closure(histograms: Mapping[str, object], nominal: str, *, title: str,
         ratio.SetTitle("")
         ratio.GetYaxis().SetTitle(
             ratio_y_title or (
-                "Ratio" if ratio_pairs is not None else f"Ratio to {nominal}"
+                "Ratio" if ratio_pairs is not None else f"Ratio to {display_labels.get(nominal, nominal)}"
             )
         )
         ratio.GetXaxis().SetTitle(x_title)

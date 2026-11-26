@@ -116,6 +116,29 @@ class UnfoldingHelpersTest(unittest.TestCase):
         self.assertAlmostEqual(restricted.GetXaxis().GetBinCenter(1), -1.9)
         self.assertAlmostEqual(restricted.GetXaxis().GetBinCenter(20), 1.9)
 
+    def test_flatten_response_preserves_eta_bin_indices_with_active_ranges(self):
+        sparse = ROOT.THnSparseD(
+            "active_eta_response", "", 4,
+            array("i", [2, 6, 2, 6]),
+            array("d", [0., -3., 0., -3.]),
+            array("d", [80., 3., 80., 3.]),
+        )
+        sparse.Sumw2()
+        sparse.Fill(array("d", [20., -1.5, 60., 1.5]), 3.)
+        sparse.Fill(array("d", [20., -2.5, 60., 1.5]), 5.)
+        for axis in (1, 3):
+            sparse.GetAxis(axis).SetRange(2, 5)
+        response, layout = flatten_sparse_response(
+            sparse, (0, 40, 80), eta_range=(-2., 2.),
+        )
+        reco_bin, gen_bin = layout.global_bin(1, 4), layout.global_bin(0, 1)
+        self.assertEqual(response.Integral(), 3.)
+        self.assertEqual(response.GetBinContent(reco_bin, gen_bin), 3.)
+        self.assertEqual(response.GetBinError(reco_bin, gen_bin), 3.)
+        for axis in (1, 3):
+            self.assertEqual(sparse.GetAxis(axis).GetFirst(), 2)
+            self.assertEqual(sparse.GetAxis(axis).GetLast(), 5)
+
     def test_flatten_response_preserves_source_pt_ranges(self):
         sparse = ROOT.THnSparseD(
             "range_preservation_response", "", 4,

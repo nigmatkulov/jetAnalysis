@@ -10,7 +10,7 @@ import warnings
 
 from IPython.display import display
 
-from hist_analysis.python.data_distributions import project_data_histogram
+from hist_analysis.python.data_distributions import project_data_histogram, data_selection_annotations
 from hist_analysis.python.histogram_ops import normalize_histogram, ratio_to_nominal
 from hist_analysis.python.plotting import draw_overlay
 
@@ -45,6 +45,8 @@ def draw_run_dependence(
     save_png: bool,
     grid: bool,
     style,
+    selection: str | None = None,
+    jet_eta_cut: float | None = None,
 ):
     """Draw normalized run overlays and separate ratios to the inclusive run set.
 
@@ -90,13 +92,14 @@ def draw_run_dependence(
             continue
         annotations = (
             "pPb 8.16 TeV data", trigger,
+            *data_selection_annotations(selection, jet_eta_cut=jet_eta_cut),
             f"{low:g} #leq p_{{T}}^{{ave}} < {high:g} GeV",
         )
         overlay_canvas = draw_overlay(
             histograms, title="", x_title="#eta_{CM}^{dijet}",
             y_title="1/N dN/d#eta_{CM}^{dijet}", x_range=eta_range,
             annotations=annotations, style_indices=style_indices,
-            grid=grid, style=style, headroom=1.55,
+            grid=grid, style=style, headroom=1.9,
             output=output / f"{sample_tag}_dijet_etaCM_run_overlay_ptave_{pt_tag}.pdf",
             save_png=save_png,
             canvas_name=f"{sample_tag}_dijet_etaCM_run_overlay_{pt_tag}",

@@ -162,10 +162,15 @@ def selection_lines(project_root, interval, *, eta_cut, direction, selection):
     if 'ak4PFJetAnalyzer/t' not in producer:
         raise ValueError('Cannot verify anti-kT R=0.4 collection')
     low, high = interval
-    return ('#it{anti}-k_{T} R = 0.4',
+    lines = ('#it{anti}-k_{T} R = 0.4',
             f'p_{{T,1}} #geq {lead:g}, p_{{T,2}} #geq {sub:g} GeV',
             f'|#eta_{{CM}}^{{jet}}| #leq {eta_cut:g}; |#Delta#phi_{{1,2}}| #geq {angular}',
             f'{low:g} #leq p_{{T}}^{{ave}} < {high:g} GeV')
+    # pp theory/CP5 curves are generator level: their catalog's reco method
+    # does not represent an applied generator-jet ID requirement.
+    if direction != 'pp':
+        lines += (f'Data reco jet selection: {selection}',)
+    return lines
 
 
 def decorate_pad(pad, histograms, *, totals=(), annotations=(), labels=None,
@@ -407,6 +412,53 @@ def draw_comparison_figure(histograms, *, name, x_title, y_title, x_range,
         legend.SetTextSize(legend_text_size)
     legend.SetY2NDC(legend_top)
     legend.SetY1NDC(legend_top - .05 * legend.GetNRows())
+    # Fixed F/B display windows can place high-eta points under the legend.
+    # Choose an empty corner using displayed bin/error extents; reserve the
+    # upper-left corner for the explicitly supplied selection block.
+    if not log_y:
+        height = .05 * legend.GetNRows()
+        bottom = canvas.GetBottomMargin() + .035
+        candidates = [(.56, legend_top-height, .94, legend_top, 'upper right'),
+                      (.56, bottom, .94, bottom+height, 'lower right'),
+                      (canvas.GetLeftMargin()+.025, bottom, .53, bottom+height, 'lower left')]
+        canvas.Update()
+        ymin, ymax = canvas.GetUymin(), canvas.GetUymax()
+        left, right = canvas.GetLeftMargin(), 1-canvas.GetRightMargin()
+        lowpad, highpad = canvas.GetBottomMargin(), 1-canvas.GetTopMargin()
+        def overlaps(bounds):
+            x1,y1,x2,y2,_ = bounds
+            count = 0
+            for h in copies.values():
+                for i in range(1,h.GetNbinsX()+1):
+                    y = h.GetBinContent(i)
+                    if not math.isfinite(y) or y == 0:
+                        continue
+                    xl = left+(h.GetXaxis().GetBinLowEdge(i)-x_range[0])/(x_range[1]-x_range[0])*(right-left)
+                    xh = left+(h.GetXaxis().GetBinUpEdge(i)-x_range[0])/(x_range[1]-x_range[0])*(right-left)
+                    yl = lowpad+(y-h.GetBinError(i)-ymin)/(ymax-ymin)*(highpad-lowpad)
+                    yh = lowpad+(y+h.GetBinError(i)-ymin)/(ymax-ymin)*(highpad-lowpad)
+                    count += xl < x2 and xh > x1 and yl < y2 and yh > y1
+            for graph in canvas.GetListOfPrimitives():
+                if not graph.InheritsFrom('TGraph'):
+                    continue
+                for i in range(graph.GetN()):
+                    x, y = graph.GetPointX(i), graph.GetPointY(i)
+                    if not (math.isfinite(x) and math.isfinite(y)):
+                        continue
+                    exl = graph.GetErrorXlow(i) if hasattr(graph, 'GetErrorXlow') else 0.
+                    exh = graph.GetErrorXhigh(i) if hasattr(graph, 'GetErrorXhigh') else 0.
+                    eyl = graph.GetErrorYlow(i) if hasattr(graph, 'GetErrorYlow') else 0.
+                    eyh = graph.GetErrorYhigh(i) if hasattr(graph, 'GetErrorYhigh') else 0.
+                    xl = left+(x-exl-x_range[0])/(x_range[1]-x_range[0])*(right-left)
+                    xh = left+(x+exh-x_range[0])/(x_range[1]-x_range[0])*(right-left)
+                    yl = lowpad+(y-eyl-ymin)/(ymax-ymin)*(highpad-lowpad)
+                    yh = lowpad+(y+eyh-ymin)/(ymax-ymin)*(highpad-lowpad)
+                    count += xl < x2 and xh > x1 and yl < y2 and yh > y1
+            return count
+        chosen = min(candidates, key=overlaps)
+        legend.SetX1NDC(chosen[0]); legend.SetY1NDC(chosen[1])
+        legend.SetX2NDC(chosen[2]); legend.SetY2NDC(chosen[3])
+        canvas._comparison_legend_location = chosen[4]
     canvas._comparison_figure_objects = [frame, *copies.values(), *extras]
     canvas.Modified(); canvas.Update()
     save_canvas(canvas, output, save_png=save_png)

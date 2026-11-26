@@ -213,7 +213,8 @@ def draw_event_histograms(histograms: Mapping[str, object], *, title: str,
                           y_title: str | None = None,
                           y_range: tuple[float, float] | None = None,
                           generator_label: str | None = None,
-                          orientation_label: str | None = None):
+                          orientation_label: str | None = None,
+                          legend_labels: Mapping[str, str] | None = None):
     """Draw event-level TH1 histograms with the requested normalization."""
 
     if not histograms:
@@ -244,7 +245,7 @@ def draw_event_histograms(histograms: Mapping[str, object], *, title: str,
         if y_range is not None:
             histogram.GetYaxis().SetRangeUser(*y_range)
         histogram.Draw("E1" if index == 0 else "E1 SAME")
-        legend.AddEntry(histogram, label, "p")
+        legend.AddEntry(histogram, (legend_labels or {}).get(label, label), "p")
     legend.Draw()
     context_text = _draw_plot_context(generator_label, orientation_label)
     canvas.Update()
@@ -348,7 +349,7 @@ def draw_overweight_map(histogram, *, title: str, fit=None, grid: bool = True,
     histogram.GetXaxis().SetTitle("#hat{p}_{T} (GeV)")
     histogram.GetYaxis().SetTitle(y_title)
     set_2d_style(histogram)
-    histogram.Draw("COLZ")
+    histogram.Draw("COLZ1")
     canvas.Update()
     palette = set_palette_style(histogram, width=palette_width)
 

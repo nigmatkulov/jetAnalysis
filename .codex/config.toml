@@ -2,7 +2,7 @@ model = "gpt-6.1-sol"
 model_reasoning_effort = "low"
 
 [agents]
-enabled = true
+enabled = false
 max_concurrent_threads_per_session = 3
 
 [mcp_servers.root_cern]

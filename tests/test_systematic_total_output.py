@@ -86,7 +86,7 @@ class TotalOutputTest(unittest.TestCase):
             self.assertNotIn('Simulation',texts)
             self.assertIn('Data',texts)
             self.assertIn('Embedding MC',texts)
-            self.assertIn('Combined',texts)
+            self.assertNotIn('combined',texts.lower())
             self.assertEqual(ax.get_ylim(),(0,5))
             self.assertEqual(tuple(fig.get_size_inches()),(8,8))
         finally:

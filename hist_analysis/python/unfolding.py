@@ -500,7 +500,9 @@ def flatten_sparse_response(
                 # ROOT Projection(yDim, xDim): output x=reco, y=truth. This
                 # reverses the sparse storage ordering intentionally to match
                 # RooUnfold's measured-on-x response convention.
-                block = sparse_response.Projection(gen_eta_axis, reco_eta_axis)
+                # Keep source eta bin indices even when a target axis has an
+                # active range. ROOT still applies the range to the entries.
+                block = sparse_response.Projection(gen_eta_axis, reco_eta_axis, "EO")
                 for local_gen_eta, source_gen_eta in enumerate(gen_eta_bins, 1):
                     global_gen = layout.global_bin(gen_pt_index, local_gen_eta)
                     for local_reco_eta, source_reco_eta in enumerate(reco_eta_bins, 1):
@@ -609,31 +611,30 @@ def calculate_response_diagnostics(
     matched_truth.SetDirectory(0)
     # Inclusive-minus-matched counts also recover events absent from older
     # producer miss fills (P02, now fixed). The residual over explicit misses need not
-    # be solely an acceptance-boundary migration. TH1::Add treats operands as
-    # independent for errors, although the matched population is a subset;
-    # these diagnostic error bars are not subset-covariance estimates.
-    effective_miss = training_truth.Clone(f"{response.GetName()}EffectiveMiss")
-    effective_miss.Add(matched_truth, -1.0)
-    effective_fake = training_measured.Clone(f"{response.GetName()}EffectiveFake")
-    effective_fake.Add(matched_measured, -1.0)
-    for histogram in (effective_miss, effective_fake):
-        histogram.SetDirectory(0)
+    # be solely an acceptance-boundary migration.
+    def subtract_subset(total, subset, suffix):
+        remainder = total.Clone(f"{response.GetName()}{suffix}")
+        remainder.SetDirectory(0)
+        remainder.Add(subset, -1.0)
+        for index in range(remainder.GetNbinsX() + 2):
+            variance = total.GetBinError(index)**2 - subset.GetBinError(index)**2
+            remainder.SetBinError(index, math.sqrt(max(variance, 0.0)))
+        return remainder
+
+    effective_miss = subtract_subset(training_truth, matched_truth, "EffectiveMiss")
+    effective_fake = subtract_subset(training_measured, matched_measured, "EffectiveFake")
     _assert_no_negative_bins(effective_miss, "Effective miss", tolerance)
     _assert_no_negative_bins(effective_fake, "Effective fake", tolerance)
 
     boundary_miss = None
     if explicit_miss is not None:
         validate_common_binning([effective_miss, explicit_miss], label="miss diagnostics")
-        boundary_miss = effective_miss.Clone(f"{response.GetName()}BoundaryMiss")
-        boundary_miss.Add(explicit_miss, -1.0)
-        boundary_miss.SetDirectory(0)
+        boundary_miss = subtract_subset(effective_miss, explicit_miss, "BoundaryMiss")
         _assert_no_negative_bins(boundary_miss, "Boundary-migration miss", tolerance)
     boundary_fake = None
     if explicit_fake is not None:
         validate_common_binning([effective_fake, explicit_fake], label="fake diagnostics")
-        boundary_fake = effective_fake.Clone(f"{response.GetName()}BoundaryFake")
-        boundary_fake.Add(explicit_fake, -1.0)
-        boundary_fake.SetDirectory(0)
+        boundary_fake = subtract_subset(effective_fake, explicit_fake, "BoundaryFake")
         _assert_no_negative_bins(boundary_fake, "Boundary-migration fake", tolerance)
     return ResponseDiagnostics(
         matched_truth, matched_measured, effective_miss, effective_fake,
@@ -732,6 +733,7 @@ def build_roounfold_response(
     diagnostics: ResponseDiagnostics | None = None,
     scale: float = 1.0e12,
     require_fakes: bool = True,
+    matched_only: bool = False,
     validation_tolerance: float = 1.0e-9,
     name: str = "responseEtaCM",
     title: str = "Flattened dijet pTave-etaCM response",
@@ -740,8 +742,9 @@ def build_roounfold_response(
 
     For the conventional path, pass inclusive truth/reco; RooUnfold then infers
     misses and fakes from their differences with the matrix projections.  For
-    the factorized path, pass matched truth/reco and ``require_fakes=False``;
-    the response then contains migration probabilities only.
+    the factorized path, pass matched truth/reco, ``require_fakes=False`` and
+    ``matched_only=True``. RooUnfold derives both marginals from the matrix,
+    so floating-point subtraction cannot create a spurious fake population.
 
     All inputs are cloned before scaling, so caller-owned analysis histograms
     remain unchanged.  ``roounfold_module`` is retained in the public interface
@@ -767,9 +770,18 @@ def build_roounfold_response(
     for histogram in (scaled_truth, scaled_measured, scaled_matrix):
         histogram.SetDirectory(0)
         histogram.Scale(scale)
+    measured_template, truth_template = scaled_measured, scaled_truth
+    if matched_only:
+        measured_template = scaled_measured.Clone(f"{name}MeasuredTemplate")
+        truth_template = scaled_truth.Clone(f"{name}TruthTemplate")
+        for template in (measured_template, truth_template):
+            template.SetDirectory(0)
+            template.Reset()
     response = ROOT.RooUnfoldResponse(
-        scaled_measured, scaled_truth, scaled_matrix, name, title,
+        measured_template, truth_template, scaled_matrix, name, title,
     )
+    if matched_only and response.HasFakes():
+        raise RuntimeError("The matched-only RooUnfold response contains fakes")
     if require_fakes and not response.HasFakes():
         raise RuntimeError("The RooUnfold response has no fake component")
     if diagnostics is not None:

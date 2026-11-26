@@ -39,6 +39,16 @@ class HistogramProductionTest(unittest.TestCase):
             result = produce_source(dict(source=source, output=output,
                 category='official_mc', dataset='fixture', direction='pp', trigger=None, selection='jetId'))
             self.assertEqual(result['copied'], 3)
+            first_mtime = output.stat().st_mtime_ns
+            repeated = produce_source(dict(source=source, output=output,
+                category='official_mc', dataset='fixture', direction='pp', trigger=None, selection='jetId'))
+            self.assertEqual(repeated['output'], output)
+            self.assertGreaterEqual(output.stat().st_mtime_ns, first_mtime)
+            self.assertEqual(list(output.parent.glob('*.root')), [output])
+            with self.assertRaises(FileExistsError):
+                produce_source(dict(source=source, output=output,
+                    category='official_mc', dataset='fixture', direction='pp', trigger=None,
+                    selection='jetId'), overwrite=False)
             file = ROOT.TFile.Open(str(output))
             try:
                 projected = file.Get(projection_key(key, 'standard', (60, 70)))

@@ -123,12 +123,14 @@ runner's success check; it does not reopen and validate the ROOT file.
 `pPb8160_analyzeMc_Pbgoing.py` and `pPb8160_analyzeMc_pgoing.py` use
 `pPb8160_runner.py` to process the preset pT-hat samples sequentially by
 default; `--workers N` opts into concurrent executable processes. Their input
-and output locations are derived from the defaults in `pPb8160_runner.py`.
-Unlike the pp CP5 runner, this runner has no dry-run or existing-output guard.
-The producer opens each ROOT output in `RECREATE` mode, so rerunning an
-available sample replaces that sample's existing output. Choose a separate
-output location in `RunnerConfig` before rerunning if the previous output must
-be retained.
+and default output locations are derived from `pPb8160_runner.py`. Use
+`--output-dir` with a fresh output base and preview commands with `--dry-run`.
+The preview prints each command, reports existing outputs, and returns a
+nonzero status when any input is missing. Use `--executable` to select a
+different build. During an
+actual run the producer opens each ROOT output in `RECREATE` mode, so
+rerunning with the same output path replaces the existing file. Use
+`--eta-dependent-jer` for the eta-dependent unfolding train/test campaign.
 
 Missing pT-hat input files are reported as skipped, but the current runner
 returns success when there are no executable failures, even if one or more

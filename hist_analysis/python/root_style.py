@@ -7,7 +7,7 @@ from hist_analysis.python.output_naming import mplhep_output_path
 from dataclasses import dataclass
 import os
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 import ROOT
 
@@ -29,21 +29,21 @@ MARKERS = (20, 21, 20, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 43, 44)
 # Semantic colors for gen/reco unfolding diagnostics. Keep these mappings in
 # one place so a physics role has the same appearance in every notebook panel.
 UNFOLDING_COLORS = {
-    "gen": ROOT.kBlue,
+    "gen": ROOT.kGreen + 2,
     "ref": ROOT.kMagenta + 1,
     "reco": ROOT.kRed,
     "miss": ROOT.kOrange + 7,
     "fake": ROOT.kGreen + 2,
-    "unfolded": ROOT.kBlack,
+    "unfolded": ROOT.kBlue,
 }
 
 UNFOLDING_MARKERS = {
-    "gen": 21,
+    "gen": 22,
     "ref": 23,
     "reco": 20,
     "miss": 24,
     "fake": 25,
-    "unfolded": 22,
+    "unfolded": 24,
 }
 
 
@@ -349,11 +349,15 @@ def _clear_canvas_titles(pad) -> None:
 
 def save_canvas(canvas, pdf_path: str | Path | None, *, save_png: bool = False,
                 mplhep_x_range: tuple[float, float] | None = None,
-                mplhep_y_range: tuple[float, float] | None = None) -> None:
+                mplhep_y_range: tuple[float, float] | None = None,
+                mplhep_style_indices: Mapping[str, int] | None = None,
+                mplhep_reference_y: float | None = None) -> None:
     """Save PDF and, when requested, a same-named PNG."""
 
     if pdf_path is None:
         return
+    from hist_analysis.python.notebook_output import capture_canvas
+    capture_canvas(canvas, pdf_path)
     if _DEFAULT_CMS_HEADER_LEFT or _DEFAULT_CMS_HEADER_RIGHT:
         _clear_canvas_titles(canvas)
     if (
@@ -381,4 +385,5 @@ def save_canvas(canvas, pdf_path: str | Path | None, *, save_png: bool = False,
             cms_header_right=_DEFAULT_CMS_HEADER_RIGHT or PPB_HEADER_RIGHT,
             save_png=_SAVE_MPLHEP_PNG,
             x_range=mplhep_x_range, y_range=mplhep_y_range,
+            style_indices=mplhep_style_indices, reference_y=mplhep_reference_y,
         )

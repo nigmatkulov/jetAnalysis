@@ -27,6 +27,16 @@ class OutputNamingTests(unittest.TestCase):
                 self.assertNotIn('__', native.name)
                 self.assertNotIn('__', rendered.name)
 
+    def test_explicit_date_directory_stays_fixed(self):
+        with tempfile.TemporaryDirectory() as d:
+            context = OutputSelection('jetId', 1.9, [(80, 90)])
+            configured = Path(d)/'2025-01-02'/'jetId'/'root'
+            first = OutputDirectory(configured, context)/'plot.pdf'
+            second = OutputDirectory(configured, context)/'plot.pdf'
+            self.assertEqual(first, second)
+            self.assertEqual(first.parent, configured)
+            self.assertEqual(first.name, 'jetId_etaCM1p9_ptAve80to90_plot.pdf')
+
     def test_custom_workflow_layout_and_legacy_reader_path(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)/'custom'
@@ -38,20 +48,26 @@ class OutputNamingTests(unittest.TestCase):
             self.assertEqual(path.parent.parent.parent.parent, base)
             self.assertEqual(find_outputs(original,'plot.pdf',selection='jetId',eta_cut=1.9,interval=(80,90)),[path])
 
-    def test_all_selection_dimensions_are_distinct(self):
-        names=set()
-        for selection in ('noSel','trkMax','jetId'):
-            for cut in (1.5,1.9,2.0,1.9000000000000001):
-                for interval in ((80,90),(90,120),(120,160),(200,300),(80.00000000000001,90)):
-                    name=output_filename('dijet_eta','data_vs_mc',selection=selection,
-                                         eta_cut=cut,pt_interval=interval)
-                    self.assertIn(selection,name)
-                    self.assertIn('etaCM'+number_token(cut),name)
-                    self.assertIn('ptAve'+number_token(interval[0])+'to'+number_token(interval[1]),name)
-                    self.assertNotIn(name,names);names.add(name)
-        self.assertEqual(len(names),60)
-        self.assertNotEqual(number_token(1.9000000000000001),number_token(1.9))
-        self.assertEqual(number_token(Decimal('1.9000000000000000000001')),'1p9000000000000000000001')
+    def test_filename_numbers_have_at_most_three_decimal_places(self):
+        context = OutputSelection('jetId', {'CM': (-1.2650000000000001, .335)}, [(80.1234567, 90.9876543)])
+        self.assertEqual(context.token(), 'jetId_etaCMm1p265_0p335_ptAve80p123to90p988')
+        self.assertEqual(context.identity()['eta_cuts']['CM'][0], 'm1p2650000000000001')
+        self.assertEqual(context.identity()['pt_bins'][0], ['80p1234567', '90p9876543'])
+        self.assertEqual(OutputSelection('jetId', (-.00001, .00123), [(80, 90)]).token(),
+                         'jetId_etaCM0_0p001_ptAve80to90')
+        self.assertEqual(number_token(Decimal('1.9000000000000000000001')),
+                         '1p9000000000000000000001')  # metadata remains lossless
+
+    def test_rounded_filename_collisions_cannot_overwrite_distinct_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            a = OutputDirectory(d, OutputSelection('jetId', 1.9001, [(80, 90)]))
+            b = OutputDirectory(d, OutputSelection('jetId', 1.9002, [(80, 90)]))
+            path = a / 'plot.pdf'
+            path.write_bytes(b'keep')
+            with self.assertRaisesRegex(ValueError, 'identity collision'):
+                b / 'plot.pdf'
+            self.assertEqual(path.read_bytes(), b'keep')
+            self.assertEqual(output_record(path)['identity']['eta_cuts']['CM'], ['1p9001'])
 
     def test_complete_binset_identity_and_manifest(self):
         a=OutputSelection('jetId',1.9,[(80,90),(90,120)])
@@ -63,18 +79,37 @@ class OutputNamingTests(unittest.TestCase):
             self.assertIn('ptAveBins',path.name)
             self.assertEqual(output_record(path)['identity']['pt_bins'],[['80','90'],['90','120']])
 
-    def test_existing_outputs_and_runs_are_preserved(self):
+    def test_reruns_overwrite_only_the_same_declared_artifact(self):
         with tempfile.TemporaryDirectory() as d:
             old=Path(d)/'plot.pdf';old.write_bytes(b'validated')
             context=OutputSelection('trkMax',2.0,[(90,120)])
             a=OutputDirectory(d,context)/'plot.pdf';a.write_bytes(b'new run')
             b=OutputDirectory(d,context)/'plot.pdf';b.write_bytes(b'another run')
-            self.assertNotEqual(a,b)
+            self.assertEqual(a,b)
             self.assertEqual(old.read_bytes(),b'validated')
-            self.assertEqual(a.read_bytes(),b'new run')
+            self.assertEqual(a.read_bytes(),b'another run')
+            self.assertNotRegex(a.name, r'_run[0-9]')
+            self.assertEqual(len(list(a.parent.glob('*.pdf'))), 1)
             found=find_outputs(d,'plot.pdf',selection='trkMax',eta_cut=2.,interval=(90,120))
             self.assertEqual(found,[b])
             self.assertEqual(find_outputs(d,'plot.pdf',selection='noSel'),[old])
+
+    def test_historical_run_outputs_remain_readable(self):
+        with tempfile.TemporaryDirectory() as d:
+            context = OutputSelection('jetId', 1.9, [(80, 90)])
+            directory = OutputDirectory(d, context, run_id='100')
+            current = directory/'plot.pdf'
+            old = current.with_name(current.stem+'_run100.pdf')
+            old.write_bytes(b'old')
+            record = output_record(current)
+            record['filename'] = old.name
+            old.with_name(old.name+'.selection.json').write_text(json.dumps(record))
+            current.with_name(current.name+'.selection.json').unlink()
+            self.assertEqual(find_outputs(d, 'plot.pdf'), [old])
+            replacement = OutputDirectory(d, context, run_id='200')/'plot.pdf'
+            replacement.write_bytes(b'new')
+            self.assertEqual(find_outputs(d, 'plot.pdf'), [replacement])
+            self.assertEqual(old.read_bytes(), b'old')
 
     def test_current_interval_and_sibling_lookup(self):
         with tempfile.TemporaryDirectory() as d:
@@ -133,6 +168,14 @@ class OutputNamingTests(unittest.TestCase):
                         h=ROOT.TH1D('hNamingFixture','',2,-1,1);h.SetDirectory(0);h.SetBinContent(1,3.)
                         save_histograms(str(root),[h])
                         file=ROOT.TFile.Open(str(root));self.assertEqual(file.Get('hNamingFixture').GetBinContent(1),3.);file.Close()
+                        repeated = OutputDirectory(d, OutputSelection(method,cut,[interval]))/'fixture.root'
+                        self.assertEqual(root, repeated)
+                        h.SetBinContent(1, 7.)
+                        save_histograms(str(repeated), [h])
+                        file=ROOT.TFile.Open(str(root))
+                        self.assertEqual(file.Get('hNamingFixture').GetBinContent(1), 7.)
+                        self.assertEqual(file.GetListOfKeys().GetEntries(), 1)
+                        file.Close()
                         self.assertEqual(output_record(root)['identity']['selection'],[method])
                         canvas=ROOT.TCanvas('naming_canvas','',250,250);h.Draw('E1')
                         pdf=directory/'fixture.pdf';save_canvas(canvas,pdf,save_png=True)

@@ -14,6 +14,7 @@ from hist_analysis.python.histogram_io import load_histogram
 from hist_analysis.python.histogram_ops import normalize_histogram, ratio_to_nominal
 from hist_analysis.python.histogram_production import ETA_KEY_PATTERN, load_eta_projection, resolve_eta_source_key
 from hist_analysis.config.histograms import DIJET_PTAVE_BINS, TEST_DIJET_PTAVE_BINS, SYSTEMATIC_PTAVE_BINS
+from hist_analysis.python.plot_labels import beam_orientation_label, beam_sample_label
 from hist_analysis.python.plotting import draw_closure, draw_overlay
 from hist_analysis.python.projections import project_semantic_th2
 from hist_analysis.python.root_style import (
@@ -84,6 +85,18 @@ def _tag(text: str) -> str:
     ).strip("_")
 
 
+def data_selection_annotations(selection=None, *, jet_eta_cut=None):
+    """Format explicitly supplied reconstructed-data selections for ROOT text."""
+    lines = ()
+    if selection is not None:
+        if selection not in {"jetId", "trkMax", "noSel"}:
+            raise ValueError(f"Unsupported data jet selection: {selection!r}")
+        lines += (f"Data reco jet selection: {selection}",)
+    if jet_eta_cut is not None:
+        lines += (f"|#eta_{{CM}}^{{jet}}| #leq {jet_eta_cut:g}",)
+    return lines
+
+
 def draw_data_distributions(
     trigger: str,
     filename: str | Path,
@@ -100,6 +113,8 @@ def draw_data_distributions(
     save_png: bool,
     grid: bool,
     style,
+    selection: str | None = None,
+    jet_eta_cut: float | None = None,
 ):
     """Draw independent pT/eta frame checks and CM F/B for one trigger."""
 
@@ -111,6 +126,8 @@ def draw_data_distributions(
     momentum = "p_{T}^{jet}" if jet_kind == "jet" else "p_{T}^{ave}"
     object_label = "Inclusive jets" if jet_kind == "jet" else "Dijets"
     pt_observable = "pt" if jet_kind == "jet" else "ptave"
+    selection_notes = data_selection_annotations(
+        selection, jet_eta_cut=jet_eta_cut if jet_kind == "dijet" else None)
     results = {}
     for frame, (frame_label, key, eta_title) in frames.items():
         frame_tag = _tag(frame)
@@ -128,6 +145,8 @@ def draw_data_distributions(
             ), x_range=pt_display_range,
             log_y=True, annotations=(
                 "pPb 8.16 TeV data", trigger, frame_label, object_label,
+                *selection_notes,
+                *((f"{pt_selection[0]:g} #leq {eta_title} < {pt_selection[1]:g}",) if pt_selection else ()),
             ), style_indices={trigger: 2}, grid=grid, style=style,
             output=output / f"{trigger_tag}_{frame_tag}_{jet_kind}_pt.pdf",
             save_png=save_png, headroom=2.2,
@@ -146,6 +165,7 @@ def draw_data_distributions(
             eta = normalize_histogram(raw_eta, "integral")
             annotations = (
                 "pPb 8.16 TeV data", trigger, frame_label, object_label,
+                *selection_notes,
                 f"{low:g} #leq {momentum} < {high:g} GeV",
             )
             eta_canvas = draw_overlay(
@@ -212,6 +232,7 @@ def draw_orientation_comparisons(
     fb_y_range: tuple[float, float] | None = None,
     fb_x_range: tuple[float, float] | None = None,
     fb_ratio_range: tuple[float, float] | None = None,
+    jet_eta_cut: float | None = None,
 ):
     """Overlay orientation shapes and CM F/B ratios relative to combined."""
 
@@ -226,6 +247,12 @@ def draw_orientation_comparisons(
     default_momentum = "p_{T}^{jet}" if jet_kind == "jet" else "p_{T}^{ave}"
     object_label = "Inclusive jets" if jet_kind == "jet" else "Dijets"
     styles = {"Pb-going": 1, "p-going": 0, "combined": 2}
+    legend_labels = {
+        direction: beam_orientation_label(direction) or "All data"
+        for direction in direction_files
+    }
+    selection_notes = data_selection_annotations(
+        selection, jet_eta_cut=jet_eta_cut if jet_kind == "dijet" else None)
     results = {}
     for frame, frame_config in frames.items():
         if len(frame_config) == 3:
@@ -271,13 +298,14 @@ def draw_orientation_comparisons(
             histogram.SetMinimum(common_z_range[0])
             histogram.SetMaximum(common_z_range[1])
             set_2d_style(histogram, style=style)
-            histogram.Draw("COLZ")
+            histogram.Draw("COLZ1")
             canvas.Update()
             palette = set_palette_style(histogram, style=style)
             annotations_2d = draw_text_block(
                 canvas, (
-                    "pPb 8.16 TeV data", trigger, direction, frame_label,
-                    object_label, selection,
+                    "pPb 8.16 TeV data", beam_sample_label(trigger, direction),
+                    frame_label,
+                    object_label, *selection_notes,
                 ), style=style,
             )
             canvas.Modified()
@@ -316,10 +344,11 @@ def draw_orientation_comparisons(
                 "1/N dN/dp_{T}^{jet}" if jet_kind == "jet"
                 else "1/N dN/dp_{T}^{ave}"
             ), ratio_range=ratio_range, ratio_option="",
-            draw_nominal_ratio=False, style_indices=styles,
+            draw_nominal_ratio=False, style_indices=styles, legend_labels=legend_labels,
             annotations=(
                 "pPb 8.16 TeV data", trigger, frame_label, object_label,
-                selection,
+                *selection_notes,
+                *((f"{pt_selection[0]:g} #leq {eta_title} < {pt_selection[1]:g}",) if pt_selection else ()),
                 (
                     f"Normalized in {pt_normalization_range[0]:g} #leq "
                     f"{momentum} < {pt_normalization_range[1]:g} GeV"
@@ -358,9 +387,9 @@ def draw_orientation_comparisons(
                 histograms, "combined", title="", x_title=eta_title,
                 y_title=f"1/N dN/d{eta_title}", ratio_range=ratio_range,
                 ratio_option="", draw_nominal_ratio=False,
-                style_indices=styles, annotations=(
+                style_indices=styles, legend_labels=legend_labels, annotations=(
                     "pPb 8.16 TeV data", trigger, frame_label, object_label,
-                    selection,
+                    *selection_notes,
                     f"{low:g} #leq {momentum} < {high:g} GeV",
                 ), x_range=eta_display_range, y_range=eta_y_range,
                 grid=grid, style=style, headroom=2.2,
@@ -397,9 +426,9 @@ def draw_orientation_comparisons(
                     y_range=fb_y_range,
                     ratio_range=fb_ratio_range or ratio_range,
                     ratio_option="", draw_nominal_ratio=False,
-                    style_indices=styles, annotations=(
+                    style_indices=styles, legend_labels=legend_labels, annotations=(
                         "pPb 8.16 TeV data", trigger, frame_label,
-                        object_label, selection,
+                        object_label, *selection_notes,
                         f"{low:g} #leq {momentum} < {high:g} GeV",
                     ), grid=grid, style=style, headroom=2.2,
                     output=output / (
@@ -489,7 +518,7 @@ def draw_corrected_raw_eta_comparisons(
             ratio_option="", draw_nominal_ratio=False,
             annotations=(
                 "pPb 8.16 TeV data", trigger, "Lab unflipped",
-                "Inclusive jets", selection,
+                "Inclusive jets", *data_selection_annotations(selection),
                 f"{low:g} #leq p_{{T}}^{{jet}} < {high:g} GeV",
             ),
             style_indices=styles, grid=grid, style=style,

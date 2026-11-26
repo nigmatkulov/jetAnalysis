@@ -44,7 +44,7 @@ def _label(text):
 
 
 def _draw_pad(ax, pad, hep, *, cms_header_left, show_header=True,
-              x_range=None, y_range=None):
+              x_range=None, y_range=None, grid_view=None, fits=None, raw_ratios=None, stat_scale=1.0):
     import numpy as np
     # ROOT may list a histogram more than once after E1 SAME redraws.
     objects = list({int(ROOT.addressof(p)): p
@@ -71,19 +71,25 @@ def _draw_pad(ax, pad, hep, *, cms_header_left, show_header=True,
                             color='lightpink', alpha=0.45, linewidth=0, zorder=1,
                             label='Systematic uncertainty' if i == 0 else '_nolegend_')
     colors = {}
-    for index, h in enumerate(histograms):
-        label = labels.get(h.GetName(), '_nolegend_')
+    series = [(labels.get(h.GetName(), '_nolegend_'), h) for h in histograms]
+    if raw_ratios is not None:
+        series = list(raw_ratios.items())
+    for index, (label, h) in enumerate(series):
         _, color, marker, marker_face = _curve_style(label, index)
         colors[h.GetLineColor()] = color
+        if grid_view == 'fits' and label not in fits:
+            continue
         values, edges, errors = _th1_arrays(h)
+        if raw_ratios is not None:
+            errors = np.asarray(errors) * stat_scale
         hep.histplot(values, bins=edges, yerr=errors, xerr=True, histtype='errorbar',
                      ax=ax, color=color, marker=marker, markerfacecolor=marker_face,
                      markeredgecolor=color, markeredgewidth=1.5,
                      markersize=DEFAULT_MPLHEP_STYLE.marker_size,
                      capsize=DEFAULT_MPLHEP_STYLE.capsize, zorder=3,
-                     label=labels.get(h.GetName(), '_nolegend_'))
+                     label='_nolegend_' if grid_view == 'fits' else label)
     for p in objects:
-        if p.InheritsFrom('TF1'):
+        if p.InheritsFrom('TF1') and grid_view is None:
             x = np.linspace(p.GetXmin(), p.GetXmax(), 500)
             y = [p.Eval(float(v)) for v in x]
             if not all(math.isfinite(v) for v in y):
@@ -93,6 +99,24 @@ def _draw_pad(ax, pad, hep, *, cms_header_left, show_header=True,
         elif p.InheritsFrom('TLine'):
             ax.plot([p.GetX1(), p.GetX2()], [p.GetY1(), p.GetY2()],
                     color='gray', linestyle='--', linewidth=1, zorder=2)
+    if grid_view == 'fits':
+        indices = {labels.get(hist.GetName()): index for index, hist in enumerate(histograms)}
+        for index, (label, function) in enumerate(fits.items()):
+            x = np.linspace(function.GetXmin(), function.GetXmax(), 500)
+            y = [function.Eval(float(value)) for value in x]
+            if not all(math.isfinite(value) for value in y):
+                raise ValueError(f'Nonfinite fit curve: {function.GetName()}')
+            _, color, _, _ = _curve_style(label, indices.get(label, index))
+            ax.plot(x, y, color=color, linewidth=2, zorder=4, label='_nolegend_')
+            _, _, marker, face = _curve_style(label, indices.get(label, index))
+            ax.plot([], [], color=color, marker=marker, markerfacecolor=face, linewidth=2,
+                    label=_label(label))
+        if not fits:
+            ax.text(.5, .5, 'Fit unavailable', transform=ax.transAxes,
+                    ha='center', fontsize=16)
+    if grid_view is not None:
+        return _label(reference.GetXaxis().GetTitle()), _label(reference.GetYaxis().GetTitle())
+
     annotations = [p for p in objects if p.InheritsFrom('TLatex')
                    and p.GetTitle() and 'CMS' not in p.GetTitle()
                    and '8.16' not in p.GetTitle()]
@@ -161,7 +185,7 @@ def save_systematic_mplhep(canvas, output, *, save_png=False,
             ax.set_xlabel('')
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output)
+    fig.savefig(output, dpi=200)
     if save_png:
         fig.savefig(output.with_suffix('.png'), dpi=160)
     from IPython import get_ipython

@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from hist_analysis.config.histograms import pt_bins, systematic_pt_bins
+from hist_analysis.python.plot_labels import beam_sample_label
 
 
 COMMON_FIELDS = ('observable', 'frame', 'direction', 'selection', 'eta_cut',
@@ -269,11 +270,27 @@ def _place_total_legend(ax):
     return legend
 
 
+def draw_systematic_contributions(ax, hep, contributions, edges, *, style):
+    """Draw fractional source contributions in percent using the total-plot palette."""
+    from hist_analysis.python.mplhep_plotting import _curve_style
+
+    labels = {'JER': 'JER', 'JEU': 'JES', 'pileup': 'Pileup',
+              'pointing_resolution': 'Pointing resolution'}
+    source_indices = {'JER': 0, 'JEU': 1, 'pileup': 2, 'pointing_resolution': 3}
+    for index, (source, fractions) in enumerate(contributions.items()):
+        label = labels.get(source, source)
+        _, color, marker, face = _curve_style(label, source_indices.get(source, index))
+        hep.histplot(100 * np.asarray(fractions), bins=edges, yerr=False, xerr=True,
+            histtype='errorbar', ax=ax, color=color, marker=marker, markerfacecolor=face,
+            markeredgecolor=color, markeredgewidth=1.5, markersize=style.marker_size,
+            capsize=style.capsize, zorder=3, label=label)
+
+
 def plot_systematics(table, manifest, interval, *, y_range=None,
                      cms_header_left=None, cms_header_right='pPb (8.16 TeV)'):
     """Plot percent display values using the individual-systematic CMS scheme."""
     from hist_analysis.python.mplhep_plotting import (
-        _mplhep, _curve_style, _draw_cms_header, DEFAULT_MPLHEP_STYLE,
+        _mplhep, _draw_cms_header, DEFAULT_MPLHEP_STYLE,
     )
     if y_range is not None and (
         len(y_range) != 2 or not np.isfinite(y_range).all() or y_range[0] >= y_range[1]
@@ -285,20 +302,12 @@ def plot_systematics(table, manifest, interval, *, y_range=None,
     samples = list(manifest.production_sample.unique())
     if cms_header_left is None:
         cms_header_left = 'CMS' if 'data' in samples else 'CMS Simulation'
-    labels = {'JER': 'JER', 'JEU': 'JES', 'pileup': 'Pileup',
-              'pointing_resolution': 'Pointing resolution'}
-    source_indices = {'JER': 0, 'JEU': 1, 'pileup': 2, 'pointing_resolution': 3}
     sources = list(manifest.source.unique())
     style = DEFAULT_MPLHEP_STYLE
     fig, ax = plt.subplots(figsize=(style.figure_size, style.figure_size), layout='constrained')
     edges = np.r_[table.x_low.to_numpy(), table.x_high.iloc[-1]]
-    for index, source in enumerate(sources):
-        label = labels.get(source, source)
-        _, color, marker, face = _curve_style(label, source_indices.get(source, index))
-        hep.histplot(100 * table[source].to_numpy(), bins=edges, yerr=False, xerr=True,
-            histtype='errorbar', ax=ax, color=color, marker=marker, markerfacecolor=face,
-            markeredgecolor=color, markeredgewidth=1.5, markersize=style.marker_size,
-            capsize=style.capsize, zorder=3, label=label)
+    draw_systematic_contributions(ax, hep, {source: table[source] for source in sources},
+                                  edges, style=style)
     # Total is drawn last and remains visible when components coincide.
     ax.stairs(100 * table.total, edges, color='black', linewidth=2.6, zorder=4)
     ax.plot((table.x_low + table.x_high)/2, 100 * table.total, color='black',
@@ -313,13 +322,12 @@ def plot_systematics(table, manifest, interval, *, y_range=None,
     ax.tick_params(labelsize=16)
     ax.grid(True, alpha=0.2)
     sample_names = {'data': 'Data', 'embedding': 'Embedding MC', 'pythia': 'PYTHIA 8'}
-    direction_names = {'combined': 'Combined', 'pgoing': 'p-going', 'Pbgoing': 'Pb-going'}
     selection_names = {'jetId': 'Jet ID', 'trkMax': 'Track maximum selection', 'noSel': 'No jet selection'}
     observable = 'Unit-normalized CM dijet shape' if metadata.observable == 'full' else 'Dijet Forward / Backward'
     annotations = (
         ' + '.join(sample_names.get(s, s) for s in samples),
-        direction_names.get(metadata.direction, metadata.direction) + '; ' +
-            selection_names.get(metadata.selection, metadata.selection),
+        beam_sample_label(selection_names.get(metadata.selection, metadata.selection),
+                          metadata.direction, sep='; ', orientation_first=True),
         rf'${interval[0]:g} \leq p_{{\mathrm{{T}}}}^{{\mathrm{{ave}}}} < {interval[1]:g}$ GeV',
         rf'$|\eta_{{\mathrm{{CM}}}}^{{\mathrm{{jet}}}}| \leq {metadata.eta_cut:g}$',
         observable,

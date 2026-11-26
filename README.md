@@ -50,8 +50,9 @@ documented conventions.
 ## Codex agents
 
 Project defaults in `.codex/config.toml` select `gpt-6.1-sol` with Low
-reasoning for the main agent and allow up to three concurrent subagents.
-Six on-demand roles are defined in `.codex/agents/`:
+reasoning for the main agent. Subagent execution is disabled in the checked-in
+configuration. When enabled, the configuration allows up to three concurrent
+subagents. Six on-demand roles are defined in `.codex/agents/`:
 
 | Agent | Model | Effort | Responsibility |
 |---|---|---|---|
@@ -139,6 +140,16 @@ When neither branch exists in any file, the existing zero-rho fallback remains.
 The local output directory must already exist and be writable. The executable
 reports output creation, object-write, flush, and close failures on stderr and
 returns a nonzero status. ROOT handles remote output URLs at file creation.
+
+The producer writes six weighted 2D inclusive-jet histograms named
+`hRecoInclusiveJet{,TrkMax,NoSel}PtRawEta{Lab,CM}`. Their x axis is raw jet
+pT in GeV. The Lab keys use beam-oriented eta and the CM keys use the standard
+CM transform. Each histogram uses the corresponding corrected-pT histogram's
+selection, axis binning, and event weight, with stored Sumw2. The existing
+`hRecoInclusiveJetRawPtEtaLabUnflipped` provides the detector-frame view.
+Unfolding populations and their dedicated Reco inputs use the double-precision
+event weight used for Gen. Other Reco dijet templates retain float weights.
+Regenerate the producer outputs to obtain the added keys or revised weights.
 
 Use Release for normal validation and production execution. If compilation or
 execution fails, reconfigure in Debug and reproduce the problem:
@@ -428,6 +439,18 @@ the smearing algorithm independently. Direction-specific scripts expose the
 presets as `JER_SMEARING_MODE` and `USE_ETA_DEPENDENT_JER`; command-line options
 take precedence when the scripts are run.
 
+For an eta-dependent train/test campaign, pass `--eta-dependent-jer` and
+choose a fresh output base. For example, preview the Pb-going commands with:
+
+```bash
+py-env/bin/python pPb8160_analyzeMc_Pbgoing.py --eta-dependent-jer \
+  --output-dir hist_analysis/output/local_mc_eta --dry-run
+```
+
+Use the same options for `pPb8160_analyzeMc_pgoing.py`. `--executable` selects
+an alternate compiled build. A dry run prints every command, reports missing
+inputs and existing outputs, and exits nonzero if any input is missing.
+
 The runner keeps going after individual sample failures and prints a final summary of skipped and failed pt-hat jobs.
 Inputs are read from
 `$HOME/cernbox/ana/pPb8160/<generator>/<direction>/forest/`, and outputs are
@@ -608,8 +631,9 @@ inspecting and comparing analysis outputs:
 
 - `notebooks/01_inventory.ipynb`: checks configured directories, lists ROOT files, and inventories object keys.
 - `notebooks/02_mc_event_histograms.ipynb`: plots event-level pt-hat and vertex-z distributions and reproduces the gen/reco overweight-protection upper-tail diagnostic.
+- `notebooks/02_mc_data_vz_reweighting.ipynb`: derives direction-specific primary-vertex v_z reweighting functions from the post-selection `hVzUnweighted` histograms of MC and minimum-bias data. It uses the explicit stored-frame mapping MC Pb-going to data p-going and MC p-going to data Pb-going; the CP5 pp sample is Pb-going and is diagnostic only. It is processed with `isPbGoing=1`, and its stored-frame v_z mean is negative like the other Pb-going MC; see `hist_analysis/README.md`. Combined samples are not used. It fits the MC/Data ratio with a configurable `pol8` and scans lower orders. It validates the fit with histogram-level and independent event-level (entry-parity) closures, and overlays the MC shapes, including CP5, with ratios to Embedding Pb-going. It exports ROOT objects, JSON and Markdown summaries, and drop-in C++ `fVzWeight` snippets. `processForestSimple.C` divides by `fVzWeight` (`1./fVzWeight.Eval(vz)`), so the exported function is MC/Data and the MC weight is its reciprocal; see `hist_analysis/README.md`.
 - `notebooks/02_mc_jet_efficiency_fakes.ipynb`: calculates Lab-frame inclusive-jet efficiency using matched reference pT and eta (`hRefSelInclusiveJetPtEtaLab / hGenInclusiveJetPtEtaLab`), matched rate, and fake rate without pre-division normalization. It draws the matched-reference 2D yield distribution, two-dimensional rate maps, eta projections in configured jet-pT intervals, and pT projections in configurable eta intervals; matched and fake 1D rates use style indices 0 and 1 on shared log-y canvases.
-- `notebooks/02_mc_jet_selection.ipynb`: overlays Reco, matched-Ref, RefSel, and Gen inclusive-jet eta distributions in the Lab and CM frames for jet-ID, track-maximum, and no-selection stages in configured jet-pT intervals after displaying the underlying two-dimensional maps. Full-distribution overlays support integral, eta-range, stored-yield, and bin-width normalization, with the `LOG_Y` option controlling the y-axis scale. Reco/Gen, Ref/Gen, and RefSel/Gen ratios are drawn together on individual canvases using independent-error propagation by default; CM canvases mark `|eta_CM|=1.9` and `2.4` with dashed and solid black lines.
+- `notebooks/02_mc_jet_selection.ipynb`: compares Reco, matched Ref, RefSel, and Gen inclusive-jet eta shapes in Lab and CM for the three selection stages. Ratios default to legacy ROOT binomial diagnostics. Use the per-ratio error switches and the statistics CSV to inspect the uncertainty conventions described in the [histogram workflow](hist_analysis/README.md).
 - `notebooks/02_mc_jet_JES_JER.ipynb`: extracts inclusive-jet JES/JER, compares systematic variations, and draws response maps.
 - `notebooks/02_mc_jet_JEC_check.ipynb`: compares raw and corrected MC inclusive-jet eta projections in configurable pT intervals for Pb-going and p-going samples. It writes square four-distribution overlays and two-panel corrected/raw and beam-direction double-ratio figures, with configurable eta and panel ranges and ROOT ratio-error options.
 - `notebooks/03_mc_dijet_embedding_vs_pythia.ipynb`: compares unit-normalized Reco, matched-Ref, and Gen dijet CM-pseudorapidity shapes between Embedding and PYTHIA using the selected standard or test pTave binning, with PYTHIA/Embedding ratio panels. Optional CP5 input supports `cernbox`, `local`, and `auto`; `local` reads `$HOME/cernbox/ana/pPb8160/pythia/cp5tune/cp5_gen_dijet_histograms.root` and contributes to the Gen comparisons because the standalone file is generator-only. It also compares the corresponding unnormalized forward/backward ratios and their PYTHIA/Embedding ratios using independent-error propagation. Each level runs from its own cell, and each overlay family uses a common y-axis range across all levels and pTave intervals.
@@ -634,9 +658,12 @@ documented in [the histogram workflow](hist_analysis/README.md#direct-2d-unfoldi
 - `notebooks/05_unfold2D_regularization.ipynb`: scans Bayesian iterations with independently selectable response-training MC (Embedding, PYTHIA, or full CP5) and truth (response Gen, mixed prior, direction-aware Embedding/PYTHIA, standalone CUEP8M1 or CP5, full CP5, an arbitrary compatible ROOT histogram, or a generated Gaussian). File and histogram-key overrides make the truth choice independent of the built-in catalog. One global scale factor places the complete toy truth on the MinimumBias exposure using the direct MB--Jet60 overlap recorded in the trigger-stitching artifact; individual pTave blocks are not tuned. Trigger-stitched MB, Jet60, Jet80, and Jet100 distributions then provide per-bin relative statistical uncertainties. If MC is populated in an empty data bin, the nearest usable relative uncertainty from the same pTave block is used. Populated toy bins are Gaussian-smeared with the resulting absolute errors, while originally empty bins remain zero. Its default C++17 backend is built independently with `cmake -S hist_analysis/cpp -B build/regularization-scan -DCMAKE_BUILD_TYPE=Release` and `cmake --build build/regularization-scan --parallel`; it advances every toy through the iteration range once and parallelizes toy chunks. Output names and plot annotations identify both roles.
 - `notebooks/05_unfold2D_regularization_tutorial.ipynb`: a student-facing, step-by-step version of the regularization study. It plots the response-training prior and toy truth, purity and efficiency, MB normalization, forward-folded expectation, a selected fluctuated toy before and after purity correction, that toy after every Bayesian iteration, the sequential ensemble bias/variance/MSE scan, and the mean unfolded ensemble at every iteration. It deliberately uses repeated PyROOT/RooUnfold calls and never invokes the compiled parallel scan.
 - `notebooks/06_data_jet_distributions.ipynb`: compares Pb-going, p-going, and combined inclusive-jet data for configurable jet-ID, track-maximum, or no-selection outputs. It draws common-scale orientation 2D maps and pT/eta overlays with ratios to combined in the unflipped-Lab, flipped-Lab, and CM frames, plus selected raw-jet-pT versus unflipped detector-eta diagnostics.
-- `notebooks/06_data_dijet_distributions.ipynb`: provides the corresponding selection-configurable dijet orientation maps and pTave/eta comparisons using the full unflipped-Lab, flipped-Lab, and CM dijet histograms, plus CM forward/backward comparisons and ratios to the combined orientation. Eta projections use unit-area bin-width normalization for true `1/N dN/deta` densities. It also collects the 16 selected combined-orientation intervals into separate square 4x4 CM-shape and F/B summary figures.
+- `notebooks/06_data_dijet_distributions.ipynb`: provides the corresponding selection-configurable dijet orientation maps and pTave/eta comparisons using the full unflipped-Lab, flipped-Lab, and CM dijet histograms, plus CM forward/backward comparisons and ratios to the combined orientation. The default eta shape is a fraction per bin. For all 17 shared pTave intervals it exports separate combined-data CM eta and F/B figures and paginated 4×4 summaries, with statistical bars and optional stored systematic brackets, as PDF and PNG under `data_dijet_distributions/<selection>/<binning>/mplhep/combined/` within the histogram output directory.
 - `notebooks/06_data_trigger_stitching.ipynb`: derives trigger-overlap weights and writes the ROOT/JSON/CSV artifacts used by data unfolding and regularization studies.
 - `notebooks/06_data_runId_dependence.ipynb`: compares the configured run-specific data histograms with the run-integrated distributions.
+- `notebooks/06_data_jet_corrections_comparison.ipynb` compares raw, L2-relative, and old/new residual inclusive-jet eta yields for the corresponding data campaigns.
+- `notebooks/04_systematics_old_vs_new.ipynb` compares current total dijet systematics with values reconstructed from the legacy figures.
+- `notebooks/07_dijet_data_vs_extended_theory.ipynb` compares normalized reconstructed dijet CM eta shapes with the supplied EPPS21 × CT18 pPb and CT18 pp central spectra.
 - `notebooks/07_dijet_data_vs_mc.ipynb`: prepares configured Data and optional official gen/reco, CP5 and CUETP8M1 references once, then writes separate single-panel overlay and Data/MC figures for each enabled comparison. Independent `DRAW_OFFICIAL_MC`, `DRAW_CP5`, `DRAW_CUETP8M1`, `DRAW_EPPS21`, and `DRAW_DATA_SYSTEMATIC` switches control samples and stored-total systematic brackets. Full eta, raw F/B and normalized pTave comparisons use Data/MC throughout (the pTave direction change is explicitly approved). ROOT/MPLHEP share styles, clean physics-only selection text and accepted eta-bin edges. EPPS21 uses stored dimensionless pPb/pp bands with explicit observable labels. Combined model selections, configurable ratio operands, and independent full/ratio/F/B y limits are documented in `hist_analysis/README.md`.
 - `config/`: input locations, common pseudorapidity range, configured single-jet pT and dijet pTave projection bins, and the standard dijet eta-cut index.
 - `python/`: reusable ROOT object I/O, projection, histogram-operation, inventory, plotting, and flattened RooUnfold helpers. `unfolding.py` owns common projection, flattening, response, diagnostic, Bayesian-unfolding, and ROOT-output logic; `unfolding_plots.py` owns the corresponding diagnostics and closure figures.

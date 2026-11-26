@@ -1,6 +1,6 @@
-"""Exact selection identities and non-destructive notebook output layouts.
+"""Exact selection identities and deterministic notebook output layouts.
 
-New runs use dated renderer directories and unique filenames; existing artifacts are read-only.
+Repeated runs overwrite the same declared artifact in dated renderer directories.
 An output sidecar records the complete bin set and the original descriptive
 stem. Readers match that declaration rather than guessing selections from old
 rounded filenames. No analysis calculation or histogram key is changed here.
@@ -26,7 +26,7 @@ JET_SELECTIONS = frozenset(('noSel', 'trkMax', 'jetId'))
 
 
 def number_token(value):
-    """Lossless decimal spelling of a configured number, safe in filenames."""
+    """Lossless decimal spelling for exact selection metadata and lookups."""
     if isinstance(value, bool):
         raise ValueError('Boolean is not a physics boundary')
     number = Decimal(str(value))
@@ -38,6 +38,13 @@ def number_token(value):
     if number == 0:
         text = '0'
     return text.replace('-', 'm').replace('.', 'p')
+
+
+def _filename_number_token(token):
+    """Render an exact metadata token with at most three decimal places."""
+    value = Decimal(token.replace('m', '-').replace('p', '.'))
+    rounded = Decimal(format(value, '.3f'))
+    return number_token(rounded)
 
 
 def _numbers(values):
@@ -100,12 +107,13 @@ class OutputSelection:
         selection = '_'.join(identity['selection']) or 'jetSelectionNA'
         if len(identity['selection']) > 1 and 'selection_roles' in identity:
             selection = '_'.join(role+'-'+method for role,method in identity['selection_roles'].items())
-        eta = '_'.join('eta'+frame+'_'.join(values) for frame, values in identity['eta_cuts'].items()) or 'etaCutNA'
+        eta = '_'.join('eta'+frame+'_'.join(_filename_number_token(value) for value in values)
+                       for frame, values in identity['eta_cuts'].items()) or 'etaCutNA'
         intervals = _flat_intervals(identity['pt_bins'])
         if not intervals:
             pt = self.pt_kind+'NA'
         elif len(intervals) == 1:
-            pt = self.pt_kind+intervals[0][0]+'to'+intervals[0][1]
+            pt = self.pt_kind+_filename_number_token(intervals[0][0])+'to'+_filename_number_token(intervals[0][1])
         else:
             # The manifest distinguishes gaps, overlaps, ordering and trigger maps,
             # not just endpoints. Full precision participates in the identifier.
@@ -127,7 +135,7 @@ def _name(legacy, selection):
     stem = selection.token()+'_'+re.sub(r'_+', '_', path.stem)
     # Long systematic method stems already approach NAME_MAX. Preserve their
     # exact original names in the sidecar and include a checked digest in the
-    # shortened filename; never truncate the physics identity.
+    # shortened filename; full-precision physics identity remains in metadata.
     if len((stem+path.suffix).encode()) > 220:
         marker = '_name'+_digest(path.stem)[:20]
         prefix = selection.token()+'_'
@@ -190,9 +198,18 @@ class OutputDirectory(os.PathLike):
             if method not in JET_SELECTIONS:
                 raise ValueError('Declare directory_selection for generator or selection-comparison outputs')
             base = Path(workflow_root) if workflow_root is not None else notebook_output_base(root)
-            self.namespace = '_'.join(root.relative_to(base).parts)
-            self.path = base / output_date() / method / 'root'
-            (self.path.parent / 'mplhep').mkdir(parents=True, exist_ok=True)
+            dated_renderer = any(
+                re.fullmatch(r'\d{4}-\d{2}-\d{2}', root.parts[index])
+                and root.parts[index+1] in JET_SELECTIONS
+                and root.parts[index+2] in {'root', 'mplhep'}
+                for index in range(len(root.parts)-2))
+            if dated_renderer:
+                # An explicitly configured date directory stays fixed on rerun.
+                self.path = root
+            else:
+                self.namespace = '_'.join(root.relative_to(base).parts)
+                self.path = base / output_date() / method / 'root'
+            (mplhep_output_path(self.path / 'placeholder.pdf').parent).mkdir(parents=True, exist_ok=True)
         else:
             self.path = root
         self.path.mkdir(parents=True, exist_ok=True)
@@ -219,19 +236,23 @@ class OutputDirectory(os.PathLike):
         if legacy.is_absolute() or '..' in legacy.parts:
             raise ValueError('Output joins must stay beneath the declared directory')
         context = selection or self._file_selection(legacy)
-        descriptive = '_'.join(part for part in (self.namespace, legacy.stem, 'run'+self.run_id) if part)
+        descriptive = '_'.join(part for part in (self.namespace, legacy.stem) if part)
         path = self.path/legacy.parent/_name(descriptive+legacy.suffix, context)
         path.parent.mkdir(parents=True, exist_ok=True)
         record = dict(schema=1, identity=context.identity(), legacy_name=legacy.name,
                       run_id=self.run_id, filename=path.name)
         sidecar = selection_sidecar(path)
         if sidecar.exists():
-            if json.loads(sidecar.read_text()) != record:
+            previous = json.loads(sidecar.read_text())
+            # A new execution may replace an artifact only if its complete
+            # physics identity and logical name agree. Keep execution metadata
+            # for readers of historical run-suffixed outputs, never for naming.
+            if any(previous.get(key) != record[key]
+                   for key in ('schema', 'identity', 'legacy_name', 'filename')):
                 raise ValueError(f'Output identity collision: {path}')
-        else:
-            with sidecar.open('x') as stream:
-                json.dump(record, stream, sort_keys=True, indent=2)
-                stream.write('\n')
+        with sidecar.open('w') as stream:
+            json.dump(record, stream, sort_keys=True, indent=2)
+            stream.write('\n')
         return path
 
     def _file_selection(self, legacy):

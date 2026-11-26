@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shlex
 import subprocess
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, replace
@@ -15,6 +16,7 @@ from typing import Iterable
 ROOT_DIR = Path(__file__).resolve().parent
 DEFAULT_INPUT_BASE = Path.home() / "cernbox" / "ana" / "pPb8160"
 DEFAULT_OUTPUT_DIR = Path.home() / "cernbox" / "ana" / "pPb8160"
+DEFAULT_EXECUTABLE = ROOT_DIR / "build" / "processForestSimple"
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,7 @@ class RunnerConfig:
     use_eta_dependent_jer: int = 0
     input_base: Path = DEFAULT_INPUT_BASE
     output_dir: Path = DEFAULT_OUTPUT_DIR
+    executable: Path = DEFAULT_EXECUTABLE
 
 
 @dataclass(frozen=True)
@@ -77,7 +80,7 @@ def build_command(config: RunnerConfig, pt_hat_sample: int) -> list[str]:
     input_file = build_input_file(config, pt_hat_sample)
     output_file = build_output_file(config, pt_hat_sample)
     return [
-        str(ROOT_DIR / "build" / "processForestSimple"),
+        str(config.executable),
         str(input_file),
         str(output_file),
         str(config.mc_type),
@@ -150,6 +153,10 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         "--eta-dependent-jer", action=argparse.BooleanOptionalAction, default=None,
         help="Use eta-dependent resolution also for standard JER branches; default preset keeps base standard and eta-dependent Extra families in one run.",
     )
+    parser.add_argument("--output-dir", type=Path, help="Base directory for generated ROOT files.")
+    parser.add_argument("--executable", type=Path, help="Use an alternative processForestSimple build.")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Print commands and check inputs without processing files.")
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.workers < 1:
         parser.error("--workers must be at least 1")
@@ -195,6 +202,10 @@ def main(config: RunnerConfig, pt_hat_samples: list[int], argv: Iterable[str] | 
     args = parse_args(argv)
     config = replace(
         config,
+        output_dir=(args.output_dir.expanduser().resolve()
+                    if args.output_dir is not None else config.output_dir),
+        executable=(args.executable.expanduser().resolve()
+                    if args.executable is not None else config.executable),
         jer_smearing_mode=(
             config.jer_smearing_mode
             if args.jer_smearing_mode is None
@@ -206,6 +217,19 @@ def main(config: RunnerConfig, pt_hat_samples: list[int], argv: Iterable[str] | 
             else int(args.eta_dependent_jer)
         ),
     )
+    if args.dry_run:
+        missing = 0
+        for pt_hat_sample in pt_hat_samples:
+            input_file = build_input_file(config, pt_hat_sample)
+            if not input_file.is_file():
+                print(f"Missing input: {input_file}")
+                missing += 1
+            output_file = build_output_file(config, pt_hat_sample)
+            if output_file.exists():
+                print(f"Existing output would be replaced: {output_file}")
+            print(shlex.join(build_command(config, pt_hat_sample)))
+        print(f"Dry run: {len(pt_hat_samples) - missing} of {len(pt_hat_samples)} inputs found.")
+        return int(missing > 0)
     workers = _clamp_workers(args.workers)
     if workers != args.workers:
         print(f"Using {workers} worker(s) based on available CPU cores.")

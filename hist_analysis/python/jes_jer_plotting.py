@@ -57,7 +57,8 @@ def save_jes_jer_canvas(canvas, *, output, save_png=False):
         fig.subplots_adjust(left=0.14, right=0.84, bottom=0.12, top=0.93)
         values, x_edges, y_edges = _th2_arrays(reference)
         hep.hist2dplot(values, xbins=x_edges, ybins=y_edges, ax=axis,
-                       cbar=True, cbarsize='4%', cbarpad=0.04)
+                       cbar=True, cbarsize='4%', cbarpad=0.04,
+                       mask=(values != 0))
     else:
         fit_colors = {}
         for index, histogram in enumerate(histograms):
@@ -93,7 +94,7 @@ def save_jes_jer_canvas(canvas, *, output, save_png=False):
                      right='pPb (8.16 TeV)', style=DEFAULT_MPLHEP_STYLE)
     path = Path(output)
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path)
+    fig.savefig(path, dpi=200)
     if save_png:
         fig.savefig(path.with_suffix('.png'), dpi=150)
     # Display the same figure that was saved, including in a batch ROOT notebook.

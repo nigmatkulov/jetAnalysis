@@ -258,22 +258,23 @@ def _write_object(output, obj, name: str) -> None:
 
 
 def produce_source(entry: dict, *, overwrite: bool = True) -> dict:
-    """Produce a new dedicated bundle, versioning any existing destination.
+    """Recreate the configured bundle, replacing the same configuration by default.
 
-    ``overwrite`` remains accepted for call compatibility; validated outputs
-    are never replaced. The returned output is the allocated version's path.
+    Set ``overwrite=False`` to reject an existing destination explicitly.
     """
 
     # This stage caches raw yields and original response objects; it applies
     # neither luminosity/trigger normalization nor unfolding corrections.
     # Recorded source metadata is provenance, not automatic cache invalidation.
     source_path = Path(entry["source"])
-    from hist_analysis.python.output_naming import unused_version, JET_SELECTIONS
+    from hist_analysis.python.output_naming import JET_SELECTIONS
     if source_path.resolve() == Path(entry["output"]).resolve():
         raise ValueError("Production output must not overwrite its source")
     if entry.get('selection') not in JET_SELECTIONS:
         raise ValueError('Declare the actual source jet selection before production')
-    output_path = unused_version(entry["output"])
+    output_path = Path(entry["output"])
+    if output_path.exists() and not overwrite:
+        raise FileExistsError(output_path)
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
     if source_path.resolve() == output_path.resolve():
@@ -432,13 +433,13 @@ def load_produced_histogram(filename: str | Path, key: str):
 
 
 def ensure_npdf_projections(entry: dict, *, eta_cut: float = 1.9) -> dict:
-    """Reuse a compatible bundle or extend a copy, preserving previous files.
+    """Reuse a compatible bundle or extend the configured destination.
 
     Only missing exact nPDF projections are calculated from retained raw TH2s.
     No normalization, correction, trigger reassignment, or source reprocessing.
     """
     from hist_analysis.config.histograms import NPDF_PTAVE_BINS, DIJET_ETA_CUTS
-    from hist_analysis.python.output_naming import unused_version, bundle_selection
+    from hist_analysis.python.output_naming import bundle_selection
     requested = Path(entry['output'])
     parts = [entry['category'], entry['dataset'], entry['direction']]
     if entry['trigger'] is not None:
@@ -492,11 +493,11 @@ def ensure_npdf_projections(entry: dict, *, eta_cut: float = 1.9) -> dict:
             return dict(output=existing, added=[])
     finally:
         preflight.Close()
-    # A fresh named copy records the complete scope; no source or validated
-    # reusable file is modified, including during additive extension.
-    output_path = unused_version(requested)
+    # Preflight is closed before copying or reopening the configured bundle.
+    output_path = requested
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(existing, output_path)
+    if Path(existing).resolve() != output_path.resolve():
+        shutil.copy2(existing, output_path)
     file = open_root_file(str(output_path), 'UPDATE')
     added = []
     try:

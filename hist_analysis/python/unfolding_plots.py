@@ -17,13 +17,18 @@ from typing import Iterable, Mapping, Sequence
 import ROOT
 
 from hist_analysis.python.root_style import (
-    DEFAULT_PLOT_STYLE, PlotStyle, draw_text_block, save_canvas, set_2d_style,
+    DEFAULT_PLOT_STYLE, UNFOLDING_COLORS, UNFOLDING_MARKERS,
+    PlotStyle, draw_text_block, save_canvas, set_2d_style,
     set_legend_style, set_pad_style, set_unfolding_1d_style,
 )
 from hist_analysis.python.unfolding import (
     FlattenedBinning, extract_eta_block,
 )
 from hist_analysis.python.plotting import draw_closure, draw_overlay
+
+DIJET_ETA_AXIS_TITLE = "#eta_{CM}^{dijet}"
+FLATTENED_DIJET_AXIS_TITLE = "global (p_{T}^{ave}, #eta_{CM}^{dijet}) bin"
+DIJET_YIELD_AXIS_TITLE = "1/N dN/d{#eta_{CM}^{dijet}}"
 
 
 def range_covering_histogram_bins(histogram, requested_range):
@@ -84,6 +89,7 @@ def draw_unfolding_classification(
     result.GetXaxis().LabelsOption("v")
     result.GetXaxis().SetLabelSize(0.035)
     canvas = ROOT.TCanvas(canvas_name, "Unfolding pair classification", 1000, 750)
+    canvas._mirror_root_style = True
     set_pad_style(canvas, grid_x=grid, grid_y=grid, style=style)
     canvas.SetBottomMargin(0.30)
     canvas.SetLogy(True)
@@ -125,6 +131,7 @@ def draw_projection_response(
         canvas_name, "Projection and response",
         style.side_by_side_canvas_width, style.side_by_side_canvas_height,
     )
+    canvas._mirror_root_style = True
     canvas.Divide(2, 1)
     canvas.cd(1)
     set_pad_style(ROOT.gPad, grid_x=grid, grid_y=grid, style=style)
@@ -133,7 +140,7 @@ def draw_projection_response(
     set_legend_style(legend, style=style)
     for index, (role, (label, histogram)) in enumerate(displayed.items()):
         set_unfolding_1d_style(histogram, role, style=style)
-        histogram.SetTitle(";#eta_{CM};Entries")
+        histogram.SetTitle(f";{DIJET_ETA_AXIS_TITLE};{DIJET_YIELD_AXIS_TITLE}")
         histogram.GetXaxis().SetRangeUser(*eta_range)
         if index == 0:
             histogram.SetMaximum(1.25 * maximum if maximum > 0.0 else 1.0)
@@ -145,10 +152,11 @@ def draw_projection_response(
     set_pad_style(ROOT.gPad, grid_x=grid, grid_y=grid, style=style)
     ROOT.gPad.SetRightMargin(style.palette_right_margin)
     set_2d_style(response, style=style)
-    response.SetTitle(f";{response_titles[0]};{response_titles[1]}")
+    response.GetYaxis().SetTitleOffset(1.3 * style.axis_2d_y_title_offset)
+    response.SetTitle(f";{response_titles[0]};{response_titles[1]};{DIJET_YIELD_AXIS_TITLE}")
     response.GetXaxis().SetRangeUser(*eta_range)
     response.GetYaxis().SetRangeUser(*eta_range)
-    response.Draw("COLZ")
+    response.Draw("COLZ1")
     right_labels = draw_text_block(ROOT.gPad, annotations, style=style)
     canvas.Modified()
     canvas.Update()
@@ -183,6 +191,7 @@ def draw_flattened_response(
         canvas_name, "Flattened histograms and response",
         style.side_by_side_canvas_width, style.side_by_side_canvas_height,
     )
+    canvas._mirror_root_style = True
     canvas.Divide(2, 1)
     canvas.cd(1)
     set_pad_style(ROOT.gPad, grid_x=grid, grid_y=grid, style=style)
@@ -191,7 +200,7 @@ def draw_flattened_response(
     set_legend_style(legend, style=style)
     for index, (role, (label, histogram)) in enumerate(displayed.items()):
         set_unfolding_1d_style(histogram, role, style=style)
-        histogram.SetTitle(";global #eta_{CM} bin;Entries")
+        histogram.SetTitle(f";{FLATTENED_DIJET_AXIS_TITLE};{DIJET_YIELD_AXIS_TITLE}")
         if index == 0:
             histogram.SetMaximum(1.25 * maximum if maximum > 0.0 else 1.0)
         histogram.Draw("E1" if index == 0 else "E1 SAME")
@@ -202,7 +211,11 @@ def draw_flattened_response(
     set_pad_style(ROOT.gPad, grid_x=grid, grid_y=grid, style=style)
     ROOT.gPad.SetRightMargin(style.palette_right_margin)
     set_2d_style(response, style=style)
-    response.Draw("COLZ")
+    response.GetYaxis().SetTitleOffset(1.3 * style.axis_2d_y_title_offset)
+    response.GetXaxis().SetTitle(f"Reco {FLATTENED_DIJET_AXIS_TITLE}")
+    response.GetYaxis().SetTitle(f"Gen {FLATTENED_DIJET_AXIS_TITLE}")
+    response.GetZaxis().SetTitle(DIJET_YIELD_AXIS_TITLE)
+    response.Draw("COLZ1")
     right_labels = draw_text_block(ROOT.gPad, annotations, style=style)
     canvas.Modified()
     canvas.Update()
@@ -223,7 +236,9 @@ def draw_response_matrix(
     grid: bool = False,
     log_z: bool = True,
     canvas_name: str = "canvas_response_matrix",
-    title: str = ";global reco #eta_{CM} bin;global gen #eta_{CM} bin",
+    title: str = (
+        f";Reco {FLATTENED_DIJET_AXIS_TITLE};Gen {FLATTENED_DIJET_AXIS_TITLE};{DIJET_YIELD_AXIS_TITLE}"
+    ),
     style: PlotStyle = DEFAULT_PLOT_STYLE,
 ):
     """Draw the complete measured-bin versus truth-bin migration matrix."""
@@ -236,6 +251,7 @@ def draw_response_matrix(
     canvas.SetRightMargin(style.palette_right_margin)
     canvas.SetLogz(log_z)
     set_2d_style(response, style=style)
+    response.GetYaxis().SetTitleOffset(1.3 * style.axis_2d_y_title_offset)
     response.SetTitle(title)
     if log_z:
         positive = [
@@ -247,7 +263,7 @@ def draw_response_matrix(
         if not positive:
             raise ValueError("Cannot draw an empty response matrix with log_z=True")
         response.SetMinimum(min(positive))
-    response.Draw("COLZ")
+    response.Draw("COLZ1")
     labels = draw_text_block(canvas, annotations, style=style)
     canvas.Modified()
     canvas.Update()
@@ -266,8 +282,8 @@ def draw_unfolding_closure(
     measured_label: str = "Reco",
     unfolded_label: str = "Unfolded",
     ratio_target_label: str | None = None,
-    x_title: str = "#eta_{CM}",
-    y_title: str = "Entries",
+    x_title: str = DIJET_ETA_AXIS_TITLE,
+    y_title: str = DIJET_YIELD_AXIS_TITLE,
     ratio_range: tuple[float, float] = (0.5, 1.5),
     measured_ratio_option: str = "",
     unfolded_ratio_option: str = "",
@@ -309,6 +325,7 @@ def draw_unfolding_closure(
         set_unfolding_1d_style(histogram, role, style=style)
 
     canvas = ROOT.TCanvas(canvas_name, "Unfolding closure", 800, 800)
+    canvas._mirror_root_style = True
     top = ROOT.TPad(f"{canvas_name}_top", "", 0.0, style.ratio_fraction, 1.0, 1.0)
     bottom = ROOT.TPad(f"{canvas_name}_bottom", "", 0.0, 0.0, 1.0, style.ratio_fraction)
     top.Draw()
@@ -337,7 +354,9 @@ def draw_unfolding_closure(
     set_pad_style(bottom, grid_x=grid, grid_y=grid, style=style)
     bottom.SetTopMargin(style.ratio_bottom_top_margin)
     bottom.SetBottomMargin(style.ratio_bottom_margin)
+    ratio_axis_label = ratio_target_label or target_label
     for ratio in (measured_ratio, unfolded_ratio):
+        ratio.SetTitle(f";{x_title};Ratio to {ratio_axis_label}")
         ratio.GetXaxis().SetTitleSize(style.ratio_axis_title_size)
         ratio.GetXaxis().SetLabelSize(style.ratio_axis_label_size)
         ratio.GetYaxis().SetTitleSize(style.ratio_axis_title_size)
@@ -346,8 +365,6 @@ def draw_unfolding_closure(
         ratio.GetYaxis().SetNdivisions(style.ratio_axis_divisions)
         if displayed_x_range is not None:
             ratio.GetXaxis().SetRangeUser(*displayed_x_range)
-    ratio_axis_label = ratio_target_label or target_label
-    measured_ratio.SetTitle(f";{x_title};Ratio to {ratio_axis_label}")
     measured_ratio.GetYaxis().SetRangeUser(*ratio_range)
     measured_ratio.Draw("E1")
     unfolded_ratio.Draw("E1 SAME")
@@ -438,7 +455,7 @@ def draw_unfolding_closure_by_pt(
             displayed_target, displayed_reco, displayed_unfolded,
             target_label=target_label, target_role=target_role,
             measured_label=measured_label, unfolded_label=unfolded_label,
-            y_title="1/N dN/d#eta_{CM}" if normalize else "Entries",
+            y_title=f"1/N dN/d{DIJET_ETA_AXIS_TITLE}" if normalize else DIJET_YIELD_AXIS_TITLE,
             ratio_range=ratio_range,
             measured_ratio_option=measured_ratio_option,
             unfolded_ratio_option=unfolded_ratio_option,
@@ -461,8 +478,6 @@ def draw_factorized_correction_steps_by_pt(
     signal_measured,
     matched_unfolded,
     efficiency_corrected_unfolded,
-    purity,
-    efficiency,
     measured_templates: Sequence,
     truth_templates: Sequence,
     layout: FlattenedBinning,
@@ -477,8 +492,8 @@ def draw_factorized_correction_steps_by_pt(
 ):
     """Plot every correction in the factorized unfolding chain by pTave.
 
-    The three canvases in each pTave interval show the fixed response
-    corrections, the inclusive-to-signal purity correction, and the
+    The two canvases in each pTave interval show the
+    inclusive-to-signal purity correction and the
     matched-to-inclusive truth efficiency correction.  Inputs are cloned by
     ``extract_eta_block``; the histograms used by unfolding are not modified.
     """
@@ -498,14 +513,6 @@ def draw_factorized_correction_steps_by_pt(
         measured_template = measured_templates[pt_index]
         truth_template = truth_templates[pt_index]
         blocks = {
-            "purity": extract_eta_block(
-                purity, measured_template, layout, pt_index,
-                name=f"hPurityStepPt{pt_index}",
-            ),
-            "efficiency": extract_eta_block(
-                efficiency, truth_template, layout, pt_index,
-                name=f"hEfficiencyStepPt{pt_index}",
-            ),
             "inclusive_reco": extract_eta_block(
                 inclusive_measured, measured_template, layout, pt_index,
                 name=f"hInclusiveRecoStepPt{pt_index}",
@@ -525,21 +532,15 @@ def draw_factorized_correction_steps_by_pt(
         }
         specifications = (
             (
-                "correction_factors",
-                {"Purity": blocks["purity"], "Efficiency": blocks["efficiency"]},
-                "Purity", "Correction factor", "Efficiency / purity",
-                {"Purity": (ROOT.kRed, 20), "Efficiency": (ROOT.kBlue, 21)},
-            ),
-            (
                 "purity_step",
                 {
                     "Inclusive reco": blocks["inclusive_reco"],
                     "Purity-corrected reco": blocks["signal_reco"],
                 },
-                "Inclusive reco", "Entries", "Purity-corrected / inclusive",
+                "Inclusive reco", DIJET_YIELD_AXIS_TITLE, "Purity-corrected / inclusive",
                 {
-                    "Inclusive reco": (ROOT.kRed, 20),
-                    "Purity-corrected reco": (ROOT.kRed, 24),
+                    "Inclusive reco": (UNFOLDING_COLORS["reco"], UNFOLDING_MARKERS["reco"]),
+                    "Purity-corrected reco": (UNFOLDING_COLORS["reco"], 24),
                 },
             ),
             (
@@ -548,17 +549,19 @@ def draw_factorized_correction_steps_by_pt(
                     "Matched unfolded": blocks["matched_unfolded"],
                     "Efficiency-corrected unfolded": blocks["unfolded"],
                 },
-                "Efficiency-corrected unfolded", "Entries", "Matched / corrected",
+                "Efficiency-corrected unfolded", DIJET_YIELD_AXIS_TITLE, "Matched / corrected",
                 {
                     "Matched unfolded": (ROOT.kGray + 2, 26),
-                    "Efficiency-corrected unfolded": (ROOT.kBlack, 22),
+                    "Efficiency-corrected unfolded": (
+                        UNFOLDING_COLORS["unfolded"], UNFOLDING_MARKERS["unfolded"],
+                    ),
                 },
             ),
         )
         for (suffix, displayed, nominal, y_title, ratio_y_title,
              curve_styles) in specifications:
             canvas, ratios = draw_closure(
-                displayed, nominal=nominal, title="", x_title="#eta_{CM}",
+                displayed, nominal=nominal, title="", x_title=DIJET_ETA_AXIS_TITLE,
                 y_title=y_title, ratio_y_title=ratio_y_title,
                 ratio_range=ratio_range, draw_nominal_ratio=False,
                 log_y=False, x_range=eta_range, annotations=pt_annotation,
@@ -567,7 +570,7 @@ def draw_factorized_correction_steps_by_pt(
                 ),
                 save_png=save_png, grid=grid,
                 canvas_name=f"canvas_{output_tag}_{suffix}_pt{pt_index}",
-                curve_styles=curve_styles,
+                curve_styles=curve_styles, mirror_root_style=True,
             )
             canvases.append(canvas)
             objects.extend((*displayed.values(), *ratios.values()))
@@ -666,13 +669,13 @@ def draw_response_components(
     )
     canvas.Divide(2, 1)
     retained = []
-    for pad_index, (title, role, components) in enumerate((
-        ("Miss", "miss", (
+    for pad_index, (level, title, role, components) in enumerate((
+        ("Gen", "misses", "miss", (
             ("Explicit selection/matching", explicit_miss, 2),
             ("p_{T}^{ave} boundary migration", boundary_miss, 3),
             ("Effective (used by RooUnfold)", effective_miss, 1),
         )),
-        ("Fake", "fake", (
+        ("Reco", "fakes", "fake", (
             ("Explicit selection/matching", explicit_fake, 2),
             ("p_{T}^{ave} boundary migration", boundary_fake, 3),
             ("Effective (used by RooUnfold)", effective_fake, 1),
@@ -687,7 +690,7 @@ def draw_response_components(
             set_unfolding_1d_style(histogram, role, style=style)
             histogram.SetLineStyle(line_style)
             histogram.SetLineWidth(2)
-            histogram.SetTitle(f";global #eta_{{CM}} bin;{title} weighted events")
+            histogram.SetTitle(f";{level} {FLATTENED_DIJET_AXIS_TITLE};Weighted {title} / bin")
             if index == 0:
                 histogram.SetMaximum(1.25 * maximum if maximum > 0.0 else 1.0)
             histogram.Draw("HIST" if index == 0 else "HIST SAME")

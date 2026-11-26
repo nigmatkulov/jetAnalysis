@@ -206,7 +206,10 @@ class StoredDataTotalTests(unittest.TestCase):
         self.assertIn('p_{T,1} #geq 50, p_{T,2} #geq 40 GeV',lines)
         self.assertIn('2#pi/3',lines[2])
         self.assertEqual(lines[0], '#it{anti}-k_{T} R = 0.4')
-        self.assertFalse(any(token in ' '.join(lines) for token in ('combined','jetId','Jet60','Minimum bias')))
+        self.assertIn('Data reco jet selection: jetId', lines)
+        self.assertFalse(any(token in ' '.join(lines) for token in ('combined','Jet60','Minimum bias')))
+        generator_lines = selection_lines(root, (50,60), eta_cut=1.9, direction='pp', selection='jetId')
+        self.assertFalse(any('jetId' in line for line in generator_lines))
 
 
 if __name__=='__main__':unittest.main()

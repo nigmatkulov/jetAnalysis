@@ -197,6 +197,56 @@ two-exponential threshold fits over 15–950 GeV. Its two-dimensional maps use
 square canvases, the Bird palette, logarithmic z axes, shared palette geometry,
 and optional threshold-fit overlays.
 
+Use `notebooks/02_mc_data_vz_reweighting.ipynb` to derive and validate the
+primary-vertex v_z weight. Run it from the repository root:
+
+```bash
+py-env/bin/python -m jupyter nbconvert --to notebook --execute \
+  --output-dir /tmp/vz_reweighting hist_analysis/notebooks/02_mc_data_vz_reweighting.ipynb
+```
+
+It needs the merged MB data and MC outputs listed in `config/files.py`, read
+through the usual resolvers. Reusable bundles must be bit-identical to the
+original outputs, or the notebook stops. The event-level closure also needs
+the HiForest files under `<generator>/<direction>/forest/`; set
+`EVENT_LEVEL_CLOSURE = False` if they are absent. A full run takes about 80 s.
+
+Only direction-specific pairings are analysed: MC Pb-going against data
+p-going, MC p-going against data Pb-going, and CP5 (Pb-going) against
+data p-going. The input is the post-selection `hVzUnweighted`, filled after
+`isGoodEvent` and the overweight-event rejection, which holds exactly the events
+that receive the weight. Both MC and data are in the stored frame: MC is flipped
+when Pb-going, data when p-going. The pre-selection `hVzRaw` is not used,
+because in data it contains events that fail the pPb filters, which pile up near
+the beam spot. `eventWeight` divides by `fVzWeight`. The fitted function f is
+therefore the MC/Data ratio of unit-normalized shapes. The multiplicative MC
+weight is 1/f, valid only for |v_z| <= 15 cm, which is the event selection.
+Never extrapolate it. The notebook also overlays the MC shapes, including CP5,
+with ratios to Embedding Pb-going.
+
+CP5 direction: the official CP5 sample is Pb-going. `pp_analyzeMc_cp5tune.py`
+passes direction 1 (`isPbGoing`), so the stored CP5 v_z is flipped like the
+other Pb-going MC. Its stored-frame mean is negative (-0.57 cm), as for Pb-going
+embedding/PYTHIA (-1.40 cm), while p-going MC is positive (+1.41 cm). CP5 is
+therefore paired with p-going data. Its weight is diagnostic only, because
+production never v_z-weights pp MC.
+
+Outputs go under `output/vz_reweighting/<date>/jetId/{root,mplhep}/`:
+
+- `*_vz_reweighting_results.root`: one directory per pairing, holding the
+  inputs, normalized shapes, ratios, `fVzWeight` (f), `fMcWeight` (1/f), the
+  order scan, the closure, and a `fitSummary` JSON, plus one directory with
+  the MC comparison;
+- `*_vz_reweighting_summary.{json,md}`;
+- `*_vz_reweighting_fVzWeight.C`: one drop-in block per choice;
+- the figures.
+
+To use a result, paste exactly one block from the `.C` file in place of the
+existing `fVzWeight` definition. That edit changes production weights, so it
+needs explicit approval. Production currently applies a single function to
+both MC beam directions, although their stored-frame v_z distributions are
+mirror images. The direction-specific blocks remove that limitation.
+
 Use `notebooks/02_mc_jet_efficiency_fakes.ipynb` for Lab-frame inclusive-jet
 efficiency (`hRefSelInclusiveJetPtEtaLab / hGenInclusiveJetPtEtaLab`,
 using reference pT and reference eta in the numerator), matched rate
@@ -215,7 +265,8 @@ Use `notebooks/02_mc_jet_selection.ipynb` to compare Reco, matched Ref, RefSel,
 and Gen inclusive-jet eta shapes for the standard jet ID, track-maximum-only,
 and no-selection stages in Lab and CM frames. It displays the underlying 2D maps,
 then produces configured pT-interval full-distribution overlays and separate
-ratio canvases containing Reco/Gen, Ref/Gen, and RefSel/Gen. The current `RATIO_OPTION='B'` configuration requests ROOT binomial errors,
+ratio canvases containing Reco/Gen, Ref/Gen, and RefSel/Gen. The current `RECO_GEN_RATIO_OPTION='B'` and `REF_GEN_RATIO_OPTION='B'`
+configuration (with RefSel fixed to B) requests ROOT binomial errors,
 despite older notebook prose describing independent errors. This is a known
 statistical limitation: independently normalized Reco/Gen, Ref/Gen, and
 RefSel/Gen shapes are not numerator-subset efficiencies. The review preserves
@@ -226,6 +277,44 @@ modes are supported; `LOG_Y` controls the full-distribution y-axis scale. CM
 boundaries at `|eta_CM|=1.9`, with both boundary types listed in the legend.
 The MC outputs also provide RefSel inclusive-jet histograms for these three
 selection stages in the unflipped-Lab, Lab, and CM frames.
+
+The jet-selection notebook rebins eta with ROOT `Rebin` (`REBIN_ETA=1` by
+default) before normalization. `NORMALIZATION_ETA_RANGES` supplies common
+numerator/Gen windows per frame: Lab [-0.8,0.8), CM [-1.0,0.3). Normalization
+boundaries must coincide with rebinned edges; both integral and bin-width modes
+use these windows, while none preserves weighted yields. The jetId ratio display
+is restricted to complete bins inside `JETID_VALIDITY_ETA_RANGES` (currently
+Lab [-3.6,3.6), CM [-3,3)). These configurable display bounds do not establish
+a calibrated jet-ID validity region. The producer coordinate convention is
+etaCM = oriented etaLab - 0.465. NoSel/trkMax display ranges and raw histograms
+are unchanged. The retained `raw_refsel_to_gen` result and final ROOT archive
+provide the unnormalized RefSel/Gen ratio separately. RefSel/Gen always uses
+`B`; `RECO_GEN_RATIO_OPTION` and `REF_GEN_RATIO_OPTION` independently select
+`B` or independent errors. The shape-normalization covariance limitation still
+applies to the requested B option.
+For the jet-selection display, histograms are rebinned, independently normalized
+in the configured eta window, then divided with the selected ROOT error option
+(including B). There is no post-division scaling. Setting
+`APPLY_RATIO_SHAPE_SCALING=False` skips ratio-input normalization while leaving
+distribution overlays unchanged. B on normalized inputs differs from raw
+weighted-subset errors; normalization-integral uncertainty/covariance is omitted.
+
+The selection notebook now uses `project_selection_eta` for exact edge-aligned,
+half-open **single-jet pT** intervals (not dijet pTave). Partial/out-of-range
+intervals fail explicitly; pT flows are excluded and eta flows are retained but
+excluded from normalization. Source display ranges cannot truncate projections.
+Stored Sumw2 errors are preserved. `jet_selection_statistics.csv` records every
+regular eta bin, denominator validity, weighted effective counts, and errors
+from B, fixed-normalization independent division, and an independent-shape
+delta-method calculation including the random normalization sums. The latter
+still omits unavailable shared-event and numerator–Gen covariance. Legacy B
+outputs/defaults remain for reproducibility with an explicit warning, and are
+not certified efficiency or shape uncertainties. Reco and Ref are binned in
+reconstructed pT; Gen and RefSel in truth pT. Raw RefSel additionally requires
+unique truth matching before the weighted-subset interpretation is justified.
+Targeted checks: `py-env/bin/python -m unittest tests.test_jet_selection
+ tests.test_jet_selection_validation -v` (on one command line).
+
 
 Use `notebooks/02_mc_jet_JES_JER.ipynb` to extract JES and JER from Gaussian fits to
 inclusive-jet response slices, compare the configured reco/gen smearing cases,
@@ -448,10 +537,11 @@ other closure notebooks, F/B construction always uses independent errors;
 full-distribution and F/B-to-F/B comparison error options are configured
 separately.
 
-Use `notebooks/05_unfold2D_data.ipynb` to unfold the reconstructed data in the
-same 16 trigger-specific pTave intervals used by
-`06_data_dijet_distributions.ipynb`. MinimumBias supplies 50--80 GeV, Jet60
-80--100 GeV, Jet80 100--120 GeV, and Jet100 120--500 GeV. `DATA_DIRECTIONS`
+Use `notebooks/05_unfold2D_data.ipynb` to unfold the reconstructed data in 16
+trigger-specific pTave intervals. MinimumBias supplies 50--80 GeV, Jet60
+80--100 GeV, Jet80 100--120 GeV, and Jet100 120--500 GeV. The reconstructed
+figures in `06_data_dijet_distributions.ipynb` also include the shared
+500--1000 GeV interval from Jet100. `DATA_DIRECTIONS`
 selects combined, Pb-going, or p-going data. `RESPONSE_DATASET` independently
 selects `embedding`, direction-aware `pythia`, or the full `pythia_cp5`
 MiniAOD production. `RESPONSE_DIRECTION` selects `combined`, `Pbgoing`, or
@@ -788,6 +878,16 @@ bins likewise receive zero purity, even for populated data. Inspect support
 before interpreting outputs. Mask or explicitly constrain unsupported bins
 before reporting an inclusive truth result; these workflows do not supply
 a validated extrapolation for zero-response bins.
+
+The basics, data, and studied-to-controlled notebooks rebuild the dijet
+forward/backward ratio for each selected correction chain and pTave interval.
+The standalone comparisons show original Reco, unfolded, and Gen (MC Gen for
+data). Each curve divides unnormalized positive-η yields by their reflected
+negative-η partners with ROOT independent errors. The
+`controlled_corrections/*_forward_backward.root` archive stores the ratios,
+both folded yields, and the bins with zero backward yield or unsupported
+truth partners. Those ratio bins are omitted from the figures.
+
 Purity and efficiency
 are treated as response inputs; their finite-MC uncertainty must be assessed
 with response variations or toys rather than added again during each bin-wise
@@ -1278,21 +1378,28 @@ counterpart of `macro/plotMcClosures.C::plotDiJetClosures`. It projects the sele
 intervals from `config.histograms.DIJET_PTAVE_BINS` for every selected eta-cut index. It
 compares full eta shapes to nominal Gen and compares forward/backward ratios to
 the Gen forward/backward ratio. Before normalizing the shapes, it also writes a
-raw-yield overlay of Reco, matched Ref, and Gen with Reco/Gen and Ref/Gen in the
-lower panel. `NORMALIZATION='integral'` produces fractions per bin whose
+raw-yield overlay of Reco, matched Ref, and Gen. The raw yields, normalized
+shapes, and forward/backward ratios each have a separate comparison-to-Gen
+figure. `NORMALIZATION='integral'` produces fractions per bin whose
 bin-content sum is one; `bin_width` produces a density whose bin-width-weighted
 integral is one. Projection normalization uses ROOT `TH1::Scale`, while
 forward/backward and closure ratios use ROOT `TH1::Divide`. Forward and backward
 inputs are not normalized before division.
 
-Reco is enabled in red (`set_1d_style` index 0) and Gen in blue (index 1). Ref,
-smeared Gen, or smeared Reco curves can be added by supplying their full CM
+Reco uses filled red circles, Ref open blue circles, and Gen filled green
+upward triangles. Optional RefSel uses filled magenta downward triangles. Ratios to Gen
+use the numerator's style, and eta-cut overlays distinguish cuts by line style.
+Additional curves can be added by supplying their full CM
 key template. Legacy Forward/Backward fields in `DijetClosureCurve` are accepted
-for calling compatibility but are ignored. Individual full-distribution and F/B x-axis ranges
-extend 0.1 beyond the selected eta cut; eta-cut overlays extend 0.1 beyond the
-largest selected cut. Full-shape ratio limits, F/B limits, and F/B double-ratio
+for calling compatibility but are ignored. Signed-eta distributions and their
+ratios show the whole histogram bins that overlap the selected jet eta
+acceptance. F/B figures show absolute eta up to 0.1 beyond the
+selected eta cut, and eta-cut overlays use the largest selected cut. Full-shape
+ratio limits, F/B limits, and F/B double-ratio
 limits are configured separately.
-The annotation records the generator, levels, CM frame, pTave interval, jet eta
+The annotation shows the generator alone for combined data, and appends
+`p-going` or `Pb-going` for the corresponding directional sample.
+It also records the levels, CM frame, pTave interval, jet eta
 acceptance, leading/subleading thresholds, and delta-phi requirement. The ROOT
 Forward/Backward ratios always use independent error propagation; ROOT's
 binomial division option is invalid because Forward and Backward are separate
@@ -1300,11 +1407,28 @@ weighted populations. Options for subsequent closure ratios are configured
 separately and may use binomial propagation only when their numerator is a
 statistical subset of the denominator.
 
-PDF names are
-`<generator>_<direction>_full_etaCM_<eta*10>_ptave_<low>_<high>.pdf` and
-`<generator>_<direction>_fb_etaCM_<eta*10>_ptave_<low>_<high>.pdf`; for example,
-the nominal 1.9 acceptance and configured 60--80 GeV interval use
-`etaCM_19_ptave_60_80`.
+The PDF basenames have the form
+`<generator>_<direction>_<observable>_etaCM_<eta*10>_ptave_<low>_<high>_<panel>`,
+where the observable is `full_raw`, `full`, or `fb` and the panel is
+`distributions` or `ratios_to_gen`. The output manager adds the selection
+identity and keeps filenames stable within the dated renderer directories.
+
+Standalone closure plots are square. For each selected eta cut with at least
+16 configured intervals, four `grid4x4` PDFs summarize the first 16 intervals
+in row-major order. The grids cover the configured full-eta shapes, their
+ratios to Gen, F/B, and F/B ratios to Gen. Panels share the same x and y
+ranges and meet at their edges, with enlarged tick labels on the outer axes.
+Each panel shows its pTave interval at the top center. The first panel shows
+the MC sample and orientation, and the second panel holds the marker legend.
+The second row shows the eta and delta-phi cuts in column one and the
+leading- and subleading-jet pT cuts in column two. Shared grid limits follow
+the standalone plot ranges, including configured ratio limits. The usual
+renderer and PNG export settings also apply to the grids.
+With at least 16 configured pTave intervals, the notebook also saves four
+4×4 grids per selected eta cut, in interval order. The grids show the
+configured full-eta distributions, their ratios to Gen, the F/B
+distributions, and their F/B ratios to Gen. Only the first 16 intervals
+enter the grids.
 
 The closure projection helpers identify pT and eta axes from their physical
 ranges because some existing reference-jet files contain misleading axis
@@ -1628,7 +1752,7 @@ stems include model combination, jet selection, jet etaCM acceptance and pTave.
 Missing selected files warn explicitly; missing or malformed central/total
 objects and unsupported eta cuts fail rather than substitute uncertainties.
 
-### Exact output identities and protected runs
+### Exact output identities and repeatable outputs
 
 All 31 analysis notebooks that create plots/derived artifacts now declare
 `OUTPUT_SELECTIONS` from their configured input methods, jet acceptance, and
@@ -1638,16 +1762,19 @@ layout through directory arguments, so ROOT, MPLHEP, CSV, JSON, and diagnostic
 outputs use the same identity.
 
 A single-interval filename has an exact prefix such as
-`jetId_etaCM1p9_ptAve90to120_<existing_descriptive_stem>_run<identifier>.pdf`. Comparisons also
+`jetId_etaCM1p9_ptAve90to120_<existing_descriptive_stem>.pdf`. Comparisons also
 record independently verified pp-reference acceptances, e.g. `etaCP5GenCM1p9`.
 Those values are checked against the input's indexed histograms, including
 contents, errors and bin edges, rather than copied from the Data acceptance.
 Mixed Data/response selection methods are named by role when they differ.
 Existing useful stems and ROOT histogram keys are retained.
 
-Numbers use lossless decimal spelling, with `p` for a decimal point and `m`
-for a minus sign; `:g`/rounded legacy suffixes are not used as the selection
-identity. Multi-interval artifacts have a `ptAveBins<identifier>` (or `jetPtBins`)
+Numeric selection labels in filenames are rounded to at most three decimal
+places, with `p` for a decimal point and `m` for a minus sign; for example,
+`-1.2650000000000001` becomes `m1p265`. Metadata retains lossless decimal
+spelling and defines the exact selection identity. If distinct exact identities
+round to the same filename, the sidecar check rejects the collision rather than
+overwriting the other configuration. Analysis boundaries are never rounded. Multi-interval artifacts have a `ptAveBins<identifier>` (or `jetPtBins`)
 tag. Their adjacent `<filename>.selection.json` records the complete exact
 bin list, trigger assignments where present, eta selections and logical legacy
 name. Distinct bin sets with the same outer endpoints remain distinguishable.
@@ -1661,22 +1788,22 @@ Each notebook writes beneath its workflow root as
 `YYYY-MM-DD/<noSel|trkMax|jetId>/root/` and
 `YYYY-MM-DD/<noSel|trkMax|jetId>/mplhep/` (America/Chicago date).
 Logical observable subdirectories may appear beneath the renderer directory.
-Same-day reruns receive a unique filename run identifier; no run directory is added.
-All newly generated filenames use single underscores, including legacy descriptive stems. Previous validated output files are not renamed,
-deleted, or overwritten. Repeat runs coexist. Readers locate the newest
-matching declared run for each logical artifact and retain strict physics
-metadata checks. Systematic sources/totals and trigger-stitching consumers
-support both these runs and existing validated legacy outputs. Related audit,
-provenance, total CSV and diagnostic files are resolved through their declared
-logical names even when descriptive stems are shortened.
+Same-date reruns with the same configuration use identical filenames and replace
+those files automatically. All newly generated filenames use single underscores,
+including legacy descriptive stems. Selection sidecars retain exact physics
+identities and execution metadata; execution identifiers do not enter filenames.
+Outputs from other configurations and previous dates are retained. Readers support
+both deterministic artifacts and previous run-suffixed outputs, with strict
+physics metadata checks. Related audit, provenance, total CSV and diagnostic
+files are resolved through their declared logical names even when stems are shortened.
 
 Reusable bundles keep their existing dataset/direction/selection stem and add
 the full indexed eta-cut catalog plus the exact standard/test bin-set identity.
 Bundles are produced beneath `root_files/produced_histograms/YYYY-MM-DD/<selection>/root/`.
 Existing dated compatible caches are reused; legacy flat caches are copied into
-the dated layout after metadata verification. Extension copies a validated bundle to
-a new scope/version before adding missing projections. Full production also
-allocates a new version instead of replacing a file. Cache selection, cut
+the dated layout after metadata verification. Extension adds missing projections to the configured destination, copying a
+compatible older bundle there when needed. Full production recreates that same
+destination by default; `overwrite=False` explicitly rejects existing files. Cache selection, cut
 mapping, schema and interval declarations are verified before reuse. Missing
 selection metadata is an error; projections without declared interval/schema
 provenance are not reused (a verified retained raw TH2 can still be projected).
@@ -1749,8 +1876,7 @@ fit-residual uncertainties are added.
 
 Each family/interval produces etaCM and RFB ROOT and MPLHEP PDFs (optional
 200 DPI PNGs). Shared output identities include jet selection, theory and CP5
-eta acceptances, interval, observable, PDF family, normalization, and unique run
-ID. Figures and integral/zero-denominator validation JSONs go beneath
+eta acceptances, interval, observable, PDF family, and normalization. Figures and integral/zero-denominator validation JSONs go beneath
 `output/pdf_vs_cp5/` (override with `PDF_VS_CP5_OUTPUT_DIR`); `CP5_GEN_FILE`
 overrides the standalone input explicitly. Start from the repository root.
 
@@ -1784,3 +1910,241 @@ commits. A source-only checkout without them cannot pass that integration test;
 a missing file is not an optional-model skip in this test. Synthetic comparison
 tests exercise arithmetic and selection separately. Use the repository-root
 project interpreter, with PyROOT available, as described above.
+
+
+Output presentation preserves descriptive ROOT-pad annotations in MPLHEP exports,
+including Lab projection cuts and configured reco-selection roles. Data/response
+comparisons label their roles separately; generator catalog method names are not
+presented as applied generator jet IDs. Shared linear comparison legends account
+for plotted statistical errors and graph uncertainty extents when choosing a
+corner. Output management does not change histogram contents or uncertainty
+calculations.
+
+The standalone MPLHEP `save_2d` helper accepts `vmin` (default `0.001`) and
+`vmax` (default `None`, automatic upper limit) for the linear color scale.
+For example, `save_2d(h2, output=path, x_label="x", y_label="y",
+vmin=0.001, vmax=100)` fixes the palette limits without changing bin contents.
+Use `vmin=None` to restore an automatic lower limit.
+
+2D MPLHEP exports explicitly mask zero-content cells, revealing the axes
+background; native ROOT maps use `COLZ1` to suppress zero cells even with a
+negative displayed minimum. This is cell transparency, not a transparent full
+image background. Stored ROOT contents/errors (including flow bins) are retained.
+Color limits on standalone `save_2d` use normalization rather than data cutoffs,
+so a small nonzero cell below `vmin=0.001` remains visible at the low-end color.
+
+### Comparisons against local reference inputs
+
+`notebooks/04_systematics_old_vs_new.ipynb` reads the legacy
+`root_files/old_distributions/pPb8160_dijet_published_distributions.root`
+and the configured archive from `04_systematics_total.ipynb`. Set
+`NEW_ROOT_FILE` to the current total-systematics archive. The notebook checks
+its selection metadata against `EXPECTED_NEW`, shifts the legacy signed Lab
+eta coordinates by −0.465 for CM display, and pairs compatible bins for the
+total-uncertainty overlays and tables. The local legacy archive can be
+reconstructed from the five source PDFs in `root_files/old_distributions/`
+by running `py-env/bin/python -m hist_analysis.python.extract_published_dijet`
+from the repository root with PyROOT, mplhep, and Poppler's `pdftoppm`.
+The extraction command replaces the archive after validating the result.
+
+`notebooks/06_data_jet_corrections_comparison.ipynb` uses the original data
+outputs under `PPB_DATA_DIR` (default `BASE_DIR / "exp"`). It reads the
+`_noResiduals`, `_oldResiduals`, and nominal new-residual files for each
+trigger and orientation. The raw and corrected projections each apply the
+same half-open interval on their own pT axis and use detector-frame eta.
+The comparison checks the raw-jet and vertex histograms against the
+L2-relative sample. A mismatch excludes the old-residual curve or stops the
+run for the new-residual sample. Ratios to L2-relative use independent
+statistical errors. The shared-event covariance is unavailable, so the
+comparison is diagnostic.
+
+`notebooks/07_dijet_data_vs_extended_theory.ipynb` reads the supplied
+`root_files/extended-comparison.root` (override with `EXTENDED_THEORY_FILE`)
+and reconstructed data resolved under `PPB_DATA_DIR`. It compares normalized
+signed CM eta shapes with the pPb EPPS21 × CT18 and pp CT18 central spectra.
+`CAMPAIGN` selects `combined`, `nov09`, or `nov18`. It aligns whole eta
+bins and retains the accepted theory bin edges. The curves and Data/Theory
+ratios use stored data Sumw2 and theory integration errors with fixed
+normalization constants. PDF, scale, experimental systematic uncertainties,
+and normalization covariance are omitted. The archive records the theory
+file checksum. See [the supplied campaign metadata](root_files/extended-comparison.md).
+
+The supplied reference ROOT files and legacy PDFs are local inputs.
+
+### Notebook ROOT histogram archives
+
+Notebooks using `NotebookRootOutput` create one deterministic archive in their
+existing `OUTPUT_DIR` (`<workflow>/<date>/<jetSelection>/root/`). The filename is
+the notebook stem plus `.root`, passed through the existing `OutputDirectory`
+selection/analysis naming convention. For example, notebook 02 writes
+`events/<date>/jetId/root/jetId_etaCutNA_ptAveNA_02_mc_event_histograms.root`.
+No execution identifier or timestamp is added to the filename. Rerunning the
+configuration cell recreates that file; rerunning a plot cell replaces its keys.
+Execute cells sequentially through the final archive cell to include all results
+and final configuration metadata.
+
+`python/notebook_output.py` streams native ROOT objects without changing their
+live names, ownership, contents, binning, flow bins, or errors. Shared canvas
+exporters snapshot temporary plotted histograms before their helpers return.
+The final notebook cell additionally collects retained histograms and graphs
+from mappings, sequences, and analysis dataclasses. Stable ROOT directory paths
+identify their source variables or figures:
+
+- `plots_<logical figure>/...`: exact plot-time histogram/graph snapshots;
+- `results/<variable>/...`: retained distributions, projections, ratios and diagnostics;
+- `exports/<legacy export stem>/...`: previously explicit histogram exports,
+  including unfolding response objects, covariance matrices and metadata;
+- `notebookConfiguration`: JSON configuration, selection identity, and object manifest.
+
+Punctuation in logical path components receives a deterministic digest to avoid
+name collisions. Existing explicit notebook ROOT exports are consolidated into
+this archive; their original object keys remain under `exports`. PDF, PNG, CSV,
+JSON and intermediate unfolding caches retain their existing locations and
+behavior. Notebook 00 retains its downstream reusable `root_files/` catalog and
+also bundles produced histograms under `production/<source>/...` in
+`output/reusable_histograms/<date>/<jetSelection>/root/`. Notebook 01 is an
+inventory and produces no histograms. The legacy comparison and jet-correction
+comparison write figures and their own diagnostics. The local unfolding study
+notebooks use workflow-specific output files. Notebook 04 total systematics saves both
+fractional uncertainty curves and the percent values displayed in its plots;
+these magnitudes carry zero statistical bin errors.
+
+Native ROOT round-trip, archive overwrite, and notebook wiring checks:
+
+```bash
+py-env/bin/python -m unittest tests.test_notebook_output -v
+```
+
+MPLHEP PDF exports use 200 dpi for embedded raster content; text and vector
+elements remain vector. PNG exports and notebook previews retain their own
+existing resolution settings.
+
+### Geometric pPb dijet unfolding study
+
+The `05_unfold2D_eta_*`, `05_unfold2D_study_*`, and
+`05_unfold2D_validation.ipynb` notebook entry points are local work in progress.
+The shared helpers and regression tests are available in the source checkout.
+
+For the two-method study with eta-dependent hybrid JER, use
+`05_unfold2D_eta_01_responses`, `05_unfold2D_eta_02_closure_and_toys`, and
+`05_unfold2D_eta_03_bottom_line_and_data` from the repository root with `py-env`.
+The loader checks the producer metadata. For an archived hybrid file with
+`useEtaDependentJER=false`, it uses the full-sample `JerDefExtra` response,
+matched reco spectrum and same-event objects together. For a hybrid production
+run with `useEtaDependentJER=true`, it uses the standard keys, whose reco
+kinematics already include eta dependence. Set `ETA_UNFOLDING_MC_FILE` to
+select a different full-sample input. Set `ETA_UNFOLDING_SPLIT_MC_FILE` to a
+compatible eta-enabled hybrid file for controlled-to-studied closure. The
+base-resolution splits in the archived file are rejected. The split notebook
+checks weighted sums and Sumw2 for both responses. Hard-event independence
+still requires the source-level campaign audit.
+
+The eta-dependent notebooks use the matched-only RooUnfold result as a
+geometric benchmark. The explicit Method A model uses the geometric response
+and an additive reco complement. The same-event bridge and Method B retain
+misses in the independent gen denominator. Method B archives five aggregate
+sidebands and fixes their reco templates at the specified exposure, with
+optional external rate covariance. The iteration uses the full predicted
+reco mean including those templates, so it handles bins below the expected
+background without clipping. This binary-category pilot cannot distinguish
+the individual jet threshold, eta and angular failure reasons in its
+out-of-selection templates. The archived 500–1000 GeV interval remains an
+internal diagnostic bin. No publication selection is implied by the outputs.
+
+Both methods unfold the full signed etaCM dijet spectrum jointly with pTave.
+After unfolding, project each pTave interval and divide the unnormalized
+positive-etaCM yield by its mirrored negative-etaCM yield at the same |etaCM|.
+Build the reco and generator F/B ratios from their own full signed spectra in
+the same way. The response takes the full spectrum as input. The F/B ratios
+and ratios of F/B ratios are derived afterward, with their correlations
+propagated from the underlying spectra.
+
+The notebooks write fresh run directories under `output/dijet_unfolding_study/`.
+They provide ROOT and JSON diagnostics for both responses, ROOT covariance
+and spectra for closure, and paired toy studies. Toy coverage and the
+bottom-line benchmark are conditional on fixed response and stitching scales.
+`RUN_DATA` defaults to false because the stitched trigger/exposure audit,
+held-out coverage, and full response and systematic covariances are required
+before adopting a data result. Single-panel figures in this study are 6 × 6 in.
+
+The following notebooks describe the earlier geometric study.
+
+Run the five `05_unfold2D_study_0*` notebooks from the repository root with
+`py-env`. They use PyROOT, the local RooUnfold checkout (override with
+`ROOUNFOLD_ROOT`), NumPy, Matplotlib and mplhep. The workflow uses the standard
+17 pTave intervals, 38 regular CM eta bins and independently ranked leading
+Gen and nominal-JER Reco pairs. See [the producer contract](../AnalysisContract.h)
+for the inclusive 50/40 GeV, individual jet |etaCM| ≤ 1.9 and azimuthal cuts,
+and for the data/MC beam-orientation signs.
+
+1. **01_response** checks the four sparse axes and independently accounts for
+   excluded matches, then saves the matched matrix and marginals, restricted
+   domain fake and miss complements, purity, efficiency, migrations and binned
+   resolution proxies. Its response slices select the displayed pT interval on
+   both axes.
+2. **02_full_mc** applies the response to its own Reco for three and four
+   iterations as an internal consistency check.
+3. **03_split_mc** checks the stored controlled/studied sums and Sumw2, then
+   fits studied Reco with the controlled response at 1, 3, 4, 8 and 12
+   iterations. The split is entry-disjoint by producer construction.
+   Verification of duplicate events requires source-level identity.
+4. **04_regularization** tests four scenarios with 1,000 toys each and
+   iterations 1–12. The alternatives use standalone pp CP5 truth, Embedded
+   truth, increased measurement variance, and the controlled response.
+5. **05_data** verifies the compatible trigger artifact and its overlap
+   integrals, then archives stitched Reco and F/B. It unfolds and refolds
+   when a validated iteration is supplied. The data result depends on
+   independent closure and trigger efficiency, prescale and overlap evidence.
+
+Write $M_{ij}$ as the weighted migration matrix with measured row $i$
+and truth column $j$. The matched projections determine
+$P_i=\sum_j M_{ij}/R_i$ and $\epsilon_j=\sum_i M_{ij}/G_j$.
+The matched-only RooUnfold response operates on $P_i R_i$. The post-fit
+inverse efficiency yields the fiducial estimate. Forward folding uses
+$M_{ij}/G_j$ followed by division by $P_i$. This assumes a transferable
+Reco fake-to-matched ratio. Keep the optional extended and geometric
+responses separate. The measured covariance is conditional on fixed training
+and scales. Refolded/Reco and unfolded/Reco include the covariance with the
+input. MC closure uses the fiducial same-event association Sumw2 as the
+Reco–Gen cross covariance. Its inclusive yield and Sumw2 marginals must
+match the geometric inputs within float precision. It supplies the joint
+weight moments only. The Bayesian response still uses geometric matches.
+F/B uses ROOT division of raw mirrored yields for the central values plus
+the covariance cross term where available. Toy F/B uses paired positive and
+negative yields from the same draw and records undefined ratios as NaN.
+
+Data stream assignment follows the standard regularization configuration.
+Use MB below 80 GeV, Jet60 for [80,100), Jet80 for [100,120), and Jet100
+for [120,1000) GeV. Raw-bin contents and Sumw2 are checked against unit
+counts. Multiply each assigned bin by its cumulative stream scale $w_i$.
+The toy expectation $\mu_i$ comes from a single truth normalization using
+the directly measured MB overlap. Draw $w_i\,\mathrm{Poisson}(\mu_i/w_i)$,
+giving variance $w_i\mu_i$. This leaves a well-defined exposure for a bin
+with zero observed events. The increased-variance scenario doubles $w_i$
+in the statistical model. The model omits uncertainty in weights and
+detector response, and assumes independent event counts between assigned
+bins. A trigger yield ratio over an overlap does not measure absolute
+efficiency or establish event-level overlap.
+
+Bias and variance use ensemble moments with divisor $N$. The study checks
+MSE directly against bias squared plus variance. Average squared truth
+errors within each supported pT block after dividing by the squared mean
+truth-bin yield in that block, then give the pT blocks equal weight.
+Bootstrap paired toy risks across iterations and report the standard error
+of the paired difference from the minimum. Pulls and coverage compare toys
+to known truth using RooUnfold's fixed measurement covariance linearized at
+the expected Reco input. Coverage includes regularization bias. A minimum at
+iteration one is a boundary result for the tested family. A response subset
+is a training-sensitivity check, not a response uncertainty model.
+
+Each execution creates a fresh run subdirectory under
+`hist_analysis/output/dijet_unfolding_study/`. Inspect `summary.json`,
+`migration.npz`, `toys.npz`, ROOT files and the `mplhep/` figures there.
+Every toy trajectory and F/B ensemble is saved. Read the saved NPZ arrays
+to revisit the results without repeating the scan. Set `RESPONSE_CACHE`
+to a prior `corrections.root` for a compatible input; the helper verifies
+identity and checksums. Set `TRIGGER_STITCHING_WEIGHTS_FILE` to select an
+explicit compatible JSON, `DIJET_UNFOLDING_STUDY_OUTPUT` to change the
+output location, `DIJET_UNFOLDING_TOYS` for a pilot, or
+`DIJET_UNFOLDING_DRAW=0` for numerical checks without plotting. The default
+stitching artifact uses the 2026-11-11 production and eta cut index 4.
