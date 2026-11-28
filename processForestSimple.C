@@ -744,10 +744,77 @@ struct Histograms {
 };
 
 //________________
-// Event weight calculation: stored generator weight for pp, legacy weighting for pPb.
+/// Vertex-z reweighting functions, one per MC generator and beam direction.
+/// Each is a pol8 fit of the MC/Data ratio of unit-normalized post-selection
+/// vz shapes (hVzUnweighted) in the stored frame (vz flipped for Pb-going MC and
+/// p-going data, see processEvents), derived and validated in
+/// hist_analysis/notebooks/02_mc_data_vz_reweighting.ipynb (2026-11-25 outputs,
+/// minimum-bias data). Pairings: MC Pb-going <-> data p-going, MC p-going <->
+/// data Pb-going. The MC event weight DIVIDES by the function (vzMcWeight).
+struct VzWeightParameters {
+    const char *label;
+    std::array<double, 9> pol8;
+};
+
+/// Select the vz function for one invocation; throws for MC configurations
+/// without a derived function. Not used for data.
+/// @param isPp: pp collision system (official PYTHIA CP5)
+/// @param isPythia: mcType 2 (PYTHIA, unembedded); otherwise mcType 1 (embedding)
+/// @param isPbGoing: beam direction of the MC sample (isPbGoingDir)
+VzWeightParameters vzWeightParameters(bool isPp, bool isPythia, bool isPbGoing) {
+    if (isPp) {
+        // Official CP5 pp MC: run with mcType 2 and isPbGoing=1 (pp_analyzeMc_cp5tune.py),
+        // so its vz is flipped like Pb-going MC; paired with p-going MB data.
+        if (!isPythia || !isPbGoing) {
+            throw std::runtime_error("No vz weight function for pp MC other than PYTHIA CP5 "
+                                     "run as Pb-going (mcType 2, isPbGoingDir 1)");
+        }
+        return {"pythia_cp5_pp_Pbgoing (vs MB data p-going)",
+                {0.8497280749475392, 0.02074413786076992, 0.005471731473209356,
+                 0.00016889320633421145, 2.5353078600018786e-05, 3.714187427774461e-07,
+                 8.790803944505438e-08, 8.566850809182714e-09, 6.557625467883503e-10}};
+    }
+    if (isPythia) {
+        if (isPbGoing) {
+            return {"pythia_pPb_Pbgoing (vs MB data p-going)",
+                    {0.846359490718918, -0.0034560624195979868, 0.004367665486367237,
+                     2.7790001709449622e-05, 2.7415882912555378e-05, -1.878099741572752e-07,
+                     -2.4677942827369378e-08, 2.2910088614227492e-09, 6.813660424752242e-10}};
+        }
+        return {"pythia_pPb_pgoing (vs MB data Pb-going)",
+                {0.8608554772070396, 0.006376100519730658, 0.0034460545561189574,
+                 -6.13228061435457e-05, 3.0063034255938733e-05, 2.8483458807605775e-07,
+                 -6.144131254977537e-08, -3.4767703158985763e-09, 9.68789465420633e-10}};
+    }
+    if (isPbGoing) {
+        return {"embedding_pPb_Pbgoing (vs MB data p-going)",
+                {0.8462114449363278, -0.003287673640693929, 0.004335280579594057,
+                 1.9574752415575695e-05, 2.9119618579579574e-05, -8.629671188897458e-08,
+                 -4.121484729700038e-08, 1.9699139715554887e-09, 7.254415895772252e-10}};
+    }
+    return {"embedding_pPb_pgoing (vs MB data Pb-going)",
+            {0.8609100105216301, 0.005835656018484983, 0.0033784592452201765,
+             -2.0614653687253066e-05, 3.0847592466998955e-05, -2.3465247594913195e-07,
+             -5.566971688073187e-08, -1.9135602297293454e-09, 9.387705085127184e-10}};
+}
+
+/// Multiplicative MC vz weight 1/f(vz). Call only for selected events
+/// (|vz| <= 15 cm); a non-finite or non-positive f is an error, never clamped.
+double vzMcWeight(TF1 &fVzWeight, const float &vz) {
+    const double value = fVzWeight.Eval(vz);
+    if (!std::isfinite(value) || value <= 0.) {
+        throw std::runtime_error(Form("Invalid vz weight function value %g at vz = %g cm",
+                                      value, static_cast<double>(vz)));
+    }
+    return 1. / value;
+}
+
+//________________
+// Event weight calculation: (stored generator weight for pp | legacy pT-hat
+// weighting for pPb) times the vz weight 1/fVzWeight(vz).
 /// @param ptHat: event pT-hat read from hiEvtAnalyzer/HiTree/pthat
-/// @param vz: the z position
-/// @param fVzWeight: the z position weight function
+/// @param vz: the z position in the stored (direction-flipped) frame
+/// @param fVzWeight: fitted MC/Data vz ratio; the weight divides by it
 /// @param eventsInSample: the number of events in the sample (pPb only)
 /// @param isPp: use the stored pp MC event weight without normalization
 /// @param storedWeight: scalar Float_t weight from hiEvtAnalyzer/HiTree
@@ -758,7 +825,7 @@ double eventWeight(const float &ptHat, const float &vz, TF1 &fVzWeight, Long64_t
         if (!std::isfinite(storedWeight)) {
             throw std::runtime_error("Non-finite hiEvtAnalyzer/HiTree/weight in pp event");
         }
-        return storedWeight;
+        return storedWeight * vzMcWeight(fVzWeight, vz);
     }
 
     // P04: eventsInSample is the entries in THIS invocation, before cuts.
@@ -766,8 +833,7 @@ double eventWeight(const float &ptHat, const float &vz, TF1 &fVzWeight, Long64_t
     // them changes its total normalization. Use a campaign-level convention
     // before interpreting merged pPb yields as a cross section.
     double genWeight = 1.0;
-    double vzWeight = 1./ fVzWeight.Eval( vz );
-    // vzWeight = 1.;
+    const double vzWeight = vzMcWeight(fVzWeight, vz);
     // Half-open lookup intervals [low, high), consistent with isGoodEvent.
     // Legacy per-event cross-section coefficients times reference generated
     // counts. Their provenance/units require campaign validation; this code
@@ -4110,9 +4176,18 @@ void processEvents(const bool isPp, const bool &isPbGoing, const bool &isMc, con
 
     std::cout << "Start event processing..." << std::endl;
 
-    // Vz weight function for MC, derived from data/MC ratio of vz distribution in minimum bias events
+    // Vz weight function for MC: pol8 fit of the MC/Data ratio of normalized
+    // minimum-bias vz shapes, specific to generator and beam direction. The
+    // event weight divides by it (vzMcWeight). Data events never use it.
     auto fVzWeight = std::make_unique<TF1>("fVzWeight", "pol8", -15.1, 15.1);
-    fVzWeight->SetParameters(0.856516,-0.0159813,0.00436628,-0.00012862,2.61129e-05,-4.16965e-07,1.73711e-08,-3.11953e-09,6.24993e-10);
+    fVzWeight->SetParameter(0, 1.);  // unit function (unused) for data
+    if (isMc) {
+        const VzWeightParameters vzParameters = vzWeightParameters(isPp, isPythia, isPbGoing);
+        fVzWeight->SetParameters(vzParameters.pol8.data());
+        std::cout << "Vz weight function: " << vzParameters.label << ", pol8 parameters:";
+        for (double value : vzParameters.pol8) std::cout << Form(" %.17g", value);
+        std::cout << std::endl;
+    }
 
     // JER smearing helper for calculating the smearing factor based on eta and pT
     auto fJerSmearingHelper = std::make_unique<JERSmearingHelper>();

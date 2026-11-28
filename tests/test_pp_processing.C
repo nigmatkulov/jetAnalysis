@@ -52,21 +52,51 @@ void test_pp_processing() {
     auto check = [](bool condition, const char *message) {
         if (!condition) throw std::runtime_error(message);
     };
-    TF1 zeroVzWeight("testZeroVzWeight", "0", -20., 20.);
+    TF1 constantVzWeight("testConstantVzWeight", "2", -20., 20.);
+    TF1 linearVzWeight("testLinearVzWeight", "1 + 0.05*x", -20., 20.);
     for (float stored : {-2.5f, 0.f, 0.125f, 3.f}) {
-        // Neither the zero vz function nor event-count normalization may affect pp.
-        check(eventWeight(1.f, 0.f, zeroVzWeight, 0, true, stored) == stored,
-              "pp must return the exact stored weight");
-        check(eventWeight(1000.f, 14.f, zeroVzWeight, 12345, true, stored) == stored,
-              "pp weight must be independent of pthat, vz and sample size");
+        // pp: stored weight times the vz weight 1/f(vz); no event-count normalization.
+        check(eventWeight(1.f, 0.f, constantVzWeight, 0, true, stored) == stored / 2.,
+              "pp must return stored weight / f(vz)");
+        check(eventWeight(1000.f, 14.f, constantVzWeight, 12345, true, stored) == stored / 2.,
+              "pp weight must be independent of pthat and sample size");
+        check(std::abs(eventWeight(1.f, 10.f, linearVzWeight, 0, true, stored) - stored / 1.5) < 1e-12,
+              "pp vz weight must be evaluated at the event vz");
     }
     bool rejected = false;
     try {
-        eventWeight(30.f, 0.f, zeroVzWeight, 1, true,
+        eventWeight(30.f, 0.f, constantVzWeight, 1, true,
                     std::numeric_limits<float>::quiet_NaN());
     } catch (const std::runtime_error &) { rejected = true; }
     check(rejected, "non-finite pp weights must fail");
-    TF1 constantVzWeight("testConstantVzWeight", "2", -20., 20.);
+    TF1 zeroVzWeight("testZeroVzWeight", "0", -20., 20.);
+    for (bool pp : {true, false}) {
+        rejected = false;
+        try { eventWeight(40.f, 0.f, zeroVzWeight, 100, pp, 1.f); }
+        catch (const std::runtime_error &) { rejected = true; }
+        check(rejected, "a non-positive vz function must fail, not divide by zero");
+    }
+    // Generator/direction selection of the production vz functions.
+    auto f0 = [](bool pp, bool pythia, bool pb) { return vzWeightParameters(pp, pythia, pb).pol8[0]; };
+    check(f0(false, false, true) == 0.8462114449363278, "embedding Pb-going vz function");
+    check(f0(false, false, false) == 0.8609100105216301, "embedding p-going vz function");
+    check(f0(false, true, true) == 0.846359490718918, "PYTHIA Pb-going vz function");
+    check(f0(false, true, false) == 0.8608554772070396, "PYTHIA p-going vz function");
+    check(f0(true, true, true) == 0.8497280749475392, "CP5 pp vz function");
+    for (auto args : {std::array<bool, 2>{true, false}, std::array<bool, 2>{false, true}}) {
+        rejected = false;
+        try { vzWeightParameters(true, args[0], args[1]); }
+        catch (const std::runtime_error &) { rejected = true; }
+        check(rejected, "pp MC other than PYTHIA CP5 Pb-going must have no vz function");
+    }
+    for (bool pythia : {false, true}) for (bool pb : {false, true}) {
+        const auto parameters = vzWeightParameters(false, pythia, pb);
+        TF1 f("testProductionVz", "pol8", -15.1, 15.1);
+        f.SetParameters(parameters.pol8.data());
+        for (float z = -15.f; z <= 15.f; z += 0.5f)
+            check(std::isfinite(vzMcWeight(f, z)) && vzMcWeight(f, z) > 0.,
+                  "production vz weights must be finite and positive on |vz|<=15");
+    }
     const double legacyWeight = 7.7966624e-08 * 952110 / 100. / 2.;
     check(eventWeight(40.f, 0.f, constantVzWeight, 100) == legacyWeight,
           "pPb normalization and vz weighting changed");

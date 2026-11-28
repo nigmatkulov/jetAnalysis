@@ -359,16 +359,20 @@ CM eta acceptance and forward/backward assignments use these unshifted values.
 
 For pp MC, `hiEvtAnalyzer/HiTree/pthat` and `weight` must be scalar `Float_t`
 branches. The stored `weight` is used directly for each event, including zero
-and negative values; it is not divided by the file's event count or multiplied
-by a vertex weight. Non-finite weights fail explicitly. `ptHatSample` is unused:
+and negative values; it is not divided by the file's event count. Since
+2026-11-27 it is multiplied by the CP5 vertex weight 1/f(vz) (see
+`vzWeightParameters` and `hist_analysis/README.md`); pp MC other than PYTHIA
+CP5 run as Pb-going (`mcType` 2, `isPbGoingDir` 1) has no vertex function and
+stops with an error. Non-finite weights fail explicitly. `ptHatSample` is unused:
 there is no pT-hat range cut. The pp event selection uses only `|vz| <= 15 cm`
 (the pPb skim filters and vertex-filter selector are ignored). Existing jet
 selection and pT-hat-dependent overweight-event rejection remain in effect.
 
 Both pp and pPb MC read `hiEvtAnalyzer/HiTree/pthat` (lowercase). The pPb
 pT-hat range cut and weight-table lookup both use `[low, high)`: an exact shared
-boundary belongs to the next interval. Generator normalization, vertex weighting,
-and event filters otherwise retain their existing behavior. The pPb weight still
+boundary belongs to the next interval. Generator normalization and event
+filters otherwise retain their existing behavior; the pPb vertex weight is
+generator- and direction-specific since 2026-11-27. The pPb weight still
 divides by the input entries in the current invocation, so splitting a sample
 into jobs and directly summing their outputs changes its normalization. Use a
 complete sample per invocation until a shared normalization convention is defined.
@@ -631,7 +635,7 @@ inspecting and comparing analysis outputs:
 
 - `notebooks/01_inventory.ipynb`: checks configured directories, lists ROOT files, and inventories object keys.
 - `notebooks/02_mc_event_histograms.ipynb`: plots event-level pt-hat and vertex-z distributions and reproduces the gen/reco overweight-protection upper-tail diagnostic.
-- `notebooks/02_mc_data_vz_reweighting.ipynb`: derives direction-specific primary-vertex v_z reweighting functions from the post-selection `hVzUnweighted` histograms of MC and minimum-bias data. It uses the explicit stored-frame mapping MC Pb-going to data p-going and MC p-going to data Pb-going; the CP5 pp sample is Pb-going and is diagnostic only. It is processed with `isPbGoing=1`, and its stored-frame v_z mean is negative like the other Pb-going MC; see `hist_analysis/README.md`. Combined samples are not used. It fits the MC/Data ratio with a configurable `pol8` and scans lower orders. It validates the fit with histogram-level and independent event-level (entry-parity) closures, and overlays the MC shapes, including CP5, with ratios to Embedding Pb-going. It exports ROOT objects, JSON and Markdown summaries, and drop-in C++ `fVzWeight` snippets. `processForestSimple.C` divides by `fVzWeight` (`1./fVzWeight.Eval(vz)`), so the exported function is MC/Data and the MC weight is its reciprocal; see `hist_analysis/README.md`.
+- `notebooks/02_mc_data_vz_reweighting.ipynb`: derives direction-specific primary-vertex v_z reweighting functions from the post-selection `hVzUnweighted` histograms of MC and minimum-bias data. It uses the explicit stored-frame mapping MC Pb-going to data p-going and MC p-going to data Pb-going; the CP5 pp sample is Pb-going: it is processed with `isPbGoing=1`, and its stored-frame v_z mean is negative like the other Pb-going MC; see `hist_analysis/README.md`. Combined samples are not used. It fits the MC/Data ratio with a configurable `pol8` and scans lower orders. It validates the fit with histogram-level and independent event-level (entry-parity) closures, and overlays the MC shapes, including CP5, with ratios to Embedding Pb-going. It exports ROOT objects, JSON and Markdown summaries, and C++ parameter snippets. Since 2026-11-27 `processForestSimple.C` uses these fits per generator and direction (`vzWeightParameters`) and divides by them (`vzMcWeight` = 1/f), so the exported function is MC/Data and the MC weight is its reciprocal; see `hist_analysis/README.md`.
 - `notebooks/02_mc_jet_efficiency_fakes.ipynb`: calculates Lab-frame inclusive-jet efficiency using matched reference pT and eta (`hRefSelInclusiveJetPtEtaLab / hGenInclusiveJetPtEtaLab`), matched rate, and fake rate without pre-division normalization. It draws the matched-reference 2D yield distribution, two-dimensional rate maps, eta projections in configured jet-pT intervals, and pT projections in configurable eta intervals; matched and fake 1D rates use style indices 0 and 1 on shared log-y canvases.
 - `notebooks/02_mc_jet_selection.ipynb`: compares Reco, matched Ref, RefSel, and Gen inclusive-jet eta shapes in Lab and CM for the three selection stages. Ratios default to legacy ROOT binomial diagnostics. Use the per-ratio error switches and the statistics CSV to inspect the uncertainty conventions described in the [histogram workflow](hist_analysis/README.md).
 - `notebooks/02_mc_jet_JES_JER.ipynb`: extracts inclusive-jet JES/JER, compares systematic variations, and draws response maps.

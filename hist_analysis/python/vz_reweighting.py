@@ -29,11 +29,15 @@ import ROOT
 
 ROOT.TH1.AddDirectory(False)
 
-# Supplied production starting point (processForestSimple.C:4114-4115).
-PRODUCTION_POL8_PARAMETERS = (
+# Legacy single production function used for every MC sample before
+# 2026-11-27 (old processForestSimple.C:4114-4115). Kept as the fit starting
+# point and for old-vs-new comparisons; production now selects a
+# generator/direction-specific set (vzWeightParameters in processForestSimple.C).
+LEGACY_POL8_PARAMETERS = (
     0.856516, -0.0159813, 0.00436628, -0.00012862, 2.61129e-05,
     -4.16965e-07, 1.73711e-08, -3.11953e-09, 6.24993e-10,
 )
+PRODUCTION_POL8_PARAMETERS = LEGACY_POL8_PARAMETERS  # backward-compatible alias
 
 
 # ------------------------------------------------------------------
@@ -623,13 +627,18 @@ def event_level_histograms(files: Sequence, *, flip: bool, name: str, edges,
     keys = ("all", "even", "odd") + (("odd_weighted",) if weight_function is not None else ())
     totals = {}
     entries = 0
-    for path in files:
+    # pp has no per-file pT-hat range: read all files as one chain (faster).
+    groups = [list(files)] if pp else [[path] for path in files]
+    for group in groups:
+        path = group[0]
         chain = ROOT.TChain("hiEvtAnalyzer/HiTree")
-        chain.Add(str(path))
+        for item in group:
+            chain.Add(str(item))
         friend = None
         if selection == "selected" and not pp:
             friend = ROOT.TChain("skimanalysis/HltTree")
-            friend.Add(str(path))
+            for item in group:
+                friend.Add(str(item))
             chain.AddFriend(friend)
         frame = ROOT.RDataFrame(chain)
         frame = frame.Define("vzs", "-vz" if flip else "vz")
@@ -654,7 +663,7 @@ def event_level_histograms(files: Sequence, *, flip: bool, name: str, edges,
         per_file = totals.setdefault("per_file", {})
         single = results["all"].GetValue().Clone(f"{name}_file{len(per_file)}")
         single.SetDirectory(0)
-        per_file[Path(path).name] = single
+        per_file[Path(path).name if len(group) == 1 else f'{len(group)} files'] = single
         for key in keys:
             histogram = results[key].GetValue()
             if key in totals:

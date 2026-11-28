@@ -228,8 +228,8 @@ CP5 direction: the official CP5 sample is Pb-going. `pp_analyzeMc_cp5tune.py`
 passes direction 1 (`isPbGoing`), so the stored CP5 v_z is flipped like the
 other Pb-going MC. Its stored-frame mean is negative (-0.57 cm), as for Pb-going
 embedding/PYTHIA (-1.40 cm), while p-going MC is positive (+1.41 cm). CP5 is
-therefore paired with p-going data. Its weight is diagnostic only, because
-production never v_z-weights pp MC.
+therefore paired with p-going data. Since 2026-11-27 production applies it:
+the pp MC weight is the stored generator weight times 1/f.
 
 Outputs go under `output/vz_reweighting/<date>/jetId/{root,mplhep}/`:
 
@@ -238,14 +238,31 @@ Outputs go under `output/vz_reweighting/<date>/jetId/{root,mplhep}/`:
   order scan, the closure, and a `fitSummary` JSON, plus one directory with
   the MC comparison;
 - `*_vz_reweighting_summary.{json,md}`;
-- `*_vz_reweighting_fVzWeight.C`: one drop-in block per choice;
+- `*_vz_reweighting_fVzWeight.C`: the pol8 parameters of each pairing in C++;
 - the figures.
 
-To use a result, paste exactly one block from the `.C` file in place of the
-existing `fVzWeight` definition. That edit changes production weights, so it
-needs explicit approval. Production currently applies a single function to
-both MC beam directions, although their stored-frame v_z distributions are
-mirror images. The direction-specific blocks remove that limitation.
+Production use (since 2026-11-27): `vzWeightParameters()` in
+`processForestSimple.C` holds one parameter set per MC generator and beam
+direction. These are the 2026-11-25 hVzUnweighted fits:
+
+| Producer configuration | Parameter set |
+|---|---|
+| pPb `mcType` 1, Pb-going | embedding Pb-going |
+| pPb `mcType` 1, p-going | embedding p-going |
+| pPb `mcType` 2, Pb-going | PYTHIA Pb-going |
+| pPb `mcType` 2, p-going | PYTHIA p-going |
+| pp `mcType` 2, Pb-going | CP5 |
+
+Any other pp MC configuration stops with an error, and data never uses a
+function. `eventWeight` multiplies the pPb pT-hat weight, or the pp stored
+weight, by `vzMcWeight` = 1/f(vz). That is evaluated at the stored-frame vz
+after `isGoodEvent`, and a non-finite or non-positive f is an error. The
+replaced legacy function was a single fit of combined embedding against
+combined data, applied to every pPb MC sample. It is kept as
+`LEGACY_POL8_PARAMETERS` in `python/vz_reweighting.py`. If the notebook is
+rerun on new inputs, update the matching entries in `vzWeightParameters()`
+together with the expected values in `tests/test_pp_processing.C`. Outputs
+produced before this change carry the legacy weights and must be reprocessed.
 
 Use `notebooks/02_mc_jet_efficiency_fakes.ipynb` for Lab-frame inclusive-jet
 efficiency (`hRefSelInclusiveJetPtEtaLab / hGenInclusiveJetPtEtaLab`,
